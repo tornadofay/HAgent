@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,9 +26,9 @@ namespace HAgent.Storage.File
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Memory file path is required.", nameof(path));
             _path = path;
 
-            var directory = Path.GetDirectoryName(_path);
+            var directory = System.IO.Path.GetDirectoryName(_path);
             if (!string.IsNullOrWhiteSpace(directory))
-                Directory.CreateDirectory(directory);
+                System.IO.Directory.CreateDirectory(directory);
         }
 
         public string Path => _path;
@@ -46,8 +45,8 @@ namespace HAgent.Storage.File
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                using (var stream = new FileStream(_path, FileMode.Append, FileAccess.Write, FileShare.Read, 4096, true))
-                using (var writer = new StreamWriter(stream))
+                using (var stream = new System.IO.FileStream(_path, System.IO.FileMode.Append, System.IO.FileAccess.Write, System.IO.FileShare.Read, 4096, true))
+                using (var writer = new System.IO.StreamWriter(stream))
                 {
                     await writer.WriteLineAsync(json).ConfigureAwait(false);
                 }
@@ -65,13 +64,13 @@ namespace HAgent.Storage.File
             var terms = SplitTerms(query.Text);
             var matches = new List<ScoredEntry>();
 
-            if (!File.Exists(_path)) return matches.ConvertAll(x => x.Entry).AsReadOnly();
+            if (!System.IO.File.Exists(_path)) return matches.ConvertAll(x => x.Entry).AsReadOnly();
 
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                using (var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true))
-                using (var reader = new StreamReader(stream))
+                using (var stream = new System.IO.FileStream(_path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite, 4096, true))
+                using (var reader = new System.IO.StreamReader(stream))
                 {
                     while (true)
                     {
@@ -113,7 +112,7 @@ namespace HAgent.Storage.File
 
         public async Task RemoveAsync(string memoryId, CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (string.IsNullOrWhiteSpace(memoryId) || !File.Exists(_path)) return;
+            if (string.IsNullOrWhiteSpace(memoryId) || !System.IO.File.Exists(_path)) return;
             await RewriteAsync(delegate(MemoryEntry entry) {
                 return !string.Equals(entry.Id, memoryId, StringComparison.OrdinalIgnoreCase);
             }, cancellationToken).ConfigureAwait(false);
@@ -121,7 +120,7 @@ namespace HAgent.Storage.File
 
         public async Task ClearAsync(string scope, string ownerId, CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (!File.Exists(_path)) return;
+            if (!System.IO.File.Exists(_path)) return;
             MemoryScope parsed;
             var hasScope = Enum.TryParse(scope, true, out parsed);
             await RewriteAsync(delegate(MemoryEntry entry) {
@@ -137,12 +136,12 @@ namespace HAgent.Storage.File
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                using (var input = File.Exists(_path)
-                    ? new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true)
+                using (var input = System.IO.File.Exists(_path)
+                    ? new System.IO.FileStream(_path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read, 4096, true)
                     : null)
-                using (var reader = input == null ? null : new StreamReader(input))
-                using (var output = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
-                using (var writer = new StreamWriter(output))
+                using (var reader = input == null ? null : new System.IO.StreamReader(input))
+                using (var output = new System.IO.FileStream(tempPath, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None, 4096, true))
+                using (var writer = new System.IO.StreamWriter(output))
                 {
                     if (reader != null)
                     {
@@ -169,12 +168,12 @@ namespace HAgent.Storage.File
                     }
                 }
 
-                File.Delete(_path);
-                File.Move(tempPath, _path);
+                System.IO.File.Delete(_path);
+                System.IO.File.Move(tempPath, _path);
             }
             finally
             {
-                if (File.Exists(tempPath)) File.Delete(tempPath);
+                if (System.IO.File.Exists(tempPath)) System.IO.File.Delete(tempPath);
                 _gate.Release();
             }
         }

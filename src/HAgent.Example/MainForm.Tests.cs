@@ -81,6 +81,73 @@ namespace HAgent.Example
                              string.Join(Environment.NewLine, read.Messages.Select(x => "  " + x.Role + ": " + x.Content)));
         }
 
+        private async Task TestPersistentSessionAsync(string firstMessage)
+        {
+            var selection = await CreateClientAndAgentAsync();
+            var request = RequireInput(firstMessage);
+            var conversationPath = Path.Combine(_basePath, "conversations");
+            var sessionId = "example-" + Guid.NewGuid().ToString("N");
+            var memoryFile = Path.Combine(conversationPath, sessionId + ".json");
+
+            string originalTranscript;
+            var firstConversationStore = new FileConversationStore(conversationPath);
+            try
+            {
+                var firstClient = new HAgentClient(
+                    selection.ClientStore,
+                    selection.Secrets,
+                    new[] { new OpenAICompatibleProviderAdapter() },
+                    null,
+                    null,
+                    firstConversationStore);
+
+                var session = firstClient.CreateSession(selection.Agent.Id, sessionId);
+                await session.SendAsync(request);
+                var firstRead = await session.ReadAsync();
+                originalTranscript = string.Join(Environment.NewLine, firstRead.Messages.Select(x => "  " + x.Role + ": " + x.Content));
+            }
+            finally
+            {
+                firstConversationStore.Dispose();
+            }
+
+            var secondConversationStore = new FileConversationStore(conversationPath);
+            try
+            {
+                var secondClient = new HAgentClient(
+                    selection.ClientStore,
+                    selection.Secrets,
+                    new[] { new OpenAICompatibleProviderAdapter() },
+                    null,
+                    null,
+                    secondConversationStore);
+
+                var reopened = await secondClient.OpenSessionAsync(selection.Agent.Id, sessionId, CancellationToken.None);
+                var reopenedRead = await reopened.ReadAsync();
+                var expected = reopenedRead.Messages.Any(x => string.Equals(x.Content, request, StringComparison.Ordinal));
+
+                if (!expected)
+                    throw new InvalidOperationException("The reopened session did not retain the original user message.");
+
+                Write("PERSISTENT SESSION", "Session ID: " + sessionId + Environment.NewLine +
+                                          "File: " + memoryFile + Environment.NewLine +
+                                          "Agent: " + selection.Agent.Name + Environment.NewLine +
+                                          "Provider: " + selection.Provider.Name + Environment.NewLine +
+                                          "Model: " + selection.Model + Environment.NewLine +
+                                          "Persistence test succeeded." + Environment.NewLine +
+                                          "Messages retained after reopening: " + reopenedRead.Messages.Count + Environment.NewLine +
+                                          "Original transcript:" + Environment.NewLine + originalTranscript + Environment.NewLine +
+                                          "Reopened transcript:" + Environment.NewLine +
+                                          string.Join(Environment.NewLine, reopenedRead.Messages.Select(x => "  " + x.Role + ": " + x.Content)));
+
+                await reopened.DeleteAsync(CancellationToken.None);
+            }
+            finally
+            {
+                secondConversationStore.Dispose();
+            }
+        }
+
         private async Task TestRuntimeAsync(string message)
         {
             var selection = await CreateClientAndAgentAsync();
@@ -193,6 +260,13 @@ namespace HAgent.Example
             }
 
             return value.Trim();
+        }
+
+        private static string RequireInput(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                throw new ArgumentException("The example input cannot be empty.", nameof(input));
+            return input;
         }
     }
 }

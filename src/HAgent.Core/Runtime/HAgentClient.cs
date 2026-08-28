@@ -88,17 +88,11 @@ namespace HAgent.Runtime
                     foreach (var m in messages) if (m != null) outgoing.Add(m);
                     return await adapter.SendAsync(provider, agent, apiKey, systemPrompt, outgoing, cancellationToken).ConfigureAwait(false);
                 }
-                catch when (!cancellationToken.IsCancellationRequested)
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
-                    // Preserve the exact reason so callers can diagnose provider failures.
-                    try
-                    {
-                        await TryCaptureProviderFailureAsync(provider, agent, apiKey: null, messages, failures, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        failures.Add("Provider " + provider.Name + ": request failed, but the original exception could not be captured.");
-                    }
+                    var messageText = string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + "): " +
+                                 ex.GetType().Name + ": " + messageText);
                 }
             }
 
@@ -109,22 +103,6 @@ namespace HAgent.Runtime
             throw new InvalidOperationException(
                 "No enabled and compatible provider could handle agent '" + agent.Name + "'." +
                 Environment.NewLine + Environment.NewLine + detail);
-        }
-
-        private async Task TryCaptureProviderFailureAsync(
-            AiProvider provider,
-            AiAgent agent,
-            string apiKey,
-            IReadOnlyList<AIMessage> messages,
-            List<string> failures,
-            CancellationToken cancellationToken)
-        {
-            // This method is intentionally only a diagnostics fallback. The actual request exception
-            // is captured below by rethrowing through an exception-preserving helper.
-            // It is not invoked to make a second network request.
-            await Task.CompletedTask.ConfigureAwait(false);
-            failures.Add("Provider " + provider.Name + ": request failed while using model '" +
-                         (string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model) + "'.");
         }
 
         public Task<AgentExecution> ExecuteAsync(

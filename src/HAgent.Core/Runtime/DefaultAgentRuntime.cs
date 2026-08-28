@@ -101,8 +101,6 @@ namespace HAgent.Runtime
                                     : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
                                 var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent);
 
-                                // The adapter receives the resolved system prompt separately and is responsible
-                                // for placing it into the provider request exactly once.
                                 execution.Response = await adapter.SendAsync(
                                     provider,
                                     snapshot.Agent,
@@ -113,6 +111,7 @@ namespace HAgent.Runtime
 
                                 execution.State = AgentExecutionState.Succeeded;
                                 execution.FailureKind = AgentExecutionFailureKind.None;
+                                execution.ProviderErrorKind = ProviderErrorKind.Unknown;
                                 execution.CompletedAt = DateTimeOffset.UtcNow;
                                 Notify(execution);
                                 return execution;
@@ -120,7 +119,8 @@ namespace HAgent.Runtime
                             catch (Exception ex)
                             {
                                 lastError = ex;
-                                lastErrorKind = _errorClassifier.Classify(ex);
+                                lastErrorKind = ClassifyProviderError(ex);
+                                execution.ProviderErrorKind = lastErrorKind;
                                 if (token.IsCancellationRequested) throw;
 
                                 var retryable = lastErrorKind == ProviderErrorKind.Transient ||
@@ -139,7 +139,10 @@ namespace HAgent.Runtime
                     }
 
                     execution.FailureKind = lastErrorKind == ProviderErrorKind.Authentication ||
-                                            lastErrorKind == ProviderErrorKind.InvalidRequest
+                                            lastErrorKind == ProviderErrorKind.InvalidRequest ||
+                                            lastErrorKind == ProviderErrorKind.ModelTermsRequired ||
+                                            lastErrorKind == ProviderErrorKind.PermissionDenied ||
+                                            lastErrorKind == ProviderErrorKind.ModelNotFound
                         ? AgentExecutionFailureKind.Configuration
                         : lastErrorKind == ProviderErrorKind.Unavailable
                             ? AgentExecutionFailureKind.ProviderUnavailable
@@ -174,6 +177,26 @@ namespace HAgent.Runtime
                     throw;
                 }
             }
+        }
+
+        private ProviderErrorKind ClassifyProviderError(Exception exception)
+        {
+            var message = exception == null ? string.Empty : (exception.Message ?? string.Empty);
+            if (message.IndexOf("model_terms_required", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("requires terms acceptance", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("terms acceptance", StringComparison.OrdinalIgnoreCase) >= 0)
+                return ProviderErrorKind.ModelTermsRequired;
+
+            if (message.IndexOf("model_not_found", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("model not found", StringComparison.OrdinalIgnoreCase) >= 0)
+                return ProviderErrorKind.ModelNotFound;
+
+            if (message.IndexOf("permission_denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("permission denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("does not have access", StringComparison.OrdinalIgnoreCase) >= 0)
+                return ProviderErrorKind.PermissionDenied;
+
+            return _errorClassifier.Classify(exception);
         }
 
         private static TimeSpan CalculateBackoff(TimeSpan baseDelay, int retryNumber, bool rateLimited)

@@ -1,8 +1,8 @@
 # HAgent Development Plan
 
-## Current milestone: 0.2 — Runtime foundation
+## Current milestone: 0.3 — Memory
 
-### Foundation completed
+### 0.1 Foundation — completed
 - [x] Multi-target core for .NET Framework 4.8.1 and .NET 9.
 - [x] Provider-neutral adapter contract.
 - [x] OpenAI-compatible provider adapter.
@@ -15,24 +15,31 @@
 - [x] Provider connection test capability.
 - [x] Provider model catalog capability.
 - [x] Agent/provider deletion rules in the UI and storage.
-- [x] Agent execution state model.
-- [x] Agent/provider execution snapshot model.
-- [x] Default provider routing abstraction.
-- [x] Agent runtime abstraction and default execution pipeline.
-- [x] Execution timeout/cancellation boundary.
-- [x] Dependency-free in-memory memory store with lightweight text/metadata search.
-- [x] Memory scopes model without requiring embeddings or a GPU.
 
-### Remaining 0.2 work
-- [ ] Unified Send/Read API with explicit execution context across all runtime paths.
-- [ ] Execution correlation IDs and lifecycle events.
-- [ ] Runtime diagnostics and structured failure reporting.
-- [ ] Provider error classification.
-- [ ] Retry/backoff policy separate from provider routing.
-- [ ] Runtime leases so deleting an agent/provider cannot invalidate active executions.
-- [ ] Real multi-provider configuration/persistence and routing UI.
-- [ ] Finish visual/layout QA at different window sizes.
-- [ ] Executable tool-call loop.
+### 0.2 Runtime foundation — completed
+- [x] Agent runtime abstraction and default execution pipeline.
+- [x] Agent execution state model.
+- [x] Execution correlation IDs via stable execution IDs.
+- [x] Agent/provider execution snapshots so running work is independent from mutable configuration.
+- [x] Default provider routing abstraction.
+- [x] Multiple configured provider candidates per agent in the runtime.
+- [x] Configurable provider-attempt limits.
+- [x] Explicit cancellation boundary.
+- [x] Explicit timeout boundary.
+- [x] Distinguish caller cancellation from runtime timeout.
+- [x] Configurable retry count per provider.
+- [x] Conservative provider error classification.
+- [x] Exponential retry backoff with stronger delay for rate-limit conditions.
+- [x] Execution lifecycle events for host applications.
+- [x] Execution duration and last-provider diagnostics.
+- [x] Structured execution failure categories.
+- [x] Dependency-free memory abstraction and in-memory lightweight text/metadata search foundation.
+- [x] Memory design explicitly avoids requiring GPU, local embedding models, or large resident RAM.
+
+### Deferred from 0.2 into later milestones
+- [ ] Persistent multi-provider routing configuration/UI.
+- [ ] Executable provider-native tool-call loop.
+- [ ] Runtime leases beyond execution snapshots where host applications require coordinated lifecycle ownership.
 
 ## Milestone: 0.3 — Memory
 - [ ] Persistent conversation memory.
@@ -69,6 +76,7 @@
 - [ ] Tool schema validation.
 - [ ] Tool-call budget and loop protection.
 - [ ] Typed argument binding and validation.
+- [ ] Provider-native tool/function calling capability negotiation.
 
 ## Milestone: 0.5 — Agent collaboration
 - [ ] Agent-to-agent messaging board.
@@ -95,6 +103,7 @@
 - [ ] Task checkpoints.
 - [ ] Resume interrupted executions from checkpoints.
 - [ ] Live tool-call/status visualization.
+- [ ] Agent deletion semantics for open chat/task references.
 
 ## Milestone: 0.7 — Extensibility
 - [ ] Provider adapter DLL loading.
@@ -102,6 +111,7 @@
 - [ ] Custom storage provider DLLs.
 - [ ] Provider capability discovery.
 - [ ] Provider model catalogs.
+- [ ] Persistent multi-provider routing configuration/UI.
 - [ ] Streaming responses.
 - [ ] Multimodal provider abstractions.
 - [ ] OpenAI, Anthropic, Google, Azure, Ollama, and custom adapters as separate packages where appropriate.
@@ -150,4 +160,4 @@ Memory must not require a local GPU, embedding model, vector database, or large 
 
 An AI model must never receive arbitrary access to WinForms controls, reflection, processes, files, databases, or other host resources. Those capabilities must be exposed explicitly as typed tools with validation and policy enforcement.
 
-Deleting configuration must not silently destroy a running execution. Runtime work must eventually operate from an execution snapshot/lease independent from mutable configuration.
+Deleting configuration must not silently destroy a running execution. Runtime work operates from an execution snapshot so an active task can finish independently of later configuration changes.

@@ -83,10 +83,16 @@ namespace HAgent.Runtime
                         ? string.Empty
                         : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
                     var systemPrompt = BuildSystemPrompt(provider, agent);
-                    var outgoing = new List<AIMessage>();
-                    if (!string.IsNullOrWhiteSpace(systemPrompt)) outgoing.Add(new AIMessage("system", systemPrompt));
-                    foreach (var m in messages) if (m != null) outgoing.Add(m);
-                    return await adapter.SendAsync(provider, agent, apiKey, systemPrompt, outgoing, cancellationToken).ConfigureAwait(false);
+
+                    // The adapter receives the resolved system prompt separately and is responsible
+                    // for placing it in the provider request exactly once.
+                    return await adapter.SendAsync(
+                        provider,
+                        agent,
+                        apiKey,
+                        systemPrompt,
+                        messages,
+                        cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {

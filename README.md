@@ -45,6 +45,7 @@ Conversation
 
 Memory
   ├─ explicit remember / recall / forget
+  ├─ optional explicit conversation-memory policy
   ├─ scoped entries + metadata
   └─ replaceable storage providers
 ```
@@ -134,7 +135,7 @@ Memory is explicit by design: HAgent does not silently persist every conversatio
 
 HAgent 0.2 establishes the runtime foundation needed for later agent capabilities. It includes execution state, execution snapshots, provider routing, cancellation/timeouts, retry/backoff, lifecycle events, diagnostics, and a lightweight memory abstraction.
 
-The current 0.3 line adds persistent low-memory file memory plus optional persistent conversation sessions. File-backed conversation persistence uses one JSON document per session so reopening one conversation does not require loading unrelated conversations into memory. Automatic memory policies, context budgeting, richer long-term memory, full autonomous tool calling, multi-agent collaboration, and the user chat experience remain separate milestones.
+The current 0.3 line adds persistent low-memory file memory plus optional persistent conversation sessions. File-backed conversation persistence uses one JSON document per session so reopening one conversation does not require loading unrelated conversations into memory. The default automatic-memory policy is deliberately conservative: it only promotes a user message when the user explicitly uses a memory trigger such as `Remember this:`. Context budgeting is also applied before provider submission so stored history can remain complete while provider requests stay bounded.
 
 ## Design principles
 
@@ -158,7 +159,7 @@ The runtime knows how to order candidate providers, limit attempts, classify bro
 An `AgentSession` owns the ordered user/assistant history. Persistence is opt-in through `IConversationStore`; when enabled, a stable session ID allows an application to reopen the same conversation after the original session/store instance is gone.
 
 ### Memory is externalized state
-HAgent does not claim that an AI model permanently remembers anything. Memory is explicit application state retrieved and supplied as context. The default memory direction must work without a local GPU and without loading a large store entirely into RAM.
+HAgent does not claim that an AI model permanently remembers anything. Memory is explicit application state retrieved and supplied as context. Automatic conversation-memory promotion is policy-driven and conservative; ordinary chat does not become long-term memory unless a policy decides it should. The default memory direction must work without a local GPU and without loading a large store entirely into RAM.
 
 ### Tools are controlled capabilities
 A tool definition describes a capability; it is not executable code. The host application owns the actual handler and side effects. An AI model must never receive arbitrary access to controls, processes, files, databases, or reflection.
@@ -247,6 +248,8 @@ Current examples include:
 - **Runtime 0.2** — exercises execution IDs, state, timeout, provider-attempt limits, retries, and diagnostics.
 - **Configuration** — verifies provider/agent persistence can be read by the host.
 - **Memory** — verifies explicit persistent `remember` / `recall` behavior using the low-memory file store.
+- **Automatic Memory** — verifies the default explicit-trigger policy promotes only messages that explicitly request memory.
+- **Context Budget** — verifies deterministic bounded context selection without a provider tokenizer or AI call.
 
 A shared **Global output** area displays the latest result across all examples. Each feature tab describes what it tests and the expected result.
 
@@ -298,6 +301,8 @@ The default design is intended to remain useful on machines with no GPU and as l
 HAgent must not make an embedding model, GPU, vector database, or large in-memory index a prerequisite for normal agent execution.
 
 The current persistent file memory implementation uses JSONL streaming rather than materializing the entire store, keeping the basic retrieval path small and predictable.
+
+Context budgeting is provider-neutral and tokenizer-free by default. Stored conversation history can remain complete while each model call receives only the bounded subset selected by the active context policy.
 
 ## Tools and application automation
 

@@ -37,6 +37,12 @@ Runtime
   ├─ lifecycle state
   └─ diagnostics
 
+Conversation
+  ├─ in-memory session history
+  ├─ optional persistent session ID
+  ├─ reopenable conversation store
+  └─ replaceable persistence provider
+
 Memory
   ├─ explicit remember / recall / forget
   ├─ scoped entries + metadata
@@ -62,6 +68,29 @@ await session.SendAsync("Now explain recursion simply.");
 
 var history = await session.ReadAsync();
 ```
+
+For persistent conversations:
+
+```csharp
+var conversations = new HAgent.Storage.File.FileConversationStore(
+    @"C:\MyApp\ai\conversations");
+
+var ai = new HAgent.Runtime.HAgentClient(
+    store,
+    secrets,
+    adapters,
+    router: null,
+    memory: null,
+    conversations: conversations);
+
+var session = ai.CreateSession("assistant", "conversation-42");
+await session.SendAsync("Remember that our project code name is HAgent.");
+
+var reopened = await ai.OpenSessionAsync("assistant", "conversation-42");
+var history = await reopened.ReadAsync();
+```
+
+A persistent session saves successful turns after each exchange. Existing `CreateSession(agentId)` remains ephemeral and requires no conversation-store dependency.
 
 For controlled execution:
 
@@ -105,7 +134,7 @@ Memory is explicit by design: HAgent does not silently persist every conversatio
 
 HAgent 0.2 establishes the runtime foundation needed for later agent capabilities. It includes execution state, execution snapshots, provider routing, cancellation/timeouts, retry/backoff, lifecycle events, diagnostics, and a lightweight memory abstraction.
 
-The current 0.3 line adds a persistent low-memory file memory store and explicit `remember`, `recall`, and `forget` operations while preserving a lightweight execution model. Persistent conversation integration, richer long-term memory, full autonomous tool calling, multi-agent collaboration, and the user chat experience are separate milestones.
+The current 0.3 line adds persistent low-memory file memory plus optional persistent conversation sessions. File-backed conversation persistence uses one JSON document per session so reopening one conversation does not require loading unrelated conversations into memory. Automatic memory policies, context budgeting, richer long-term memory, full autonomous tool calling, multi-agent collaboration, and the user chat experience remain separate milestones.
 
 ## Design principles
 
@@ -125,6 +154,9 @@ Configuration objects can change or be deleted while an execution is running. An
 ### Provider fallback is policy, not vendor logic
 The runtime knows how to order candidate providers, limit attempts, classify broad failures, and back off. Provider adapters remain responsible for translating their own API protocol.
 
+### Conversations are explicit state
+An `AgentSession` owns the ordered user/assistant history. Persistence is opt-in through `IConversationStore`; when enabled, a stable session ID allows an application to reopen the same conversation after the original session/store instance is gone.
+
 ### Memory is externalized state
 HAgent does not claim that an AI model permanently remembers anything. Memory is explicit application state retrieved and supplied as context. The default memory direction must work without a local GPU and without loading a large store entirely into RAM.
 
@@ -137,7 +169,7 @@ A tool definition describes a capability; it is not executable code. The host ap
 |---|---|
 | `HAgent.Core` | Core models, abstractions, sessions, runtime, and lightweight infrastructure |
 | `HAgent.Providers.OpenAICompatible` | OpenAI-compatible chat and model-catalog adapter |
-| `HAgent.Storage.File` | JSON settings, DPAPI secrets, and lightweight JSONL memory store |
+| `HAgent.Storage.File` | JSON settings, DPAPI secrets, JSONL memory store, and persistent conversation store |
 | `HAgent.Storage.SqlServer` | SQL Server persistence + schema bootstrap |
 | `HAgent.Storage.MySql` | MySQL persistence + schema bootstrap |
 | `HAgent.WinForms` | Designer-free configuration/development UI and shared HAgent UI helpers |
@@ -207,16 +239,16 @@ Default local storage uses:
 
 Set `HAgent.Example` as the startup project and press **F5**. The example host is organized into feature tabs so new runtime capabilities can be added without turning the main form into a wall of controls.
 
-Current tabs include:
+Current examples include:
 
 - **Messaging** — sends a real request through the configured agent/provider.
-- **Session** — exercises conversation history forwarding.
+- **Session** — exercises in-memory conversation history forwarding.
+- **Persistent Session** — creates a persistent session, discards the original store object, reopens the conversation by session ID, and verifies the history survives.
 - **Runtime 0.2** — exercises execution IDs, state, timeout, provider-attempt limits, retries, and diagnostics.
 - **Configuration** — verifies provider/agent persistence can be read by the host.
+- **Memory** — verifies explicit persistent `remember` / `recall` behavior using the low-memory file store.
 
 A shared **Global output** area displays the latest result across all examples. Each feature tab describes what it tests and the expected result.
-
-The manual suite will gain a **Memory** tab for persistent `remember` / `recall` / `forget` behavior as the memory milestone expands.
 
 Every major feature added to HAgent should eventually have a corresponding manual example here so it can be tested directly on a developer machine.
 
@@ -237,6 +269,10 @@ Use file storage for a local desktop configuration profile. Structured settings 
 ### File memory
 
 `FileMemoryStore` stores one JSON memory entry per line in a JSONL file. Searches stream through the file and retain only the bounded top results, avoiding the need to load the complete memory file into RAM. This is the default persistent memory direction for low-resource desktop applications.
+
+### File conversations
+
+`FileConversationStore` stores each persistent session in its own JSON file. Saving replaces the session document atomically through a temporary file. Opening one session reads only that session's file, so a large number of unrelated conversations does not become resident in memory.
 
 ### SQL Server / MySQL
 

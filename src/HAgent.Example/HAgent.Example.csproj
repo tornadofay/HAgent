@@ -6,6 +6,9 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <RootNamespace>HAgent.Example</RootNamespace>
   </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HAgent.Core\HAgent.Core.csproj" />
     <ProjectReference Include="..\HAgent.Providers.OpenAICompatible\HAgent.Providers.OpenAICompatible.csproj" />

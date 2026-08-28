@@ -9,6 +9,7 @@ namespace HAgent.Models
         public string Description { get; set; }
         public string InputSchemaJson { get; set; }
         public string Category { get; set; }
+        public AiToolType Type { get; set; }
         public bool IsBuiltIn { get; set; }
         public bool Enabled { get; set; }
 
@@ -19,6 +20,7 @@ namespace HAgent.Models
             Description = string.Empty;
             InputSchemaJson = "{\"type\":\"object\",\"properties\":{}}";
             Category = "Custom";
+            Type = AiToolType.Application;
             IsBuiltIn = false;
             Enabled = true;
         }

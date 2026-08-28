@@ -14,9 +14,10 @@ namespace HAgent.Runtime
         private readonly ISecretStore _secrets;
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
         private readonly IAgentRuntime _runtime;
+        private readonly IMemoryStore _memory;
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
-            : this(store, secrets, adapters, null)
+            : this(store, secrets, adapters, null, null)
         {
         }
 
@@ -25,10 +26,21 @@ namespace HAgent.Runtime
             ISecretStore secrets,
             IEnumerable<IAiProviderAdapter> adapters,
             IProviderRouter router)
+            : this(store, secrets, adapters, router, null)
+        {
+        }
+
+        public HAgentClient(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IProviderRouter router,
+            IMemoryStore memory)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters))).ToList().AsReadOnly();
+            _memory = memory;
             _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router);
         }
 
@@ -84,8 +96,6 @@ namespace HAgent.Runtime
                         : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
                     var systemPrompt = BuildSystemPrompt(provider, agent);
 
-                    // The adapter receives the resolved system prompt separately and is responsible
-                    // for placing it in the provider request exactly once.
                     return await adapter.SendAsync(
                         provider,
                         agent,
@@ -123,6 +133,63 @@ namespace HAgent.Runtime
         public AgentSession CreateSession(string agentId)
         {
             return new AgentSession(agentId, (messages, token) => SendAsync(agentId, messages, token));
+        }
+
+        public async Task<string> RememberAsync(
+            string ownerId,
+            string content,
+            MemoryScope scope = MemoryScope.Agent,
+            IDictionary<string, string> metadata = null,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            EnsureMemoryStore();
+            if (string.IsNullOrWhiteSpace(ownerId)) throw new ArgumentException("Memory owner ID is required.", nameof(ownerId));
+            if (string.IsNullOrWhiteSpace(content)) throw new ArgumentException("Memory content is required.", nameof(content));
+
+            var entry = new MemoryEntry
+            {
+                Scope = scope,
+                OwnerId = ownerId,
+                Content = content.Trim(),
+                Metadata = metadata ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            await _memory.AddAsync(entry, cancellationToken).ConfigureAwait(false);
+            return entry.Id;
+        }
+
+        public Task<IReadOnlyList<MemoryEntry>> RecallAsync(
+            string ownerId,
+            string text,
+            MemoryScope? scope = null,
+            int maxResults = 10,
+            IDictionary<string, string> metadata = null,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            EnsureMemoryStore();
+            if (string.IsNullOrWhiteSpace(ownerId)) throw new ArgumentException("Memory owner ID is required.", nameof(ownerId));
+
+            return _memory.SearchAsync(new MemoryQuery
+            {
+                OwnerId = ownerId,
+                Scope = scope,
+                Text = text ?? string.Empty,
+                MaxResults = maxResults,
+                Metadata = metadata
+            }, cancellationToken);
+        }
+
+        public Task ForgetAsync(string memoryId, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            EnsureMemoryStore();
+            return _memory.RemoveAsync(memoryId, cancellationToken);
+        }
+
+        private void EnsureMemoryStore()
+        {
+            if (_memory == null)
+                throw new InvalidOperationException("No memory store is configured for this HAgentClient.");
         }
 
         private static string BuildSystemPrompt(AiProvider provider, AiAgent agent)

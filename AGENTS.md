@@ -84,6 +84,20 @@ Avoid:
 - putting secret values into ListView/DataGridView text
 - copying unrelated application-framework dependencies into HAgent
 
+## Manual example host
+
+`HAgent.Example` is the manual integration and feature-verification application. It is not a replacement for `HAgent.Tests`.
+
+The example host should:
+
+- provide an obvious Configuration entry point
+- exercise every meaningful completed feature with a small runnable example
+- use the real public APIs, not internal test-only shortcuts
+- remain usable as a developer smoke-test application as the runtime evolves
+- avoid depending on external services unless the example explicitly says so
+
+When a new capability becomes complete, add a corresponding example to `HAgent.Example` before considering the developer experience complete.
+
 ## Provider adapter contract
 
 Implement `IAiProviderAdapter`.
@@ -132,6 +146,6 @@ The CI matrix should eventually cover:
 
 ## Testing
 
-Test domain behavior independently from WinForms. Network-provider tests should use a fake `HttpMessageHandler` or local test server; do not make unit tests call a real AI vendor.
+Test domain behavior independently from WinForms. Network-provider tests should use a fake `HttpMessageHandler` or local test server; do not make automated tests call a real AI vendor.
 
 For this development workflow, do not claim local build/test success unless it was actually executed. The developer machine is the authoritative VS 2022 build/test environment when local tool access is unavailable.

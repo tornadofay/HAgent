@@ -14,72 +14,43 @@ namespace HAgent.WinForms.Helpers
         Help
     }
 
-    public enum CloseType
-    {
-        ExitForm,
-        ExitApplication,
-        CancelDialogResult,
-        Hide
-    }
-
-    public enum LanguageMode
-    {
-        English,
-        Arabic
-    }
-
     /// <summary>
-    /// Lightweight, self-contained HAgent window header.
-    /// It intentionally has no dependency on the larger HLibraries framework.
+    /// Self-contained HAgent window header.
+    /// Draws the title bar, handles dragging and optional window buttons.
     /// </summary>
     [DefaultEvent("PerformOnClose")]
-    public partial class Header : UserControl
+    public sealed class Header : UserControl
     {
         private const int ButtonWidth = 44;
 
-        private bool _isDragging;
+        private bool _dragging;
         private Point _lastMousePosition;
-        private HeaderButton _hoveredButton = HeaderButton.None;
-        private HeaderButton _pressedButton = HeaderButton.None;
+        private HeaderButton _hoveredButton;
+        private HeaderButton _pressedButton;
 
-        private bool _allowClose = true;
-        private bool _allowHelp;
-        private bool _allowMinimize;
-        private bool _allowMove = true;
-        private CloseType _closeMode = CloseType.ExitForm;
-
-        private string _captionEn = "HAgent";
-        private string _captionAr = "HAgent";
-        private string _subtitleEn = string.Empty;
-        private string _subtitleAr = string.Empty;
-        private LanguageMode _languageType = LanguageMode.English;
-
+        private string _title = "HAgent";
+        private string _subtitle = string.Empty;
         private Image _headerIcon;
         private Image _cachedIcon;
-        private int _imageWidth = 22;
-        private int _imageHeight = 22;
-        private int _imageMargin = 10;
+        private int _iconSize = 22;
+        private int _iconMargin = 12;
         private int _textMargin = 8;
-        private int _controlHeight = 54;
+        private int _headerHeight = 54;
 
-        private Color _backColor1 = Color.FromArgb(31, 24, 69);
-        private Color _backColor2 = Color.FromArgb(88, 39, 126);
-        private Color _foreColor = Color.FromArgb(246, 244, 255);
-        private Color _subtitleColor = Color.FromArgb(214, 205, 235);
-        private Color _buttonHoverColor = Color.FromArgb(70, 255, 255, 255);
-        private Color _buttonPressedColor = Color.FromArgb(95, 255, 255, 255);
-        private Color _closeHoverColor = Color.FromArgb(218, 70, 102);
-        private Form _helpForm;
+        private Color _background1 = Color.FromArgb(31, 24, 69);
+        private Color _background2 = Color.FromArgb(88, 39, 126);
+        private Color _foreground = Color.FromArgb(246, 244, 255);
+        private Color _subtitleForeground = Color.FromArgb(214, 205, 235);
+        private Color _buttonHover = Color.FromArgb(70, 255, 255, 255);
+        private Color _buttonPressed = Color.FromArgb(90, 255, 255, 255);
+        private Color _closeHover = Color.FromArgb(218, 70, 102);
 
         public event EventHandler PerformOnClose;
         public event EventHandler PerformOnHelp;
         public event EventHandler PerformOnMinimize;
-        public event EventHandler PerformIfExitCancel;
 
         public Header()
         {
-            InitializeComponent();
-
             SetStyle(
                 ControlStyles.ResizeRedraw |
                 ControlStyles.AllPaintingInWmPaint |
@@ -88,11 +59,10 @@ namespace HAgent.WinForms.Helpers
                 ControlStyles.SupportsTransparentBackColor,
                 true);
 
-            MinimumSize = new Size(0, _controlHeight);
-            Height = _controlHeight;
+            Height = _headerHeight;
+            MinimumSize = new Size(0, _headerHeight);
             Font = new Font("Segoe UI Semibold", 10.5f, FontStyle.Bold);
             BackColor = Color.Transparent;
-            UpdateCachedIcon();
         }
 
         protected override void Dispose(bool disposing)
@@ -106,36 +76,15 @@ namespace HAgent.WinForms.Helpers
             base.Dispose(disposing);
         }
 
-        public override Size GetPreferredSize(Size proposedSize)
-        {
-            if (Dock == DockStyle.Top || Dock == DockStyle.Bottom)
-                return new Size(proposedSize.Width, _controlHeight);
-
-            if (Dock == DockStyle.Left || Dock == DockStyle.Right)
-                return new Size(_controlHeight, proposedSize.Height);
-
-            return base.GetPreferredSize(proposedSize);
-        }
-
-        protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
-        {
-            if (Dock == DockStyle.Top || Dock == DockStyle.Bottom)
-                height = Math.Max(height, _controlHeight);
-            else if (Dock == DockStyle.Left || Dock == DockStyle.Right)
-                width = Math.Max(width, _controlHeight);
-
-            base.SetBoundsCore(x, y, width, height, specified);
-        }
-
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left) return;
 
             var button = HitTest(e.Location);
-            if (button == HeaderButton.None && _allowMove)
+            if (button == HeaderButton.None && AllowMove)
             {
-                _isDragging = true;
+                _dragging = true;
                 _lastMousePosition = Cursor.Position;
                 Capture = true;
                 return;
@@ -156,7 +105,7 @@ namespace HAgent.WinForms.Helpers
                 Invalidate();
             }
 
-            if (!_isDragging) return;
+            if (!_dragging) return;
 
             var target = DragTarget ?? FindForm();
             if (target == null) return;
@@ -164,6 +113,7 @@ namespace HAgent.WinForms.Helpers
             var current = Cursor.Position;
             var dx = current.X - _lastMousePosition.X;
             var dy = current.Y - _lastMousePosition.Y;
+
             if (dx != 0 || dy != 0)
                 target.Location = new Point(target.Location.X + dx, target.Location.Y + dy);
 
@@ -175,16 +125,17 @@ namespace HAgent.WinForms.Helpers
             base.OnMouseUp(e);
             if (e.Button != MouseButtons.Left) return;
 
-            if (_isDragging)
+            if (_dragging)
             {
-                _isDragging = false;
+                _dragging = false;
                 Capture = false;
-                return;
             }
-
-            var button = HitTest(e.Location);
-            if (button == _pressedButton)
-                ExecuteButtonAction(button);
+            else
+            {
+                var button = HitTest(e.Location);
+                if (button == _pressedButton)
+                    ExecuteButton(button);
+            }
 
             _pressedButton = HeaderButton.None;
             Invalidate();
@@ -202,163 +153,118 @@ namespace HAgent.WinForms.Helpers
 
         private HeaderButton HitTest(Point point)
         {
-            var layout = CalculateLayout();
-            if (_allowClose && layout.Close.Contains(point)) return HeaderButton.Close;
-            if (_allowMinimize && layout.Minimize.Contains(point)) return HeaderButton.Minimize;
-            if (_allowHelp && layout.Help.Contains(point)) return HeaderButton.Help;
-            return HeaderButton.None;
-        }
-
-        private HeaderLayout CalculateLayout()
-        {
             var width = Width;
-            var height = Height;
-            var isRtl = RightToLeft == RightToLeft.Yes;
+            if (AllowClose && new Rectangle(width - ButtonWidth, 0, ButtonWidth, Height).Contains(point))
+                return HeaderButton.Close;
 
-            var close = new Rectangle(isRtl ? 0 : width - ButtonWidth, 0, ButtonWidth, height);
-            var minimize = new Rectangle(isRtl ? ButtonWidth : width - ButtonWidth * 2, 0, ButtonWidth, height);
-            var help = new Rectangle(isRtl ? ButtonWidth * 2 : width - ButtonWidth * 3, 0, ButtonWidth, height);
+            var next = width - ButtonWidth * 2;
+            if (AllowMinimize && new Rectangle(next, 0, ButtonWidth, Height).Contains(point))
+                return HeaderButton.Minimize;
 
-            var buttonsWidth =
-                (_allowClose ? ButtonWidth : 0) +
-                (_allowMinimize ? ButtonWidth : 0) +
-                (_allowHelp ? ButtonWidth : 0);
+            var helpX = width - ButtonWidth * 3;
+            if (AllowHelp && new Rectangle(helpX, 0, ButtonWidth, Height).Contains(point))
+                return HeaderButton.Help;
 
-            var iconX = isRtl ? width - _imageWidth - _imageMargin : _imageMargin;
-            var iconY = Math.Max(0, (height - _imageHeight) / 2);
-            var icon = new Rectangle(iconX, iconY, _imageWidth, _imageHeight);
-
-            var left = isRtl
-                ? buttonsWidth + _textMargin
-                : _imageMargin + _imageWidth + _textMargin;
-
-            var right = isRtl
-                ? width - _imageWidth - _imageMargin - _textMargin
-                : width - buttonsWidth - _textMargin;
-
-            var textWidth = Math.Max(0, right - left);
-            var text = new Rectangle(left, 5, textWidth, Math.Max(0, height - 10));
-
-            return new HeaderLayout(icon, text, help, minimize, close);
+            return HeaderButton.None;
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-            using (var brush = new LinearGradientBrush(ClientRectangle, _backColor1, _backColor2, 90f))
+            using (var brush = new LinearGradientBrush(ClientRectangle, _background1, _background2, 90f))
                 g.FillRectangle(brush, ClientRectangle);
 
-            var layout = CalculateLayout();
+            DrawContent(g);
+            DrawButton(g, HeaderButton.Help, AllowHelp, "?");
+            DrawButton(g, HeaderButton.Minimize, AllowMinimize, "—");
+            DrawButton(g, HeaderButton.Close, AllowClose, "×");
+        }
+
+        private void DrawContent(Graphics g)
+        {
+            var textLeft = _iconMargin;
             if (_cachedIcon != null)
-                g.DrawImage(_cachedIcon, layout.Icon);
-
-            var title = _languageType == LanguageMode.Arabic ? _captionAr : _captionEn;
-            var subtitle = _languageType == LanguageMode.Arabic ? _subtitleAr : _subtitleEn;
-
-            if (!string.IsNullOrWhiteSpace(subtitle))
             {
-                var titleRect = new Rectangle(layout.Text.X, 4, layout.Text.Width, Math.Max(18, layout.Text.Height / 2));
-                var subtitleRect = new Rectangle(layout.Text.X, Height / 2 - 1, layout.Text.Width, Math.Max(16, Height / 2 - 3));
-                DrawText(g, title, Font, titleRect, _foreColor, RightToLeft == RightToLeft.Yes);
-                using (var subtitleFont = new Font("Segoe UI", 7.8f))
-                    DrawText(g, subtitle, subtitleFont, subtitleRect, _subtitleColor, RightToLeft == RightToLeft.Yes);
-            }
-            else
-            {
-                DrawText(g, title, Font, layout.Text, _foreColor, RightToLeft == RightToLeft.Yes);
+                var iconRect = new Rectangle(_iconMargin, Math.Max(0, (Height - _iconSize) / 2), _iconSize, _iconSize);
+                g.DrawImage(_cachedIcon, iconRect);
+                textLeft += _iconSize + _textMargin;
             }
 
-            DrawButton(g, layout.Help, HeaderButton.Help, _allowHelp, "?");
-            DrawButton(g, layout.Minimize, HeaderButton.Minimize, _allowMinimize, "—");
-            DrawButton(g, layout.Close, HeaderButton.Close, _allowClose, "×");
+            var buttonSpace =
+                (AllowClose ? ButtonWidth : 0) +
+                (AllowMinimize ? ButtonWidth : 0) +
+                (AllowHelp ? ButtonWidth : 0);
+
+            var textWidth = Math.Max(0, Width - textLeft - buttonSpace - _textMargin);
+            var titleRect = new Rectangle(textLeft, 4, textWidth, Math.Max(18, Height / 2));
+
+            if (string.IsNullOrWhiteSpace(_subtitle))
+            {
+                TextRenderer.DrawText(g, _title, Font, new Rectangle(textLeft, 0, textWidth, Height), _foreground,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                return;
+            }
+
+            using (var subtitleFont = new Font("Segoe UI", 7.8f))
+            {
+                TextRenderer.DrawText(g, _title, Font, titleRect, _foreground,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                var subtitleRect = new Rectangle(textLeft, Height / 2 - 1, textWidth, Height / 2);
+                TextRenderer.DrawText(g, _subtitle, subtitleFont, subtitleRect, _subtitleForeground,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+            }
         }
 
-        private static void DrawText(Graphics g, string text, Font font, Rectangle rect, Color color, bool rtl)
+        private void DrawButton(Graphics g, HeaderButton button, bool visible, string glyph)
         {
-            var flags = TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
-            flags |= rtl ? TextFormatFlags.RightToLeft | TextFormatFlags.Right : TextFormatFlags.Left;
-            TextRenderer.DrawText(g, text ?? string.Empty, font, rect, color, flags);
-        }
+            if (!visible) return;
 
-        private void DrawButton(Graphics g, Rectangle rect, HeaderButton button, bool visible, string glyph)
-        {
-            if (!visible || rect.Width <= 0) return;
+            var x = Width - ButtonWidth;
+            if (button == HeaderButton.Minimize) x -= ButtonWidth;
+            if (button == HeaderButton.Help) x -= ButtonWidth;
 
+            var rect = new Rectangle(x, 0, ButtonWidth, Height);
             var hovered = _hoveredButton == button;
             var pressed = _pressedButton == button && hovered;
 
-            if (pressed || hovered)
+            if (hovered || pressed)
             {
                 var color = button == HeaderButton.Close
-                    ? _closeHoverColor
-                    : (pressed ? _buttonPressedColor : _buttonHoverColor);
+                    ? _closeHover
+                    : (pressed ? _buttonPressed : _buttonHover);
                 using (var brush = new SolidBrush(color))
                     g.FillRectangle(brush, rect);
             }
 
-            using (var font = button == HeaderButton.Help
-                ? new Font("Segoe UI", 10f, FontStyle.Bold)
-                : new Font("Segoe UI Symbol", 13f, FontStyle.Regular))
+            using (var font = new Font("Segoe UI Symbol", button == HeaderButton.Help ? 10f : 13f,
+                button == HeaderButton.Help ? FontStyle.Bold : FontStyle.Regular))
             {
-                TextRenderer.DrawText(g, glyph, font, rect, _foreColor,
+                TextRenderer.DrawText(g, glyph, font, rect, _foreground,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             }
         }
 
-        private void ExecuteButtonAction(HeaderButton button)
+        private void ExecuteButton(HeaderButton button)
         {
+            var form = FindForm();
             switch (button)
             {
                 case HeaderButton.Close:
                     PerformOnClose?.Invoke(this, EventArgs.Empty);
-                    HandleClose();
+                    if (form != null) form.Close();
                     break;
                 case HeaderButton.Minimize:
                     PerformOnMinimize?.Invoke(this, EventArgs.Empty);
-                    var form = FindForm();
                     if (form != null) form.WindowState = FormWindowState.Minimized;
                     break;
                 case HeaderButton.Help:
                     PerformOnHelp?.Invoke(this, EventArgs.Empty);
-                    ShowHelp();
                     break;
             }
-        }
-
-        private void HandleClose()
-        {
-            var form = FindForm();
-            switch (_closeMode)
-            {
-                case CloseType.ExitForm:
-                    form?.Close();
-                    break;
-                case CloseType.ExitApplication:
-                    if (HMessage.ShowQuestion(form, "Do you want to close the application?", "Exit") == DialogResult.Yes)
-                        Application.Exit();
-                    break;
-                case CloseType.CancelDialogResult:
-                    if (form != null) form.DialogResult = DialogResult.Cancel;
-                    break;
-                case CloseType.Hide:
-                    form?.Hide();
-                    break;
-            }
-        }
-
-        private void ShowHelp()
-        {
-            var form = FindForm();
-            if (_helpForm == null || form == null) return;
-
-            form.AddOwnedForm(_helpForm);
-            try { _helpForm.ShowDialog(form); }
-            finally { form.RemoveOwnedForm(_helpForm); }
         }
 
         private void UpdateCachedIcon()
@@ -369,124 +275,99 @@ namespace HAgent.WinForms.Helpers
                 _cachedIcon = null;
             }
 
-            if (_headerIcon != null && _imageWidth > 0 && _imageHeight > 0)
-                _cachedIcon = new Bitmap(_headerIcon, _imageWidth, _imageHeight);
+            if (_headerIcon != null)
+                _cachedIcon = new Bitmap(_headerIcon, _iconSize, _iconSize);
         }
 
         [Category("HHeader")]
-        public int ControlHeight
+        public string Title
         {
-            get { return _controlHeight; }
-            set
-            {
-                value = Math.Max(24, value);
-                if (_controlHeight == value) return;
-                _controlHeight = value;
-                MinimumSize = new Size(0, value);
-                Height = value;
-                Invalidate();
-            }
+            get { return _title; }
+            set { _title = value ?? string.Empty; Text = _title; Invalidate(); }
         }
+
+        [Category("HHeader")]
+        public string Subtitle
+        {
+            get { return _subtitle; }
+            set { _subtitle = value ?? string.Empty; Invalidate(); }
+        }
+
+        [Category("HHeader")]
+        public bool AllowMove { get; set; } = true;
+
+        [Category("HHeader Buttons")]
+        public bool AllowClose { get; set; } = true;
+
+        [Category("HHeader Buttons")]
+        public bool AllowMinimize { get; set; }
+
+        [Category("HHeader Buttons")]
+        public bool AllowHelp { get; set; }
 
         [Category("HHeader")]
         public Control DragTarget { get; set; }
 
-        [Category("HHeader Buttons")]
-        public bool AllowClose { get { return _allowClose; } set { _allowClose = value; Invalidate(); } }
-
-        [Category("HHeader Buttons")]
-        public bool AllowMinimize { get { return _allowMinimize; } set { _allowMinimize = value; Invalidate(); } }
-
-        [Category("HHeader Buttons")]
-        public bool AllowHelp { get { return _allowHelp; } set { _allowHelp = value; Invalidate(); } }
-
         [Category("HHeader")]
-        public bool AllowMove { get { return _allowMove; } set { _allowMove = value; } }
-
-        [Category("HHeader")]
-        public CloseType CloseMode { get { return _closeMode; } set { _closeMode = value; } }
-
-        [Category("HHeader")]
-        public LanguageMode LanguageType
+        public int HeaderHeight
         {
-            get { return _languageType; }
+            get { return _headerHeight; }
             set
             {
-                if (_languageType == value) return;
-                _languageType = value;
-                RightToLeft = value == LanguageMode.Arabic ? RightToLeft.Yes : RightToLeft.No;
+                _headerHeight = Math.Max(24, value);
+                MinimumSize = new Size(0, _headerHeight);
+                Height = _headerHeight;
                 Invalidate();
             }
         }
 
-        [Category("HHeader Caption")]
-        public string CaptionEn { get { return _captionEn; } set { _captionEn = value ?? string.Empty; Invalidate(); } }
-
-        [Category("HHeader Caption")]
-        public string CaptionAr { get { return _captionAr; } set { _captionAr = value ?? string.Empty; Invalidate(); } }
-
-        [Category("HHeader Caption")]
-        public string SubtitleEn { get { return _subtitleEn; } set { _subtitleEn = value ?? string.Empty; Invalidate(); } }
-
-        [Category("HHeader Caption")]
-        public string SubtitleAr { get { return _subtitleAr; } set { _subtitleAr = value ?? string.Empty; Invalidate(); } }
-
         [Category("HHeader Image")]
-        public Image HeaderIcon { get { return _headerIcon; } set { _headerIcon = value; UpdateCachedIcon(); Invalidate(); } }
-
-        [Category("HHeader Image")]
-        public int ImageWidth { get { return _imageWidth; } set { _imageWidth = Math.Max(1, value); UpdateCachedIcon(); Invalidate(); } }
-
-        [Category("HHeader Image")]
-        public int ImageHeight { get { return _imageHeight; } set { _imageHeight = Math.Max(1, value); UpdateCachedIcon(); Invalidate(); } }
-
-        [Category("HHeader Image")]
-        public int ImageMargin { get { return _imageMargin; } set { _imageMargin = Math.Max(0, value); Invalidate(); } }
-
-        [Category("HHeader Caption")]
-        public int TextMargin { get { return _textMargin; } set { _textMargin = Math.Max(0, value); Invalidate(); } }
-
-        [Category("HHeader Color")]
-        public Color BackGroundColor1 { get { return _backColor1; } set { _backColor1 = value; Invalidate(); } }
-
-        [Category("HHeader Color")]
-        public Color BackGroundColor2 { get { return _backColor2; } set { _backColor2 = value; Invalidate(); } }
-
-        [Category("HHeader Color")]
-        public Color ForeColor1 { get { return _foreColor; } set { _foreColor = value; Invalidate(); } }
-
-        [Category("HHeader Color")]
-        public Color SubtitleColor { get { return _subtitleColor; } set { _subtitleColor = value; Invalidate(); } }
-
-        [Category("HHeader Color")]
-        public Color ButtonHoverColor { get { return _buttonHoverColor; } set { _buttonHoverColor = value; Invalidate(); } }
-
-        [Category("HHeader Color")]
-        public Color ButtonPressedColor { get { return _buttonPressedColor; } set { _buttonPressedColor = value; Invalidate(); } }
-
-        [Category("HHeader Color")]
-        public Color CloseHoverColor { get { return _closeHoverColor; } set { _closeHoverColor = value; Invalidate(); } }
-
-        [Browsable(false)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public Form HelpForm { get { return _helpForm; } set { _helpForm = value; } }
-
-        private struct HeaderLayout
+        public Image HeaderIcon
         {
-            public HeaderLayout(Rectangle icon, Rectangle text, Rectangle help, Rectangle minimize, Rectangle close)
-            {
-                Icon = icon;
-                Text = text;
-                Help = help;
-                Minimize = minimize;
-                Close = close;
-            }
-
-            public Rectangle Icon { get; private set; }
-            public Rectangle Text { get; private set; }
-            public Rectangle Help { get; private set; }
-            public Rectangle Minimize { get; private set; }
-            public Rectangle Close { get; private set; }
+            get { return _headerIcon; }
+            set { _headerIcon = value; UpdateCachedIcon(); Invalidate(); }
         }
+
+        [Category("HHeader Image")]
+        public int IconSize
+        {
+            get { return _iconSize; }
+            set { _iconSize = Math.Max(1, value); UpdateCachedIcon(); Invalidate(); }
+        }
+
+        [Category("HHeader Image")]
+        public int IconMargin
+        {
+            get { return _iconMargin; }
+            set { _iconMargin = Math.Max(0, value); Invalidate(); }
+        }
+
+        [Category("HHeader")]
+        public int TextMargin
+        {
+            get { return _textMargin; }
+            set { _textMargin = Math.Max(0, value); Invalidate(); }
+        }
+
+        [Category("HHeader Color")]
+        public Color BackGroundColor1 { get { return _background1; } set { _background1 = value; Invalidate(); } }
+
+        [Category("HHeader Color")]
+        public Color BackGroundColor2 { get { return _background2; } set { _background2 = value; Invalidate(); } }
+
+        [Category("HHeader Color")]
+        public Color ForeColor1 { get { return _foreground; } set { _foreground = value; Invalidate(); } }
+
+        [Category("HHeader Color")]
+        public Color SubtitleColor { get { return _subtitleForeground; } set { _subtitleForeground = value; Invalidate(); } }
+
+        [Category("HHeader Color")]
+        public Color ButtonHoverColor { get { return _buttonHover; } set { _buttonHover = value; Invalidate(); } }
+
+        [Category("HHeader Color")]
+        public Color ButtonPressedColor { get { return _buttonPressed; } set { _buttonPressed = value; Invalidate(); } }
+
+        [Category("HHeader Color")]
+        public Color CloseHoverColor { get { return _closeHover; } set { _closeHover = value; Invalidate(); } }
     }
 }

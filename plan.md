@@ -17,7 +17,7 @@
 - [x] Agent/provider deletion rules in UI and storage.
 - [x] `HAgent.Example` manual integration host replacing the older sample host.
 - [x] Tabbed Example test bench with global output and global agent selection.
-- [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, and runtime execution.
+- [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, runtime execution, and persistent memory.
 
 ### 0.2 Runtime foundation — completed
 - [x] Agent runtime abstraction and default execution pipeline.
@@ -66,6 +66,7 @@
 - [x] Memory metadata filtering.
 - [x] Memory creation timestamps/provenance baseline.
 - [x] Bounded recall result count.
+- [x] Manual persistent-memory example in `HAgent.Example`.
 - [ ] Persistent conversation memory integration.
 - [ ] Automatic session-memory policy.
 - [ ] Working memory/context-window budgeting.
@@ -82,7 +83,6 @@
 - [ ] Memory update/upsert semantics.
 - [ ] Richer memory provenance source/type fields.
 - [ ] Retention/expiration policies.
-- [ ] Add manual memory examples to `HAgent.Example`.
 
 ## 0.4 — Tools
 - [ ] Tool definitions with JSON Schema.
@@ -125,7 +125,7 @@
 - [ ] Reasoning/thinking visibility policy where the provider exposes reasoning separately.
 - [ ] Cancel/stop response.
 - [ ] Multiple simultaneous conversations.
-- [ ] Safe handling of deleted agents referenced by open chat/tasks.
+- [ ] Safe handling of deleted agents referenced in open chat/tasks.
 - [ ] Add chat examples to `HAgent.Example`.
 
 ## 0.7 — Agent collaboration

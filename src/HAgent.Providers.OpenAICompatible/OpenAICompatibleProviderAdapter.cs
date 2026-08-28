@@ -48,8 +48,6 @@ namespace HAgent.Providers.OpenAICompatible
                 Model = model ?? string.Empty
             };
 
-            // The OpenAI-compatible transport guarantees the chat request shape,
-            // but the endpoint does not guarantee which optional model features exist.
             result.Set(AiCapability.Chat, CapabilitySupport.Supported, CapabilitySource.AdapterKnowledge, 0.95d,
                 "The OpenAI-compatible adapter establishes support for the chat transport shape.");
             result.Set(AiCapability.Streaming, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
@@ -156,6 +154,8 @@ namespace HAgent.Providers.OpenAICompatible
                     var choice = dto.Choices[0];
                     var content = choice.Message == null ? string.Empty : choice.Message.Content ?? string.Empty;
                     var reasoning = choice.Message == null ? string.Empty : choice.Message.ReasoningContent ?? string.Empty;
+                    var toolCalls = NormalizeToolCalls(choice.Message == null ? null : choice.Message.ToolCalls);
+                    var structuredOutput = IsJsonDocument(content) ? content.Trim() : string.Empty;
 
                     var usage = new Dictionary<string, object>();
                     if (dto.Usage != null)
@@ -168,6 +168,8 @@ namespace HAgent.Providers.OpenAICompatible
                     var metadata = new Dictionary<string, object>();
                     if (!string.IsNullOrWhiteSpace(dto.Id)) metadata["provider_request_id"] = dto.Id;
                     if (!string.IsNullOrWhiteSpace(reasoning)) metadata["reasoning_source"] = "provider-field";
+                    if (toolCalls.Count > 0) metadata["tool_call_count"] = toolCalls.Count;
+                    if (!string.IsNullOrWhiteSpace(structuredOutput)) metadata["structured_output_detected"] = true;
                     if (!string.IsNullOrWhiteSpace(content) && content.IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0)
                         metadata["reasoning_markup_detected"] = true;
 
@@ -179,12 +181,51 @@ namespace HAgent.Providers.OpenAICompatible
                         Text = content,
                         Reasoning = reasoning,
                         RawText = content,
+                        StructuredOutputJson = structuredOutput,
+                        ToolCalls = toolCalls.AsReadOnly(),
                         RequestId = dto.Id ?? string.Empty,
                         CreatedAt = DateTimeOffset.UtcNow,
                         Usage = usage,
                         ProviderMetadata = metadata
                     };
                 }
+            }
+        }
+
+        private static List<AIToolCall> NormalizeToolCalls(IReadOnlyList<ResponseToolCallDto> calls)
+        {
+            var result = new List<AIToolCall>();
+            if (calls == null) return result;
+
+            foreach (var call in calls)
+            {
+                if (call == null || call.Function == null || string.IsNullOrWhiteSpace(call.Function.Name))
+                    continue;
+
+                result.Add(new AIToolCall(
+                    call.Id ?? string.Empty,
+                    call.Function.Name,
+                    call.Function.Arguments ?? string.Empty));
+            }
+
+            return result;
+        }
+
+        private static bool IsJsonDocument(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            var value = text.Trim();
+            if (!(value.StartsWith("{", StringComparison.Ordinal) || value.StartsWith("[", StringComparison.Ordinal)))
+                return false;
+
+            try
+            {
+                JsonConvert.DeserializeObject(value);
+                return true;
+            }
+            catch (JsonException)
+            {
+                return false;
             }
         }
 
@@ -259,6 +300,30 @@ namespace HAgent.Providers.OpenAICompatible
 
             [JsonProperty("reasoning_content")]
             public string ReasoningContent { get; set; }
+
+            [JsonProperty("tool_calls")]
+            public List<ResponseToolCallDto> ToolCalls { get; set; }
+        }
+
+        private sealed class ResponseToolCallDto
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; }
+
+            [JsonProperty("type")]
+            public string Type { get; set; }
+
+            [JsonProperty("function")]
+            public ResponseToolFunctionDto Function { get; set; }
+        }
+
+        private sealed class ResponseToolFunctionDto
+        {
+            [JsonProperty("name")]
+            public string Name { get; set; }
+
+            [JsonProperty("arguments")]
+            public string Arguments { get; set; }
         }
 
         private sealed class ChatCompletionResponse

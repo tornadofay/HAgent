@@ -43,6 +43,7 @@ namespace HAgent.Models
         {
             if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Message is required.", nameof(message));
 
+            var originalCount = _messages.Count;
             _messages.Add(new AIMessage("user", message));
             try
             {
@@ -56,7 +57,8 @@ namespace HAgent.Models
             }
             catch
             {
-                _messages.RemoveAt(_messages.Count - 1);
+                while (_messages.Count > originalCount)
+                    _messages.RemoveAt(_messages.Count - 1);
                 throw;
             }
         }

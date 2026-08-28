@@ -28,7 +28,9 @@ namespace HAgent.Runtime
             {
                 { "memoryType", "episodic" },
                 { "outcome", episode.Outcome ?? string.Empty },
-                { "sessionId", episode.SessionId ?? string.Empty }
+                { "sessionId", episode.SessionId ?? string.Empty },
+                { "taskId", episode.TaskId ?? string.Empty },
+                { "occurredAt", episode.OccurredAt.ToString("O") }
             };
 
             return await client.RememberAsync(
@@ -63,7 +65,9 @@ namespace HAgent.Runtime
             if (string.IsNullOrWhiteSpace(taskId)) return recalled;
 
             return recalled
-                .Where(x => string.Equals(x.TaskId, taskId, StringComparison.OrdinalIgnoreCase))
+                .Where(x => x.Metadata != null &&
+                            x.Metadata.ContainsKey("taskId") &&
+                            string.Equals(x.Metadata["taskId"], taskId, StringComparison.OrdinalIgnoreCase))
                 .ToList()
                 .AsReadOnly();
         }

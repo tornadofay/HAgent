@@ -1,54 +1,56 @@
 # HAgent Development Plan
 
-## Current milestone: 0.1.x — Foundation and desktop configuration
+## Current milestone: 0.2 — Runtime foundation
 
-### Completed
+### Foundation completed
 - [x] Multi-target core for .NET Framework 4.8.1 and .NET 9.
 - [x] Provider-neutral adapter contract.
 - [x] OpenAI-compatible provider adapter.
 - [x] File storage with protected secret storage.
 - [x] SQL Server and MySQL storage foundations.
 - [x] Provider, agent, and tool management UI.
-- [x] Borderless rounded form shell using the shared HAgent `Header`.
-- [x] Shared `HMessage` API adopted by HAgent WinForms UI.
+- [x] Shared HAgent `Header` and `HMessage` UI conventions.
+- [x] HButton used as the HAgent WinForms action control.
 - [x] Agent conversation session history and context forwarding.
 - [x] Provider connection test capability.
 - [x] Provider model catalog capability.
-- [x] Agent/provider deletion rules in the management UI.
-- [x] Provider dependency protection in storage.
+- [x] Agent/provider deletion rules in the UI and storage.
+- [x] Agent execution state model.
+- [x] Agent/provider execution snapshot model.
+- [x] Default provider routing abstraction.
+- [x] Agent runtime abstraction and default execution pipeline.
+- [x] Execution timeout/cancellation boundary.
+- [x] Dependency-free in-memory memory store with lightweight text/metadata search.
+- [x] Memory scopes model without requiring embeddings or a GPU.
 
-### In progress
-- [ ] Finish visual/layout QA at different window sizes.
-- [ ] Make active runtime work independent from configuration deletion.
-- [ ] Add real provider model selection persistence and multi-provider routing UI.
-- [ ] Add executable tool-call loop.
-- [ ] Define the stable runtime/execution API before adding long-running tasks.
-
-## Milestone: 0.2 — Runtime foundation
-- [ ] Unified Send/Read API with explicit execution context.
-- [ ] Agent execution state machine.
-- [ ] Provider fallback and routing policies.
-- [ ] Request/response telemetry without leaking secrets.
-- [ ] Cancellation, timeouts, retries, and provider error classification.
-- [ ] Immutable agent/provider execution snapshots for running tasks.
-- [ ] Runtime leases so deleting an agent/provider cannot invalidate an active execution.
+### Remaining 0.2 work
+- [ ] Unified Send/Read API with explicit execution context across all runtime paths.
 - [ ] Execution correlation IDs and lifecycle events.
 - [ ] Runtime diagnostics and structured failure reporting.
+- [ ] Provider error classification.
+- [ ] Retry/backoff policy separate from provider routing.
+- [ ] Runtime leases so deleting an agent/provider cannot invalidate active executions.
+- [ ] Real multi-provider configuration/persistence and routing UI.
+- [ ] Finish visual/layout QA at different window sizes.
+- [ ] Executable tool-call loop.
 
 ## Milestone: 0.3 — Memory
-- [ ] Conversation memory.
+- [ ] Persistent conversation memory.
 - [ ] Working memory/context window management.
 - [ ] Task memory.
 - [ ] Episodic memory.
 - [ ] Semantic/long-term memory abstraction.
 - [ ] File/SQL memory stores.
-- [ ] Vector-memory adapter abstraction.
-- [ ] Memory scopes: session, agent, user, application, shared.
+- [ ] Lightweight indexed text retrieval for low-RAM systems.
+- [ ] Optional vector-memory adapter abstraction.
+- [ ] Remote embedding provider support without local GPU requirements.
+- [ ] Memory scopes: session, task, agent, user, application, shared.
 - [ ] Memory retrieval and relevance ranking.
 - [ ] Context compaction and summarization.
 - [ ] Explicit remember/forget APIs.
 - [ ] Memory provenance and timestamps.
 - [ ] Memory retention/expiration policies.
+- [ ] Bounded memory loading so large stores are not fully loaded into RAM.
 
 ## Milestone: 0.4 — Tools
 - [ ] Tool definitions with JSON Schema.
@@ -66,6 +68,7 @@
 - [ ] Tool DLL/plugin loading.
 - [ ] Tool schema validation.
 - [ ] Tool-call budget and loop protection.
+- [ ] Typed argument binding and validation.
 
 ## Milestone: 0.5 — Agent collaboration
 - [ ] Agent-to-agent messaging board.
@@ -140,7 +143,11 @@
 - [ ] Provider/tool extension guide.
 - [ ] .NET 10 target after the Windows 11 / VS 2026 development environment is adopted.
 
-## Design rule
-HAgent should remain provider-neutral. A provider supplies model connectivity and capabilities; an agent supplies behavior; memory supplies durable context; tools supply controlled actions; the runtime coordinates execution; the host application owns real-world side effects.
+## Non-negotiable design rules
+HAgent must remain provider-neutral. A provider supplies model connectivity and capabilities; an agent supplies behavior; memory supplies context; tools supply controlled actions; the runtime coordinates execution; the host application owns real-world side effects.
+
+Memory must not require a local GPU, embedding model, vector database, or large resident RAM footprint. Vector memory is optional and must sit behind an adapter.
 
 An AI model must never receive arbitrary access to WinForms controls, reflection, processes, files, databases, or other host resources. Those capabilities must be exposed explicitly as typed tools with validation and policy enforcement.
+
+Deleting configuration must not silently destroy a running execution. Runtime work must eventually operate from an execution snapshot/lease independent from mutable configuration.

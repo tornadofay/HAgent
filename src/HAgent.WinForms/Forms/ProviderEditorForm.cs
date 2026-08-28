@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.WinForms.Controls;
+using HAgent.WinForms.Helpers;
 
 namespace HAgent.WinForms.Forms
 {
@@ -51,13 +52,12 @@ namespace HAgent.WinForms.Forms
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 132));
             _layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            _layout.BackColor = Color.FromArgb(248, 250, 252);
+            _layout.BackColor = Color.FromArgb(248, 248, 252);
 
             AddField(0, "Name", "Friendly name shown throughout HAgent.", _name);
             AddField(1, "Provider type", "Adapter responsible for understanding this service API.", _kind);
             AddField(2, "Base URL", "API root, for example https://api.openai.com/v1", _baseUrl);
             AddField(3, "API key", "Stored separately using the configured secret store.", _apiKey);
-
             AddModelField(4);
             AddField(5, "Shared instruction", "Optional instruction inherited by agents that enable shared provider instructions.", _prompt);
 
@@ -74,7 +74,7 @@ namespace HAgent.WinForms.Forms
             _model.DropDownStyle = ComboBoxStyle.DropDown;
             _model.Text = Provider.DefaultModel;
 
-            var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 52, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = Color.FromArgb(248, 250, 252) };
+            var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 52, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = Color.FromArgb(248, 248, 252) };
             var save = new HFlatButton { Text = "Save provider", Width = 140, Height = 36, Margin = new Padding(8, 4, 0, 0) };
             save.Click += async delegate { await SaveAsync(); };
             _test.Text = "Test connection";
@@ -85,7 +85,7 @@ namespace HAgent.WinForms.Forms
             _test.Margin = new Padding(8, 4, 0, 0);
             _test.Click += async delegate { await TestAsync(); };
             _status.AutoSize = true;
-            _status.ForeColor = Color.FromArgb(100, 116, 139);
+            _status.ForeColor = Color.FromArgb(100, 92, 120);
             _status.Margin = new Padding(8, 15, 12, 0);
             _enabled.Text = "Provider is enabled";
             _enabled.Checked = Provider.Enabled;
@@ -126,8 +126,8 @@ namespace HAgent.WinForms.Forms
         private static Panel CreateLabelPanel(string title, string description)
         {
             var labelPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 8, 12, 0) };
-            labelPanel.Controls.Add(new Label { Text = description, Dock = DockStyle.Fill, Font = new Font("Segoe UI", 8.1f), ForeColor = Color.FromArgb(100, 116, 139) });
-            labelPanel.Controls.Add(new Label { Text = title, Dock = DockStyle.Top, Height = 22, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(15, 23, 42) });
+            labelPanel.Controls.Add(new Label { Text = description, Dock = DockStyle.Fill, Font = new Font("Segoe UI", 8.1f), ForeColor = Color.FromArgb(100, 92, 120) });
+            labelPanel.Controls.Add(new Label { Text = title, Dock = DockStyle.Top, Height = 22, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(31, 24, 69) });
             return labelPanel;
         }
 
@@ -168,7 +168,7 @@ namespace HAgent.WinForms.Forms
                 if (tester == null) throw new InvalidOperationException("This provider adapter does not support connection testing.");
                 _test.Enabled = false;
                 _status.Text = "Testing…";
-                _status.ForeColor = Color.FromArgb(100, 116, 139);
+                _status.ForeColor = Color.FromArgb(100, 92, 120);
                 await tester.TestConnectionAsync(CreateWorkingProvider(), await GetApiKeyAsync(), CancellationToken.None).ConfigureAwait(true);
                 _status.Text = "Connection successful";
                 _status.ForeColor = Color.FromArgb(22, 101, 52);
@@ -178,7 +178,7 @@ namespace HAgent.WinForms.Forms
             {
                 _status.Text = "Connection failed";
                 _status.ForeColor = Color.FromArgb(185, 28, 28);
-                MessageBox.Show(this, ex.Message, "Provider test", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                HMessage.ShowException(this, "The provider connection test failed.", "Provider test", ex);
             }
             finally { _test.Enabled = true; }
         }
@@ -200,7 +200,7 @@ namespace HAgent.WinForms.Forms
             }
             catch (Exception ex)
             {
-                if (showErrors) MessageBox.Show(this, ex.Message, "Load models", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (showErrors) HMessage.ShowException(this, "The model list could not be loaded.", "Load models", ex);
             }
         }
 
@@ -227,7 +227,7 @@ namespace HAgent.WinForms.Forms
                 DialogResult = DialogResult.OK;
                 Close();
             }
-            catch (Exception ex) { MessageBox.Show(this, ex.Message, "Provider", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            catch (Exception ex) { HMessage.ShowException(this, "The provider could not be saved.", "Provider", ex); }
         }
     }
 }

@@ -8,7 +8,7 @@ using HAgent.Models;
 
 namespace HAgent.Runtime
 {
-    public sealed class HAgentClient
+    public sealed partial class HAgentClient
     {
         private readonly IAiStore _store;
         private readonly ISecretStore _secrets;
@@ -121,7 +121,6 @@ namespace HAgent.Runtime
             if (!provider.Enabled) throw new InvalidOperationException("Provider is disabled: " + provider.Name);
 
             var adapter = _adapters.FirstOrDefault(x => x is IProviderModelCapabilities && x.CanHandle(provider));
-
             var selectedModel = string.IsNullOrWhiteSpace(model) ? provider.DefaultModel : model;
             if (adapter == null) return new AiModelCapabilities { Model = selectedModel ?? string.Empty };
 
@@ -132,17 +131,9 @@ namespace HAgent.Runtime
             return await GetEffectiveCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
         }
 
-        public void ClearModelCapabilityCache()
-        {
-            _capabilityCache.Clear();
-        }
+        public void ClearModelCapabilityCache() { _capabilityCache.Clear(); }
 
-        private Task<AiModelCapabilities> GetEffectiveCapabilitiesAsync(
-            AiProvider provider,
-            string model,
-            IAiProviderAdapter adapter,
-            string apiKey,
-            CancellationToken cancellationToken)
+        private Task<AiModelCapabilities> GetEffectiveCapabilitiesAsync(AiProvider provider, string model, IAiProviderAdapter adapter, string apiKey, CancellationToken cancellationToken)
         {
             var capabilitiesAdapter = adapter as IProviderModelCapabilities;
             if (capabilitiesAdapter == null)
@@ -150,10 +141,7 @@ namespace HAgent.Runtime
 
             var selectedModel = model ?? string.Empty;
             var key = provider.Kind + "|" + provider.Id + "|" + provider.BaseUrl + "|" + selectedModel;
-            return _capabilityCache.GetOrCreateAsync(
-                key,
-                () => capabilitiesAdapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, CancellationToken.None),
-                cancellationToken);
+            return _capabilityCache.GetOrCreateAsync(key, () => capabilitiesAdapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, CancellationToken.None), cancellationToken);
         }
 
         private AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore, IReadOnlyList<AIMessage> initialMessages)

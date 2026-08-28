@@ -15,7 +15,7 @@ namespace HAgent.Providers.OpenAICompatible
     /// Adapter for providers exposing an OpenAI-compatible /chat/completions endpoint.
     /// Uses Newtonsoft.Json so the same source works on .NET Framework 4.8.1 and modern .NET.
     /// </summary>
-    public sealed class OpenAICompatibleProviderAdapter : IAiProviderAdapter, IProviderConnectionTester, IProviderModelCatalog
+    public sealed class OpenAICompatibleProviderAdapter : IAiProviderAdapter, IProviderConnectionTester, IProviderModelCatalog, IProviderModelCapabilities
     {
         public const string ProviderKind = "openai-compatible";
 
@@ -33,6 +33,34 @@ namespace HAgent.Providers.OpenAICompatible
         {
             return provider != null &&
                    string.Equals(provider.Kind, ProviderKind, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public Task<AiModelCapabilities> GetCapabilitiesAsync(
+            AiProvider provider,
+            string model,
+            string apiKey,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (provider == null) throw new ArgumentNullException(nameof(provider));
+
+            var result = new AiModelCapabilities
+            {
+                Model = model ?? string.Empty
+            };
+
+            // The OpenAI-compatible transport guarantees the chat request shape,
+            // but the endpoint does not guarantee which optional model features exist.
+            result.Set(AiCapability.Chat, CapabilitySupport.Supported);
+            result.Set(AiCapability.Streaming, CapabilitySupport.Unknown);
+            result.Set(AiCapability.StructuredOutput, CapabilitySupport.Unknown);
+            result.Set(AiCapability.ToolCalling, CapabilitySupport.Unknown);
+            result.Set(AiCapability.Vision, CapabilitySupport.Unknown);
+            result.Set(AiCapability.AudioInput, CapabilitySupport.Unknown);
+            result.Set(AiCapability.AudioOutput, CapabilitySupport.Unknown);
+            result.Set(AiCapability.Embeddings, CapabilitySupport.Unknown);
+            result.Set(AiCapability.Reasoning, CapabilitySupport.Unknown);
+
+            return Task.FromResult(result);
         }
 
         public async Task TestConnectionAsync(AiProvider provider, string apiKey, CancellationToken cancellationToken = default(CancellationToken))
@@ -124,9 +152,9 @@ namespace HAgent.Providers.OpenAICompatible
                         throw new InvalidOperationException("The AI provider returned no choices.");
                     }
 
-                    var text = dto.Choices[0].Message == null
-                        ? string.Empty
-                        : dto.Choices[0].Message.Content ?? string.Empty;
+                    var choice = dto.Choices[0];
+                    var content = choice.Message == null ? string.Empty : choice.Message.Content ?? string.Empty;
+                    var reasoning = choice.Message == null ? string.Empty : choice.Message.ReasoningContent ?? string.Empty;
 
                     var usage = new Dictionary<string, object>();
                     if (dto.Usage != null)
@@ -136,15 +164,24 @@ namespace HAgent.Providers.OpenAICompatible
                         usage["total_tokens"] = dto.Usage.TotalTokens;
                     }
 
+                    var metadata = new Dictionary<string, object>();
+                    if (!string.IsNullOrWhiteSpace(dto.Id)) metadata["provider_request_id"] = dto.Id;
+                    if (!string.IsNullOrWhiteSpace(reasoning)) metadata["reasoning_source"] = "provider-field";
+                    if (!string.IsNullOrWhiteSpace(content) && content.IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0)
+                        metadata["reasoning_markup_detected"] = true;
+
                     return new AIResponse
                     {
                         AgentId = agent.Id,
                         ProviderId = provider.Id,
                         Model = request.Model,
-                        Text = text,
+                        Text = content,
+                        Reasoning = reasoning,
+                        RawText = content,
                         RequestId = dto.Id ?? string.Empty,
                         CreatedAt = DateTimeOffset.UtcNow,
-                        Usage = usage
+                        Usage = usage,
+                        ProviderMetadata = metadata
                     };
                 }
             }
@@ -166,19 +203,13 @@ namespace HAgent.Providers.OpenAICompatible
             return baseUrl.TrimEnd('/') + "/models";
         }
 
-        private static List<ChatMessageDto> ToDtos(
-            IReadOnlyList<AIMessage> messages,
-            string systemPrompt)
+        private static List<ChatMessageDto> ToDtos(IReadOnlyList<AIMessage> messages, string systemPrompt)
         {
             var result = new List<ChatMessageDto>();
 
             if (!string.IsNullOrWhiteSpace(systemPrompt))
             {
-                result.Add(new ChatMessageDto
-                {
-                    Role = "system",
-                    Content = systemPrompt
-                });
+                result.Add(new ChatMessageDto { Role = "system", Content = systemPrompt });
             }
 
             if (messages != null)
@@ -186,12 +217,7 @@ namespace HAgent.Providers.OpenAICompatible
                 foreach (var message in messages)
                 {
                     if (message == null) continue;
-
-                    result.Add(new ChatMessageDto
-                    {
-                        Role = message.Role,
-                        Content = message.Content
-                    });
+                    result.Add(new ChatMessageDto { Role = message.Role, Content = message.Content });
                 }
             }
 
@@ -220,6 +246,9 @@ namespace HAgent.Providers.OpenAICompatible
 
             [JsonProperty("content")]
             public string Content { get; set; }
+
+            [JsonProperty("reasoning_content")]
+            public string ReasoningContent { get; set; }
         }
 
         private sealed class ChatCompletionResponse

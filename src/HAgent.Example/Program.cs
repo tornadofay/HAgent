@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -29,277 +30,240 @@ namespace HAgent.Example
 
     internal sealed class MainForm : HAgentForm
     {
-        private readonly string _basePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "HAgent");
-
+        private readonly string _basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HAgent");
         private readonly HButton _configurationButton;
-        private readonly HButton _clearButton;
-        private readonly HButton _sendButton;
-        private readonly HButton _sessionButton;
-        private readonly HButton _runtimeButton;
-        private readonly HButton _readButton;
-        private readonly Label _status = new Label();
+        private readonly HButton _clearOutputButton;
+        private readonly Label _globalStatus = new Label();
         private readonly TextBox _output = new TextBox();
-
-        private OpenAICompatibleProviderAdapter CreateAdapter()
-        {
-            return new OpenAICompatibleProviderAdapter();
-        }
+        private readonly TabControl _tabs = new TabControl();
+        private readonly List<HButton> _testButtons = new List<HButton>();
 
         public MainForm()
-            : base(
-                "HAgent Example",
-                "Manual integration host for testing completed HAgent features",
-                new Size(980, 650),
-                new Size(820, 560))
+            : base("HAgent Example", "Manual integration and feature-verification host", new Size(1080, 760), new Size(900, 620))
         {
             ShowInTaskbar = true;
             StartPosition = FormStartPosition.CenterScreen;
-            Build();
+            BuildShell();
 
             _configurationButton = CreateButton("Configuration", 150);
             _configurationButton.Click += delegate { OpenConfiguration(); };
-            ((FlowLayoutPanel)BodyPanel.Controls[1]).Controls.Add(_configurationButton);
+            AddHeaderAction(_configurationButton);
 
-            _clearButton = CreateButton("Clear output", 120);
-            _clearButton.Click += delegate { _output.Clear(); _status.Text = "Ready"; };
-            ((FlowLayoutPanel)BodyPanel.Controls[1]).Controls.Add(_clearButton);
+            _clearOutputButton = CreateButton("Clear output", 120);
+            _clearOutputButton.Click += delegate { _output.Clear(); SetReady(); };
+            AddHeaderAction(_clearOutputButton);
 
-            _sendButton = AddAction("Send message", 150);
-            _sendButton.Click += async delegate { await SendMessageAsync(); };
+            _testButtons.Add(AddExampleAction(_tabs.TabPages[0], "Send message", "Calls HAgentClient.SendAsync with the selected enabled agent.", "A normal conversational model should return exactly MESSAGE-OK.", SendMessageAsync));
+            _testButtons.Add(AddExampleAction(_tabs.TabPages[1], "Run session test", "Creates one AgentSession and sends two messages. The second request receives the complete session history.", "The second response should identify HAgent-session-42 and the global output should contain the retained transcript.", TestSessionAsync));
+            _testButtons.Add(AddExampleAction(_tabs.TabPages[2], "Run runtime test", "Uses the 0.2 execution pipeline with timeout, provider-attempt, and retry settings.", "Execution should reach Succeeded and show an execution ID, provider, model, state, and response.", TestRuntimeAsync));
+            _testButtons.Add(AddExampleAction(_tabs.TabPages[3], "Read configuration", "Reads providers and agents directly from the local file store.", "The output should show the settings path and the current provider/agent counts and relationships.", ReadConfigurationAsync));
 
-            _sessionButton = AddAction("Test session", 150);
-            _sessionButton.Click += async delegate { await TestSessionAsync(); };
-
-            _runtimeButton = AddAction("Test runtime", 150);
-            _runtimeButton.Click += async delegate { await TestRuntimeAsync(); };
-
-            _readButton = AddAction("Read configuration", 170);
-            _readButton.Click += async delegate { await ReadConfigurationAsync(); };
+            AddNote(_tabs.TabPages[0], "Model warning", "A model catalog can contain classification, guard, embedding, or other non-chat models. HAgent does not yet infer model capabilities, so choose a conversational model for this test.");
+            AddNote(_tabs.TabPages[1], "Memory boundary", "This validates in-session history forwarding only. Persistent long-term memory is part of milestone 0.3.");
+            AddNote(_tabs.TabPages[2], "Runtime boundary", "This validates orchestration behavior. It does not prove that the chosen model is suitable for the requested task.");
+            AddNote(_tabs.TabPages[3], "Storage boundary", "This verifies host-side configuration reading, not database persistence.");
         }
 
-        private void Build()
+        private void BuildShell()
         {
-            BodyPanel.Padding = new Padding(28);
+            BodyPanel.Padding = new Padding(22);
+            var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = Color.FromArgb(248, 248, 252), Padding = new Padding(0) };
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 220));
 
-            var intro = new Label
-            {
-                Text = "Use this application as the manual test bench for HAgent. Configure providers and agents, then run each example. New library features should add a corresponding example here.",
-                Dock = DockStyle.Top,
-                Height = 52,
-                ForeColor = Color.FromArgb(100, 92, 120),
-                Font = new Font("Segoe UI", 9.5f)
-            };
+            var heading = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(248, 248, 252) };
+            heading.Controls.Add(new Label { Text = "Manual feature test bench", AutoSize = true, Left = 0, Top = 0, Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = Color.FromArgb(31, 24, 69) });
+            heading.Controls.Add(new Label { Text = "Run the real HAgent APIs and compare the output with each feature's expected behavior.", AutoSize = true, Left = 1, Top = 35, ForeColor = Color.FromArgb(100, 92, 120), Font = new Font("Segoe UI", 9f) });
 
-            var actions = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Top,
-                Height = 52,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                Padding = new Padding(0, 6, 0, 0)
-            };
+            var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Padding = new Padding(0, 3, 0, 0), BackColor = Color.FromArgb(248, 248, 252) };
+            _tabs.Dock = DockStyle.Fill;
+            _tabs.Font = new Font("Segoe UI", 9f);
+            _tabs.Padding = new Point(12, 5);
+            _tabs.TabPages.Add(CreateExampleTab("Messaging"));
+            _tabs.TabPages.Add(CreateExampleTab("Session"));
+            _tabs.TabPages.Add(CreateExampleTab("Runtime 0.2"));
+            _tabs.TabPages.Add(CreateExampleTab("Configuration"));
 
-            _status.Text = "Ready";
-            _status.AutoSize = true;
-            _status.ForeColor = Color.FromArgb(100, 92, 120);
-            _status.Margin = new Padding(14, 16, 0, 0);
-            actions.Controls.Add(_status);
-
+            var outputPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(236, 234, 245), Padding = new Padding(10) };
+            outputPanel.Controls.Add(new Label { Text = "Global output", Dock = DockStyle.Top, Height = 24, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(31, 24, 69) });
+            _output.Dock = DockStyle.Fill;
             _output.Multiline = true;
             _output.ReadOnly = true;
             _output.ScrollBars = ScrollBars.Both;
-            _output.Dock = DockStyle.Fill;
             _output.Font = new Font("Consolas", 9f);
             _output.BackColor = Color.White;
             _output.BorderStyle = BorderStyle.FixedSingle;
+            _output.WordWrap = false;
+            outputPanel.Controls.Add(_output);
 
-            BodyPanel.Controls.Add(_output);
-            BodyPanel.Controls.Add(actions);
-            BodyPanel.Controls.Add(intro);
+            _globalStatus.Text = "Ready";
+            _globalStatus.AutoSize = true;
+            _globalStatus.ForeColor = Color.FromArgb(100, 92, 120);
+            _globalStatus.Margin = new Padding(12, 11, 0, 0);
+
+            root.Controls.Add(heading, 0, 0);
+            root.Controls.Add(actions, 0, 1);
+            root.Controls.Add(_tabs, 0, 2);
+            root.Controls.Add(outputPanel, 0, 3);
+            actions.Controls.Add(_globalStatus);
+            BodyPanel.Controls.Add(root);
         }
 
-        private HButton AddAction(string text, int width)
+        private void AddHeaderAction(HButton button)
         {
-            var button = CreateButton(text, width);
-            ((FlowLayoutPanel)BodyPanel.Controls[1]).Controls.Add(button);
+            var root = BodyPanel.Controls.OfType<TableLayoutPanel>().First();
+            var actions = root.GetControlFromPosition(0, 1) as FlowLayoutPanel;
+            actions.Controls.Add(button);
+        }
+
+        private static TabPage CreateExampleTab(string title)
+        {
+            return new TabPage(title) { BackColor = Color.FromArgb(248, 248, 252), Padding = new Padding(22) };
+        }
+
+        private HButton AddExampleAction(TabPage page, string buttonText, string description, string expected, Func<Task> test)
+        {
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = Color.FromArgb(248, 248, 252) };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            var button = CreateButton(buttonText, 180);
+            button.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+            button.Click += async delegate { await RunExampleAsync(test); };
+            layout.Controls.Add(button, 0, 0);
+            layout.Controls.Add(new Label { Text = description, Dock = DockStyle.Fill, ForeColor = Color.FromArgb(68, 62, 88), Font = new Font("Segoe UI", 9.2f), Padding = new Padding(1, 8, 20, 0) }, 0, 1);
+            layout.Controls.Add(new Label { Text = "Expected result\r\n" + expected, Dock = DockStyle.Fill, ForeColor = Color.FromArgb(81, 75, 104), Font = new Font("Segoe UI", 8.9f), Padding = new Padding(1, 4, 20, 0) }, 0, 2);
+            page.Controls.Add(layout);
             return button;
         }
 
-        private static HButton CreateButton(string text, int width)
+        private static void AddNote(TabPage page, string title, string text)
         {
-            return new HButton
+            var table = page.Controls.OfType<TableLayoutPanel>().First();
+            table.Controls.Add(new Label { Text = title + ": " + text, Dock = DockStyle.Fill, ForeColor = Color.FromArgb(100, 92, 120), Font = new Font("Segoe UI", 8.6f), Padding = new Padding(1, 8, 20, 0) }, 0, 3);
+        }
+
+        private async Task RunExampleAsync(Func<Task> action)
+        {
+            SetBusy("Running example...");
+            try
             {
-                Text = text,
-                Width = width,
-                Height = 36,
-                RoundButton = true,
-                Edge = 10,
-                Font = new Font("Segoe UI", 9.3f, FontStyle.Bold),
-                Cursor = Cursors.Hand,
-                ButtonLeaveBackGroundColor1 = Color.FromArgb(92, 67, 168),
-                ButtonLeaveBackGroundColor2 = Color.FromArgb(57, 40, 108),
-                ButtonLeaveForeColor = Color.White,
-                ButtonLeaveBorderColor = Color.FromArgb(116, 76, 210),
-                ButtonEnterBackGroundColor1 = Color.FromArgb(126, 94, 214),
-                ButtonEnterBackGroundColor2 = Color.FromArgb(79, 54, 145),
-                ButtonEnterForeColor = Color.White,
-                ButtonEnterBorderColor = Color.FromArgb(146, 118, 232),
-                ButtonDownBackGroundColor1 = Color.FromArgb(72, 52, 132),
-                ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88),
-                ButtonDownForeColor = Color.White,
-                ButtonDownBorderColor = Color.FromArgb(104, 79, 176),
-                Margin = new Padding(0, 6, 10, 0)
-            };
+                await action();
+                SetReady();
+            }
+            catch (Exception ex)
+            {
+                Write("EXCEPTION", ex.ToString());
+                SetReady();
+                HMessage.ShowException(this, "The example failed.", "HAgent Example", ex);
+            }
         }
 
         private void OpenConfiguration()
         {
             var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            var adapters = new[] { CreateAdapter() };
-            AISettings.ShowMainAISettingsForm(store, secrets, this, adapters);
+            AISettings.ShowMainAISettingsForm(store, secrets, this, new[] { new OpenAICompatibleProviderAdapter() });
         }
 
         private async Task SendMessageAsync()
         {
-            try
-            {
-                SetBusy("Sending message...");
-                var (client, agent) = await CreateClientAndAgentAsync();
-                var response = await client.SendAsync(agent.Id, "Reply with a concise confirmation that HAgent is connected.");
-                Write("SEND MESSAGE", response.Text);
-                SetReady();
-            }
-            catch (Exception ex)
-            {
-                ShowException("Send message failed.", ex);
-            }
+            var selection = await CreateClientAndAgentAsync();
+            var response = await selection.Client.SendAsync(selection.Agent.Id, "Reply with exactly MESSAGE-OK and nothing else.");
+            Write("SEND MESSAGE", "Agent: " + selection.Agent.Name + Environment.NewLine + "Provider: " + selection.Provider.Name + Environment.NewLine + "Model: " + selection.Model + Environment.NewLine + "Response: " + response.Text);
         }
 
         private async Task TestSessionAsync()
         {
-            try
-            {
-                SetBusy("Running session example...");
-                var (client, agent) = await CreateClientAndAgentAsync();
-                var session = client.CreateSession(agent.Id);
-                await session.SendAsync("Remember this test value: HAgent-session-42.");
-                await session.SendAsync("What test value did I ask you to remember?");
-                var read = await session.ReadAsync();
-                Write("SESSION", string.Join(Environment.NewLine, read.Messages.Select(x => x.Role + ": " + x.Content)));
-                SetReady();
-            }
-            catch (Exception ex)
-            {
-                ShowException("Session test failed.", ex);
-            }
+            var selection = await CreateClientAndAgentAsync();
+            var session = selection.Client.CreateSession(selection.Agent.Id);
+            await session.SendAsync("Store this temporary test value in our conversation: HAgent-session-42.");
+            var response = await session.SendAsync("What temporary test value did I just give you? Reply with only the value.");
+            var read = await session.ReadAsync();
+            Write("SESSION", "Agent: " + selection.Agent.Name + Environment.NewLine + "Provider: " + selection.Provider.Name + Environment.NewLine + "Model: " + selection.Model + Environment.NewLine + "Second response: " + response.Text + Environment.NewLine + "Messages retained: " + read.Messages.Count + Environment.NewLine + "Transcript:" + Environment.NewLine + string.Join(Environment.NewLine, read.Messages.Select(x => "  " + x.Role + ": " + x.Content)));
         }
 
         private async Task TestRuntimeAsync()
         {
-            try
-            {
-                SetBusy("Running runtime example...");
-                var (client, agent) = await CreateClientAndAgentAsync();
-                var execution = await client.ExecuteAsync(
-                    agent.Id,
-                    "Reply with the word RUNTIME and nothing else.",
-                    new AgentExecutionOptions
-                    {
-                        Timeout = TimeSpan.FromSeconds(30),
-                        MaxProviderAttempts = 2,
-                        MaxRetriesPerProvider = 1
-                    },
-                    CancellationToken.None);
-
-                Write("RUNTIME", "Execution: " + execution.Id + Environment.NewLine +
-                                 "State: " + execution.State + Environment.NewLine +
-                                 "Provider: " + execution.Response.ProviderId + Environment.NewLine +
-                                 "Model: " + execution.Response.Model + Environment.NewLine +
-                                 "Response: " + execution.Response.Text);
-                SetReady();
-            }
-            catch (Exception ex)
-            {
-                ShowException("Runtime test failed.", ex);
-            }
+            var selection = await CreateClientAndAgentAsync();
+            var execution = await selection.Client.ExecuteAsync(selection.Agent.Id, "Reply with the word RUNTIME-OK and nothing else.", new AgentExecutionOptions { Timeout = TimeSpan.FromSeconds(30), MaxProviderAttempts = 2, MaxRetriesPerProvider = 1 }, CancellationToken.None);
+            Write("RUNTIME", "Execution: " + execution.Id + Environment.NewLine + "State: " + execution.State + Environment.NewLine + "Failure: " + execution.FailureKind + Environment.NewLine + "Provider: " + selection.Provider.Name + " (" + execution.Response.ProviderId + ")" + Environment.NewLine + "Model: " + selection.Model + Environment.NewLine + "Response: " + execution.Response.Text);
         }
 
         private async Task ReadConfigurationAsync()
         {
-            try
-            {
-                SetBusy("Reading configuration...");
-                var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
-                var providers = await store.GetProvidersAsync();
-                var agents = await store.GetAgentsAsync();
-                Write("CONFIGURATION", "Providers: " + providers.Count + Environment.NewLine +
-                                       string.Join(Environment.NewLine, providers.Select(p => "  - " + p.Name + " [" + p.Kind + "]")) +
-                                       Environment.NewLine +
-                                       "Agents: " + agents.Count + Environment.NewLine +
-                                       string.Join(Environment.NewLine, agents.Select(a => "  - " + a.Name + " -> " + a.ProviderId)));
-                SetReady();
-            }
-            catch (Exception ex)
-            {
-                ShowException("Configuration read failed.", ex);
-            }
+            var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+            var providers = await store.GetProvidersAsync();
+            var agents = await store.GetAgentsAsync();
+            Write("CONFIGURATION", "Settings: " + Path.Combine(_basePath, "settings.json") + Environment.NewLine + "Providers: " + providers.Count + Environment.NewLine + string.Join(Environment.NewLine, providers.Select(p => "  - " + p.Name + " [" + p.Kind + "] model=" + p.DefaultModel)) + Environment.NewLine + "Agents: " + agents.Count + Environment.NewLine + string.Join(Environment.NewLine, agents.Select(a => "  - " + a.Name + " -> " + a.ProviderId)));
         }
 
-        private async Task<(HAgentClient Client, AiAgent Agent)> CreateClientAndAgentAsync()
+        private async Task<ClientSelection> CreateClientAndAgentAsync()
         {
             var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
+            var providers = await store.GetProvidersAsync();
             var agents = await store.GetAgentsAsync();
             var agent = agents.FirstOrDefault(a => a.Enabled);
-            if (agent == null)
-                throw new InvalidOperationException("No enabled agent exists. Open Configuration and create an agent first.");
+            if (agent == null) throw new InvalidOperationException("No enabled agent exists. Open Configuration and create or enable an agent first.");
 
-            var client = new HAgentClient(
-                store,
-                secrets,
-                new[] { CreateAdapter() });
+            var providerIds = new List<string>();
+            if (!string.IsNullOrWhiteSpace(agent.ProviderId)) providerIds.Add(agent.ProviderId);
+            if (agent.ProviderIds != null) providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
+            var provider = providerIds.Distinct(StringComparer.OrdinalIgnoreCase).Select(id => providers.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase))).FirstOrDefault(p => p != null && p.Enabled);
+            if (provider == null) throw new InvalidOperationException("The enabled agent has no enabled provider. Agent='" + agent.Name + "'.");
 
-            return (client, agent);
+            var model = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model;
+            if (string.IsNullOrWhiteSpace(model)) throw new InvalidOperationException("No model is configured for agent '" + agent.Name + "' or provider '" + provider.Name + "'.");
+            return new ClientSelection(new HAgentClient(store, secrets, new[] { new OpenAICompatibleProviderAdapter() }), agent, provider, model);
+        }
+
+        private OpenAICompatibleProviderAdapter CreateAdapter() { return new OpenAICompatibleProviderAdapter(); }
+
+        private static HButton CreateButton(string text, int width)
+        {
+            return new HButton { Text = text, Width = width, Height = 36, RoundButton = true, Edge = 10, Font = new Font("Segoe UI", 9.3f, FontStyle.Bold), Cursor = Cursors.Hand, ButtonLeaveBackGroundColor1 = Color.FromArgb(92, 67, 168), ButtonLeaveBackGroundColor2 = Color.FromArgb(57, 40, 108), ButtonLeaveForeColor = Color.White, ButtonLeaveBorderColor = Color.FromArgb(116, 76, 210), ButtonEnterBackGroundColor1 = Color.FromArgb(126, 94, 214), ButtonEnterBackGroundColor2 = Color.FromArgb(79, 54, 145), ButtonEnterForeColor = Color.White, ButtonEnterBorderColor = Color.FromArgb(146, 118, 232), ButtonDownBackGroundColor1 = Color.FromArgb(72, 52, 132), ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88), ButtonDownForeColor = Color.White, ButtonDownBorderColor = Color.FromArgb(104, 79, 176), Margin = new Padding(0, 0, 10, 0) };
         }
 
         private void SetBusy(string text)
         {
             SetButtonsEnabled(false);
-            _status.Text = text;
-            _status.ForeColor = Color.FromArgb(116, 76, 210);
+            _globalStatus.Text = text;
+            _globalStatus.ForeColor = Color.FromArgb(116, 76, 210);
         }
 
         private void SetReady()
         {
             SetButtonsEnabled(true);
-            _status.Text = "Ready";
-            _status.ForeColor = Color.FromArgb(100, 92, 120);
+            _globalStatus.Text = "Ready";
+            _globalStatus.ForeColor = Color.FromArgb(100, 92, 120);
         }
 
         private void SetButtonsEnabled(bool enabled)
         {
             _configurationButton.Enabled = enabled;
-            _clearButton.Enabled = enabled;
-            _sendButton.Enabled = enabled;
-            _sessionButton.Enabled = enabled;
-            _runtimeButton.Enabled = enabled;
-            _readButton.Enabled = enabled;
+            _clearOutputButton.Enabled = enabled;
+            foreach (var button in _testButtons) button.Enabled = enabled;
         }
 
         private void Write(string title, string text)
         {
-            _output.Text = "[" + title + "]" + Environment.NewLine +
-                           DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine +
-                           text + Environment.NewLine;
+            _output.Text = "[" + title + "]" + Environment.NewLine + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine + text + Environment.NewLine;
         }
 
-        private void ShowException(string message, Exception ex)
+        private sealed class ClientSelection
         {
-            SetReady();
-            HMessage.ShowException(this, message, "HAgent Example", ex);
+            public ClientSelection(HAgentClient client, AiAgent agent, AiProvider provider, string model) { Client = client; Agent = agent; Provider = provider; Model = model; }
+            public HAgentClient Client { get; private set; }
+            public AiAgent Agent { get; private set; }
+            public AiProvider Provider { get; private set; }
+            public string Model { get; private set; }
         }
     }
 }

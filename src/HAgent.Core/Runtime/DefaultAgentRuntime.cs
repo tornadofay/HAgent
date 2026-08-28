@@ -27,6 +27,8 @@ namespace HAgent.Runtime
             _router = router ?? new DefaultProviderRouter();
         }
 
+        public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
+
         public async Task<AgentExecution> ExecuteAsync(
             string agentId,
             string message,
@@ -37,7 +39,10 @@ namespace HAgent.Runtime
             if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Message is required.", nameof(message));
 
             options = options ?? new AgentExecutionOptions();
-            if (options.Timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(options.Timeout), "Timeout must be greater than zero.");
+            if (options.Timeout <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(options.Timeout), "Timeout must be greater than zero.");
+            if (options.MaxProviderAttempts <= 0)
+                throw new ArgumentOutOfRangeException(nameof(options.MaxProviderAttempts), "MaxProviderAttempts must be greater than zero.");
 
             var agents = await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false);
             var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
@@ -48,13 +53,16 @@ namespace HAgent.Runtime
             var snapshot = new AgentExecutionSnapshot(agent, providers);
             var messages = new List<AIMessage> { new AIMessage("user", message) }.AsReadOnly();
             var execution = new AgentExecution(snapshot, messages);
+
+            Notify(execution);
             execution.State = AgentExecutionState.Running;
             execution.StartedAt = DateTimeOffset.UtcNow;
+            Notify(execution);
 
-            using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            using (var timeoutCts = new CancellationTokenSource(options.Timeout))
+            using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token))
             {
-                timeout.CancelAfter(options.Timeout);
-
+                var token = linkedCts.Token;
                 try
                 {
                     var candidates = _router.OrderProviders(snapshot.Agent, snapshot.Providers);
@@ -63,8 +71,8 @@ namespace HAgent.Runtime
 
                     foreach (var provider in candidates)
                     {
-                        if (attempts >= Math.Max(1, options.MaxProviderAttempts)) break;
-                        timeout.Token.ThrowIfCancellationRequested();
+                        if (attempts >= options.MaxProviderAttempts) break;
+                        token.ThrowIfCancellationRequested();
                         attempts++;
 
                         var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
@@ -74,35 +82,41 @@ namespace HAgent.Runtime
                         {
                             var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
                                 ? string.Empty
-                                : await _secrets.GetAsync(provider.SecretId, timeout.Token).ConfigureAwait(false);
+                                : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
                             var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent);
                             var outgoing = BuildOutgoingMessages(systemPrompt, execution.Messages);
+
                             execution.Response = await adapter.SendAsync(
                                 provider,
                                 snapshot.Agent,
                                 apiKey,
                                 systemPrompt,
                                 outgoing,
-                                timeout.Token).ConfigureAwait(false);
+                                token).ConfigureAwait(false);
 
                             execution.State = AgentExecutionState.Succeeded;
                             execution.CompletedAt = DateTimeOffset.UtcNow;
+                            Notify(execution);
                             return execution;
                         }
                         catch (Exception ex)
                         {
                             lastError = ex;
-                            if (timeout.IsCancellationRequested) throw;
+                            if (token.IsCancellationRequested) throw;
                         }
                     }
 
-                    throw lastError ?? new InvalidOperationException("No enabled and compatible provider could handle agent: " + snapshot.Agent.Name);
+                    throw lastError ?? new InvalidOperationException(
+                        "No enabled and compatible provider could handle agent: " + snapshot.Agent.Name);
                 }
-                catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+                catch (OperationCanceledException)
                 {
                     execution.State = AgentExecutionState.Cancelled;
                     execution.CompletedAt = DateTimeOffset.UtcNow;
-                    execution.Error = new TimeoutException("Agent execution was cancelled or exceeded its timeout.");
+                    execution.Error = cancellationToken.IsCancellationRequested
+                        ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
+                        : new TimeoutException("Agent execution exceeded its configured timeout.");
+                    Notify(execution);
                     throw;
                 }
                 catch (Exception ex)
@@ -110,6 +124,7 @@ namespace HAgent.Runtime
                     execution.State = AgentExecutionState.Failed;
                     execution.CompletedAt = DateTimeOffset.UtcNow;
                     execution.Error = ex;
+                    Notify(execution);
                     throw;
                 }
             }
@@ -135,6 +150,13 @@ namespace HAgent.Runtime
             if (string.IsNullOrWhiteSpace(providerPrompt)) return agentPrompt ?? string.Empty;
             if (string.IsNullOrWhiteSpace(agentPrompt)) return providerPrompt;
             return providerPrompt.Trim() + Environment.NewLine + Environment.NewLine + agentPrompt.Trim();
+        }
+
+        private void Notify(AgentExecution execution)
+        {
+            var handler = ExecutionChanged;
+            if (handler != null)
+                handler(this, new AgentExecutionEventArgs(execution));
         }
     }
 }

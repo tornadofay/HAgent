@@ -96,6 +96,17 @@ The example host should:
 - remain usable as a developer smoke-test application as the runtime evolves
 - avoid depending on external services unless the example explicitly says so
 
+The Example form is intentionally split by responsibility as the test suite grows:
+
+- `Program.cs` — application entry point only.
+- `MainForm.cs` — form fields, constructor, main shell/layout, and global controls.
+- `MainForm.Tabs.cs` — feature-tab construction and per-tab presentation.
+- `MainForm.Context.cs` — agent selection, provider/agent prompt context, and context refresh.
+- `MainForm.Tests.cs` — manual feature execution against the public HAgent APIs.
+- `MainForm.Ui.cs` — shared Example UI helpers, execution wrapper, output handling, and small view models.
+
+Do not grow `MainForm.cs` into a monolithic test harness. New feature examples should normally be added to the appropriate partial file or a new focused Example component when a feature becomes large enough to justify one.
+
 When a new capability becomes complete, add a corresponding example to `HAgent.Example` before considering the developer experience complete.
 
 ## Provider adapter contract

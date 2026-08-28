@@ -35,7 +35,6 @@ namespace HAgent.Providers.OpenAICompatible
                    string.Equals(provider.Kind, ProviderKind, StringComparison.OrdinalIgnoreCase);
         }
 
-
         public async Task TestConnectionAsync(AiProvider provider, string apiKey, CancellationToken cancellationToken = default(CancellationToken))
         {
             var models = await GetModelsAsync(provider, apiKey, cancellationToken).ConfigureAwait(false);
@@ -65,7 +64,10 @@ namespace HAgent.Providers.OpenAICompatible
                     {
                         foreach (var item in dto.Data)
                         {
-                            if (item != null && !string.IsNullOrWhiteSpace(item.Id) && !result.Contains(item.Id, StringComparer.OrdinalIgnoreCase))
+                            if (item == null || string.IsNullOrWhiteSpace(item.Id))
+                                continue;
+
+                            if (result.FindIndex(x => string.Equals(x, item.Id, StringComparison.OrdinalIgnoreCase)) < 0)
                                 result.Add(item.Id);
                         }
                     }

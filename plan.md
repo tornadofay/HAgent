@@ -18,6 +18,7 @@
 - [x] `HAgent.Example` manual integration host replacing the older sample host.
 - [x] Tabbed Example test bench with global output and global agent selection.
 - [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, runtime execution, and persistent memory.
+- [x] `HAgent.Example` entry point and `MainForm` split into separate source files.
 
 ### 0.2 Runtime foundation — completed
 - [x] Agent runtime abstraction and default execution pipeline.
@@ -43,7 +44,7 @@
 - [ ] Normalize provider responses into a provider-neutral representation.
 - [ ] Keep ordinary assistant content separate from provider-exposed reasoning/thinking content.
 - [ ] Preserve explicitly exposed reasoning metadata without coupling core contracts to one provider.
-- [ ] Do not assume `<think>...</think>` markup is universally provider-native reasoning.
+- [ ] Do not assume `<think>...</think>` is universally provider-native reasoning.
 - [ ] Keep plain-text providers fully compatible.
 - [ ] Let applications choose whether exposed reasoning is displayed, stored, logged, or discarded.
 - [ ] Prevent exposed reasoning from unexpectedly appearing as ordinary user-facing text.

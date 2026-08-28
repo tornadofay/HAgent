@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -34,12 +33,19 @@ namespace HAgent.Example
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "HAgent");
 
-        private readonly Label _status = new Label();
-        private readonly TextBox _output = new TextBox();
+        private readonly HButton _configurationButton;
+        private readonly HButton _clearButton;
         private readonly HButton _sendButton;
         private readonly HButton _sessionButton;
         private readonly HButton _runtimeButton;
         private readonly HButton _readButton;
+        private readonly Label _status = new Label();
+        private readonly TextBox _output = new TextBox();
+
+        private OpenAICompatibleProviderAdapter CreateAdapter()
+        {
+            return new OpenAICompatibleProviderAdapter();
+        }
 
         public MainForm()
             : base(
@@ -51,6 +57,14 @@ namespace HAgent.Example
             ShowInTaskbar = true;
             StartPosition = FormStartPosition.CenterScreen;
             Build();
+
+            _configurationButton = CreateButton("Configuration", 150);
+            _configurationButton.Click += delegate { OpenConfiguration(); };
+            ((FlowLayoutPanel)BodyPanel.Controls[1]).Controls.Add(_configurationButton);
+
+            _clearButton = CreateButton("Clear output", 120);
+            _clearButton.Click += delegate { _output.Clear(); _status.Text = "Ready"; };
+            ((FlowLayoutPanel)BodyPanel.Controls[1]).Controls.Add(_clearButton);
 
             _sendButton = AddAction("Send message", 150);
             _sendButton.Click += async delegate { await SendMessageAsync(); };
@@ -86,14 +100,6 @@ namespace HAgent.Example
                 WrapContents = false,
                 Padding = new Padding(0, 6, 0, 0)
             };
-
-            var config = CreateButton("Configuration", 150);
-            config.Click += delegate { AISettings.ShowMainAISettingsForm(this); };
-            actions.Controls.Add(config);
-
-            var clear = CreateButton("Clear output", 120);
-            clear.Click += delegate { _output.Clear(); _status.Text = "Ready"; };
-            actions.Controls.Add(clear);
 
             _status.Text = "Ready";
             _status.AutoSize = true;
@@ -148,6 +154,14 @@ namespace HAgent.Example
             };
         }
 
+        private void OpenConfiguration()
+        {
+            var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+            var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
+            var adapters = new[] { CreateAdapter() };
+            AISettings.ShowMainAISettingsForm(store, secrets, this, adapters);
+        }
+
         private async Task SendMessageAsync()
         {
             try
@@ -195,7 +209,8 @@ namespace HAgent.Example
                     new AgentExecutionOptions
                     {
                         Timeout = TimeSpan.FromSeconds(30),
-                        MaxProviderAttempts = 2
+                        MaxProviderAttempts = 2,
+                        RetryCountPerProvider = 1
                     },
                     CancellationToken.None);
 
@@ -245,7 +260,7 @@ namespace HAgent.Example
             var client = new HAgentClient(
                 store,
                 secrets,
-                new[] { new OpenAICompatibleProviderAdapter() });
+                new[] { CreateAdapter() });
 
             return (client, agent);
         }
@@ -266,6 +281,8 @@ namespace HAgent.Example
 
         private void SetButtonsEnabled(bool enabled)
         {
+            _configurationButton.Enabled = enabled;
+            _clearButton.Enabled = enabled;
             _sendButton.Enabled = enabled;
             _sessionButton.Enabled = enabled;
             _runtimeButton.Enabled = enabled;

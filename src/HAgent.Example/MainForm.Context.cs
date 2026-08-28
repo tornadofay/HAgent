@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using HAgent.Models;
 using HAgent.Storage.File;
+using HAgent.WinForms.Helpers;
 
 namespace HAgent.Example
 {

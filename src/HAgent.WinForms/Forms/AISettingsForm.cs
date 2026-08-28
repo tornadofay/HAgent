@@ -54,8 +54,8 @@ namespace HAgent.WinForms.Forms
             };
 
             AddNavButton(nav, "Overview", ShowOverview);
-            AddNavButton(nav, "Agents", ShowAgents);
             AddNavButton(nav, "Providers", ShowProviders);
+            AddNavButton(nav, "Agents", ShowAgents);
             AddNavButton(nav, "Tools", ShowTools);
             AddNavButton(nav, "About", ShowAbout);
 
@@ -193,8 +193,8 @@ namespace HAgent.WinForms.Forms
             Panel unused;
             var page = CreatePage("Workspace", "A single place to manage your AI providers, agents, and tools.", null, null, out unused);
             var cards = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 116, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Surface, Padding = new Padding(0, 6, 0, 0) };
-            cards.Controls.Add(Card("Agents", _agents.Count.ToString(), "Configured behaviors"));
             cards.Controls.Add(Card("Providers", _providers.Count.ToString(), "Connection definitions"));
+            cards.Controls.Add(Card("Agents", _agents.Count.ToString(), "Configured behaviors"));
             cards.Controls.Add(Card("Tools", _tools.GetDefinitions().Count().ToString(), "Available capabilities"));
             page.Controls.Add(cards);
             _content.Controls.Add(page);
@@ -286,15 +286,56 @@ namespace HAgent.WinForms.Forms
             ClearContent();
             Panel listHost;
             var page = CreatePage("Tools", "Predefined and custom capability definitions. The host application owns actual execution.", async delegate { await EditToolAsync(null); }, "+  Add custom tool", out listHost);
+            var actions = (FlowLayoutPanel)page.Controls[1];
+            var delete = CreateActionButton("Delete selected", 130, 36, true);
+            delete.Click += delegate
+            {
+                var list = listHost.Controls.OfType<ListView>().FirstOrDefault();
+                if (list == null || list.SelectedItems.Count == 0) return;
+                var selected = list.SelectedItems[0].Tag as AiTool;
+                if (selected == null) return;
+                if (selected.IsBuiltIn)
+                {
+                    HMessage.ShowInformation(this, "Predefined tools are supplied by the host and cannot be deleted here.", "Tool");
+                    return;
+                }
+                if (HMessage.ShowDelete(this, "Delete tool '" + selected.Name + "'?", "Delete tool") != DialogResult.Yes) return;
+                _tools.Unregister(selected.Id);
+                ShowTools();
+            };
+            actions.Controls.Add(delete);
+
             var list = CreateListView();
-            list.Columns.Add("Tool", 220); list.Columns.Add("Category", 130); list.Columns.Add("Kind", 110); list.Columns.Add("Status", 90); list.Columns.Add("Description", 420);
+            list.Columns.Add("Tool", 220);
+            list.Columns.Add("Category", 130);
+            list.Columns.Add("Kind", 110);
+            list.Columns.Add("Status", 90);
+            list.Columns.Add("Description", 420);
             foreach (var tool in _tools.GetDefinitions())
             {
                 var item = new ListViewItem(new[] { tool.Name, tool.Category, tool.IsBuiltIn ? "Predefined" : "Custom", tool.Enabled ? "Enabled" : "Disabled", tool.Description });
                 item.Tag = tool;
                 list.Items.Add(item);
             }
-            list.DoubleClick += async delegate { if (list.SelectedItems.Count > 0) { var selected = (AiTool)list.SelectedItems[0].Tag; if (!selected.IsBuiltIn) await EditToolAsync(selected); } };
+            list.DoubleClick += async delegate
+            {
+                if (list.SelectedItems.Count == 0) return;
+                var selected = (AiTool)list.SelectedItems[0].Tag;
+                if (selected.IsBuiltIn)
+                {
+                    HMessage.ShowInformation(this, "This is a predefined tool. Its definition is supplied by the host application and cannot be edited here.", "Tool");
+                    return;
+                }
+                await EditToolAsync(selected);
+            };
+            list.MouseDoubleClick += async delegate(object sender, MouseEventArgs e)
+            {
+                if (e.Button != MouseButtons.Left || list.SelectedItems.Count == 0) return;
+                var hit = list.HitTest(e.Location).Item;
+                if (hit == null) return;
+                var selected = hit.Tag as AiTool;
+                if (selected != null && !selected.IsBuiltIn) await EditToolAsync(selected);
+            };
             listHost.Controls.Add(list);
             _content.Controls.Add(page);
         }

@@ -100,14 +100,15 @@ namespace HAgent.Runtime
                                     ? string.Empty
                                     : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
                                 var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent);
-                                var outgoing = BuildOutgoingMessages(systemPrompt, execution.Messages);
 
+                                // The adapter receives the resolved system prompt separately and is responsible
+                                // for placing it into the provider request exactly once.
                                 execution.Response = await adapter.SendAsync(
                                     provider,
                                     snapshot.Agent,
                                     apiKey,
                                     systemPrompt,
-                                    outgoing,
+                                    execution.Messages,
                                     token).ConfigureAwait(false);
 
                                 execution.State = AgentExecutionState.Succeeded;
@@ -182,18 +183,6 @@ namespace HAgent.Runtime
             if (rateLimited) multiplier *= 2;
             var milliseconds = Math.Min(baseDelay.TotalMilliseconds * multiplier, 30000d);
             return TimeSpan.FromMilliseconds(milliseconds);
-        }
-
-        private static IReadOnlyList<AIMessage> BuildOutgoingMessages(string systemPrompt, IReadOnlyList<AIMessage> messages)
-        {
-            var outgoing = new List<AIMessage>();
-            if (!string.IsNullOrWhiteSpace(systemPrompt)) outgoing.Add(new AIMessage("system", systemPrompt));
-            if (messages != null)
-            {
-                foreach (var message in messages)
-                    if (message != null) outgoing.Add(message);
-            }
-            return outgoing.AsReadOnly();
         }
 
         private static string BuildSystemPrompt(AiProvider provider, AiAgent agent)

@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using HAgent.Models;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers;
+using HAgent.WinForms.Helpers.Button;
 
 namespace HAgent.WinForms.Forms
 {
@@ -53,7 +54,8 @@ namespace HAgent.WinForms.Forms
             _enabled.Margin = new Padding(0, 12, 10, 0);
 
             var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 46, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = Color.FromArgb(248, 248, 252) };
-            var save = new HFlatButton { Text = "Save tool", Width = 120, Height = 36, Margin = new Padding(8, 4, 0, 0) };
+            var save = CreateButton("Save tool", 120, 36);
+            save.Margin = new Padding(8, 4, 0, 0);
             save.Click += delegate { Save(); };
             footer.Controls.Add(save);
             footer.Controls.Add(_enabled);
@@ -61,6 +63,33 @@ namespace HAgent.WinForms.Forms
             BodyPanel.Padding = new Padding(24);
             BodyPanel.Controls.Add(layout);
             BodyPanel.Controls.Add(footer);
+        }
+
+        private static HButton CreateButton(string text, int width, int height)
+        {
+            return new HButton
+            {
+                Text = text,
+                Width = width,
+                Height = height,
+                RoundButton = true,
+                Edge = 10,
+                TextMargin = 8,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                ButtonLeaveBackGroundColor1 = Color.FromArgb(92, 67, 168),
+                ButtonLeaveBackGroundColor2 = Color.FromArgb(57, 40, 108),
+                ButtonLeaveForeColor = Color.White,
+                ButtonLeaveBorderColor = Color.FromArgb(116, 76, 210),
+                ButtonEnterBackGroundColor1 = Color.FromArgb(126, 94, 214),
+                ButtonEnterBackGroundColor2 = Color.FromArgb(79, 54, 145),
+                ButtonEnterForeColor = Color.White,
+                ButtonEnterBorderColor = Color.FromArgb(146, 118, 232),
+                ButtonDownBackGroundColor1 = Color.FromArgb(72, 52, 132),
+                ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88),
+                ButtonDownForeColor = Color.White,
+                ButtonDownBorderColor = Color.FromArgb(104, 79, 176)
+            };
         }
 
         private static void AddField(TableLayoutPanel layout, int row, string title, string description, Control control)

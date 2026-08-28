@@ -97,12 +97,14 @@ namespace HAgent.Runtime
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
-                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + "): " + ex.GetType().Name + ": " + (string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message));
+                    var kind = ProviderErrorAdvisor.InferKind(ex);
+                    var detail = ProviderErrorAdvisor.GetActionableMessage(kind, provider.Name, string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model, ex.Message);
+                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + ") [" + kind + "]: " + detail);
                 }
             }
 
-            var detail = failures.Count == 0 ? "No provider candidates were configured for the agent." : string.Join(Environment.NewLine, failures.Select(x => "- " + x));
-            throw new InvalidOperationException("No enabled and compatible provider could handle agent '" + agent.Name + "'." + Environment.NewLine + Environment.NewLine + detail);
+            var detailText = failures.Count == 0 ? "No provider candidates were configured for the agent." : string.Join(Environment.NewLine, failures.Select(x => "- " + x));
+            throw new InvalidOperationException("No enabled and compatible provider could handle agent '" + agent.Name + "'." + Environment.NewLine + Environment.NewLine + detailText);
         }
 
         public Task<AgentExecution> ExecuteAsync(string agentId, string message, AgentExecutionOptions options = null, CancellationToken cancellationToken = default(CancellationToken))

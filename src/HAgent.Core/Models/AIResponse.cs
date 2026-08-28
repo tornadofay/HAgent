@@ -11,6 +11,8 @@ namespace HAgent.Models
         public string Text { get; set; }
         public string Reasoning { get; set; }
         public string RawText { get; set; }
+        public string StructuredOutputJson { get; set; }
+        public IReadOnlyList<AIToolCall> ToolCalls { get; set; }
         public string RequestId { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public IReadOnlyDictionary<string, object> Usage { get; set; }
@@ -24,6 +26,8 @@ namespace HAgent.Models
             Text = string.Empty;
             Reasoning = string.Empty;
             RawText = string.Empty;
+            StructuredOutputJson = string.Empty;
+            ToolCalls = new List<AIToolCall>().AsReadOnly();
             RequestId = string.Empty;
             CreatedAt = DateTimeOffset.UtcNow;
             Usage = new Dictionary<string, object>();

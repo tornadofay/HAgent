@@ -18,6 +18,7 @@ namespace HAgent.Runtime
         private readonly IConversationStore _conversations;
         private readonly ConversationContextBuilder _contextBuilder;
         private readonly IConversationMemoryPolicy _memoryPolicy;
+        private readonly AiModelCapabilityCache _capabilityCache = new AiModelCapabilityCache();
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
             : this(store, secrets, adapters, null, null, null, null, null) { }
@@ -84,6 +85,14 @@ namespace HAgent.Runtime
                 try
                 {
                     var apiKey = string.IsNullOrWhiteSpace(provider.SecretId) ? string.Empty : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
+                    var selectedModel = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model;
+                    var capabilities = await GetModelCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
+                    if (capabilities.Get(AiCapability.Chat) == CapabilitySupport.Unsupported)
+                    {
+                        failures.Add("Provider " + provider.Name + ": model '" + selectedModel + "' is not marked as supporting Chat.");
+                        continue;
+                    }
+
                     return await adapter.SendAsync(provider, agent, apiKey, BuildSystemPrompt(provider, agent), contextMessages, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -104,7 +113,6 @@ namespace HAgent.Runtime
         public async Task<AiModelCapabilities> GetModelCapabilitiesAsync(string providerId, string model = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrWhiteSpace(providerId)) throw new ArgumentException("Provider id is required.", nameof(providerId));
-
             var providers = await _store.GetProvidersAsync(cancellationToken).ConfigureAwait(false);
             var provider = providers.FirstOrDefault(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
             if (provider == null) throw new InvalidOperationException("Provider was not found: " + providerId);
@@ -117,27 +125,43 @@ namespace HAgent.Runtime
             });
 
             var selectedModel = string.IsNullOrWhiteSpace(model) ? provider.DefaultModel : model;
-            if (adapter == null)
-            {
-                return new AiModelCapabilities { Model = selectedModel ?? string.Empty };
-            }
+            if (adapter == null) return new AiModelCapabilities { Model = selectedModel ?? string.Empty };
 
             var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
                 ? string.Empty
                 : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
 
-            var result = await adapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, cancellationToken).ConfigureAwait(false);
-            return result ?? new AiModelCapabilities { Model = selectedModel ?? string.Empty };
+            return await GetModelCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
         }
 
-        public AgentSession CreateSession(string agentId) { return CreateSession(agentId, Guid.NewGuid().ToString("N"), null, null); }
-        public AgentSession CreateSession(string agentId, string sessionId) { return CreateSession(agentId, sessionId, _conversations, null); }
-        public AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore) { return CreateSession(agentId, sessionId, conversationStore, null); }
+        public void ClearModelCapabilityCache()
+        {
+            _capabilityCache.Clear();
+        }
+
+        private Task<AiModelCapabilities> GetModelCapabilitiesAsync(
+            AiProvider provider,
+            string model,
+            IProviderModelCapabilities adapter,
+            string apiKey,
+            CancellationToken cancellationToken)
+        {
+            var selectedModel = model ?? string.Empty;
+            var key = provider.Kind + "|" + provider.Id + "|" + provider.BaseUrl + "|" + selectedModel;
+            return _capabilityCache.GetOrCreateAsync(
+                key,
+                () => adapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, CancellationToken.None),
+                cancellationToken);
+        }
 
         private AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore, IReadOnlyList<AIMessage> initialMessages)
         {
             return new AgentSession(agentId, sessionId, (messages, token) => SendAsync(agentId, messages, token), conversationStore, initialMessages, null, _memory, _memoryPolicy);
         }
+
+        public AgentSession CreateSession(string agentId) { return CreateSession(agentId, Guid.NewGuid().ToString("N"), null, null); }
+        public AgentSession CreateSession(string agentId, string sessionId) { return CreateSession(agentId, sessionId, _conversations, null); }
+        public AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore) { return CreateSession(agentId, sessionId, conversationStore, null); }
 
         public async Task<AgentSession> OpenSessionAsync(string agentId, string sessionId, CancellationToken cancellationToken = default(CancellationToken))
         {
@@ -156,8 +180,7 @@ namespace HAgent.Runtime
 
         public Task<string> RememberTaskEventAsync(string ownerId, string taskId, string content, MemoryKind kind = MemoryKind.Event, IDictionary<string, string> metadata = null, DateTimeOffset? occurredAt = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (kind != MemoryKind.Task && kind != MemoryKind.Event)
-                throw new ArgumentException("Task event memory must use MemoryKind.Task or MemoryKind.Event.", nameof(kind));
+            if (kind != MemoryKind.Task && kind != MemoryKind.Event) throw new ArgumentException("Task event memory must use MemoryKind.Task or MemoryKind.Event.", nameof(kind));
             return RememberTypedAsync(ownerId, taskId, content, kind, MemoryScope.Task, metadata, occurredAt ?? DateTimeOffset.UtcNow, cancellationToken);
         }
 
@@ -166,14 +189,7 @@ namespace HAgent.Runtime
             EnsureMemoryStore();
             if (string.IsNullOrWhiteSpace(ownerId)) throw new ArgumentException("Memory owner ID is required.", nameof(ownerId));
             if (string.IsNullOrWhiteSpace(taskId)) throw new ArgumentException("Task ID is required.", nameof(taskId));
-            return _memory.SearchAsync(new MemoryQuery
-            {
-                OwnerId = ownerId,
-                Scope = MemoryScope.Task,
-                TaskId = taskId,
-                Text = text ?? string.Empty,
-                MaxResults = maxResults
-            }, cancellationToken);
+            return _memory.SearchAsync(new MemoryQuery { OwnerId = ownerId, Scope = MemoryScope.Task, TaskId = taskId, Text = text ?? string.Empty, MaxResults = maxResults }, cancellationToken);
         }
 
         private async Task<string> RememberTypedAsync(string ownerId, string taskId, string content, MemoryKind kind, MemoryScope scope, IDictionary<string, string> metadata, DateTimeOffset occurredAt, CancellationToken cancellationToken)

@@ -264,12 +264,5 @@ namespace HAgent.Example
 
             return value.Trim();
         }
-
-        private static string RequireInput(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-                throw new ArgumentException("The example input cannot be empty.", nameof(input));
-            return input;
-        }
     }
 }

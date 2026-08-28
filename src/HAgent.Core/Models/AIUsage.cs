@@ -17,7 +17,7 @@ namespace HAgent.Models
         public long? TotalTokens { get; set; }
         public decimal? EstimatedCost { get; set; }
         public string CostCurrency { get; set; }
-        public IDictionary<string, object> ProviderUsage { get; private set; }
+        public Dictionary<string, object> ProviderUsage { get; private set; }
 
         public bool HasTokenUsage
         {

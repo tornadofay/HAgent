@@ -62,6 +62,7 @@ namespace HAgent.Storage.File
             query = query ?? new MemoryQuery();
             var maxResults = query.MaxResults <= 0 ? 10 : Math.Min(query.MaxResults, 1000);
             var terms = SplitTerms(query.Text);
+            var normalizedQuery = NormalizeText(query.Text);
             var matches = new List<ScoredEntry>();
 
             if (!System.IO.File.Exists(_path)) return matches.ConvertAll(x => x.Entry).AsReadOnly();
@@ -90,7 +91,7 @@ namespace HAgent.Storage.File
                         }
 
                         if (!MatchesFilter(entry, query)) continue;
-                        var score = Score(entry, terms);
+                        var score = Score(entry, terms, normalizedQuery);
                         if (terms.Count > 0 && score <= 0) continue;
 
                         matches.Add(new ScoredEntry(entry, score));
@@ -195,29 +196,56 @@ namespace HAgent.Storage.File
             return true;
         }
 
-        private static int Score(MemoryEntry entry, IReadOnlyList<string> terms)
+        private static int Score(MemoryEntry entry, IReadOnlyList<string> terms, string normalizedQuery)
         {
             if (terms.Count == 0) return 1;
-            var content = entry.Content ?? string.Empty;
-            var metadata = entry.Metadata == null ? string.Empty : string.Join(" ", entry.Metadata.Values);
-            var haystack = (content + " " + metadata).ToLowerInvariant();
+
+            var content = NormalizeText(entry.Content);
+            var metadata = entry.Metadata == null ? string.Empty : NormalizeText(string.Join(" ", entry.Metadata.Values));
             var score = 0;
+
+            if (!string.IsNullOrWhiteSpace(normalizedQuery) && content.IndexOf(normalizedQuery, StringComparison.Ordinal) >= 0)
+                score += 12;
+
             foreach (var term in terms)
             {
-                var index = 0;
-                while ((index = haystack.IndexOf(term, index, StringComparison.Ordinal)) >= 0)
-                {
-                    score++;
-                    index += Math.Max(1, term.Length);
-                }
+                if (ContainsWholeTerm(content, term)) score += 5;
+                else if (content.IndexOf(term, StringComparison.Ordinal) >= 0) score += 2;
+
+                if (ContainsWholeTerm(metadata, term)) score += 2;
+                else if (metadata.IndexOf(term, StringComparison.Ordinal) >= 0) score += 1;
             }
+
             return score;
+        }
+
+        private static bool ContainsWholeTerm(string text, string term)
+        {
+            if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(term)) return false;
+            var start = 0;
+            while (start < text.Length)
+            {
+                var index = text.IndexOf(term, start, StringComparison.Ordinal);
+                if (index < 0) return false;
+
+                var beforeOk = index == 0 || !char.IsLetterOrDigit(text[index - 1]);
+                var end = index + term.Length;
+                var afterOk = end >= text.Length || !char.IsLetterOrDigit(text[end]);
+                if (beforeOk && afterOk) return true;
+                start = end;
+            }
+            return false;
+        }
+
+        private static string NormalizeText(string value)
+        {
+            return (value ?? string.Empty).Trim().ToLowerInvariant();
         }
 
         private static List<string> SplitTerms(string text)
         {
             var terms = new List<string>();
-            foreach (var part in (text ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries))
+            foreach (var part in (text ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '-', '_', '/', '\\', '(', ')', '[', ']' }, StringSplitOptions.RemoveEmptyEntries))
             {
                 if (part.Length < 2) continue;
                 var normalized = part.ToLowerInvariant();

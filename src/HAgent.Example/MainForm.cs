@@ -76,36 +76,15 @@ namespace HAgent.Example
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 5,
+                RowCount = 4,
                 BackColor = Surface,
                 Padding = new Padding(0)
             };
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 260));
-
-            var heading = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
-            heading.Controls.Add(new Label
-            {
-                Text = "Manual feature test bench",
-                AutoSize = true,
-                Left = 0,
-                Top = 0,
-                Font = new Font("Segoe UI", 16f, FontStyle.Bold),
-                ForeColor = Heading
-            });
-            heading.Controls.Add(new Label
-            {
-                Text = "Run the real HAgent APIs and compare the output with the expected behavior shown for each feature.",
-                AutoSize = true,
-                Left = 1,
-                Top = 35,
-                ForeColor = Muted,
-                Font = new Font("Segoe UI", 9f)
-            });
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 12));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 8));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 60));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 30));
 
             var promptPanel = new TableLayoutPanel
             {
@@ -194,11 +173,10 @@ namespace HAgent.Example
             _output.WordWrap = false;
             outputPanel.Controls.Add(_output, 0, 1);
 
-            root.Controls.Add(heading, 0, 0);
-            root.Controls.Add(promptPanel, 0, 1);
-            root.Controls.Add(actions, 0, 2);
-            root.Controls.Add(_tabs, 0, 3);
-            root.Controls.Add(outputPanel, 0, 4);
+            root.Controls.Add(promptPanel, 0, 0);
+            root.Controls.Add(actions, 0, 1);
+            root.Controls.Add(_tabs, 0, 2);
+            root.Controls.Add(outputPanel, 0, 3);
             BodyPanel.Controls.Add(root);
         }
 
@@ -231,7 +209,7 @@ namespace HAgent.Example
         private FlowLayoutPanel GetActionsPanel()
         {
             var root = BodyPanel.Controls.OfType<TableLayoutPanel>().First();
-            return (FlowLayoutPanel)root.GetControlFromPosition(0, 2);
+            return (FlowLayoutPanel)root.GetControlFromPosition(0, 1);
         }
 
         private void ConfigureAgentSelector()
@@ -268,11 +246,11 @@ namespace HAgent.Example
                 Padding = new Padding(22)
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 10));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 6));
 
             var input = new TextBox
             {

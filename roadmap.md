@@ -117,22 +117,18 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 - `DelegateAgentTool` for code-defined custom tools.
 - `HAgentClient` tool registration, lookup, definition inspection, and direct execution.
 - Tool type selection in the Tool editor.
-- Deterministic Example tool-registry test.
-
-### Tool types
-
-- **BuiltIn** — supplied by HAgent.
-- **Application** — executable handler registered by the host application.
-- **Declarative** — safe configuration-driven operation; configuration never becomes arbitrary code execution.
-- **UI** — supplied by `HAgent.WinForms` control/context adapters.
-- **SqlServer** — supplied by the SQL Server tool layer with restricted database operations.
-- **MySql** — supplied by the MySQL tool layer with restricted database operations.
-- **Extension** — future; not part of the initial implementation.
+- Dependency-free JSON Schema validation for tool arguments.
+- Tool arguments are validated before handlers execute.
+- Invalid tool schemas are rejected at registration.
+- OpenAI-compatible provider tool-definition transport.
+- `HAgentClient.SendWithToolsAsync(...)` provider-neutral entry point.
+- Explicit Unsupported Tool Calling blocks known-incompatible model use while Unknown remains usable.
+- Example Tool Registry coverage includes valid and invalid argument cases.
+- Example Provider Tool Transport coverage with a local HTTP capture handler.
 
 ### Next
 
-- JSON Schema validation and safe argument binding.
-- Provider tool-definition transport.
+- Provider tool-call message transport for assistant tool-call and tool-result turns.
 - Provider-neutral tool-call execution loop.
 - Tool result/observation messages.
 - Multiple model/tool turns.
@@ -152,6 +148,16 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 - Tool/provider capability negotiation.
 - Complete predefined/custom tool UI behavior.
 - Manual multi-step tool-loop Example coverage.
+
+### Initial tool types
+
+- **BuiltIn** — supplied by HAgent.
+- **Application** — executable handler registered by the host application.
+- **Declarative** — safe configuration-driven operation; configuration never becomes arbitrary code execution.
+- **UI** — supplied by `HAgent.WinForms` control/context adapters.
+- **SqlServer** — supplied by the SQL Server tool layer with restricted database operations.
+- **MySql** — supplied by the MySQL tool layer with restricted database operations.
+- **Extension** — future; not part of the initial implementation.
 
 ## 0.6 — Safety, Guardrails, Permissions, Approval, Budgets, and Observability
 
@@ -343,7 +349,7 @@ Cross-form recall is allowed only when scope and policy permit it. Provenance ca
 - Conversation persistence across File/SQL Server/MySQL.
 - Memory persistence across File/SQL Server/MySQL.
 - Optional vector/semantic companion package.
-- Optional MCP integration.
+- MCP integration as an optional extension.
 - External secret stores and rotation.
 - Import/export with explicit secret handling.
 - Configuration profiles/workspaces.
@@ -388,7 +394,7 @@ Cross-form recall is allowed only when scope and policy permit it. Provenance ca
 - Prompts are not security boundaries; guardrails and permissions are.
 - Sensitive actions can require human approval.
 - Autonomous operations are observable, cancellable, and budgeted.
-- Provider responses are normalized without destroying useful provider metadata.
+- Provider responses are normalized without destroying provider-specific metadata.
 - Reasoning/thinking is separate optional response content when explicitly exposed.
 - Agent profile and agent/session/form/task scope are separate concepts.
 - WinForms UI context is a host integration layer, not a Core dependency.

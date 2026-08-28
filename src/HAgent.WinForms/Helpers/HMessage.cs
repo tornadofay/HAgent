@@ -3072,7 +3072,7 @@ namespace HAgent.WinForms.Helpers
         Link
     }
 
-    internal sealed class HMessageButton : Button
+    internal sealed class HMessageButton : System.Windows.Forms.Button
     {
         private HMessageButtonKind _buttonKind;
 

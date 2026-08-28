@@ -18,6 +18,19 @@ This repository is designed to be worked on by both human developers and coding 
 12. Provider routing must be provider-neutral and must never assume OpenAI semantics in Core.
 13. Memory must work without a local GPU and must not require a large resident RAM footprint. Embeddings/vector search are optional adapters, never core requirements.
 
+## Documentation is part of project state
+
+`README.md`, `roadmap.md`, `plan.md`, and `AGENTS.md` are maintained project artifacts, not disposable documentation.
+
+Whenever a meaningful feature, architecture, compatibility target, UI convention, milestone, or public API changes:
+
+- update `plan.md` so the implementation state remains accurate;
+- update `roadmap.md` when the long-term ordering/scope changes;
+- update `README.md` when user-facing capabilities, usage, architecture, or supported targets change;
+- update `AGENTS.md` when repository engineering rules or non-negotiable conventions change.
+
+Never mark a feature complete in documentation unless the repository actually contains the implementation. Keep deferred/partial work explicitly marked as such.
+
 ## UI rules
 
 The WinForms UI is designer-free by design, except for application-provided shared controls/helpers that are intentionally maintained separately.
@@ -120,3 +133,5 @@ The CI matrix should eventually cover:
 ## Testing
 
 Test domain behavior independently from WinForms. Network-provider tests should use a fake `HttpMessageHandler` or local test server; do not make unit tests call a real AI vendor.
+
+For this development workflow, do not claim local build/test success unless it was actually executed. The developer machine is the authoritative VS 2022 build/test environment when local tool access is unavailable.

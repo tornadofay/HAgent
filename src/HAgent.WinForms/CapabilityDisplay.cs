@@ -1,5 +1,4 @@
 using System;
-using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 using HAgent.Models;
@@ -12,10 +11,16 @@ namespace HAgent.WinForms
         {
             if (capabilities == null) return "Capabilities: unavailable";
 
-            return "Capabilities: Chat " + Symbol(capabilities.Get(AiCapability.Chat)) +
-                   "  Tools " + Symbol(capabilities.Get(AiCapability.ToolCalling)) +
-                   "  Vision " + Symbol(capabilities.Get(AiCapability.Vision)) +
-                   "  Reasoning " + Symbol(capabilities.Get(AiCapability.Reasoning));
+            var chat = capabilities.Get(AiCapability.Chat);
+            var summary = "Capabilities: Chat " + Symbol(chat) +
+                          "  Tools " + Symbol(capabilities.Get(AiCapability.ToolCalling)) +
+                          "  Vision " + Symbol(capabilities.Get(AiCapability.Vision)) +
+                          "  Reasoning " + Symbol(capabilities.Get(AiCapability.Reasoning));
+
+            if (chat == CapabilitySupport.Unsupported)
+                return "Not suitable for chat  •  " + summary;
+
+            return summary;
         }
 
         public static void AttachToolTip(Control control, AiModelCapabilities capabilities)

@@ -76,6 +76,8 @@ namespace HAgent.Runtime
                     var attempts = 0;
                     Exception lastError = null;
                     ProviderErrorKind lastErrorKind = ProviderErrorKind.Unknown;
+                    string lastProviderName = string.Empty;
+                    string lastModel = string.Empty;
 
                     foreach (var provider in candidates)
                     {
@@ -100,6 +102,8 @@ namespace HAgent.Runtime
                                     ? string.Empty
                                     : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
                                 var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent);
+                                lastProviderName = provider.Name;
+                                lastModel = string.IsNullOrWhiteSpace(snapshot.Agent.Model) ? provider.DefaultModel : snapshot.Agent.Model;
 
                                 execution.Response = await adapter.SendAsync(
                                     provider,
@@ -149,6 +153,18 @@ namespace HAgent.Runtime
                             : lastErrorKind == ProviderErrorKind.Transient || lastErrorKind == ProviderErrorKind.RateLimited
                                 ? AgentExecutionFailureKind.ProviderFailed
                                 : AgentExecutionFailureKind.Unknown;
+
+                    if (lastError != null)
+                    {
+                        var actionable = ProviderErrorAdvisor.GetActionableMessage(
+                            lastErrorKind,
+                            lastProviderName,
+                            lastModel,
+                            lastError.Message);
+
+                        if (!string.Equals(actionable, lastError.Message, StringComparison.Ordinal))
+                            throw new InvalidOperationException(actionable, lastError);
+                    }
 
                     throw lastError ?? new InvalidOperationException(
                         "No enabled and compatible provider could handle agent: " + snapshot.Agent.Name);

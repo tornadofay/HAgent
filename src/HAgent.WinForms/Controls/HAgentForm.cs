@@ -14,6 +14,7 @@ namespace HAgent.WinForms.Controls
     {
         private readonly Color _surface = Color.FromArgb(248, 248, 252);
         private Header _header;
+        private string _subtitle;
 
         protected HAgentForm(string title, string subtitle, Size initialSize, Size minimumSize)
         {
@@ -26,7 +27,8 @@ namespace HAgent.WinForms.Controls
             MinimumSize = minimumSize;
             Size = initialSize;
             Padding = new Padding(1);
-            BuildChrome(title, subtitle);
+            _subtitle = subtitle ?? string.Empty;
+            BuildChrome(title, _subtitle);
         }
 
         protected Panel BodyPanel { get; private set; }
@@ -42,8 +44,11 @@ namespace HAgent.WinForms.Controls
             {
                 Dock = DockStyle.Top,
                 Height = HeaderHeight,
+                ControlHeight = HeaderHeight,
                 CaptionEn = title,
                 CaptionAr = title,
+                SubtitleEn = subtitle,
+                SubtitleAr = subtitle,
                 LanguageType = LanguageMode.English,
                 AllowClose = true,
                 AllowMinimize = false,
@@ -53,13 +58,13 @@ namespace HAgent.WinForms.Controls
                 BackGroundColor1 = Color.FromArgb(31, 24, 69),
                 BackGroundColor2 = Color.FromArgb(88, 39, 126),
                 ForeColor1 = Color.FromArgb(246, 244, 255),
+                SubtitleColor = Color.FromArgb(214, 205, 235),
                 ButtonHoverColor = Color.FromArgb(58, 210, 219, 255),
+                ButtonPressedColor = Color.FromArgb(78, 225, 235, 255),
                 CloseHoverColor = Color.FromArgb(218, 70, 102),
                 Text = title
             };
 
-            _header.Dock = DockStyle.Top;
-            _header.ControlHeight = HeaderHeight;
             _header.PerformOnClose += delegate { OnHeaderCloseRequested(); };
 
             BodyPanel = new Panel
@@ -78,15 +83,16 @@ namespace HAgent.WinForms.Controls
         protected void SetHeaderText(string title, string subtitle)
         {
             if (_header == null) return;
-            _header.CaptionEn = title;
-            _header.CaptionAr = title;
-            _header.Text = string.IsNullOrWhiteSpace(subtitle) ? title : title;
+            _subtitle = subtitle ?? string.Empty;
+            _header.CaptionEn = title ?? string.Empty;
+            _header.CaptionAr = title ?? string.Empty;
+            _header.SubtitleEn = _subtitle;
+            _header.SubtitleAr = _subtitle;
+            Text = title ?? string.Empty;
         }
 
         protected virtual void OnHeaderCloseRequested()
         {
-            // Header handles the configured close behavior. The event remains available
-            // for derived forms that need to perform additional work before closing.
         }
 
         protected override void OnShown(EventArgs e)
@@ -100,9 +106,7 @@ namespace HAgent.WinForms.Controls
             if (Width <= 0 || Height <= 0) return;
 
             using (var path = CreateRoundedPath(new Rectangle(0, 0, Width, Height), CornerRadius))
-            {
                 Region = new Region(path);
-            }
         }
 
         private static GraphicsPath CreateRoundedPath(Rectangle bounds, int radius)
@@ -118,9 +122,6 @@ namespace HAgent.WinForms.Controls
         }
     }
 
-    /// <summary>
-    /// Close behavior supported by the shared HAgent Header.
-    /// </summary>
     public enum CloseType
     {
         ExitForm,
@@ -129,10 +130,6 @@ namespace HAgent.WinForms.Controls
         Hide
     }
 
-    /// <summary>
-    /// Kept local to HAgent.WinForms so the Header remains independent of the user's
-    /// larger HLibraries application framework.
-    /// </summary>
     public enum LanguageMode
     {
         English,

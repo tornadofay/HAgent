@@ -71,7 +71,7 @@ var execution = await ai.ExecuteAsync(
     {
         Timeout = TimeSpan.FromSeconds(60),
         MaxProviderAttempts = 3,
-        RetryCountPerProvider = 1
+        MaxRetriesPerProvider = 1
     });
 ```
 
@@ -185,7 +185,7 @@ Set `HAgent.Example` as the startup project and press **F5**. The window provide
 - **Read configuration** — verifies provider/agent persistence can be read by the host.
 - **Send message** — sends a real request through the configured agent/provider.
 - **Test session** — exercises conversation history forwarding.
-- **Test runtime** — exercises execution IDs, state, timeout, provider-attempt limits, and diagnostics.
+- **Test runtime** — exercises execution IDs, state, timeout, provider-attempt limits, retries, and diagnostics.
 
 Every major feature added to HAgent should eventually have a small manual example in this project so it can be tested directly on a developer machine.
 

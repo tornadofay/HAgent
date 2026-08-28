@@ -215,6 +215,12 @@ This milestone is where HAgent gains a desktop-specific capability that should r
 
 Do not model the whole feature as “form serialization.” Serialization is one operation produced by the UI context layer. The larger feature is an **UI Context / Control Adapter** system that can inspect forms, controls, and data sources and produce safe, provider-neutral descriptions.
 
+The governing performance rule is:
+
+> Prefer the lightest representation that preserves the native/source information needed for the current operation. Preserve bound/native data sources where practical, adapt lazily, avoid copying data unnecessarily, and materialize a tabular representation only when the operation actually requires it. `DataTable` is an available compatibility representation, not an architectural requirement.
+
+For `DataGridView`, prefer its bound data source when one exists. Resolve `BindingSource`, `CurrencyManager`, `IList`/collection, and known tabular sources through adapters. Avoid scraping visible cells when the underlying source is accessible. Avoid eagerly materializing large datasets into `DataTable` or another duplicate structure when streaming, paging, projection, or a native representation is faster and uses less memory.
+
 Planned adapters:
 
 - `Form`.
@@ -229,12 +235,10 @@ Planned adapters:
 - `ListBox` / `ListView`.
 - `TreeView`.
 - `DataGridView`.
-- `DataTable`.
+- `DataTable` when already present or explicitly required.
 - `BindingSource`.
 - `CurrencyManager`.
 - Common `IList`/collection data sources.
-
-`DataGridView` extraction should prefer its bound data source when one exists and normalize known sources to a tabular representation such as `DataTable` instead of scraping visible cells unnecessarily.
 
 ### Form bridge
 
@@ -290,7 +294,7 @@ Attaching a form must not automatically grant write access.
 
 ## 0.8 — Agent Scope, Chat, and Interaction
 
-Do not create incompatible agent classes for every lifetime scenario. Separate the **agent profile** from its **runtime binding/scope**.
+Do not create incompatible agent classes for every lifetime scenario. Separate the **agent profile** from the **runtime binding/scope**.
 
 ### Binding scopes
 
@@ -456,7 +460,8 @@ Memory may carry form ID, session ID, task ID, and application metadata for prov
 - Agent profile and agent/session/form/task scope are separate concepts.
 - WinForms UI context is a host integration layer, not a Core dependency.
 - UI context describes state; tools define permitted actions.
-- Common WinForms data-source conversions are centralized in adapters.
+- Common WinForms data-source handling is centralized in adapters and must use the lightest practical representation.
+- DataGridView extraction must prefer native/bound sources when available, adapt lazily, and avoid unnecessary copies/materialization.
 - Memory works without a local GPU, local embedding model, vector database, or large resident RAM footprint.
 - Advanced integrations belong in optional assemblies/packages where possible.
 - `HAgent.Example` is part of the development workflow and demonstrates completed public capabilities.

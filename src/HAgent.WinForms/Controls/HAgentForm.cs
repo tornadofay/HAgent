@@ -14,7 +14,6 @@ namespace HAgent.WinForms.Controls
     {
         private readonly Color _surface = Color.FromArgb(248, 248, 252);
         private Header _header;
-        private string _subtitle;
 
         protected HAgentForm(string title, string subtitle, Size initialSize, Size minimumSize)
         {
@@ -27,11 +26,11 @@ namespace HAgent.WinForms.Controls
             MinimumSize = minimumSize;
             Size = initialSize;
             Padding = new Padding(1);
-            _subtitle = subtitle ?? string.Empty;
-            BuildChrome(title, _subtitle);
+            BuildChrome(title, subtitle);
         }
 
         protected Panel BodyPanel { get; private set; }
+
         protected virtual int HeaderHeight { get { return 54; } }
         protected virtual int CornerRadius { get { return 14; } }
         protected Header WindowHeader { get { return _header; } }
@@ -41,29 +40,21 @@ namespace HAgent.WinForms.Controls
             _header = new Header
             {
                 Dock = DockStyle.Top,
-                Height = HeaderHeight,
-                ControlHeight = HeaderHeight,
-                CaptionEn = title,
-                CaptionAr = title,
-                SubtitleEn = subtitle,
-                SubtitleAr = subtitle,
-                LanguageType = LanguageMode.English,
+                HeaderHeight = HeaderHeight,
+                Title = title,
+                Subtitle = subtitle,
                 AllowClose = true,
                 AllowMinimize = false,
                 AllowHelp = false,
                 AllowMove = true,
-                CloseMode = CloseType.ExitForm,
                 BackGroundColor1 = Color.FromArgb(31, 24, 69),
                 BackGroundColor2 = Color.FromArgb(88, 39, 126),
                 ForeColor1 = Color.FromArgb(246, 244, 255),
                 SubtitleColor = Color.FromArgb(214, 205, 235),
                 ButtonHoverColor = Color.FromArgb(58, 210, 219, 255),
                 ButtonPressedColor = Color.FromArgb(78, 225, 235, 255),
-                CloseHoverColor = Color.FromArgb(218, 70, 102),
-                Text = title
+                CloseHoverColor = Color.FromArgb(218, 70, 102)
             };
-
-            _header.PerformOnClose += delegate { OnHeaderCloseRequested(); };
 
             BodyPanel = new Panel
             {
@@ -81,16 +72,9 @@ namespace HAgent.WinForms.Controls
         protected void SetHeaderText(string title, string subtitle)
         {
             if (_header == null) return;
-            _subtitle = subtitle ?? string.Empty;
-            _header.CaptionEn = title ?? string.Empty;
-            _header.CaptionAr = title ?? string.Empty;
-            _header.SubtitleEn = _subtitle;
-            _header.SubtitleAr = _subtitle;
+            _header.Title = title;
+            _header.Subtitle = subtitle;
             Text = title ?? string.Empty;
-        }
-
-        protected virtual void OnHeaderCloseRequested()
-        {
         }
 
         protected override void OnShown(EventArgs e)

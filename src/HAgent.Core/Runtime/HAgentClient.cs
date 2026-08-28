@@ -101,6 +101,35 @@ namespace HAgent.Runtime
             return _runtime.ExecuteAsync(agentId, message, options, cancellationToken);
         }
 
+        public async Task<AiModelCapabilities> GetModelCapabilitiesAsync(string providerId, string model = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(providerId)) throw new ArgumentException("Provider id is required.", nameof(providerId));
+
+            var providers = await _store.GetProvidersAsync(cancellationToken).ConfigureAwait(false);
+            var provider = providers.FirstOrDefault(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
+            if (provider == null) throw new InvalidOperationException("Provider was not found: " + providerId);
+            if (!provider.Enabled) throw new InvalidOperationException("Provider is disabled: " + provider.Name);
+
+            var adapter = _adapters.OfType<IProviderModelCapabilities>().FirstOrDefault(x =>
+            {
+                var providerAdapter = x as IAiProviderAdapter;
+                return providerAdapter != null && providerAdapter.CanHandle(provider);
+            });
+
+            var selectedModel = string.IsNullOrWhiteSpace(model) ? provider.DefaultModel : model;
+            if (adapter == null)
+            {
+                return new AiModelCapabilities { Model = selectedModel ?? string.Empty };
+            }
+
+            var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
+                ? string.Empty
+                : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
+
+            var result = await adapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, cancellationToken).ConfigureAwait(false);
+            return result ?? new AiModelCapabilities { Model = selectedModel ?? string.Empty };
+        }
+
         public AgentSession CreateSession(string agentId) { return CreateSession(agentId, Guid.NewGuid().ToString("N"), null, null); }
         public AgentSession CreateSession(string agentId, string sessionId) { return CreateSession(agentId, sessionId, _conversations, null); }
         public AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore) { return CreateSession(agentId, sessionId, conversationStore, null); }

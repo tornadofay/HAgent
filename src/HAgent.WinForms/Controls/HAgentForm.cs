@@ -30,7 +30,6 @@ namespace HAgent.WinForms.Controls
         }
 
         protected Panel BodyPanel { get; private set; }
-
         protected virtual int HeaderHeight { get { return 54; } }
         protected virtual int CornerRadius { get { return 14; } }
         protected Header WindowHeader { get { return _header; } }
@@ -65,15 +64,14 @@ namespace HAgent.WinForms.Controls
 
             Controls.Add(BodyPanel);
             Controls.Add(_header);
-            Resize += delegate { UpdateRoundedRegion(); };
             Shown += delegate { UpdateRoundedRegion(); };
         }
 
         protected void SetHeaderText(string title, string subtitle)
         {
             if (_header == null) return;
-            _header.Title = title;
-            _header.Subtitle = subtitle;
+            _header.Title = title ?? string.Empty;
+            _header.Subtitle = subtitle ?? string.Empty;
             Text = title ?? string.Empty;
         }
 
@@ -83,22 +81,41 @@ namespace HAgent.WinForms.Controls
             UpdateRoundedRegion();
         }
 
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
+            UpdateRoundedRegion();
+        }
+
         private void UpdateRoundedRegion()
         {
-            if (Width <= 0 || Height <= 0) return;
-            using (var path = CreateRoundedPath(new Rectangle(0, 0, Width, Height), CornerRadius))
-                Region = new Region(path);
+            if (!IsHandleCreated || Width <= 0 || Height <= 0)
+                return;
+
+            var radius = Math.Max(1, Math.Min(CornerRadius, Math.Min(Width, Height) / 2));
+            var bounds = new Rectangle(0, 0, Width, Height);
+
+            using (var path = CreateRoundedPath(bounds, radius))
+            {
+                var newRegion = new Region(path);
+                var oldRegion = Region;
+                Region = newRegion;
+                if (oldRegion != null)
+                    oldRegion.Dispose();
+            }
         }
 
         private static GraphicsPath CreateRoundedPath(Rectangle bounds, int radius)
         {
             var diameter = radius * 2;
             var path = new GraphicsPath();
-            path.AddArc(bounds.X, bounds.Y, diameter, diameter, 180, 90);
-            path.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270, 90);
-            path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
-            path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+
+            path.AddArc(bounds.X, bounds.Y, diameter, diameter, 180f, 90f);
+            path.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270f, 90f);
+            path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0f, 90f);
+            path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90f, 90f);
             path.CloseFigure();
+
             return path;
         }
     }

@@ -35,31 +35,23 @@ namespace HAgent.Example
         private static readonly Color Text = Color.FromArgb(68, 62, 88);
         private static readonly Color Muted = Color.FromArgb(100, 92, 120);
         private static readonly Color Accent = Color.FromArgb(116, 76, 210);
+        private static readonly Color Error = Color.FromArgb(185, 28, 28);
 
-        private readonly string _basePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "HAgent");
-
+        private readonly string _basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HAgent");
         private readonly HButton _configurationButton;
         private readonly HButton _clearOutputButton;
         private readonly ComboBox _agentSelector = new ComboBox();
-        private readonly Label _agentLabel = new Label();
         private readonly Label _globalStatus = new Label();
+        private readonly TextBox _providerPrompt = new TextBox();
+        private readonly TextBox _agentPrompt = new TextBox();
+        private readonly Label _promptResolution = new Label();
         private readonly TextBox _output = new TextBox();
         private readonly TabControl _tabs = new TabControl();
         private readonly List<HButton> _testButtons = new List<HButton>();
         private readonly List<AiAgent> _agents = new List<AiAgent>();
-        private readonly TextBox _providerPrompt = new TextBox();
-        private readonly TextBox _agentPrompt = new TextBox();
-        private readonly Label _promptResolution = new Label();
-        private readonly Dictionary<TabPage, TextBox> _messageInputs = new Dictionary<TabPage, TextBox>();
 
         public MainForm()
-            : base(
-                "HAgent Example",
-                "Manual integration and feature-verification host",
-                new Size(1280, 820),
-                new Size(1000, 680))
+            : base("HAgent Example", "Manual integration and feature-verification host", new Size(1280, 820), new Size(1000, 680))
         {
             ShowInTaskbar = true;
             StartPosition = FormStartPosition.CenterScreen;
@@ -68,20 +60,21 @@ namespace HAgent.Example
 
             _configurationButton = CreateButton("Configuration", 150);
             _configurationButton.Click += delegate { OpenConfiguration(); };
-            AddHeaderAction(_configurationButton);
+            GetActionsPanel().Controls.Add(_configurationButton);
 
-            _agentLabel.Text = "Agent:";
-            _agentLabel.AutoSize = true;
-            _agentLabel.ForeColor = Text;
-            _agentLabel.Font = new Font("Segoe UI", 9.1f, FontStyle.Bold);
-            _agentLabel.Margin = new Padding(8, 11, 5, 0);
-            GetActionsPanel().Controls.Add(_agentLabel);
-
+            GetActionsPanel().Controls.Add(new Label
+            {
+                Text = "Agent:",
+                AutoSize = true,
+                ForeColor = Text,
+                Font = new Font("Segoe UI", 9.1f, FontStyle.Bold),
+                Margin = new Padding(8, 11, 5, 0)
+            });
             ConfigureAgentSelector();
 
             _clearOutputButton = CreateButton("Clear output", 120);
             _clearOutputButton.Click += delegate { _output.Clear(); SetReady(); };
-            AddHeaderAction(_clearOutputButton);
+            GetActionsPanel().Controls.Add(_clearOutputButton);
 
             AddFeatureTabs();
             Shown += async delegate { await RefreshAgentsAsync(); };
@@ -90,7 +83,6 @@ namespace HAgent.Example
         private void BuildShell()
         {
             BodyPanel.Padding = new Padding(22);
-
             var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -138,68 +130,30 @@ namespace HAgent.Example
             promptPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             promptPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
             promptPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            promptPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
             promptPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
-            promptPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            promptPanel.Controls.Add(CreateInfoLabel("Provider system prompt"), 0, 0);
-            promptPanel.Controls.Add(CreatePromptBox(), 1, 0);
-            promptPanel.Controls.Add(CreateInfoLabel("Agent system prompt"), 2, 0);
-            promptPanel.Controls.Add(_agentPrompt, 3, 0);
+            promptPanel.Controls.Add(CreatePromptFieldLabel("Provider system prompt"), 0, 0);
+            promptPanel.Controls.Add(CreateReadOnlyPromptBox(_providerPrompt), 1, 0);
+            promptPanel.Controls.Add(CreatePromptFieldLabel("Agent system prompt"), 2, 0);
+            promptPanel.Controls.Add(CreateReadOnlyPromptBox(_agentPrompt), 3, 0);
 
             promptPanel.Controls.Add(new Label
             {
-                Text = "Effective system prompt",
+                Text = "System prompt used:",
                 Dock = DockStyle.Fill,
-                AutoSize = false,
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = Muted,
-                Font = new Font("Segoe UI", 8.4f, FontStyle.Bold)
-            }, 0, 1);
-            promptPanel.Controls.Add(new Label
-            {
-                Text = "",
-                Dock = DockStyle.Fill,
-                AutoSize = false,
-                ForeColor = Accent,
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-                Padding = new Padding(0, 2, 0, 0)
-            }, 1, 1);
-            _promptResolution = (Label)promptPanel.GetControlFromPosition(1, 1);
-            promptPanel.Controls.Add(new Label
-            {
-                Text = "",
-                Dock = DockStyle.Fill,
-                AutoSize = false,
-                ForeColor = Muted,
-                Font = new Font("Segoe UI", 8.4f),
-                Padding = new Padding(8, 2, 0, 0)
-            }, 2, 1);
-            promptPanel.Controls.Add(new Label
-            {
-                Text = "Read-only preview. Provider prompt is used only when the agent enables inheritance.",
-                Dock = DockStyle.Fill,
-                AutoSize = false,
-                ForeColor = Muted,
-                Font = new Font("Segoe UI", 8.4f),
-                Padding = new Padding(0, 2, 0, 0)
-            }, 3, 1);
-
-            _providerPrompt.ReadOnly = true;
-            _providerPrompt.Multiline = true;
-            _providerPrompt.ScrollBars = ScrollBars.Vertical;
-            _providerPrompt.Dock = DockStyle.Fill;
-            _providerPrompt.Font = new Font("Segoe UI", 8.3f);
-            _providerPrompt.BackColor = Color.White;
-            _providerPrompt.BorderStyle = BorderStyle.FixedSingle;
-            promptPanel.Controls[1, 0] = _providerPrompt;
-
-            _agentPrompt.ReadOnly = true;
-            _agentPrompt.Multiline = true;
-            _agentPrompt.ScrollBars = ScrollBars.Vertical;
-            _agentPrompt.Dock = DockStyle.Fill;
-            _agentPrompt.Font = new Font("Segoe UI", 8.3f);
-            _agentPrompt.BackColor = Color.White;
-            _agentPrompt.BorderStyle = BorderStyle.FixedSingle;
+                Padding = new Padding(0, 0, 4, 0)
+            }, 0, 1);
+            _promptResolution.Dock = DockStyle.Fill;
+            _promptResolution.TextAlign = ContentAlignment.MiddleLeft;
+            _promptResolution.ForeColor = Accent;
+            _promptResolution.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            _promptResolution.AutoEllipsis = true;
+            promptPanel.Controls.Add(_promptResolution, 1, 1);
+            promptPanel.SetColumnSpan(_promptResolution, 3);
 
             var actions = new FlowLayoutPanel
             {
@@ -209,6 +163,12 @@ namespace HAgent.Example
                 Padding = new Padding(0, 3, 0, 0),
                 BackColor = Surface
             };
+
+            _globalStatus.Text = "Ready";
+            _globalStatus.AutoSize = true;
+            _globalStatus.ForeColor = Muted;
+            _globalStatus.Margin = new Padding(12, 11, 0, 0);
+            actions.Controls.Add(_globalStatus);
 
             _tabs.Dock = DockStyle.Fill;
             _tabs.Font = new Font("Segoe UI", 9f);
@@ -229,7 +189,6 @@ namespace HAgent.Example
             {
                 Text = "Global output",
                 Dock = DockStyle.Fill,
-                AutoSize = false,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 ForeColor = Heading,
@@ -246,12 +205,6 @@ namespace HAgent.Example
             _output.WordWrap = false;
             outputPanel.Controls.Add(_output, 0, 1);
 
-            _globalStatus.Text = "Ready";
-            _globalStatus.AutoSize = true;
-            _globalStatus.ForeColor = Muted;
-            _globalStatus.Margin = new Padding(12, 11, 0, 0);
-            actions.Controls.Add(_globalStatus);
-
             root.Controls.Add(heading, 0, 0);
             root.Controls.Add(promptPanel, 0, 1);
             root.Controls.Add(actions, 0, 2);
@@ -260,23 +213,30 @@ namespace HAgent.Example
             BodyPanel.Controls.Add(root);
         }
 
-        private static Label CreateInfoLabel(string text)
+        private static Label CreatePromptFieldLabel(string text)
         {
             return new Label
             {
                 Text = text,
                 Dock = DockStyle.Fill,
-                AutoSize = false,
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = Muted,
                 Font = new Font("Segoe UI", 8.4f, FontStyle.Bold),
-                Padding = new Padding(0, 1, 4, 0)
+                Padding = new Padding(0, 0, 4, 0)
             };
         }
 
-        private TextBox CreatePromptBox()
+        private static TextBox CreateReadOnlyPromptBox(TextBox box)
         {
-            return _providerPrompt;
+            box.ReadOnly = true;
+            box.Multiline = true;
+            box.ScrollBars = ScrollBars.Vertical;
+            box.Dock = DockStyle.Fill;
+            box.Font = new Font("Segoe UI", 8.3f);
+            box.BackColor = Color.White;
+            box.BorderStyle = BorderStyle.FixedSingle;
+            box.Margin = new Padding(0, 1, 4, 2);
+            return box;
         }
 
         private FlowLayoutPanel GetActionsPanel()
@@ -285,18 +245,29 @@ namespace HAgent.Example
             return (FlowLayoutPanel)root.GetControlFromPosition(0, 2);
         }
 
+        private void ConfigureAgentSelector()
+        {
+            _agentSelector.Width = 240;
+            _agentSelector.Height = 30;
+            _agentSelector.DropDownStyle = ComboBoxStyle.DropDownList;
+            _agentSelector.Font = new Font("Segoe UI", 9.1f);
+            _agentSelector.Margin = new Padding(0, 5, 8, 0);
+            _agentSelector.SelectedIndexChanged += delegate { _ = UpdateSelectedAgentAsync(); };
+            GetActionsPanel().Controls.Add(_agentSelector);
+        }
+
         private void AddFeatureTabs()
         {
-            AddApiTab("Messaging", "Send message", "Calls HAgentClient.SendAsync with the selected agent.", "A conversational model should return exactly MESSAGE-OK.", "Reply with exactly MESSAGE-OK and nothing else.", SendMessageAsync, "Provider/model warning", "Use a conversational model. The provider model catalog can also contain guard, classification, embedding, and other non-chat models.");
-            AddApiTab("Session", "Run session test", "Creates one AgentSession and sends the editable first message followed by a fixed recall question. The second request receives the complete session history.", "The response should identify HAgent-session-42, and the global output should show the retained transcript.", "Store this temporary test value in our conversation: HAgent-session-42.", TestSessionAsync, "Memory boundary", "This validates in-session conversation history. Durable long-term memory is tested separately in the Memory tab.");
-            AddApiTab("Runtime 0.2", "Run runtime test", "Uses the 0.2 execution pipeline with timeout, provider-attempt, retry, lifecycle, and diagnostics behavior.", "Execution should reach Succeeded and display the execution ID, state, provider, model, and response.", "Reply with the word RUNTIME-OK and nothing else.", TestRuntimeAsync, "Runtime boundary", "The runtime orchestrates execution; it does not infer whether a selected model is suitable for the requested task.");
-            AddApiTab("Configuration", "Read configuration", "Reads providers and agents directly from the local file store.", "The output should show the settings path, provider count, agent count, and provider relationships.", "No AI request is sent by this example.", ReadConfigurationAsync, "Storage boundary", "This verifies host-side configuration reading, not database persistence.");
-            AddApiTab("Memory", "Run memory test", "Writes an explicit memory entry to the persistent file memory store, disposes it, opens a new store instance, recalls the entry, and removes it.", "The second store instance should recall HAgent-memory-42, proving persistence beyond the first process object.", "Remember exactly this test value: HAgent-memory-42.", TestMemoryAsync, "Memory boundary", "This is provider-independent and makes no AI request. It validates explicit durable memory operations, not automatic conversation memory.");
+            AddApiTab("Messaging", "Send message", "Calls HAgentClient.SendAsync with the selected agent.", "A conversational model should return exactly MESSAGE-OK.", "Reply with exactly MESSAGE-OK and nothing else.", SendMessageAsync, "Provider/model warning", "Choose a conversational model; model discovery can also return guard, classification, embedding, and other non-chat models.");
+            AddApiTab("Session", "Run session test", "Creates one AgentSession, sends the editable first message, then asks the fixed recall question. The second request receives the session history.", "The response should identify HAgent-session-42 and the output should show the retained transcript.", "Store this temporary test value in our conversation: HAgent-session-42.", TestSessionAsync, "Memory boundary", "This validates in-session history forwarding. Durable memory is tested separately.");
+            AddApiTab("Runtime 0.2", "Run runtime test", "Uses the 0.2 execution pipeline with timeout, provider-attempt, retry, lifecycle, and diagnostics behavior.", "Execution should reach Succeeded and show execution ID, state, provider, model, and response.", "Reply with the word RUNTIME-OK and nothing else.", TestRuntimeAsync, "Runtime boundary", "The runtime orchestrates execution but does not yet infer model suitability.");
+            AddApiTab("Configuration", "Read configuration", "Reads providers and agents directly from the local file store.", "The output should show the settings path, provider count, agent count, and relationships.", "No AI request is sent by this example.", ReadConfigurationAsync, "Storage boundary", "This verifies host-side configuration reading.");
+            AddApiTab("Memory", "Run memory test", "Writes explicit memory to a persistent file store, closes it, opens a second instance, recalls the entry, and removes it.", "The second store instance should recall HAgent-memory-42, proving persistence outside the original object.", "Remember exactly this test value: HAgent-memory-42.", TestMemoryAsync, "Memory boundary", "Provider-independent and no AI request. Tests explicit durable memory operations.");
         }
 
         private void AddApiTab(string title, string buttonText, string description, string expected, string initialMessage, Func<string, Task> test, string noteTitle, string noteText)
         {
-            var page = CreateExampleTab(title);
+            var page = new TabPage(title) { BackColor = Surface, Padding = new Padding(0) };
             _tabs.TabPages.Add(page);
 
             var layout = new TableLayoutPanel
@@ -309,34 +280,48 @@ namespace HAgent.Example
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, title == "Configuration" ? 32 : 74));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
 
-            var messageBox = new TextBox
+            var input = new TextBox
             {
                 Dock = DockStyle.Fill,
-                Multiline = title == "Configuration" ? false : true,
+                Multiline = title != "Configuration",
                 ScrollBars = title == "Configuration" ? ScrollBars.None : ScrollBars.Vertical,
                 Text = initialMessage,
                 Font = new Font("Segoe UI", 9.2f),
                 BackColor = Color.White,
                 ForeColor = Text,
                 BorderStyle = BorderStyle.FixedSingle,
-                Margin = new Padding(0, 4, 0, 4)
+                Margin = new Padding(0, 2, 0, 4)
             };
-            _messageInputs[page] = messageBox;
 
             var runButton = CreateButton(buttonText, 190);
             runButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
-            runButton.Click += async delegate { await RunExampleAsync(delegate { return test(messageBox.Text); }); };
+            runButton.Click += async delegate { await RunExampleAsync(delegate { return test(input.Text); }); };
             _testButtons.Add(runButton);
 
             layout.Controls.Add(runButton, 0, 0);
-            layout.Controls.Add(CreateSectionLabel("Sent message / input  — editable"), 0, 1);
-            layout.Controls.Add(messageBox, 0, 2);
-            layout.Controls.Add(CreateSectionLabel("Description\r\n" + description + "\r\n\r\nExpected result\r\n" + expected), 0, 3);
+            layout.Controls.Add(new Label
+            {
+                Text = "Sent message / input  — editable",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Text,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                Padding = new Padding(1, 3, 0, 0)
+            }, 0, 1);
+            layout.Controls.Add(input, 0, 2);
+            layout.Controls.Add(new Label
+            {
+                Text = "Description\r\n" + description + "\r\n\r\nExpected result\r\n" + expected,
+                Dock = DockStyle.Fill,
+                ForeColor = Text,
+                Font = new Font("Segoe UI", 9f),
+                Padding = new Padding(1, 4, 20, 0)
+            }, 0, 3);
             layout.Controls.Add(new Label
             {
                 Text = noteTitle + ": " + noteText,
@@ -345,32 +330,7 @@ namespace HAgent.Example
                 Font = new Font("Segoe UI", 8.6f),
                 Padding = new Padding(1, 8, 20, 0)
             }, 0, 4);
-
             page.Controls.Add(layout);
-        }
-
-        private static Label CreateSectionLabel(string text)
-        {
-            return new Label
-            {
-                Text = text,
-                Dock = DockStyle.Fill,
-                AutoSize = false,
-                ForeColor = Text,
-                Font = new Font("Segoe UI", 9f),
-                Padding = new Padding(1, 6, 20, 0)
-            };
-        }
-
-        private void ConfigureAgentSelector()
-        {
-            _agentSelector.Width = 240;
-            _agentSelector.Height = 30;
-            _agentSelector.DropDownStyle = ComboBoxStyle.DropDownList;
-            _agentSelector.Font = new Font("Segoe UI", 9.1f);
-            _agentSelector.Margin = new Padding(0, 5, 8, 0);
-            _agentSelector.SelectedIndexChanged += delegate { UpdateSelectedAgentStatus(); };
-            GetActionsPanel().Controls.Add(_agentSelector);
         }
 
         private async Task RefreshAgentsAsync()
@@ -380,7 +340,6 @@ namespace HAgent.Example
                 var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
                 var agents = await store.GetAgentsAsync();
                 var previousId = GetSelectedAgentId();
-
                 _agents.Clear();
                 _agents.AddRange(agents);
 
@@ -396,20 +355,14 @@ namespace HAgent.Example
                     _agentSelector.EndUpdate();
                 }
 
-                if (!string.IsNullOrWhiteSpace(previousId))
-                    SelectAgent(previousId);
-                if (_agentSelector.SelectedIndex < 0 && _agentSelector.Items.Count > 0)
-                    _agentSelector.SelectedIndex = 0;
-
-                UpdatePromptPreview();
-                if (_agentSelector.Items.Count == 0)
-                    _globalStatus.Text = "No agents configured";
-                else
-                    UpdateSelectedAgentStatus();
+                if (!string.IsNullOrWhiteSpace(previousId)) SelectAgent(previousId);
+                if (_agentSelector.SelectedIndex < 0 && _agentSelector.Items.Count > 0) _agentSelector.SelectedIndex = 0;
+                await UpdateSelectedAgentAsync();
             }
             catch (Exception ex)
             {
                 _globalStatus.Text = "Agent list could not be loaded";
+                _globalStatus.ForeColor = Error;
                 HMessage.ShowException(this, "The agent list could not be loaded.", "HAgent Example", ex);
             }
         }
@@ -426,39 +379,93 @@ namespace HAgent.Example
             return item == null ? null : item.Agent;
         }
 
-        private async Task<ClientSelection> CreateClientAndAgentAsync()
+        private void SelectAgent(string agentId)
+        {
+            for (var i = 0; i < _agentSelector.Items.Count; i++)
+            {
+                var item = _agentSelector.Items[i] as AgentItem;
+                if (item != null && string.Equals(item.Agent.Id, agentId, StringComparison.OrdinalIgnoreCase))
+                {
+                    _agentSelector.SelectedIndex = i;
+                    return;
+                }
+            }
+        }
+
+        private async Task UpdateSelectedAgentAsync()
         {
             var agent = GetSelectedAgent();
             if (agent == null)
-                throw new InvalidOperationException("Select an agent first.");
-            if (!agent.Enabled)
-                throw new InvalidOperationException("The selected agent is disabled. Enable it in Configuration first.");
+            {
+                _globalStatus.Text = "No agent selected";
+                _globalStatus.ForeColor = Muted;
+                ClearPromptPreview();
+                return;
+            }
+
+            _globalStatus.Text = agent.Enabled ? "Selected: " + agent.Name : "Selected: " + agent.Name + " (disabled)";
+            _globalStatus.ForeColor = agent.Enabled ? Muted : Error;
+
+            try
+            {
+                var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+                var providers = await store.GetProvidersAsync();
+                var providerIds = new List<string>();
+                if (!string.IsNullOrWhiteSpace(agent.ProviderId)) providerIds.Add(agent.ProviderId);
+                if (agent.ProviderIds != null) providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
+                var provider = providerIds.Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(id => providers.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)))
+                    .FirstOrDefault(p => p != null);
+
+                _providerPrompt.Text = provider == null ? "No configured provider." : (provider.DefaultSystemPrompt ?? string.Empty);
+                _agentPrompt.Text = agent.SystemPrompt ?? string.Empty;
+
+                if (provider == null)
+                    _promptResolution.Text = "Provider prompt unavailable.";
+                else if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt) && !string.IsNullOrWhiteSpace(agent.SystemPrompt))
+                    _promptResolution.Text = "Provider + Agent prompts are used; agent inherits the provider prompt.";
+                else if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))
+                    _promptResolution.Text = "Provider system prompt is used.";
+                else if (!string.IsNullOrWhiteSpace(agent.SystemPrompt))
+                    _promptResolution.Text = "Agent system prompt is used; provider prompt is not inherited.";
+                else
+                    _promptResolution.Text = "No system prompt is configured.";
+            }
+            catch
+            {
+                ClearPromptPreview();
+            }
+        }
+
+        private void ClearPromptPreview()
+        {
+            _providerPrompt.Clear();
+            _agentPrompt.Clear();
+            _promptResolution.Text = "No prompt information available.";
+        }
+
+        private async Task<ClientSelection> CreateClientAndAgentAsync()
+        {
+            var agent = GetSelectedAgent();
+            if (agent == null) throw new InvalidOperationException("Select an agent first.");
+            if (!agent.Enabled) throw new InvalidOperationException("The selected agent is disabled. Enable it in Configuration first.");
 
             var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var providers = await store.GetProvidersAsync();
-
             var providerIds = new List<string>();
             if (!string.IsNullOrWhiteSpace(agent.ProviderId)) providerIds.Add(agent.ProviderId);
             if (agent.ProviderIds != null) providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
 
-            var provider = providerIds
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+            var provider = providerIds.Distinct(StringComparer.OrdinalIgnoreCase)
                 .Select(id => providers.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)))
                 .FirstOrDefault(p => p != null && p.Enabled);
-
-            if (provider == null)
-                throw new InvalidOperationException("The selected agent has no enabled provider. Agent='" + agent.Name + "'.");
+            if (provider == null) throw new InvalidOperationException("The selected agent has no enabled provider. Agent='" + agent.Name + "'.");
 
             var model = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model;
-            if (string.IsNullOrWhiteSpace(model))
-                throw new InvalidOperationException("No model is configured for agent '" + agent.Name + "' or provider '" + provider.Name + "'.");
+            if (string.IsNullOrWhiteSpace(model)) throw new InvalidOperationException("No model is configured for agent '" + agent.Name + "' or provider '" + provider.Name + "'.");
 
-            return new ClientSelection(
-                new HAgentClient(store, secrets, new[] { new OpenAICompatibleProviderAdapter() }),
-                agent,
-                provider,
-                model);
+            return new ClientSelection(new HAgentClient(store, secrets, new[] { new OpenAICompatibleProviderAdapter() }), agent, provider, model);
         }
 
         private async Task SendMessageAsync(string message)
@@ -481,21 +488,11 @@ namespace HAgent.Example
         private async Task TestRuntimeAsync(string message)
         {
             var selection = await CreateClientAndAgentAsync();
-            var execution = await selection.Client.ExecuteAsync(
-                selection.Agent.Id,
-                RequireInput(message),
-                new AgentExecutionOptions
-                {
-                    Timeout = TimeSpan.FromSeconds(30),
-                    MaxProviderAttempts = 2,
-                    MaxRetriesPerProvider = 1
-                },
-                CancellationToken.None);
-
+            var execution = await selection.Client.ExecuteAsync(selection.Agent.Id, RequireInput(message), new AgentExecutionOptions { Timeout = TimeSpan.FromSeconds(30), MaxProviderAttempts = 2, MaxRetriesPerProvider = 1 }, CancellationToken.None);
             Write("RUNTIME", "Execution: " + execution.Id + Environment.NewLine + "State: " + execution.State + Environment.NewLine + "Failure: " + execution.FailureKind + Environment.NewLine + "Provider: " + selection.Provider.Name + " (" + execution.Response.ProviderId + ")" + Environment.NewLine + "Model: " + selection.Model + Environment.NewLine + "Response: " + execution.Response.Text);
         }
 
-        private async Task ReadConfigurationAsync(string message)
+        private async Task ReadConfigurationAsync(string unused)
         {
             var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
             var providers = await store.GetProvidersAsync();
@@ -507,11 +504,21 @@ namespace HAgent.Example
         private async Task TestMemoryAsync(string message)
         {
             var memoryPath = Path.Combine(_basePath, "memory", "example-memory.jsonl");
-            var firstId = string.Empty;
             var firstStore = new FileMemoryStore(memoryPath);
+            string memoryId;
             try
             {
-                firstId = await StoreExampleMemoryAsync(firstStore, RequireInput(message));
+                var content = RequireInput(message);
+                var entry = new MemoryEntry
+                {
+                    Scope = MemoryScope.Application,
+                    OwnerId = "HAgent.Example",
+                    Content = content.IndexOf("HAgent-memory-42", StringComparison.OrdinalIgnoreCase) >= 0 ? "HAgent-memory-42" : content,
+                    Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "source", "HAgent.Example" }, { "test", "persistent-memory" } },
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                memoryId = entry.Id;
+                await firstStore.AddAsync(entry, CancellationToken.None);
             }
             finally
             {
@@ -521,23 +528,11 @@ namespace HAgent.Example
             var secondStore = new FileMemoryStore(memoryPath);
             try
             {
-                var recalled = await secondStore.SearchAsync(new MemoryQuery
-                {
-                    OwnerId = "HAgent.Example",
-                    Scope = MemoryScope.Application,
-                    Text = "HAgent-memory-42",
-                    MaxResults = 10
-                });
-
-                var found = recalled.FirstOrDefault(x => string.Equals(x.Id, firstId, StringComparison.OrdinalIgnoreCase));
-                var text = found == null
-                    ? "Persistence test failed: the second store instance could not recall the entry."
-                    : "Persistence test succeeded." + Environment.NewLine + "Memory ID: " + found.Id + Environment.NewLine + "Content: " + found.Content + Environment.NewLine + "Scope: " + found.Scope + Environment.NewLine + "Owner: " + found.OwnerId;
-
-                if (found != null)
-                    await secondStore.RemoveAsync(found.Id);
-
-                Write("MEMORY", "Store path: " + memoryPath + Environment.NewLine + text);
+                var recalled = await secondStore.SearchAsync(new MemoryQuery { OwnerId = "HAgent.Example", Scope = MemoryScope.Application, Text = "HAgent-memory-42", MaxResults = 10 }, CancellationToken.None);
+                var found = recalled.FirstOrDefault(x => string.Equals(x.Id, memoryId, StringComparison.OrdinalIgnoreCase));
+                if (found == null) throw new InvalidOperationException("The second memory-store instance could not recall the persisted entry.");
+                await secondStore.RemoveAsync(found.Id, CancellationToken.None);
+                Write("MEMORY", "Store path: " + memoryPath + Environment.NewLine + "Persistence test succeeded." + Environment.NewLine + "Memory ID: " + found.Id + Environment.NewLine + "Content: " + found.Content + Environment.NewLine + "Scope: " + found.Scope + Environment.NewLine + "Owner: " + found.OwnerId);
             }
             finally
             {
@@ -545,27 +540,10 @@ namespace HAgent.Example
             }
         }
 
-        private static async Task<string> StoreExampleMemoryAsync(FileMemoryStore store, string message)
+        private static string RequireInput(string input)
         {
-            var value = message.IndexOf("HAgent-memory-42", StringComparison.OrdinalIgnoreCase) >= 0
-                ? "HAgent-memory-42"
-                : message.Trim();
-
-            var entry = new MemoryEntry
-            {
-                Scope = MemoryScope.Application,
-                OwnerId = "HAgent.Example",
-                Content = value,
-                Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "source", "HAgent.Example" },
-                    { "test", "persistent-memory" }
-                },
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-
-            await store.AddAsync(entry, CancellationToken.None);
-            return entry.Id;
+            if (string.IsNullOrWhiteSpace(input)) throw new ArgumentException("The example input cannot be empty.", nameof(input));
+            return input;
         }
 
         private void OpenConfiguration()
@@ -574,79 +552,6 @@ namespace HAgent.Example
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             AISettings.ShowMainAISettingsForm(store, secrets, this, new[] { new OpenAICompatibleProviderAdapter() });
             _ = RefreshAgentsAsync();
-        }
-
-        private void UpdateSelectedAgentStatus()
-        {
-            var agent = GetSelectedAgent();
-            if (agent == null)
-            {
-                _globalStatus.Text = "No agent selected";
-                UpdatePromptPreview();
-                return;
-            }
-
-            _globalStatus.Text = agent.Enabled
-                ? "Selected: " + agent.Name
-                : "Selected: " + agent.Name + " (disabled)";
-            _globalStatus.ForeColor = agent.Enabled ? Muted : Color.FromArgb(185, 28, 28);
-            UpdatePromptPreview();
-        }
-
-        private async void UpdatePromptPreview()
-        {
-            try
-            {
-                var agent = GetSelectedAgent();
-                if (agent == null)
-                {
-                    _providerPrompt.Clear();
-                    _agentPrompt.Clear();
-                    _promptResolution.Text = "No agent selected";
-                    return;
-                }
-
-                var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
-                var providers = await store.GetProvidersAsync();
-                var provider = providers.FirstOrDefault(p => string.Equals(p.Id, agent.ProviderId, StringComparison.OrdinalIgnoreCase));
-                _providerPrompt.Text = provider == null ? "No provider selected / provider not found." : (provider.DefaultSystemPrompt ?? string.Empty);
-                _agentPrompt.Text = agent.SystemPrompt ?? string.Empty;
-
-                if (provider == null)
-                {
-                    _promptResolution.Text = "Provider prompt unavailable."
-                    ;
-                }
-                else if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt) && !string.IsNullOrWhiteSpace(agent.SystemPrompt))
-                {
-                    _promptResolution.Text = "Used: Provider system prompt + Agent system prompt (agent inherits provider prompt).";
-                }
-                else if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))
-                {
-                    _promptResolution.Text = "Used: Provider system prompt only.";
-                }
-                else if (!string.IsNullOrWhiteSpace(agent.SystemPrompt))
-                {
-                    _promptResolution.Text = "Used: Agent system prompt only. Provider prompt is not inherited.";
-                }
-                else
-                {
-                    _promptResolution.Text = "Used: No system prompt.";
-                }
-            }
-            catch
-            {
-                _providerPrompt.Clear();
-                _agentPrompt.Clear();
-                _promptResolution.Text = "Prompt preview unavailable.";
-            }
-        }
-
-        private static string RequireInput(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-                throw new ArgumentException("The example input cannot be empty.", nameof(input));
-            return input;
         }
 
         private async Task RunExampleAsync(Func<Task> action)
@@ -702,7 +607,7 @@ namespace HAgent.Example
         private void SetReady()
         {
             SetButtonsEnabled(true);
-            UpdateSelectedAgentStatus();
+            _ = UpdateSelectedAgentAsync();
         }
 
         private void SetButtonsEnabled(bool enabled)
@@ -715,19 +620,14 @@ namespace HAgent.Example
 
         private void Write(string title, string value)
         {
-            _output.Text = "[" + title + "]" + Environment.NewLine +
-                           DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine +
-                           value + Environment.NewLine;
+            _output.Text = "[" + title + "]" + Environment.NewLine + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine + value + Environment.NewLine;
         }
 
         private sealed class AgentItem
         {
             public AgentItem(AiAgent agent) { Agent = agent; }
             public AiAgent Agent { get; private set; }
-            public override string ToString()
-            {
-                return Agent.Enabled ? Agent.Name : Agent.Name + " (Disabled)";
-            }
+            public override string ToString() { return Agent.Enabled ? Agent.Name : Agent.Name + " (Disabled)"; }
         }
 
         private sealed class ClientSelection
@@ -739,20 +639,10 @@ namespace HAgent.Example
                 Provider = provider;
                 Model = model;
             }
-
             public HAgentClient Client { get; private set; }
             public AiAgent Agent { get; private set; }
             public AiProvider Provider { get; private set; }
             public string Model { get; private set; }
-        }
-
-        private static TabPage CreateExampleTab(string title)
-        {
-            return new TabPage(title)
-            {
-                BackColor = Surface,
-                Padding = new Padding(0)
-            };
         }
     }
 }

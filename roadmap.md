@@ -63,18 +63,19 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 - Conservative explicit conversation-memory policy.
 - Session/policy provenance for automatic memory.
 - Lightweight phrase/term/metadata/recency memory ranking.
-- Manual Example coverage for memory and context behavior.
+- Typed task/event memory.
+- Task ID filtering for task/event memory.
+- Compact `EpisodicMemory` representation.
+- Episodic outcome/task/session provenance metadata.
+- Manual Example coverage for memory, context, task/event, and episodic behavior.
 
 ### Remaining
 
 - Richer automatic-memory inference without saving ordinary conversation by default.
-- Short-term task/event memory.
-- Episodic memory.
-- Semantic/long-term memory.
 - Memory update/upsert semantics.
 - Retention/expiration.
+- Improved lightweight indexing for larger stores.
 - Context trimming and compaction/summarization.
-- Lightweight persistent indexing for larger stores.
 - SQL Server memory store.
 - MySQL memory store.
 - Conversation listing/search/metadata management.

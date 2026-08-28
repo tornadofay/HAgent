@@ -65,24 +65,37 @@ Provider responses must be normalized into a provider-neutral representation bef
 
 ## 0.3 — Memory — Current
 
+### Initial implementation completed
+
+- Persistent file memory store using append-oriented JSONL records.
+- Streaming file search without loading the entire memory file into RAM.
+- Explicit `remember` operation through `HAgentClient.RememberAsync`.
+- Explicit `recall` operation through `HAgentClient.RecallAsync`.
+- Explicit `forget` operation through `HAgentClient.ForgetAsync`.
+- Memory scopes: session, task, agent, user, application, shared.
+- Metadata filtering.
+- Creation timestamp/provenance baseline.
+- Bounded recall result count.
+
+### Remaining 0.3 work
+
 - Persistent conversation memory.
+- Automatic session-memory policy.
 - Working memory and context-window budgeting.
 - Short-term task/event memory.
 - Episodic memory.
 - Semantic/long-term memory.
-- File memory store.
 - SQL Server memory store.
 - MySQL memory store.
-- Lightweight indexed text retrieval for low-RAM systems.
+- Lightweight persistent indexing for faster large-store retrieval.
 - Optional vector-memory adapter.
 - Remote embedding-provider support without local GPU requirements.
-- Memory scopes: session, task, agent, user, application, shared.
-- Relevance ranking.
+- Improved relevance/ranking.
 - Context trimming and compaction.
-- Explicit `remember`, `recall`, and `forget` operations.
-- Memory provenance and timestamps.
+- Memory update/upsert semantics.
+- Richer memory provenance/source/type fields.
 - Retention/expiration policies.
-- Bounded memory loading.
+- Manual Memory examples in `HAgent.Example`.
 
 ## 0.4 — Tools
 

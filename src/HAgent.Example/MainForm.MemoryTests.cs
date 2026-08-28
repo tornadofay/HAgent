@@ -32,7 +32,8 @@ namespace HAgent.Example
                     null,
                     memory);
 
-                await client.SendAsync(agent.Id, input, CancellationToken.None);
+                var session = client.CreateSession(agent.Id);
+                await session.SendAsync(input, CancellationToken.None);
 
                 var expected = input;
                 var marker = "remember this:";
@@ -48,7 +49,8 @@ namespace HAgent.Example
                     new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
                         { "source", "conversation" },
-                        { "policy", nameof(ExplicitConversationMemoryPolicy) }
+                        { "policy", nameof(ExplicitConversationMemoryPolicy) },
+                        { "sessionId", session.SessionId }
                     },
                     CancellationToken.None);
 
@@ -74,6 +76,7 @@ namespace HAgent.Example
                                            "Scope: " + found.Scope + Environment.NewLine +
                                            "Owner: " + found.OwnerId + Environment.NewLine +
                                            "Policy: " + found.Metadata["policy"] + Environment.NewLine +
+                                           "Session: " + session.SessionId + Environment.NewLine +
                                            "The memory was removed after verification.");
             }
             finally

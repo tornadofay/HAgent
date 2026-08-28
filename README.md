@@ -4,7 +4,7 @@
 
 HAgent is designed for applications that need more than a single AI API call: multiple providers, agents, sessions, persistent memory, tools, controlled automation, collaboration, and long-running work—without forcing a heavyweight AI framework into every deployment.
 
-> Status: **0.3 — Memory and Context / active development**
+> Status: **0.4 — Provider Capabilities and Response Normalization / active development**
 >
 > Current development targets: **.NET Framework 4.8.1 and .NET 9**.
 
@@ -146,17 +146,34 @@ var execution = await ai.ExecuteAsync(
     });
 ```
 
+For model capabilities:
+
+```csharp
+var capabilities = await ai.GetModelCapabilitiesAsync(
+    providerId: "groq",
+    model: "qwen/qwen3.6-27b");
+
+if (capabilities.Get(AiCapability.ToolCalling) == CapabilitySupport.Supported)
+{
+    // Tool calling is explicitly supported by the adapter/provider.
+}
+```
+
+A capability can be `Supported`, `Unsupported`, or `Unknown`. `Unknown` is intentional: HAgent must not infer that a discovered model supports tools, vision, reasoning, embeddings, streaming, or structured output merely because its model ID exists.
+
 ## Current status
 
 HAgent 0.2 established the runtime foundation: execution state, snapshots, provider routing, cancellation/timeouts, retries/backoff, lifecycle events, diagnostics, and lightweight memory abstractions.
 
-The active 0.3 line adds persistent conversations, persistent low-resource memory, explicit/automatic memory policy, task/event records, compact episodic experiences, relevance ranking, and bounded context selection. Stored history remains separate from model context, so an application can preserve a complete transcript while sending only a safe bounded subset to the model.
+HAgent 0.3 added persistent conversations, persistent low-resource memory, explicit/automatic memory policy, task/event records, compact episodic experiences, relevance ranking, and bounded context selection.
 
-The next milestones add explicit model/provider capabilities, normalized responses, the provider-neutral tool loop, guardrails and permissions, observability, and the WinForms-specific UI Context/control-adapter system.
+The active 0.4 milestone now adds explicit model/provider capabilities and normalized response fields. The first slice provides tri-state capabilities plus separate reasoning/raw/provider metadata, while preserving the existing `AIResponse.Text` API. The OpenAI-compatible adapter reports Chat as supported and leaves optional capabilities unknown unless the provider establishes them. Explicit provider `reasoning_content` is kept separate; `<think>` markup is detected for diagnostics but is not automatically treated as native reasoning.
+
+The next steps are capability caching/suitability checks, structured output/tool-call normalization, streaming, and application-level reasoning visibility policy before the Tools milestone.
 
 ## Architecture principles
 
-### 1. Provider versus agent
+### Provider versus agent
 
 A provider answers **“how do I connect?”**.
 
@@ -164,11 +181,9 @@ An agent profile answers **“how should this AI behave?”**.
 
 Agents can reference multiple providers, and the runtime can route between compatible candidates. Shared provider prompts are inherited only when explicitly enabled by the agent model; there is no hidden precedence chain.
 
-### 2. Capabilities are explicit
+### Capabilities are explicit
 
-A model identifier is not a capability contract. A provider may expose models for chat, classification, embeddings, moderation, vision, reasoning, or other tasks.
-
-HAgent will therefore use explicit capability metadata for things such as:
+A model identifier is not a capability contract. Capability support is represented as `Supported`, `Unsupported`, or `Unknown` for each feature.
 
 ```text
 Chat
@@ -184,7 +199,7 @@ Reasoning
 
 This prevents a discovered classifier or guard model from being accidentally treated as a conversational model.
 
-### 3. Agent profile versus scope
+### Agent profile versus scope
 
 HAgent does not need separate incompatible agent classes for “global agent”, “form agent”, “session agent”, or “task agent”. The agent profile and its runtime binding/lifetime are separate concepts.
 
@@ -200,11 +215,11 @@ Ephemeral execution
 
 A single global agent may therefore participate in many forms while each form/session maintains separate state and policy.
 
-### 4. Runtime versus configuration
+### Runtime versus configuration
 
 Configuration can change while an execution is running. An execution captures an `AgentExecutionSnapshot` so running work is not silently altered by later edits or deletions.
 
-### 5. Tools are capabilities, not arbitrary access
+### Tools are capabilities, not arbitrary access
 
 A tool definition describes a permitted capability. The host owns the executable handler and real-world side effect.
 
@@ -239,13 +254,13 @@ Tool call?
 
 The runtime will enforce limits such as execution time, tool calls, turns, memory retrieval, handoffs, and workflow depth.
 
-### 6. Prompts are not security boundaries
+### Prompts are not security boundaries
 
 A system prompt can describe behavior, but it must never be the enforcement mechanism for destructive or sensitive actions.
 
 Permissions, guardrails, approval, validation, and budgets are the actual boundaries.
 
-### 7. Memory is application state
+### Memory is application state
 
 HAgent does not claim that a model itself permanently remembers anything.
 
@@ -255,28 +270,27 @@ The current memory layers distinguish ordinary facts/preferences from task/event
 
 The default memory design is intentionally usable on machines with no GPU and only a few gigabytes of RAM. Vector memory is optional, not a prerequisite.
 
-### 8. Stored history versus context
+### Stored history versus context
 
 A long conversation can be stored completely while each provider request receives a bounded context selected by policy.
 
 This prevents history growth from automatically becoming unbounded prompt growth.
 
-### 9. Provider responses are normalized
+### Provider responses are normalized
 
-Future normalized responses will support optional components such as:
+`AIResponse` remains backward-compatible through `Text`, while normalized response state can additionally contain:
 
 ```text
 Text
-StructuredOutput
-ToolCalls
 Reasoning
+RawText
 Usage
 ProviderMetadata
 ```
 
-Provider-exposed reasoning must remain separate from ordinary assistant text when the provider explicitly exposes it. HAgent will not assume that `<think>...</think>` markup universally represents native reasoning metadata.
+Provider-exposed reasoning must remain separate from ordinary assistant text when the provider explicitly exposes it. HAgent does not assume that `<think>...</think>` markup universally represents native reasoning metadata.
 
-### 10. Observability is part of the runtime
+### Observability is part of the runtime
 
 Agentic work needs more than one final exception. HAgent will expose correlation-based diagnostics around provider calls, model turns, tools, memory, guardrails, approvals, and agent handoffs while keeping secrets and sensitive payloads redacted by default.
 
@@ -322,18 +336,7 @@ structured result
 
 The adapter layer should understand common controls and data sources without applications having to repeatedly write conversion code.
 
-For example, a `DataGridView` should prefer its bound data source when one exists, and use the lightest representation that is appropriate for the requested operation:
-
-```text
-DataGridView
-   ↓
-DataSource
-   ├─ DataTable
-   ├─ BindingSource
-   ├─ CurrencyManager
-   ├─ IList / collections
-   └─ supported custom source
-```
+For example, a `DataGridView` should prefer its bound data source when one exists, and use the lightest representation that is appropriate for the requested operation.
 
 Known sources should be adapted lazily. `DataTable` is a compatibility representation, not an architectural requirement. For large datasets, paging, streaming, projection, or a native/source representation should be preferred whenever it is more efficient and avoids unnecessary copies.
 
@@ -435,7 +438,7 @@ Provenance describes where data came from; it is not an authorization mechanism.
 | Assembly | Purpose |
 |---|---|
 | `HAgent.Core` | Core models, abstractions, sessions, runtime, memory/context foundations |
-| `HAgent.Providers.OpenAICompatible` | OpenAI-compatible transport and model discovery |
+| `HAgent.Providers.OpenAICompatible` | OpenAI-compatible transport, model discovery, and capability baseline |
 | `HAgent.Storage.File` | JSON configuration, DPAPI secrets, JSONL memory, persistent conversations |
 | `HAgent.Storage.SqlServer` | SQL Server persistence/schema foundation |
 | `HAgent.Storage.MySql` | MySQL persistence/schema foundation |
@@ -459,7 +462,7 @@ Current targets:
 - `HAgent.Tests` verifies behavior automatically.
 - `HAgent.Example` lets a developer run completed features manually and inspect actual behavior.
 
-Current examples include configuration, provider-backed messaging, session history, persistent sessions, explicit memory, automatic memory, context budgeting, task/event memory, episodic memory, and runtime execution.
+Current examples include configuration, provider-backed messaging, session history, persistent sessions, explicit memory, automatic memory, context budgeting, task/event memory, episodic memory, runtime execution, and model capability inspection.
 
 The Example form uses focused partial files rather than one monolithic test form. New large feature areas should get their own focused Example source file/component.
 

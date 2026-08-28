@@ -43,7 +43,8 @@ namespace HAgent.Runtime
             if (string.IsNullOrWhiteSpace(agentId)) throw new ArgumentException("Agent id is required.", nameof(agentId));
             if (messages == null || messages.Count == 0) throw new ArgumentException("At least one message is required.", nameof(messages));
 
-            var agent = (await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false)).FirstOrDefault(x => x.Id == agentId);
+            var agents = await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false);
+            var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
             if (agent == null) throw new InvalidOperationException("Agent was not found: " + agentId);
             if (!agent.Enabled) throw new InvalidOperationException("Agent is disabled: " + agent.Name);
 
@@ -52,12 +53,29 @@ namespace HAgent.Runtime
             if (!string.IsNullOrWhiteSpace(agent.ProviderId)) providerIds.Add(agent.ProviderId);
             if (agent.ProviderIds != null) providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
 
+            var failures = new List<string>();
+
             foreach (var providerId in providerIds.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                var provider = providers.FirstOrDefault(x => x.Id == providerId);
-                if (provider == null || !provider.Enabled) continue;
+                var provider = providers.FirstOrDefault(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
+                if (provider == null)
+                {
+                    failures.Add("Provider " + providerId + ": provider was not found.");
+                    continue;
+                }
+
+                if (!provider.Enabled)
+                {
+                    failures.Add("Provider " + provider.Name + ": provider is disabled.");
+                    continue;
+                }
+
                 var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
-                if (adapter == null) continue;
+                if (adapter == null)
+                {
+                    failures.Add("Provider " + provider.Name + ": no registered adapter can handle kind '" + provider.Kind + "'.");
+                    continue;
+                }
 
                 try
                 {
@@ -70,13 +88,21 @@ namespace HAgent.Runtime
                     foreach (var m in messages) if (m != null) outgoing.Add(m);
                     return await adapter.SendAsync(provider, agent, apiKey, systemPrompt, outgoing, cancellationToken).ConfigureAwait(false);
                 }
-                catch when (!cancellationToken.IsCancellationRequested)
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
-                    // Try the next configured provider.
+                    var messageText = string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + "): " +
+                                 ex.GetType().Name + ": " + messageText);
                 }
             }
 
-            throw new InvalidOperationException("No enabled and compatible provider could handle agent: " + agent.Name);
+            var detail = failures.Count == 0
+                ? "No provider candidates were configured for the agent."
+                : string.Join(Environment.NewLine, failures.Select(x => "- " + x));
+
+            throw new InvalidOperationException(
+                "No enabled and compatible provider could handle agent '" + agent.Name + "'." +
+                Environment.NewLine + Environment.NewLine + detail);
         }
 
         public Task<AgentExecution> ExecuteAsync(

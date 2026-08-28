@@ -44,8 +44,24 @@ The 0.2 milestone establishes a provider-neutral execution layer without turning
 - Structured execution failure categories.
 - Lightweight memory abstraction and in-memory text/metadata retrieval foundation.
 - Explicit no-GPU / low-RAM memory design rule.
+- Resolved system prompt inserted exactly once into provider requests.
+- Provider failure details preserved for diagnostics.
 
 0.2 deliberately does **not** claim to have completed persistent memory, provider-native tool calling, long-running durable tasks, or full multi-provider configuration UI.
+
+## Cross-cutting response handling
+
+Provider responses must be normalized into a provider-neutral representation before application/UI consumption.
+
+- Separate ordinary assistant content from provider-exposed reasoning/thinking content.
+- Preserve reasoning metadata when the provider explicitly exposes it through a supported response field.
+- Never assume that `<think>...</think>` markup is universally equivalent to provider-native reasoning metadata.
+- Keep plain-text providers fully compatible.
+- Allow applications to choose whether exposed reasoning is stored, displayed, logged, or discarded.
+- Prevent reasoning content from unexpectedly appearing as ordinary user-facing assistant text.
+- Preserve raw provider metadata where useful without coupling the core model to one vendor's schema.
+- Add provider/model capability metadata before automatically classifying responses as reasoning-capable.
+- Add manual response-normalization examples to `HAgent.Example`.
 
 ## 0.3 — Memory — Current
 
@@ -159,6 +175,7 @@ Planned capabilities:
 - Attachments/multimodal messages where supported.
 - Live execution status.
 - Tool-call visualization.
+- Reasoning/thinking visibility policy where the provider exposes reasoning separately.
 - Cancel/stop response.
 - Open multiple conversations.
 - Agent deletion handling for open conversations.
@@ -215,6 +232,7 @@ Planned capabilities:
 - Multimodal provider abstraction.
 - Streaming.
 - Versioned provider extension contract.
+- Provider response normalization/capability metadata.
 
 ## 0.10 — Extensibility and storage ecosystem
 
@@ -273,6 +291,8 @@ Planned capabilities:
 - A tool definition is never executable code by itself.
 - Applications explicitly expose capabilities; agents never receive arbitrary process access.
 - Memory is explicit state supplied to the model, not a claim that the model itself permanently remembers.
+- Provider responses are normalized without destroying provider-specific metadata.
+- Reasoning/thinking is treated as a separate optional response component when explicitly exposed by a provider.
 - Every autonomous action should be observable, cancellable, and policy-controlled.
 - File/database/vector stores remain replaceable.
 - Advanced functionality belongs in optional assemblies when it would otherwise bloat common deployments.

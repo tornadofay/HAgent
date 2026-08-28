@@ -2,7 +2,7 @@
 
 ## Current milestone: 0.3 — Memory and Context
 
-This is the implementation ledger. Keep it synchronized with the repository. A roadmap item is not complete until the implementation and the corresponding manual Example coverage exist.
+This is the implementation ledger. Keep it synchronized with the repository. A roadmap item is not complete until the implementation and corresponding manual Example coverage exist.
 
 ### 0.1 Foundation — completed
 - [x] Multi-target core for .NET Framework 4.8.1 and .NET 9.
@@ -48,8 +48,11 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [x] Streaming memory search without loading the complete store into RAM.
 - [x] Explicit `RememberAsync`, `RecallAsync`, and `ForgetAsync`.
 - [x] Memory scopes: session, task, agent, user, application, shared.
+- [x] Typed memory kinds: Fact, Preference, Task, Event.
+- [x] Task ID filtering for task/event memory.
+- [x] `RememberTaskEventAsync` and `RecallTaskEventsAsync` public APIs.
 - [x] Metadata filtering.
-- [x] Creation timestamp/provenance baseline.
+- [x] Creation/occurrence timestamp baseline.
 - [x] Bounded recall count.
 - [x] `IConversationStore` abstraction.
 - [x] File-backed persistent conversation store.
@@ -63,10 +66,10 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [x] Conservative explicit-trigger automatic memory policy.
 - [x] Automatic-memory session/policy provenance.
 - [x] Lightweight phrase/term/metadata/recency ranking.
-- [x] Manual Example coverage for memory, persistence, automatic memory, and context budgeting.
+- [x] Manual Example coverage for memory, persistence, automatic memory, context budgeting, and task/event memory.
 
 ### Remaining
-- [ ] Richer task/event memory.
+- [ ] Richer automatic-memory inference without silently saving ordinary conversation.
 - [ ] Episodic memory representation.
 - [ ] Memory update/upsert semantics.
 - [ ] Retention/expiration policies.
@@ -77,7 +80,6 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [ ] Conversation listing/search/metadata management.
 - [ ] Optional vector-memory adapter.
 - [ ] Remote embedding-provider integration without local GPU requirements.
-- [ ] Optional richer automatic-memory inference that still does not silently store ordinary chat.
 
 ## 0.4 Provider Capabilities and Response Normalization — planned
 - [ ] Explicit provider/model capability model.
@@ -153,7 +155,6 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [ ] Safe UI state snapshots.
 - [ ] Context serialization/export into provider-neutral representations.
 - [ ] DataGridView data-source extraction.
-- [ ] DataTable normalization.
 - [ ] BindingSource/CurrencyManager support.
 - [ ] IList/collection source support.
 - [ ] TextBox/RichTextBox adapter.
@@ -163,6 +164,13 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [ ] DateTimePicker/NumericUpDown adapters.
 - [ ] ListBox/ListView/TreeView adapters.
 - [ ] Explicit custom/UserControl adapters.
+
+### Performance and representation rule
+- [ ] Prefer the lightest representation that preserves the information required for the current operation.
+- [ ] Prefer native/bound data sources over scraping visible controls when the underlying source is available.
+- [ ] Adapt lazily and avoid unnecessary copies/materialization.
+- [ ] Use `DataTable` only when it is already the native source, is explicitly required by the operation, or is actually the most efficient representation for that workload.
+- [ ] Prefer paging, streaming, projection, or lightweight/native representations for large datasets when they are more efficient.
 
 ### Form bridge
 - [ ] Attach/detach form.
@@ -276,7 +284,7 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [ ] Persistent multi-provider routing configuration.
 - [ ] Conversation persistence across File/SQL Server/MySQL.
 - [ ] Memory persistence across File/SQL Server/MySQL.
-- [ ] Optional vector/semantic-memory companion package.
+- [ ] Optional vector/semantic companion package.
 - [ ] Optional MCP integration.
 - [ ] External secret stores and rotation.
 - [ ] Import/export with explicit secret handling.
@@ -323,10 +331,11 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 10. Reasoning/thinking is optional separate response content when explicitly exposed by a provider.
 11. UI Context/introspection describes state; tools define permitted actions.
 12. “Form serialization” is a UI Context capability, not the name of the entire WinForms subsystem.
-13. DataGridView/DataTable/BindingSource/CurrencyManager conversions are centralized in control adapters.
-14. Cross-form memory uses explicit scopes and provenance, not implicit global state.
-15. Stored conversation history and provider context are separate resources.
-16. Memory must work without a local GPU, embedding model, vector database, or large resident RAM footprint.
-17. Advanced integrations belong in optional assemblies/packages when they would otherwise bloat common deployments.
-18. `HAgent.Example` is the manual verification surface; `HAgent.Tests` is the automated testing surface.
-19. README, roadmap, plan, and AGENTS are project-state artifacts and must remain synchronized.
+13. WinForms data-source handling is centralized in control adapters.
+14. Data representation must be selected for performance and memory efficiency, not convenience. DataTable is an optional compatibility representation, never a requirement.
+15. Cross-form memory uses explicit scopes and provenance, not implicit global state.
+16. Stored conversation history and provider context are separate resources.
+17. Memory must work without a local GPU, embedding model, vector database, or large resident RAM footprint.
+18. Advanced integrations belong in optional assemblies/packages when they would otherwise bloat common deployments.
+19. `HAgent.Example` is the manual verification surface; `HAgent.Tests` is the automated testing surface.
+20. README, roadmap, plan, and AGENTS are project-state artifacts and must remain synchronized.

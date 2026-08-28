@@ -31,6 +31,7 @@ Use:
 - keyboard-friendly focus order
 - the shared `HAgent.WinForms.Helpers.Header` for HAgent form chrome
 - the shared `HAgent.WinForms.Helpers.HMessage` API for user-facing dialogs
+- the shared `HAgent.WinForms.Helpers.Button.HButton` for application buttons
 
 ### HMessage is mandatory for HAgent dialogs
 
@@ -51,6 +52,12 @@ Keep destructive-operation confirmation at the UI boundary and enforce important
 Do not recreate another custom title bar for HAgent forms. Use `Header` through `HAgentForm`.
 
 The HAgent `Header` is intentionally self-contained and must not depend on the larger `HLibraries` application framework. It should contain only window-header responsibilities: title/subtitle rendering, optional icon, dragging, and optional close/minimize/help actions.
+
+### HButton
+
+Use `HButton` for all HAgent action buttons. Do not introduce another button wrapper or fall back to the standard WinForms `Button` for application actions.
+
+Keep the HAgent button palette aligned with the current AI visual identity: deep indigo/violet primary states, brighter violet hover/focus states, restrained red for destructive actions, and white text with sufficient contrast.
 
 Avoid:
 

@@ -15,6 +15,7 @@ namespace HAgent.Models
         public IReadOnlyList<AIToolCall> ToolCalls { get; set; }
         public string RequestId { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
+        public AIUsage NormalizedUsage { get; set; }
         public IReadOnlyDictionary<string, object> Usage { get; set; }
         public IReadOnlyDictionary<string, object> ProviderMetadata { get; set; }
 
@@ -30,6 +31,7 @@ namespace HAgent.Models
             ToolCalls = new List<AIToolCall>().AsReadOnly();
             RequestId = string.Empty;
             CreatedAt = DateTimeOffset.UtcNow;
+            NormalizedUsage = new AIUsage();
             Usage = new Dictionary<string, object>();
             ProviderMetadata = new Dictionary<string, object>();
         }

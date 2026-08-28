@@ -51,17 +51,6 @@ namespace HAgent.WinForms
             }
             text.AppendLine();
             text.Append("Unknown means HAgent has not established support.");
-            var observed = false;
-            foreach (AiCapability capability in Enum.GetValues(typeof(AiCapability)))
-            {
-                if (capability == AiCapability.None) continue;
-                if (capabilities.GetEvidence(capability).ObservedAt != default(DateTimeOffset))
-                {
-                    observed = true;
-                    break;
-                }
-            }
-            if (observed) text.Append(" Evidence records include observation timestamps.");
             tip.SetToolTip(control, text.ToString());
         }
 

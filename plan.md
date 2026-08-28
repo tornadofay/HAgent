@@ -44,7 +44,7 @@ This file is the implementation ledger. Keep it synchronized with the repository
 - [ ] Optional vector-memory adapter.
 - [ ] Remote embedding providers without requiring local GPU/RAM-heavy models.
 
-## 0.4 Provider Capabilities + Response Normalization — foundation complete
+## 0.4 Provider Capabilities + Response Normalization — completed foundation
 - [x] Tri-state capabilities: Supported / Unsupported / Unknown.
 - [x] Capability evidence: source, confidence, observed time, notes.
 - [x] Capability cache with failure eviction and reset.
@@ -72,11 +72,13 @@ This file is the implementation ledger. Keep it synchronized with the repository
 
 ### Implemented foundation
 - [x] `AiTool` definition model.
+- [x] Explicit `AiToolType`: BuiltIn, Application, Declarative, UI, SqlServer, MySql.
 - [x] `IAgentTool` definition/handler separation.
 - [x] `IToolRegistry` abstraction.
 - [x] `InMemoryToolRegistry`.
 - [x] `DelegateAgentTool` for code-defined custom tools.
 - [x] `HAgentClient` tool registration, lookup, definition inspection, and direct execution.
+- [x] Tool type selection in the Tool editor.
 - [x] Deterministic Example tool-registry test.
 
 ### Next implementation
@@ -87,6 +89,12 @@ This file is the implementation ledger. Keep it synchronized with the repository
 - [ ] Multiple model/tool turns.
 - [ ] Per-agent tool selection from persisted `ToolIds`.
 - [ ] Per-session temporary tools.
+- [ ] Built-in tool handlers.
+- [ ] Application tool registration guidance/API conventions.
+- [ ] Declarative tool execution engine.
+- [ ] WinForms UI tool handlers.
+- [ ] SQL Server tool layer.
+- [ ] MySQL tool layer.
 - [ ] Tool aliases/versioning.
 - [ ] Tool timeout/cancellation/progress.
 - [ ] Tool audit/history.
@@ -94,8 +102,17 @@ This file is the implementation ledger. Keep it synchronized with the repository
 - [ ] Loop detection.
 - [ ] Tool budgets.
 - [ ] Tool/provider capability negotiation.
-- [ ] Predefined/custom tool UI completion.
+- [ ] Complete tool configuration UI behavior.
 - [ ] Manual multi-step tool-loop Example.
+
+### Initial tool types
+- BuiltIn — supplied by HAgent.
+- Application — executable handler registered by the host application.
+- Declarative — safe configuration-driven operation, never arbitrary code execution.
+- UI — supplied by `HAgent.WinForms` control/context adapters.
+- SQL Server — supplied by the SQL Server tool layer with restricted database operations.
+- MySQL — supplied by the MySQL tool layer with restricted database operations.
+- Extension tools are deliberately deferred to a future extensibility milestone.
 
 ## 0.6 Safety + Guardrails + Approval + Budgets + Observability
 - [ ] Input/output/tool guardrails.
@@ -207,11 +224,13 @@ This file is the implementation ledger. Keep it synchronized with the repository
 6. Tools expose explicit capabilities; they never imply arbitrary host access.
 7. Sensitive actions may require human approval.
 8. Autonomous work is cancellable, observable, and budgeted.
-9. Provider responses are normalized without destroying provider-specific metadata.
+9. Provider responses are normalized without destroying useful provider metadata.
 10. Reasoning is optional separate response data when explicitly exposed; `<think>` markup alone is not treated as native reasoning.
 11. UI Context describes state; tools define permitted actions.
 12. “Form serialization” is a UI Context capability, not the name of the entire WinForms subsystem.
 13. WinForms data access must prefer the lightest native/bound representation and avoid unnecessary materialization.
 14. Cross-form memory uses explicit scopes and provenance; provenance is not authorization.
 15. No local GPU, vector database, or heavy resident embedding model is required for the base memory design.
-16. `HAgent.Example` is part of the development workflow and must cover meaningful completed public capabilities.
+16. Tool configuration defines the contract and handler binding; it must never turn arbitrary configuration text into arbitrary code execution.
+17. Initial tool categories are BuiltIn, Application, Declarative, UI, SqlServer, and MySql. Extension tools are deferred.
+18. `HAgent.Example` is part of the development workflow and must cover meaningful completed public capabilities.

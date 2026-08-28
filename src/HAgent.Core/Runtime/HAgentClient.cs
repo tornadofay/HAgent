@@ -86,7 +86,7 @@ namespace HAgent.Runtime
                 {
                     var apiKey = string.IsNullOrWhiteSpace(provider.SecretId) ? string.Empty : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
                     var selectedModel = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model;
-                    var capabilities = await GetModelCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
+                    var capabilities = await GetEffectiveCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
                     if (capabilities.Get(AiCapability.Chat) == CapabilitySupport.Unsupported)
                     {
                         failures.Add("Provider " + provider.Name + ": model '" + selectedModel + "' is not marked as supporting Chat.");
@@ -131,7 +131,7 @@ namespace HAgent.Runtime
                 ? string.Empty
                 : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
 
-            return await GetModelCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
+            return await GetEffectiveCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
         }
 
         public void ClearModelCapabilityCache()
@@ -139,18 +139,22 @@ namespace HAgent.Runtime
             _capabilityCache.Clear();
         }
 
-        private Task<AiModelCapabilities> GetModelCapabilitiesAsync(
+        private Task<AiModelCapabilities> GetEffectiveCapabilitiesAsync(
             AiProvider provider,
             string model,
-            IProviderModelCapabilities adapter,
+            IAiProviderAdapter adapter,
             string apiKey,
             CancellationToken cancellationToken)
         {
+            var capabilitiesAdapter = adapter as IProviderModelCapabilities;
+            if (capabilitiesAdapter == null)
+                return Task.FromResult(new AiModelCapabilities { Model = model ?? string.Empty });
+
             var selectedModel = model ?? string.Empty;
             var key = provider.Kind + "|" + provider.Id + "|" + provider.BaseUrl + "|" + selectedModel;
             return _capabilityCache.GetOrCreateAsync(
                 key,
-                () => adapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, CancellationToken.None),
+                () => capabilitiesAdapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, CancellationToken.None),
                 cancellationToken);
         }
 

@@ -38,7 +38,9 @@ Runtime
   └─ diagnostics
 
 Memory
-  └─ explicit context supplied to the agent
+  ├─ explicit remember / recall / forget
+  ├─ scoped entries + metadata
+  └─ replaceable storage providers
 ```
 
 Applications talk to an agent rather than directly to a vendor:
@@ -75,11 +77,35 @@ var execution = await ai.ExecuteAsync(
     });
 ```
 
+For explicit durable memory:
+
+```csharp
+var memory = new HAgent.Storage.File.FileMemoryStore(
+    @"C:\MyApp\ai\memory.jsonl");
+
+var ai = new HAgent.Runtime.HAgentClient(
+    store,
+    secrets,
+    adapters,
+    router: null,
+    memory: memory);
+
+await ai.RememberAsync(
+    "assistant",
+    "The customer's preferred language is Arabic.");
+
+var memories = await ai.RecallAsync(
+    "assistant",
+    "preferred language");
+```
+
+Memory is explicit by design: HAgent does not silently persist every conversation message as a permanent fact.
+
 ## Current status
 
 HAgent 0.2 establishes the runtime foundation needed for later agent capabilities. It includes execution state, execution snapshots, provider routing, cancellation/timeouts, retry/backoff, lifecycle events, diagnostics, and a lightweight memory abstraction.
 
-The current 0.3 line focuses on memory while preserving a lightweight execution model. Persistent memory, full autonomous tool calling, multi-agent collaboration, and the user chat experience are separate milestones.
+The current 0.3 line adds a persistent low-memory file memory store and explicit `remember`, `recall`, and `forget` operations while preserving a lightweight execution model. Persistent conversation integration, richer long-term memory, full autonomous tool calling, multi-agent collaboration, and the user chat experience are separate milestones.
 
 ## Design principles
 
@@ -111,7 +137,7 @@ A tool definition describes a capability; it is not executable code. The host ap
 |---|---|
 | `HAgent.Core` | Core models, abstractions, sessions, runtime, and lightweight infrastructure |
 | `HAgent.Providers.OpenAICompatible` | OpenAI-compatible chat and model-catalog adapter |
-| `HAgent.Storage.File` | JSON settings + Windows DPAPI secret store |
+| `HAgent.Storage.File` | JSON settings, DPAPI secrets, and lightweight JSONL memory store |
 | `HAgent.Storage.SqlServer` | SQL Server persistence + schema bootstrap |
 | `HAgent.Storage.MySql` | MySQL persistence + schema bootstrap |
 | `HAgent.WinForms` | Designer-free configuration/development UI and shared HAgent UI helpers |
@@ -190,13 +216,15 @@ Current tabs include:
 
 A shared **Global output** area displays the latest result across all examples. Each feature tab describes what it tests and the expected result.
 
+The manual suite will gain a **Memory** tab for persistent `remember` / `recall` / `forget` behavior as the memory milestone expands.
+
 Every major feature added to HAgent should eventually have a corresponding manual example here so it can be tested directly on a developer machine.
 
 ## Provider adapters
 
 The first adapter is OpenAI-compatible. It supports the common `/chat/completions` request shape and `/models` discovery endpoint.
 
-Model discovery currently returns model IDs supplied by the provider. It does not yet guarantee that every discovered model is suitable for chat, tools, embeddings, moderation, or other specific capabilities. Capability negotiation is a later provider milestone. A model such as Meta's Llama Prompt Guard is a classifier rather than a general conversational model, so it should not be used for the conversational examples. citeturn932660search0turn932660search1
+Model discovery currently returns model IDs supplied by the provider. It does not yet guarantee that every discovered model is suitable for chat, tools, embeddings, moderation, or other specific capabilities. Capability negotiation is a later provider milestone. A model such as Meta's Llama Prompt Guard is a classifier rather than a general conversational model, so it should not be used for the conversational examples.
 
 The architecture intentionally permits separate adapters for providers such as Azure OpenAI, Anthropic, Google/Gemini, Ollama, LM Studio, local services, and custom enterprise endpoints. Provider capabilities will be negotiated through optional adapter interfaces instead of being assumed globally.
 
@@ -205,6 +233,10 @@ The architecture intentionally permits separate adapters for providers such as A
 ### File storage
 
 Use file storage for a local desktop configuration profile. Structured settings are stored as JSON. Secrets are kept separately through the configured secret store and, in the default implementation, protected using Windows DPAPI under the current Windows user context.
+
+### File memory
+
+`FileMemoryStore` stores one JSON memory entry per line in a JSONL file. Searches stream through the file and retain only the bounded top results, avoiding the need to load the complete memory file into RAM. This is the default persistent memory direction for low-resource desktop applications.
 
 ### SQL Server / MySQL
 
@@ -228,6 +260,8 @@ Memory is a first-class runtime abstraction, but vector storage is optional.
 The default design is intended to remain useful on machines with no GPU and as little as a few gigabytes of RAM. Lightweight text/metadata retrieval can be used without local embedding models. Optional vector memory may use a remote embedding service or a companion package when an application actually needs it.
 
 HAgent must not make an embedding model, GPU, vector database, or large in-memory index a prerequisite for normal agent execution.
+
+The current persistent file memory implementation uses JSONL streaming rather than materializing the entire store, keeping the basic retrieval path small and predictable.
 
 ## Tools and application automation
 

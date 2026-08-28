@@ -156,6 +156,7 @@ namespace HAgent.Providers.OpenAICompatible
                     var reasoning = choice.Message == null ? string.Empty : choice.Message.ReasoningContent ?? string.Empty;
                     var toolCalls = NormalizeToolCalls(choice.Message == null ? null : choice.Message.ToolCalls);
                     var structuredOutput = IsJsonDocument(content) ? content.Trim() : string.Empty;
+                    var normalizedUsage = NormalizeUsage(dto.Usage);
 
                     var usage = new Dictionary<string, object>();
                     if (dto.Usage != null)
@@ -163,6 +164,14 @@ namespace HAgent.Providers.OpenAICompatible
                         usage["prompt_tokens"] = dto.Usage.PromptTokens;
                         usage["completion_tokens"] = dto.Usage.CompletionTokens;
                         usage["total_tokens"] = dto.Usage.TotalTokens;
+                        if (dto.Usage.PromptTokensDetails != null)
+                        {
+                            usage["prompt_tokens_details"] = dto.Usage.PromptTokensDetails;
+                        }
+                        if (dto.Usage.CompletionTokensDetails != null)
+                        {
+                            usage["completion_tokens_details"] = dto.Usage.CompletionTokensDetails;
+                        }
                     }
 
                     var metadata = new Dictionary<string, object>();
@@ -185,11 +194,36 @@ namespace HAgent.Providers.OpenAICompatible
                         ToolCalls = toolCalls.AsReadOnly(),
                         RequestId = dto.Id ?? string.Empty,
                         CreatedAt = DateTimeOffset.UtcNow,
+                        NormalizedUsage = normalizedUsage,
                         Usage = usage,
                         ProviderMetadata = metadata
                     };
                 }
             }
+        }
+
+        private static AIUsage NormalizeUsage(UsageDto usage)
+        {
+            var result = new AIUsage();
+            if (usage == null) return result;
+
+            result.PromptTokens = usage.PromptTokens;
+            result.CompletionTokens = usage.CompletionTokens;
+            result.TotalTokens = usage.TotalTokens;
+            if (usage.PromptTokensDetails != null)
+                result.CachedPromptTokens = usage.PromptTokensDetails.CachedTokens;
+            if (usage.CompletionTokensDetails != null)
+                result.ReasoningTokens = usage.CompletionTokensDetails.ReasoningTokens;
+
+            result.ProviderUsage["prompt_tokens"] = usage.PromptTokens;
+            result.ProviderUsage["completion_tokens"] = usage.CompletionTokens;
+            result.ProviderUsage["total_tokens"] = usage.TotalTokens;
+            if (usage.PromptTokensDetails != null)
+                result.ProviderUsage["prompt_tokens_details"] = usage.PromptTokensDetails;
+            if (usage.CompletionTokensDetails != null)
+                result.ProviderUsage["completion_tokens_details"] = usage.CompletionTokensDetails;
+
+            return result;
         }
 
         private static List<AIToolCall> NormalizeToolCalls(IReadOnlyList<ResponseToolCallDto> calls)
@@ -359,13 +393,31 @@ namespace HAgent.Providers.OpenAICompatible
         private sealed class UsageDto
         {
             [JsonProperty("prompt_tokens")]
-            public int PromptTokens { get; set; }
+            public long? PromptTokens { get; set; }
 
             [JsonProperty("completion_tokens")]
-            public int CompletionTokens { get; set; }
+            public long? CompletionTokens { get; set; }
 
             [JsonProperty("total_tokens")]
-            public int TotalTokens { get; set; }
+            public long? TotalTokens { get; set; }
+
+            [JsonProperty("prompt_tokens_details")]
+            public PromptTokensDetailsDto PromptTokensDetails { get; set; }
+
+            [JsonProperty("completion_tokens_details")]
+            public CompletionTokensDetailsDto CompletionTokensDetails { get; set; }
+        }
+
+        private sealed class PromptTokensDetailsDto
+        {
+            [JsonProperty("cached_tokens")]
+            public long? CachedTokens { get; set; }
+        }
+
+        private sealed class CompletionTokensDetailsDto
+        {
+            [JsonProperty("reasoning_tokens")]
+            public long? ReasoningTokens { get; set; }
         }
     }
 }

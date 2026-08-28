@@ -8,27 +8,18 @@ using HAgent.Models;
 
 namespace HAgent.Storage.File
 {
-    /// <summary>
-    /// Lightweight append-oriented memory store.
-    /// Uses one JSON object per line so searches do not require loading the whole store into memory.
-    /// </summary>
     public sealed class FileMemoryStore : IMemoryStore, IDisposable
     {
         private readonly string _path;
         private readonly SemaphoreSlim _gate = new SemaphoreSlim(1, 1);
-        private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-        {
-            WriteIndented = false
-        };
+        private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { WriteIndented = false };
 
         public FileMemoryStore(string path)
         {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Memory file path is required.", nameof(path));
             _path = path;
-
             var directory = System.IO.Path.GetDirectoryName(_path);
-            if (!string.IsNullOrWhiteSpace(directory))
-                System.IO.Directory.CreateDirectory(directory);
+            if (!string.IsNullOrWhiteSpace(directory)) System.IO.Directory.CreateDirectory(directory);
         }
 
         public string Path => _path;
@@ -40,6 +31,7 @@ namespace HAgent.Storage.File
             if (string.IsNullOrWhiteSpace(entry.Id)) entry.Id = Guid.NewGuid().ToString("N");
             if (entry.Metadata == null) entry.Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (entry.CreatedAt == default(DateTimeOffset)) entry.CreatedAt = DateTimeOffset.UtcNow;
+            if (entry.OccurredAt == default(DateTimeOffset)) entry.OccurredAt = entry.CreatedAt;
 
             var json = JsonSerializer.Serialize(entry, _jsonOptions);
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -47,14 +39,9 @@ namespace HAgent.Storage.File
             {
                 using (var stream = new System.IO.FileStream(_path, System.IO.FileMode.Append, System.IO.FileAccess.Write, System.IO.FileShare.Read, 4096, true))
                 using (var writer = new System.IO.StreamWriter(stream))
-                {
                     await writer.WriteLineAsync(json).ConfigureAwait(false);
-                }
             }
-            finally
-            {
-                _gate.Release();
-            }
+            finally { _gate.Release(); }
         }
 
         public async Task<IReadOnlyList<MemoryEntry>> SearchAsync(MemoryQuery query, CancellationToken cancellationToken = default(CancellationToken))
@@ -62,9 +49,7 @@ namespace HAgent.Storage.File
             query = query ?? new MemoryQuery();
             var maxResults = query.MaxResults <= 0 ? 10 : Math.Min(query.MaxResults, 1000);
             var terms = SplitTerms(query.Text);
-            var normalizedQuery = NormalizeText(query.Text);
             var matches = new List<ScoredEntry>();
-
             if (!System.IO.File.Exists(_path)) return matches.ConvertAll(x => x.Entry).AsReadOnly();
 
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -81,30 +66,20 @@ namespace HAgent.Storage.File
                         if (string.IsNullOrWhiteSpace(line)) continue;
 
                         MemoryEntry entry;
-                        try
-                        {
-                            entry = JsonSerializer.Deserialize<MemoryEntry>(line, _jsonOptions);
-                        }
-                        catch (JsonException)
-                        {
-                            continue;
-                        }
+                        try { entry = JsonSerializer.Deserialize<MemoryEntry>(line, _jsonOptions); }
+                        catch (JsonException) { continue; }
 
                         if (!MatchesFilter(entry, query)) continue;
-                        var score = Score(entry, terms, normalizedQuery);
+                        var score = Score(entry, terms, query.Kind != null || !string.IsNullOrWhiteSpace(query.TaskId));
                         if (terms.Count > 0 && score <= 0) continue;
 
                         matches.Add(new ScoredEntry(entry, score));
                         matches.Sort(Compare);
-                        if (matches.Count > maxResults)
-                            matches.RemoveAt(matches.Count - 1);
+                        if (matches.Count > maxResults) matches.RemoveAt(matches.Count - 1);
                     }
                 }
             }
-            finally
-            {
-                _gate.Release();
-            }
+            finally { _gate.Release(); }
 
             var result = new List<MemoryEntry>(matches.Count);
             foreach (var match in matches) result.Add(match.Entry);
@@ -114,9 +89,7 @@ namespace HAgent.Storage.File
         public async Task RemoveAsync(string memoryId, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrWhiteSpace(memoryId) || !System.IO.File.Exists(_path)) return;
-            await RewriteAsync(delegate(MemoryEntry entry) {
-                return !string.Equals(entry.Id, memoryId, StringComparison.OrdinalIgnoreCase);
-            }, cancellationToken).ConfigureAwait(false);
+            await RewriteAsync(entry => !string.Equals(entry.Id, memoryId, StringComparison.OrdinalIgnoreCase), cancellationToken).ConfigureAwait(false);
         }
 
         public async Task ClearAsync(string scope, string ownerId, CancellationToken cancellationToken = default(CancellationToken))
@@ -124,7 +97,8 @@ namespace HAgent.Storage.File
             if (!System.IO.File.Exists(_path)) return;
             MemoryScope parsed;
             var hasScope = Enum.TryParse(scope, true, out parsed);
-            await RewriteAsync(delegate(MemoryEntry entry) {
+            await RewriteAsync(entry =>
+            {
                 var scopeMatch = !hasScope || entry.Scope == parsed;
                 var ownerMatch = string.IsNullOrWhiteSpace(ownerId) || string.Equals(entry.OwnerId, ownerId, StringComparison.OrdinalIgnoreCase);
                 return !(scopeMatch && ownerMatch);
@@ -137,9 +111,7 @@ namespace HAgent.Storage.File
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                using (var input = System.IO.File.Exists(_path)
-                    ? new System.IO.FileStream(_path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read, 4096, true)
-                    : null)
+                using (var input = System.IO.File.Exists(_path) ? new System.IO.FileStream(_path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read, 4096, true) : null)
                 using (var reader = input == null ? null : new System.IO.StreamReader(input))
                 using (var output = new System.IO.FileStream(tempPath, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None, 4096, true))
                 using (var writer = new System.IO.StreamWriter(output))
@@ -152,24 +124,14 @@ namespace HAgent.Storage.File
                             var line = await reader.ReadLineAsync().ConfigureAwait(false);
                             if (line == null) break;
                             if (string.IsNullOrWhiteSpace(line)) continue;
-
                             MemoryEntry entry;
-                            try
-                            {
-                                entry = JsonSerializer.Deserialize<MemoryEntry>(line, _jsonOptions);
-                            }
-                            catch (JsonException)
-                            {
-                                continue;
-                            }
-
-                            if (keep(entry))
-                                await writer.WriteLineAsync(JsonSerializer.Serialize(entry, _jsonOptions)).ConfigureAwait(false);
+                            try { entry = JsonSerializer.Deserialize<MemoryEntry>(line, _jsonOptions); }
+                            catch (JsonException) { continue; }
+                            if (keep(entry)) await writer.WriteLineAsync(JsonSerializer.Serialize(entry, _jsonOptions)).ConfigureAwait(false);
                         }
                     }
                 }
-
-                System.IO.File.Delete(_path);
+                if (System.IO.File.Exists(_path)) System.IO.File.Delete(_path);
                 System.IO.File.Move(tempPath, _path);
             }
             finally
@@ -183,69 +145,44 @@ namespace HAgent.Storage.File
         {
             if (entry == null) return false;
             if (query.Scope != null && entry.Scope != query.Scope.Value) return false;
+            if (query.Kind != null && entry.Kind != query.Kind.Value) return false;
             if (!string.IsNullOrWhiteSpace(query.OwnerId) && !string.Equals(entry.OwnerId, query.OwnerId, StringComparison.OrdinalIgnoreCase)) return false;
+            if (!string.IsNullOrWhiteSpace(query.TaskId) && !string.Equals(entry.TaskId, query.TaskId, StringComparison.OrdinalIgnoreCase)) return false;
             if (query.Metadata == null || query.Metadata.Count == 0) return true;
             if (entry.Metadata == null) return false;
-
             foreach (var pair in query.Metadata)
             {
                 string value;
-                if (!entry.Metadata.TryGetValue(pair.Key, out value) || !string.Equals(value, pair.Value, StringComparison.OrdinalIgnoreCase))
-                    return false;
+                if (!entry.Metadata.TryGetValue(pair.Key, out value) || !string.Equals(value, pair.Value, StringComparison.OrdinalIgnoreCase)) return false;
             }
             return true;
         }
 
-        private static int Score(MemoryEntry entry, IReadOnlyList<string> terms, string normalizedQuery)
+        private static int Score(MemoryEntry entry, IReadOnlyList<string> terms, bool typedQuery)
         {
-            if (terms.Count == 0) return 1;
-
-            var content = NormalizeText(entry.Content);
-            var metadata = entry.Metadata == null ? string.Empty : NormalizeText(string.Join(" ", entry.Metadata.Values));
+            if (terms.Count == 0) return typedQuery ? 1 : 1;
+            var content = entry.Content ?? string.Empty;
+            var metadata = entry.Metadata == null ? string.Empty : string.Join(" ", entry.Metadata.Values);
+            var haystack = (content + " " + metadata).ToLowerInvariant();
             var score = 0;
-
-            if (!string.IsNullOrWhiteSpace(normalizedQuery) && content.IndexOf(normalizedQuery, StringComparison.Ordinal) >= 0)
-                score += 12;
-
             foreach (var term in terms)
             {
-                if (ContainsWholeTerm(content, term)) score += 5;
-                else if (content.IndexOf(term, StringComparison.Ordinal) >= 0) score += 2;
-
-                if (ContainsWholeTerm(metadata, term)) score += 2;
-                else if (metadata.IndexOf(term, StringComparison.Ordinal) >= 0) score += 1;
+                var index = 0;
+                while ((index = haystack.IndexOf(term, index, StringComparison.Ordinal)) >= 0)
+                {
+                    score++;
+                    index += Math.Max(1, term.Length);
+                }
+                if (content.Equals(term, StringComparison.OrdinalIgnoreCase)) score += 5;
+                else if (content.IndexOf(" " + term + " ", StringComparison.OrdinalIgnoreCase) >= 0) score += 2;
             }
-
             return score;
-        }
-
-        private static bool ContainsWholeTerm(string text, string term)
-        {
-            if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(term)) return false;
-            var start = 0;
-            while (start < text.Length)
-            {
-                var index = text.IndexOf(term, start, StringComparison.Ordinal);
-                if (index < 0) return false;
-
-                var beforeOk = index == 0 || !char.IsLetterOrDigit(text[index - 1]);
-                var end = index + term.Length;
-                var afterOk = end >= text.Length || !char.IsLetterOrDigit(text[end]);
-                if (beforeOk && afterOk) return true;
-                start = end;
-            }
-            return false;
-        }
-
-        private static string NormalizeText(string value)
-        {
-            return (value ?? string.Empty).Trim().ToLowerInvariant();
         }
 
         private static List<string> SplitTerms(string text)
         {
             var terms = new List<string>();
-            foreach (var part in (text ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '-', '_', '/', '\\', '(', ')', '[', ']' }, StringSplitOptions.RemoveEmptyEntries))
+            foreach (var part in (text ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries))
             {
                 if (part.Length < 2) continue;
                 var normalized = part.ToLowerInvariant();
@@ -257,7 +194,7 @@ namespace HAgent.Storage.File
         private static int Compare(ScoredEntry x, ScoredEntry y)
         {
             var score = y.Score.CompareTo(x.Score);
-            return score != 0 ? score : y.Entry.CreatedAt.CompareTo(x.Entry.CreatedAt);
+            return score != 0 ? score : y.Entry.OccurredAt.CompareTo(x.Entry.OccurredAt);
         }
 
         private sealed class ScoredEntry
@@ -267,9 +204,6 @@ namespace HAgent.Storage.File
             public int Score { get; private set; }
         }
 
-        public void Dispose()
-        {
-            _gate.Dispose();
-        }
+        public void Dispose() { _gate.Dispose(); }
     }
 }

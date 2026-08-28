@@ -33,6 +33,8 @@ This repository is designed to be worked on by both human developers and coding 
 27. Cross-form memory must use memory ownership/scope and provenance. A form identifier may be metadata; it is not a substitute for a user/session/application security boundary.
 28. Active runtime work must survive configuration edits/deletions safely. UI attachment removal, agent deletion, or form closure must have explicit behavior and must never silently invalidate running work.
 29. `HAgent.Example` is the manual verification surface for every meaningful completed capability, including provider capability discovery, response normalization, tool execution, UI context, permissions, approvals, and agent collaboration.
+30. The initial tool taxonomy is explicit: `BuiltIn`, `Application`, `Declarative`, `UI`, `SqlServer`, and `MySql`. `Extension` tools are deferred to a future extensibility milestone and must not be introduced into the initial runtime path.
+31. Tool configuration defines the public contract and binding metadata; it must never interpret arbitrary configuration text as executable code. Executable behavior comes from a trusted built-in handler, application-registered handler, or dedicated restricted subsystem.
 
 ## Documentation is part of project state
 

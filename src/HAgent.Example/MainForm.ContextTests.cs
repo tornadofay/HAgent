@@ -9,7 +9,7 @@ namespace HAgent.Example
 {
     internal sealed partial class MainForm
     {
-        private Task TestContextBudgetAsync(string unused)
+        private Task RunContextBudgetTestAsync(string unused)
         {
             var messages = new List<AIMessage>();
             for (var i = 1; i <= 30; i++)

@@ -9,6 +9,7 @@ using HAgent.Models;
 using HAgent.Runtime;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers;
+using HAgent.WinForms.Helpers.Button;
 
 namespace HAgent.WinForms.Forms
 {
@@ -22,9 +23,10 @@ namespace HAgent.WinForms.Forms
         private IReadOnlyList<AiProvider> _providers = new List<AiProvider>();
         private IReadOnlyList<AiAgent> _agents = new List<AiAgent>();
 
-        private static readonly Color Navy = Color.FromArgb(31, 24, 69);
+        private static readonly Color NavigationBackground = Color.FromArgb(31, 24, 69);
         private static readonly Color Surface = Color.FromArgb(248, 248, 252);
         private static readonly Color Muted = Color.FromArgb(100, 92, 120);
+        private static readonly Color Heading = Color.FromArgb(31, 24, 69);
         private static readonly Color Accent = Color.FromArgb(116, 76, 210);
 
         public AISettingsForm(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IToolRegistry tools = null)
@@ -44,7 +46,7 @@ namespace HAgent.WinForms.Forms
             {
                 Dock = DockStyle.Left,
                 Width = 188,
-                BackColor = Navy,
+                BackColor = NavigationBackground,
                 Padding = new Padding(10, 18, 10, 10),
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
@@ -68,23 +70,82 @@ namespace HAgent.WinForms.Forms
 
         private void AddNavButton(Control host, string text, Action click)
         {
-            var b = new Button
+            var button = new HButton
             {
                 Text = text,
                 Width = 166,
                 Height = 42,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Navy,
-                ForeColor = Color.FromArgb(239, 234, 250),
+                RoundButton = true,
+                Edge = 10,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 9.5f),
+                TextMargin = 16,
+                Margin = new Padding(0, 0, 0, 6),
                 Cursor = Cursors.Hand,
-                Padding = new Padding(12, 0, 0, 0),
-                Margin = new Padding(0, 0, 0, 6)
+                ButtonLeaveBackGroundColor1 = NavigationBackground,
+                ButtonLeaveBackGroundColor2 = Color.FromArgb(25, 20, 54),
+                ButtonLeaveForeColor = Color.FromArgb(239, 234, 250),
+                ButtonLeaveBorderColor = Color.FromArgb(55, 45, 94),
+                ButtonEnterBackGroundColor1 = Color.FromArgb(76, 54, 132),
+                ButtonEnterBackGroundColor2 = Color.FromArgb(55, 39, 100),
+                ButtonEnterForeColor = Color.White,
+                ButtonEnterBorderColor = Color.FromArgb(116, 76, 210),
+                ButtonDownBackGroundColor1 = Color.FromArgb(61, 43, 110),
+                ButtonDownBackGroundColor2 = Color.FromArgb(42, 29, 78),
+                ButtonDownForeColor = Color.White,
+                ButtonDownBorderColor = Color.FromArgb(104, 76, 170),
+                Font = new Font("Segoe UI", 9.5f)
             };
-            b.FlatAppearance.BorderSize = 0;
-            b.Click += delegate { click(); };
-            host.Controls.Add(b);
+            button.Click += delegate { click(); };
+            host.Controls.Add(button);
+        }
+
+        private static HButton CreateActionButton(string text, int width, int height, bool destructive = false)
+        {
+            var button = new HButton
+            {
+                Text = text,
+                Width = width,
+                Height = height,
+                RoundButton = true,
+                Edge = 10,
+                TextAlign = ContentAlignment.MiddleCenter,
+                TextMargin = 8,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+
+            if (destructive)
+            {
+                button.ButtonLeaveBackGroundColor1 = Color.FromArgb(183, 61, 89);
+                button.ButtonLeaveBackGroundColor2 = Color.FromArgb(119, 38, 62);
+                button.ButtonLeaveForeColor = Color.White;
+                button.ButtonLeaveBorderColor = Color.FromArgb(207, 80, 105);
+                button.ButtonEnterBackGroundColor1 = Color.FromArgb(214, 75, 106);
+                button.ButtonEnterBackGroundColor2 = Color.FromArgb(150, 43, 74);
+                button.ButtonEnterForeColor = Color.White;
+                button.ButtonEnterBorderColor = Color.FromArgb(231, 105, 131);
+                button.ButtonDownBackGroundColor1 = Color.FromArgb(151, 45, 70);
+                button.ButtonDownBackGroundColor2 = Color.FromArgb(99, 29, 51);
+                button.ButtonDownForeColor = Color.White;
+                button.ButtonDownBorderColor = Color.FromArgb(190, 63, 91);
+            }
+            else
+            {
+                button.ButtonLeaveBackGroundColor1 = Color.FromArgb(92, 67, 168);
+                button.ButtonLeaveBackGroundColor2 = Color.FromArgb(57, 40, 108);
+                button.ButtonLeaveForeColor = Color.White;
+                button.ButtonLeaveBorderColor = Color.FromArgb(116, 76, 210);
+                button.ButtonEnterBackGroundColor1 = Color.FromArgb(126, 94, 214);
+                button.ButtonEnterBackGroundColor2 = Color.FromArgb(79, 54, 145);
+                button.ButtonEnterForeColor = Color.White;
+                button.ButtonEnterBorderColor = Color.FromArgb(146, 118, 232);
+                button.ButtonDownBackGroundColor1 = Color.FromArgb(72, 52, 132);
+                button.ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88);
+                button.ButtonDownForeColor = Color.White;
+                button.ButtonDownBorderColor = Color.FromArgb(104, 79, 176);
+            }
+
+            return button;
         }
 
         private async Task ReloadAsync()
@@ -100,7 +161,7 @@ namespace HAgent.WinForms.Forms
         {
             var page = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
             var heading = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Surface };
-            heading.Controls.Add(new Label { Text = title, AutoSize = true, Left = 0, Top = 0, Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = Navy });
+            heading.Controls.Add(new Label { Text = title, AutoSize = true, Left = 0, Top = 0, Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = Heading });
             heading.Controls.Add(new Label { Text = description, AutoSize = true, Left = 1, Top = 35, ForeColor = Muted, Font = new Font("Segoe UI", 8.8f) });
 
             var actions = new FlowLayoutPanel
@@ -114,7 +175,7 @@ namespace HAgent.WinForms.Forms
             };
             if (addAction != null)
             {
-                var add = new HFlatButton { Text = addText, Width = 148, Height = 36, Margin = new Padding(0, 0, 8, 0) };
+                var add = CreateActionButton(addText, 148, 36);
                 add.Click += delegate { addAction(); };
                 actions.Controls.Add(add);
             }
@@ -143,7 +204,7 @@ namespace HAgent.WinForms.Forms
         {
             var p = new Panel { Width = 220, Height = 96, BackColor = Color.White, Margin = new Padding(0, 0, 14, 0), BorderStyle = BorderStyle.FixedSingle };
             p.Controls.Add(new Label { Text = value, Font = new Font("Segoe UI", 20f, FontStyle.Bold), ForeColor = Accent, AutoSize = true, Left = 16, Top = 12 });
-            p.Controls.Add(new Label { Text = name, Font = new Font("Segoe UI", 10f, FontStyle.Bold), ForeColor = Navy, AutoSize = true, Left = 88, Top = 18 });
+            p.Controls.Add(new Label { Text = name, Font = new Font("Segoe UI", 10f, FontStyle.Bold), ForeColor = Heading, AutoSize = true, Left = 88, Top = 18 });
             p.Controls.Add(new Label { Text = description, Font = new Font("Segoe UI", 8.5f), ForeColor = Muted, AutoSize = true, Left = 88, Top = 43 });
             return p;
         }
@@ -153,9 +214,9 @@ namespace HAgent.WinForms.Forms
             ClearContent();
             Panel listHost;
             var page = CreatePage("Providers", "Connection, authentication, model defaults, and optional shared instruction.", async delegate { await EditProviderAsync(null); }, "+  Add provider", out listHost);
-
             var actions = (FlowLayoutPanel)page.Controls[1];
-            var delete = new HFlatButton { Text = "Delete selected", Width = 130, Height = 36, BackColor = Color.FromArgb(185, 28, 28) };
+            var delete = CreateActionButton("Delete selected", 130, 36, true);
+            delete.Click += async delegate { await TryDeleteSelectedProviderAsync(listHost); };
             actions.Controls.Add(delete);
 
             var list = CreateListView();
@@ -173,9 +234,15 @@ namespace HAgent.WinForms.Forms
                 list.Items.Add(item);
             }
             list.DoubleClick += async delegate { if (list.SelectedItems.Count > 0) await EditProviderAsync((AiProvider)list.SelectedItems[0].Tag); };
-            delete.Click += async delegate { if (list.SelectedItems.Count > 0) await DeleteProviderAsync((AiProvider)list.SelectedItems[0].Tag); };
             listHost.Controls.Add(list);
             _content.Controls.Add(page);
+        }
+
+        private async Task TryDeleteSelectedProviderAsync(Control host)
+        {
+            var list = host.Controls.OfType<ListView>().FirstOrDefault();
+            if (list != null && list.SelectedItems.Count > 0)
+                await DeleteProviderAsync((AiProvider)list.SelectedItems[0].Tag);
         }
 
         private void ShowAgents()
@@ -184,7 +251,8 @@ namespace HAgent.WinForms.Forms
             Panel listHost;
             var page = CreatePage("Agents", "Choose providers and models, then define each agent's behavior and runtime settings.", async delegate { await EditAgentAsync(null); }, "+  Add agent", out listHost);
             var actions = (FlowLayoutPanel)page.Controls[1];
-            var delete = new HFlatButton { Text = "Delete selected", Width = 130, Height = 36, BackColor = Color.FromArgb(185, 28, 28) };
+            var delete = CreateActionButton("Delete selected", 130, 36, true);
+            delete.Click += async delegate { await TryDeleteSelectedAgentAsync(listHost); };
             actions.Controls.Add(delete);
 
             var list = CreateListView();
@@ -202,9 +270,15 @@ namespace HAgent.WinForms.Forms
                 list.Items.Add(item);
             }
             list.DoubleClick += async delegate { if (list.SelectedItems.Count > 0) await EditAgentAsync((AiAgent)list.SelectedItems[0].Tag); };
-            delete.Click += async delegate { if (list.SelectedItems.Count > 0) await DeleteAgentAsync((AiAgent)list.SelectedItems[0].Tag); };
             listHost.Controls.Add(list);
             _content.Controls.Add(page);
+        }
+
+        private async Task TryDeleteSelectedAgentAsync(Control host)
+        {
+            var list = host.Controls.OfType<ListView>().FirstOrDefault();
+            if (list != null && list.SelectedItems.Count > 0)
+                await DeleteAgentAsync((AiAgent)list.SelectedItems[0].Tag);
         }
 
         private void ShowTools()

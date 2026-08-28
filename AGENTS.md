@@ -17,7 +17,7 @@ This repository is designed to be worked on by both human developers and coding 
 
 ## UI rules
 
-The WinForms UI is designer-free by design.
+The WinForms UI is designer-free by design, except for application-provided shared controls/helpers that are intentionally maintained separately.
 
 Use:
 
@@ -29,6 +29,28 @@ Use:
 - consistent spacing
 - DPI-aware sizing
 - keyboard-friendly focus order
+- the shared `HAgent.WinForms.Helpers.Header` for HAgent form chrome
+- the shared `HAgent.WinForms.Helpers.HMessage` API for user-facing dialogs
+
+### HMessage is mandatory for HAgent dialogs
+
+Do not use `System.Windows.Forms.MessageBox` directly anywhere in HAgent.WinForms.
+
+Use:
+
+- `HMessage.ShowDelete(...)` for delete confirmations
+- `HMessage.ShowQuestion(...)` for confirmations/questions
+- `HMessage.ShowInformation(...)` for informational messages
+- `HMessage.ShowError(...)` for user-facing errors
+- `HMessage.ShowException(...)` when an exception should be presented with technical details
+
+Keep destructive-operation confirmation at the UI boundary and enforce important data-integrity rules again in Core/storage.
+
+### Header
+
+Do not recreate another custom title bar for HAgent forms. Use `Header` through `HAgentForm`.
+
+The HAgent `Header` is intentionally self-contained and must not depend on the larger `HLibraries` application framework. It should contain only window-header responsibilities: title/subtitle rendering, optional icon, dragging, and optional close/minimize/help actions.
 
 Avoid:
 
@@ -37,6 +59,7 @@ Avoid:
 - nested modal dialogs for routine navigation
 - hidden provider/agent relationships
 - putting secret values into ListView/DataGridView text
+- copying unrelated application-framework dependencies into HAgent
 
 ## Provider adapter contract
 
@@ -56,6 +79,8 @@ The adapter must:
 Implement `IAiStore` for persisted providers and agents.
 
 If a backend needs secrets, prefer composing it with `ISecretStore` rather than storing raw secrets in the normal configuration table.
+
+Provider deletion must not silently delete dependent agents. Data-integrity restrictions must be enforced by the storage implementation, not only by the UI.
 
 ## Compatibility
 

@@ -10,7 +10,6 @@ using HAgent.Runtime;
 using HAgent.Providers.OpenAICompatible;
 using HAgent.Storage.File;
 using HAgent.WinForms;
-using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
 
@@ -210,7 +209,7 @@ namespace HAgent.Example
                     {
                         Timeout = TimeSpan.FromSeconds(30),
                         MaxProviderAttempts = 2,
-                        RetryCountPerProvider = 1
+                        MaxRetriesPerProvider = 1
                     },
                     CancellationToken.None);
 

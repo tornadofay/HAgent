@@ -15,9 +15,10 @@ namespace HAgent.Runtime
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
         private readonly IAgentRuntime _runtime;
         private readonly IMemoryStore _memory;
+        private readonly IConversationStore _conversations;
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
-            : this(store, secrets, adapters, null, null)
+            : this(store, secrets, adapters, null, null, null)
         {
         }
 
@@ -26,7 +27,7 @@ namespace HAgent.Runtime
             ISecretStore secrets,
             IEnumerable<IAiProviderAdapter> adapters,
             IProviderRouter router)
-            : this(store, secrets, adapters, router, null)
+            : this(store, secrets, adapters, router, null, null)
         {
         }
 
@@ -36,11 +37,23 @@ namespace HAgent.Runtime
             IEnumerable<IAiProviderAdapter> adapters,
             IProviderRouter router,
             IMemoryStore memory)
+            : this(store, secrets, adapters, router, memory, null)
+        {
+        }
+
+        public HAgentClient(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IProviderRouter router,
+            IMemoryStore memory,
+            IConversationStore conversations)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters))).ToList().AsReadOnly();
             _memory = memory;
+            _conversations = conversations;
             _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router);
         }
 
@@ -107,8 +120,7 @@ namespace HAgent.Runtime
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
                     var messageText = string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
-                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + "): " +
-                                 ex.GetType().Name + ": " + messageText);
+                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + "): " + ex.GetType().Name + ": " + messageText);
                 }
             }
 
@@ -132,7 +144,39 @@ namespace HAgent.Runtime
 
         public AgentSession CreateSession(string agentId)
         {
-            return new AgentSession(agentId, (messages, token) => SendAsync(agentId, messages, token));
+            return CreateSession(agentId, Guid.NewGuid().ToString("N"), null, null);
+        }
+
+        public AgentSession CreateSession(string agentId, string sessionId)
+        {
+            return CreateSession(agentId, sessionId, _conversations, null);
+        }
+
+        public AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore)
+        {
+            return CreateSession(agentId, sessionId, conversationStore, null);
+        }
+
+        private AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore, IReadOnlyList<AIMessage> initialMessages)
+        {
+            return new AgentSession(agentId, sessionId, (messages, token) => SendAsync(agentId, messages, token), conversationStore, initialMessages);
+        }
+
+        public async Task<AgentSession> OpenSessionAsync(string agentId, string sessionId, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (_conversations == null)
+                throw new InvalidOperationException("No conversation store is configured for this HAgentClient.");
+            if (string.IsNullOrWhiteSpace(sessionId))
+                throw new ArgumentException("Session id is required.", nameof(sessionId));
+
+            var snapshot = await _conversations.LoadAsync(sessionId, cancellationToken).ConfigureAwait(false);
+            if (snapshot == null)
+                return CreateSession(agentId, sessionId, _conversations, null);
+
+            if (!string.Equals(snapshot.AgentId, agentId, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Conversation belongs to a different agent: " + snapshot.AgentId);
+
+            return CreateSession(agentId, sessionId, _conversations, snapshot.Messages);
         }
 
         public async Task<string> RememberAsync(

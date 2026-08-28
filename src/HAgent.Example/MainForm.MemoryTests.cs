@@ -18,41 +18,42 @@ namespace HAgent.Example
             var input = RequireInput(message);
             var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            var memoryPath = Path.Combine(_basePath, "memory", "example-automatic-memory.jsonl");
+            var memoryPath = Path.Combine(_basePath, "memory", "example-automatic-memory-" + Guid.NewGuid().ToString("N") + ".jsonl");
             var memory = new FileMemoryStore(memoryPath);
             var agent = GetSelectedAgent();
             if (agent == null) throw new InvalidOperationException("Select an agent first.");
 
-            var client = new HAgentClient(
-                store,
-                secrets,
-                new[] { new OpenAICompatibleProviderAdapter() },
-                null,
-                memory);
-
-            await client.SendAsync(agent.Id, input, CancellationToken.None);
-
-            var expected = input;
-            var marker = "remember this:";
-            var index = input.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-            if (index >= 0)
-                expected = input.Substring(index + marker.Length).Trim().TrimEnd('.', '!', '?').Trim('"', '\'');
-
-            var recalled = await client.RecallAsync(
-                agent.Id,
-                expected,
-                MemoryScope.Agent,
-                10,
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "source", "conversation" },
-                    { "policy", nameof(ExplicitConversationMemoryPolicy) }
-                },
-                CancellationToken.None);
-
-            var found = recalled.FirstOrDefault(x => string.Equals(x.Content, expected, StringComparison.OrdinalIgnoreCase));
             try
             {
+                var client = new HAgentClient(
+                    store,
+                    secrets,
+                    new[] { new OpenAICompatibleProviderAdapter() },
+                    null,
+                    memory);
+
+                await client.SendAsync(agent.Id, input, CancellationToken.None);
+
+                var expected = input;
+                var marker = "remember this:";
+                var index = input.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+                if (index >= 0)
+                    expected = input.Substring(index + marker.Length).Trim().TrimEnd('.', '!', '?').Trim('"', '\'');
+
+                var recalled = await client.RecallAsync(
+                    agent.Id,
+                    expected,
+                    MemoryScope.Agent,
+                    10,
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        { "source", "conversation" },
+                        { "policy", nameof(ExplicitConversationMemoryPolicy) }
+                    },
+                    CancellationToken.None);
+
+                var found = recalled.FirstOrDefault(x => string.Equals(x.Content, expected, StringComparison.OrdinalIgnoreCase));
+
                 if (!input.StartsWith(marker, StringComparison.OrdinalIgnoreCase))
                 {
                     if (found != null)
@@ -78,6 +79,14 @@ namespace HAgent.Example
             finally
             {
                 memory.Dispose();
+                try
+                {
+                    if (File.Exists(memoryPath)) File.Delete(memoryPath);
+                }
+                catch
+                {
+                    // Example cleanup must not hide the actual policy test result.
+                }
             }
         }
     }

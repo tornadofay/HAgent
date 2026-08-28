@@ -8,6 +8,7 @@ using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 using HAgent.WinForms.Controls;
+using HAgent.WinForms.Helpers;
 
 namespace HAgent.WinForms.Forms
 {
@@ -21,10 +22,10 @@ namespace HAgent.WinForms.Forms
         private IReadOnlyList<AiProvider> _providers = new List<AiProvider>();
         private IReadOnlyList<AiAgent> _agents = new List<AiAgent>();
 
-        private static readonly Color Navy = Color.FromArgb(15, 23, 42);
-        private static readonly Color Surface = Color.FromArgb(248, 250, 252);
-        private static readonly Color Muted = Color.FromArgb(100, 116, 139);
-        private static readonly Color Accent = Color.FromArgb(37, 99, 235);
+        private static readonly Color Navy = Color.FromArgb(31, 24, 69);
+        private static readonly Color Surface = Color.FromArgb(248, 248, 252);
+        private static readonly Color Muted = Color.FromArgb(100, 92, 120);
+        private static readonly Color Accent = Color.FromArgb(116, 76, 210);
 
         public AISettingsForm(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IToolRegistry tools = null)
             : base("AI Configuration", "Providers, agents, tools, and shared AI workspace settings", new Size(1120, 720), new Size(900, 600))
@@ -74,7 +75,7 @@ namespace HAgent.WinForms.Forms
                 Height = 42,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Navy,
-                ForeColor = Color.FromArgb(226, 232, 240),
+                ForeColor = Color.FromArgb(239, 234, 250),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Font = new Font("Segoe UI", 9.5f),
                 Cursor = Cursors.Hand,
@@ -242,23 +243,41 @@ namespace HAgent.WinForms.Forms
             var users = _agents.Where(a => UsesProvider(a, provider.Id)).Select(a => a.Name).ToArray();
             if (users.Length > 0)
             {
-                MessageBox.Show(this, "This provider cannot be deleted because these agents still use it:\r\n\r\n" + string.Join(", ", users) + "\r\n\r\nEdit or delete those agents first.", "Provider in use", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                HMessage.ShowError(this, "This provider cannot be deleted because these agents still use it:\r\n\r\n" + string.Join(", ", users) + "\r\n\r\nEdit or delete those agents first.", "Provider in use");
                 return;
             }
-            if (MessageBox.Show(this, "Delete provider '" + provider.Name + "'? This removes its saved configuration.", "Delete provider", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
-            await _store.DeleteProviderAsync(provider.Id);
-            await ReloadAsync();
-            ShowProviders();
+
+            if (HMessage.ShowDelete(this, "Delete provider '" + provider.Name + "'? This removes its saved configuration.", "Delete provider") != DialogResult.Yes)
+                return;
+
+            try
+            {
+                await _store.DeleteProviderAsync(provider.Id);
+                await ReloadAsync();
+                ShowProviders();
+            }
+            catch (Exception ex)
+            {
+                HMessage.ShowException(this, "The provider could not be deleted.", "Delete provider", ex);
+            }
         }
 
         private async Task DeleteAgentAsync(AiAgent agent)
         {
             if (agent == null) return;
-            var result = MessageBox.Show(this, "Delete agent '" + agent.Name + "'? Existing running work is not cancelled by this configuration deletion, but a future runtime layer will keep active tasks attached to an execution snapshot.", "Delete agent", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (result != DialogResult.Yes) return;
-            await _store.DeleteAgentAsync(agent.Id);
-            await ReloadAsync();
-            ShowAgents();
+            if (HMessage.ShowDelete(this, "Delete agent '" + agent.Name + "'? Existing running work is not cancelled by this configuration deletion.", "Delete agent") != DialogResult.Yes)
+                return;
+
+            try
+            {
+                await _store.DeleteAgentAsync(agent.Id);
+                await ReloadAsync();
+                ShowAgents();
+            }
+            catch (Exception ex)
+            {
+                HMessage.ShowException(this, "The agent could not be deleted.", "Delete agent", ex);
+            }
         }
 
         private async Task EditProviderAsync(AiProvider existing)
@@ -266,9 +285,16 @@ namespace HAgent.WinForms.Forms
             var editor = new ProviderEditorForm(existing == null ? new AiProvider() : existing, _secrets, _adapters);
             if (editor.ShowDialog(this) == DialogResult.OK)
             {
-                await _store.SaveProviderAsync(editor.Provider);
-                await ReloadAsync();
-                ShowProviders();
+                try
+                {
+                    await _store.SaveProviderAsync(editor.Provider);
+                    await ReloadAsync();
+                    ShowProviders();
+                }
+                catch (Exception ex)
+                {
+                    HMessage.ShowException(this, "The provider could not be saved.", "Provider", ex);
+                }
             }
         }
 
@@ -276,16 +302,23 @@ namespace HAgent.WinForms.Forms
         {
             if (_providers.Count == 0)
             {
-                MessageBox.Show(this, "Add a provider first. An agent needs at least one provider.", "HAgent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                HMessage.ShowInformation(this, "Add a provider first. An agent needs at least one provider.", "HAgent");
                 ShowProviders();
                 return;
             }
             var editor = new AgentEditorForm(existing == null ? new AiAgent() : existing, _providers, _secrets, _adapters);
             if (editor.ShowDialog(this) == DialogResult.OK)
             {
-                await _store.SaveAgentAsync(editor.Agent);
-                await ReloadAsync();
-                ShowAgents();
+                try
+                {
+                    await _store.SaveAgentAsync(editor.Agent);
+                    await ReloadAsync();
+                    ShowAgents();
+                }
+                catch (Exception ex)
+                {
+                    HMessage.ShowException(this, "The agent could not be saved.", "Agent", ex);
+                }
             }
         }
 
@@ -294,11 +327,18 @@ namespace HAgent.WinForms.Forms
             var editor = new ToolEditorForm(existing == null ? new AiTool() : existing);
             if (editor.ShowDialog(this) == DialogResult.OK)
             {
-                _tools.Register(new DelegateAgentTool(editor.Tool, delegate(ToolExecutionContext token)
+                try
                 {
-                    return Task.FromResult(ToolExecutionResult.Failure("This custom tool has a definition but no execution handler. Register an IAgentTool implementation in the host application."));
-                }));
-                ShowTools();
+                    _tools.Register(new DelegateAgentTool(editor.Tool, delegate(ToolExecutionContext token)
+                    {
+                        return Task.FromResult(ToolExecutionResult.Failure("This custom tool has a definition but no execution handler. Register an IAgentTool implementation in the host application."));
+                    }));
+                    ShowTools();
+                }
+                catch (Exception ex)
+                {
+                    HMessage.ShowException(this, "The tool could not be registered.", "Tool", ex);
+                }
             }
             await Task.CompletedTask;
         }

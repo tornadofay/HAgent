@@ -37,12 +37,11 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 - Execution lifecycle events.
 - Execution duration/provider diagnostics.
 - Structured execution failure categories.
-- Lightweight memory abstraction.
 - No-GPU/low-RAM memory rule.
 - Correct single system-prompt resolution.
 - Provider failure detail preservation.
 
-## 0.3 — Memory and Context — Active
+## 0.3 — Memory and Context — Active foundation complete
 
 ### Implemented
 
@@ -69,7 +68,7 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 - Episodic outcome/task/session provenance metadata.
 - Manual Example coverage for memory, context, task/event, and episodic behavior.
 
-### Remaining
+### Remaining advanced memory work
 
 - Richer automatic-memory inference without saving ordinary conversation by default.
 - Memory update/upsert semantics.
@@ -82,32 +81,39 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 - Optional vector-memory adapter.
 - Remote embedding-provider integration without local GPU requirements.
 
-## 0.4 — Provider Capabilities and Response Normalization
+## 0.4 — Provider Capabilities and Response Normalization — Active
 
 This milestone prevents HAgent from treating every discovered model as interchangeable.
 
+### Implemented
+
 - Explicit model/provider capability model.
-- Chat capability.
-- Streaming capability.
-- Structured-output capability.
-- Tool/function-calling capability.
-- Vision capability.
-- Audio input/output capability where supported.
-- Embedding capability.
-- Reasoning capability.
-- Provider/model suitability evaluation.
-- Capability caching.
+- Tri-state capability support: `Supported`, `Unsupported`, `Unknown`.
+- Capability evidence/provenance model with source, confidence, observation time, and notes.
+- Capability sources for provider metadata, adapter knowledge, user configuration, and runtime observation.
+- Capability caching with failure eviction.
+- Provider/model suitability evaluation for known-unsupported Chat models.
+- Capability-aware basic routing behavior.
 - Provider-neutral response model.
 - Separate ordinary assistant content from provider-exposed reasoning.
-- Preserve reasoning metadata when explicitly supplied by the provider.
-- Do not infer provider-native reasoning merely from `<think>...</think>` markup.
-- Structured output representation.
-- Tool-call representation.
-- Token/usage/cost metadata where available.
-- Raw provider metadata preservation.
-- Plain-text provider compatibility.
+- Preserve raw provider text and provider metadata.
+- Explicit provider `reasoning_content` normalization.
+- Detection metadata for `<think>` markup without claiming native reasoning.
+- Provider-specific error classification and actionable diagnostics for model/account/provider failures.
+- Manual capability inspection and UI capability evidence display.
+
+### Remaining
+
+- Provider capability confidence override/configuration UI where applications need explicit declarations.
+- Rich provider capability discovery where providers expose structured capability metadata.
+- Model suitability requirements beyond mandatory Chat support, including tool calling, vision, structured output, audio, embeddings, and reasoning.
+- Capability-aware routing for those advanced requirements.
+- Provider-neutral structured-output representation.
+- Provider-neutral tool-call representation.
+- Usage/token/cost normalization beyond the current usage dictionary.
 - Streaming response abstraction.
-- Manual capability and normalization examples in `HAgent.Example`.
+- Application policy for displaying/storing/logging/discarding reasoning.
+- Manual response-normalization test with an explicit provider reasoning field.
 
 ## 0.5 — Tools and Agent Loop
 
@@ -214,7 +220,7 @@ This milestone is where HAgent gains a desktop-specific capability that should r
 
 ### UI Context / Control Adapters
 
-Do not model the whole feature as “form serialization.” Serialization is one operation produced by the UI context layer. The larger feature is an **UI Context / Control Adapter** system that can inspect forms, controls, and data sources and produce safe, provider-neutral descriptions.
+Do not model the whole feature as “form serialization.” Serialization is one operation produced by the UI context layer. The larger feature is a **UI Context / Control Adapter** system that can inspect forms, controls, and data sources and produce safe, provider-neutral descriptions.
 
 The governing performance rule is:
 
@@ -451,6 +457,7 @@ Memory may carry form ID, session ID, task ID, and application metadata for prov
 - The core runtime stays small.
 - Provider transport is separate from agent behavior.
 - Capabilities are explicit; model names are not capability guarantees.
+- Capability claims preserve their source/confidence where practical.
 - Tool definitions describe capabilities; they are not arbitrary executable access.
 - Applications own real-world side effects.
 - Prompts are not security boundaries; guardrails and permissions are.

@@ -164,6 +164,78 @@ namespace HAgent.Example
             }
         }
 
+        private async Task TestToolLoopAsync(string input)
+        {
+            var handler = new ToolLoopRequestHandler();
+            using (var httpClient = new HttpClient(handler))
+            {
+                var adapter = new OpenAICompatibleProviderAdapter(httpClient);
+                var provider = new AiProvider
+                {
+                    Id = "provider-loop-example",
+                    Name = "Example Loop Provider",
+                    Kind = OpenAICompatibleProviderAdapter.ProviderKind,
+                    BaseUrl = "https://example.invalid/v1",
+                    DefaultModel = "example-model",
+                    Enabled = true
+                };
+                var tool = new AiTool
+                {
+                    Id = "example.add",
+                    Name = "example_add",
+                    Description = "Adds two integer values.",
+                    InputSchemaJson = "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"integer\"},\"b\":{\"type\":\"integer\"}},\"required\":[\"a\",\"b\"],\"additionalProperties\":false}",
+                    Type = AiToolType.Application,
+                    Enabled = true
+                };
+                var agent = new AiAgent
+                {
+                    Id = "example-loop-agent",
+                    Name = "Example Loop Agent",
+                    ProviderId = provider.Id,
+                    Model = provider.DefaultModel,
+                    ToolIds = new List<string> { tool.Id },
+                    Enabled = true
+                };
+
+                var store = new InMemoryAiStore();
+                await store.SaveProviderAsync(provider, CancellationToken.None);
+                await store.SaveAgentAsync(agent, CancellationToken.None);
+
+                var toolClient = new HAgentClient(store, new EmptySecretStore(), new IAiProviderAdapter[] { adapter });
+                toolClient.RegisterTool(new DelegateAgentTool(tool, context =>
+                {
+                    object a;
+                    object b;
+                    context.Arguments.TryGetValue("a", out a);
+                    context.Arguments.TryGetValue("b", out b);
+                    return Task.FromResult(ToolExecutionResult.Success((Convert.ToInt32(a) + Convert.ToInt32(b)).ToString()));
+                }));
+
+                var loop = await toolClient.RunToolLoopAsync(
+                    agent.Id,
+                    string.IsNullOrWhiteSpace(input) ? "Use the add tool." : input,
+                    4,
+                    4,
+                    CancellationToken.None);
+
+                if (loop.Turns != 2) throw new InvalidOperationException("Expected exactly two model turns in the tool loop.");
+                if (loop.ToolCallsExecuted != 1) throw new InvalidOperationException("Expected exactly one executed tool call.");
+                if (loop.Response == null || !string.Equals(loop.Response.Text, "The tool returned 7.", StringComparison.Ordinal))
+                    throw new InvalidOperationException("The final model response did not consume the tool result as expected.");
+                if (handler.RequestCount != 2)
+                    throw new InvalidOperationException("Expected exactly two provider requests.");
+
+                Write("TOOL LOOP",
+                    "Contract test succeeded." + Environment.NewLine +
+                    "Turns: " + loop.Turns + Environment.NewLine +
+                    "Tool calls executed: " + loop.ToolCallsExecuted + Environment.NewLine +
+                    "Final response: " + loop.Response.Text + Environment.NewLine +
+                    "Provider requests: " + handler.RequestCount + Environment.NewLine +
+                    "Flow: model tool call → validated execution → tool result → final model response.");
+            }
+        }
+
         private static HAgentClient CreateToolTestClient()
         {
             return new HAgentClient(new InMemoryAiStore(), new EmptySecretStore(), new IAiProviderAdapter[0]);
@@ -177,6 +249,32 @@ namespace HAgent.Example
             {
                 RequestBody = await request.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var body = "{\"id\":\"tool-request-42\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-tool-42\",\"type\":\"function\",\"function\":{\"name\":\"example_echo\",\"arguments\":\"{\\\"value\\\":\\\"HAgent-tool-42\\\"}\"}}]}}]}";
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+        }
+
+        private sealed class ToolLoopRequestHandler : HttpMessageHandler
+        {
+            public int RequestCount { get; private set; }
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                RequestCount++;
+                var requestBody = await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+                string body;
+                if (RequestCount == 1)
+                {
+                    body = "{\"id\":\"loop-1\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-add-42\",\"type\":\"function\",\"function\":{\"name\":\"example_add\",\"arguments\":\"{\\\"a\\\":3,\\\"b\\\":4}\"}}]}}]}";
+                }
+                else
+                {
+                    if (requestBody.IndexOf("The tool returned 7", StringComparison.OrdinalIgnoreCase) < 0)
+                        throw new InvalidOperationException("The second provider request did not contain the tool result observation.");
+                    body = "{\"id\":\"loop-2\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"The tool returned 7.\"}}]}";
+                }
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")

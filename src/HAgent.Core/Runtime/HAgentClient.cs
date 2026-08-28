@@ -17,9 +17,10 @@ namespace HAgent.Runtime
         private readonly IMemoryStore _memory;
         private readonly IConversationStore _conversations;
         private readonly ConversationContextBuilder _contextBuilder;
+        private readonly IConversationMemoryPolicy _memoryPolicy;
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
-            : this(store, secrets, adapters, null, null, null, null)
+            : this(store, secrets, adapters, null, null, null, null, null)
         {
         }
 
@@ -28,7 +29,7 @@ namespace HAgent.Runtime
             ISecretStore secrets,
             IEnumerable<IAiProviderAdapter> adapters,
             IProviderRouter router)
-            : this(store, secrets, adapters, router, null, null, null)
+            : this(store, secrets, adapters, router, null, null, null, null)
         {
         }
 
@@ -38,7 +39,7 @@ namespace HAgent.Runtime
             IEnumerable<IAiProviderAdapter> adapters,
             IProviderRouter router,
             IMemoryStore memory)
-            : this(store, secrets, adapters, router, memory, null, null)
+            : this(store, secrets, adapters, router, memory, null, null, null)
         {
         }
 
@@ -49,7 +50,7 @@ namespace HAgent.Runtime
             IProviderRouter router,
             IMemoryStore memory,
             IConversationStore conversations)
-            : this(store, secrets, adapters, router, memory, conversations, null)
+            : this(store, secrets, adapters, router, memory, conversations, null, null)
         {
         }
 
@@ -61,6 +62,19 @@ namespace HAgent.Runtime
             IMemoryStore memory,
             IConversationStore conversations,
             ConversationContextOptions contextOptions)
+            : this(store, secrets, adapters, router, memory, conversations, contextOptions, null)
+        {
+        }
+
+        public HAgentClient(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IProviderRouter router,
+            IMemoryStore memory,
+            IConversationStore conversations,
+            ConversationContextOptions contextOptions,
+            IConversationMemoryPolicy memoryPolicy)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -68,10 +82,12 @@ namespace HAgent.Runtime
             _memory = memory;
             _conversations = conversations;
             _contextBuilder = new ConversationContextBuilder(contextOptions);
+            _memoryPolicy = memoryPolicy ?? (_memory == null ? null : new ExplicitConversationMemoryPolicy());
             _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router);
         }
 
         public ConversationContextOptions ContextOptions { get { return _contextBuilder.Options; } }
+        public bool AutomaticMemoryEnabled { get { return _memory != null && _memoryPolicy != null; } }
 
         public Task<AIResponse> SendAsync(string agentId, string message, CancellationToken cancellationToken = default(CancellationToken))
         {
@@ -176,7 +192,15 @@ namespace HAgent.Runtime
 
         private AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore, IReadOnlyList<AIMessage> initialMessages)
         {
-            return new AgentSession(agentId, sessionId, (messages, token) => SendAsync(agentId, messages, token), conversationStore, initialMessages);
+            return new AgentSession(
+                agentId,
+                sessionId,
+                (messages, token) => SendAsync(agentId, messages, token),
+                conversationStore,
+                initialMessages,
+                null,
+                _memory,
+                _memoryPolicy);
         }
 
         public async Task<AgentSession> OpenSessionAsync(string agentId, string sessionId, CancellationToken cancellationToken = default(CancellationToken))

@@ -6,6 +6,7 @@ using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 using HAgent.Providers.OpenAICompatible;
+using HAgent.WinForms.Helpers;
 
 namespace HAgent.WinForms
 {
@@ -48,7 +49,9 @@ namespace HAgent.WinForms
                     return Task.FromResult(ToolExecutionResult.Success("HAgent WinForms development host"));
                 }));
 
-            Application.Run(new Forms.AISettingsForm(store, secrets, adapters, tools));
+            var form = new Forms.AISettingsForm(store, secrets, adapters, tools);
+            NavigationOrder.Apply(form);
+            Application.Run(form);
         }
     }
 }

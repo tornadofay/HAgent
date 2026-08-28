@@ -161,15 +161,17 @@ if (capabilities.Get(AiCapability.ToolCalling) == CapabilitySupport.Supported)
 
 A capability can be `Supported`, `Unsupported`, or `Unknown`. `Unknown` is intentional: HAgent must not infer that a discovered model supports tools, vision, reasoning, embeddings, streaming, or structured output merely because its model ID exists.
 
+Capability results also carry evidence describing the source and confidence of the determination. Sources can include provider metadata, adapter knowledge, explicit user configuration, and runtime observation. This allows a host application to distinguish a documented provider capability from an adapter baseline or an unverified observation.
+
 ## Current status
 
 HAgent 0.2 established the runtime foundation: execution state, snapshots, provider routing, cancellation/timeouts, retries/backoff, lifecycle events, diagnostics, and lightweight memory abstractions.
 
 HAgent 0.3 added persistent conversations, persistent low-resource memory, explicit/automatic memory policy, task/event records, compact episodic experiences, relevance ranking, and bounded context selection.
 
-The active 0.4 milestone now adds explicit model/provider capabilities and normalized response fields. The first slice provides tri-state capabilities plus separate reasoning/raw/provider metadata, while preserving the existing `AIResponse.Text` API. The OpenAI-compatible adapter reports Chat as supported and leaves optional capabilities unknown unless the provider establishes them. Explicit provider `reasoning_content` is kept separate; `<think>` markup is detected for diagnostics but is not automatically treated as native reasoning.
+The active 0.4 milestone now adds explicit model/provider capabilities and normalized response fields. The first slices provide tri-state capabilities, capability caching/suitability checks, capability evidence/provenance, and separate reasoning/raw/provider metadata, while preserving the existing `AIResponse.Text` API. The OpenAI-compatible adapter reports Chat as supported using adapter evidence and leaves optional capabilities unknown unless established. Explicit provider `reasoning_content` is kept separate; `<think>` markup is detected for diagnostics but is not automatically treated as native reasoning.
 
-The next steps are capability caching/suitability checks, structured output/tool-call normalization, streaming, and application-level reasoning visibility policy before the Tools milestone.
+The next steps are richer provider capability discovery, capability-aware selection for tools/vision/structured output/audio/reasoning, structured output and tool-call normalization, streaming, and application-level reasoning visibility policy before the Tools milestone.
 
 ## Architecture principles
 
@@ -197,7 +199,17 @@ Embeddings
 Reasoning
 ```
 
-This prevents a discovered classifier or guard model from being accidentally treated as a conversational model.
+Capability evidence additionally records:
+
+```text
+Support
+Source
+Confidence
+ObservedAt
+Optional note
+```
+
+This prevents a discovered classifier or guard model from being accidentally treated as a conversational model and prevents the framework from hiding how a capability claim was established.
 
 ### Agent profile versus scope
 

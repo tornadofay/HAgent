@@ -107,15 +107,27 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 
 ## 0.5 — Tools and Agent Loop — Active
 
-### Completed foundation
+### Tool foundation — Completed
 
 - `AiTool` definition model.
+- Explicit `AiToolType`: BuiltIn, Application, Declarative, UI, SqlServer, MySql.
 - `IAgentTool` definition/handler separation.
 - `IToolRegistry` abstraction.
 - `InMemoryToolRegistry`.
 - `DelegateAgentTool` for code-defined custom tools.
-- `HAgentClient` registration, lookup, definition inspection, and direct execution.
-- Deterministic Tool Registry Example coverage.
+- `HAgentClient` tool registration, lookup, definition inspection, and direct execution.
+- Tool type selection in the Tool editor.
+- Deterministic Example tool-registry test.
+
+### Tool types
+
+- **BuiltIn** — supplied by HAgent.
+- **Application** — executable handler registered by the host application.
+- **Declarative** — safe configuration-driven operation; configuration never becomes arbitrary code execution.
+- **UI** — supplied by `HAgent.WinForms` control/context adapters.
+- **SqlServer** — supplied by the SQL Server tool layer with restricted database operations.
+- **MySql** — supplied by the MySQL tool layer with restricted database operations.
+- **Extension** — future; not part of the initial implementation.
 
 ### Next
 
@@ -126,6 +138,12 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 - Multiple model/tool turns.
 - Per-agent tool selection using persisted `ToolIds`.
 - Per-session temporary tools.
+- Built-in tool handlers.
+- Application tool registration guidance/API conventions.
+- Declarative tool execution engine.
+- WinForms UI tool handlers.
+- SQL Server tool layer.
+- MySQL tool layer.
 - Tool aliases/versioning.
 - Tool timeout/cancellation/progress.
 - Tool audit/history.
@@ -194,7 +212,8 @@ For `DataGridView`, prefer its bound data source. Resolve `BindingSource`, `Curr
 - ComboBox.
 - Button.
 - CheckBox/RadioButton.
-- DateTimePicker/NumericUpDown.
+- DateTimePicker.
+- NumericUpDown.
 - ListBox/ListView/TreeView.
 - DataTable only when naturally present or actually required.
 
@@ -305,12 +324,12 @@ Cross-form recall is allowed only when scope and policy permit it. Provenance ca
 - Ollama.
 - LM Studio.
 - Custom HTTP providers.
-- Multimodal providers.
-- Embedding providers.
 - Provider-specific capability negotiation.
 - Model discovery/cache.
-- Provider streaming implementations.
-- Provider contract test harness.
+- Streaming.
+- Multimodal support.
+- Embedding providers.
+- Provider contract test harnesses.
 - Versioned provider extension contract.
 
 ## 0.12 — Extensibility and Storage Ecosystem
@@ -346,30 +365,36 @@ Cross-form recall is allowed only when scope and policy permit it. Provenance ca
 
 ## 1.0 — Stable HAgent Platform
 
-- Stable public contracts and backward compatibility policy.
+- Stable public contracts.
+- Backward compatibility policy.
 - Storage migration/versioning.
 - NuGet packages.
 - Signed releases.
-- Comprehensive integration/security/provider/tool/memory tests.
-- Complete provider/tool/UI automation/memory/workflow documentation.
+- Comprehensive integration tests.
+- Security/permission tests.
+- Provider/tool/memory documentation.
+- WinForms automation documentation.
+- Custom provider/tool/control-adapter guides.
 - .NET 10 target after migration to a compatible Visual Studio environment.
 
 ## Design principles
 
-- Core runtime stays small and provider-neutral.
-- Provider transport, agent profile, runtime, memory, tools, and host side effects remain separate.
-- Capability names are not assumptions about models; unknown stays unknown.
-- Capability evidence preserves why a claim is believed.
-- Tools expose explicit capabilities and never imply arbitrary host access.
-- Prompts are not security boundaries.
+- The core runtime stays small.
+- Provider transport is separate from agent behavior.
+- Capabilities are explicit; model names are not capability guarantees.
+- Capability claims preserve their source/confidence where practical.
+- Tool definitions describe capabilities; they are not arbitrary executable access.
+- Applications own real-world side effects.
+- Prompts are not security boundaries; guardrails and permissions are.
 - Sensitive actions can require human approval.
-- Autonomous work is cancellable, observable, and budgeted.
+- Autonomous operations are observable, cancellable, and budgeted.
 - Provider responses are normalized without destroying useful provider metadata.
-- Reasoning is optional separate response content when explicitly exposed; embedded `<think>` markup is not treated as native reasoning.
+- Reasoning/thinking is separate optional response content when explicitly exposed.
 - Agent profile and agent/session/form/task scope are separate concepts.
-- UI Context describes state; tools define permitted actions.
-- WinForms data handling uses the lightest practical native/bound representation.
-- `DataTable` is optional, never a default architectural requirement.
-- Memory does not require a local GPU, vector database, or heavy local embedding model.
+- WinForms UI context is a host integration layer, not a Core dependency.
+- UI context describes state; tools define permitted actions.
+- Common WinForms data-source handling is centralized in adapters and must use the lightest practical representation.
+- DataGridView extraction must prefer native/bound sources when available, adapt lazily, and avoid unnecessary copies/materialization.
+- Memory works without a local GPU, local embedding model, vector database, or large resident RAM footprint.
 - Advanced integrations belong in optional assemblies/packages where possible.
 - `HAgent.Example` is part of the development workflow and demonstrates completed public capabilities.

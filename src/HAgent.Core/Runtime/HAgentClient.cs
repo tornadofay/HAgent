@@ -16,9 +16,10 @@ namespace HAgent.Runtime
         private readonly IAgentRuntime _runtime;
         private readonly IMemoryStore _memory;
         private readonly IConversationStore _conversations;
+        private readonly ConversationContextBuilder _contextBuilder;
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
-            : this(store, secrets, adapters, null, null, null)
+            : this(store, secrets, adapters, null, null, null, null)
         {
         }
 
@@ -27,7 +28,7 @@ namespace HAgent.Runtime
             ISecretStore secrets,
             IEnumerable<IAiProviderAdapter> adapters,
             IProviderRouter router)
-            : this(store, secrets, adapters, router, null, null)
+            : this(store, secrets, adapters, router, null, null, null)
         {
         }
 
@@ -37,7 +38,7 @@ namespace HAgent.Runtime
             IEnumerable<IAiProviderAdapter> adapters,
             IProviderRouter router,
             IMemoryStore memory)
-            : this(store, secrets, adapters, router, memory, null)
+            : this(store, secrets, adapters, router, memory, null, null)
         {
         }
 
@@ -48,14 +49,29 @@ namespace HAgent.Runtime
             IProviderRouter router,
             IMemoryStore memory,
             IConversationStore conversations)
+            : this(store, secrets, adapters, router, memory, conversations, null)
+        {
+        }
+
+        public HAgentClient(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IProviderRouter router,
+            IMemoryStore memory,
+            IConversationStore conversations,
+            ConversationContextOptions contextOptions)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters))).ToList().AsReadOnly();
             _memory = memory;
             _conversations = conversations;
+            _contextBuilder = new ConversationContextBuilder(contextOptions);
             _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router);
         }
+
+        public ConversationContextOptions ContextOptions { get { return _contextBuilder.Options; } }
 
         public Task<AIResponse> SendAsync(string agentId, string message, CancellationToken cancellationToken = default(CancellationToken))
         {
@@ -79,6 +95,7 @@ namespace HAgent.Runtime
             if (agent.ProviderIds != null) providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
 
             var failures = new List<string>();
+            var contextMessages = _contextBuilder.Build(messages);
 
             foreach (var providerId in providerIds.Distinct(StringComparer.OrdinalIgnoreCase))
             {
@@ -114,7 +131,7 @@ namespace HAgent.Runtime
                         agent,
                         apiKey,
                         systemPrompt,
-                        messages,
+                        contextMessages,
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)

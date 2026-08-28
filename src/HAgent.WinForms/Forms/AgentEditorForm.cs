@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.WinForms.Controls;
+using HAgent.WinForms.Helpers;
 
 namespace HAgent.WinForms.Forms
 {
@@ -54,7 +55,7 @@ namespace HAgent.WinForms.Forms
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
-            _layout.BackColor = Color.FromArgb(248, 250, 252);
+            _layout.BackColor = Color.FromArgb(248, 248, 252);
 
             AddField(0, "Name", "How this agent appears in your application.", _name);
             AddField(1, "Provider", "The preferred provider. Provider IDs can also be extended for future fallback/routing.", _provider);
@@ -90,7 +91,7 @@ namespace HAgent.WinForms.Forms
             _inherit.Checked = Agent.UseProviderSystemPrompt;
             _inherit.AutoSize = true;
 
-            var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 52, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = Color.FromArgb(248, 250, 252) };
+            var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 52, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = Color.FromArgb(248, 248, 252) };
             var save = new HFlatButton { Text = "Save agent", Width = 130, Height = 36, Margin = new Padding(8, 4, 0, 0) };
             save.Click += delegate { Save(); };
             _test.Text = "Test agent";
@@ -101,7 +102,7 @@ namespace HAgent.WinForms.Forms
             _test.Margin = new Padding(8, 4, 0, 0);
             _test.Click += async delegate { await TestAsync(); };
             _status.AutoSize = true;
-            _status.ForeColor = Color.FromArgb(100, 116, 139);
+            _status.ForeColor = Color.FromArgb(100, 92, 120);
             _status.Margin = new Padding(8, 15, 12, 0);
             _enabled.Text = "Agent is enabled";
             _enabled.Checked = Agent.Enabled;
@@ -138,8 +139,8 @@ namespace HAgent.WinForms.Forms
         private static Panel CreateLabelPanel(string title, string description)
         {
             var p = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 8, 12, 0) };
-            p.Controls.Add(new Label { Text = description, Dock = DockStyle.Fill, Font = new Font("Segoe UI", 8.1f), ForeColor = Color.FromArgb(100, 116, 139) });
-            p.Controls.Add(new Label { Text = title, Dock = DockStyle.Top, Height = 22, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(15, 23, 42) });
+            p.Controls.Add(new Label { Text = description, Dock = DockStyle.Fill, Font = new Font("Segoe UI", 8.1f), ForeColor = Color.FromArgb(100, 92, 120) });
+            p.Controls.Add(new Label { Text = title, Dock = DockStyle.Top, Height = 22, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(31, 24, 69) });
             return p;
         }
 
@@ -183,7 +184,7 @@ namespace HAgent.WinForms.Forms
             }
             catch (Exception ex)
             {
-                if (showErrors) MessageBox.Show(this, ex.Message, "Load models", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (showErrors) HMessage.ShowException(this, "The model list could not be loaded.", "Load models", ex);
             }
         }
 
@@ -213,7 +214,7 @@ namespace HAgent.WinForms.Forms
             {
                 _status.Text = "Test failed";
                 _status.ForeColor = Color.FromArgb(185, 28, 28);
-                MessageBox.Show(this, ex.Message, "Agent test", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                HMessage.ShowException(this, "The agent test failed.", "Agent test", ex);
             }
             finally { _test.Enabled = true; }
         }
@@ -238,7 +239,7 @@ namespace HAgent.WinForms.Forms
                 DialogResult = DialogResult.OK;
                 Close();
             }
-            catch (Exception ex) { MessageBox.Show(this, ex.Message, "Agent", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            catch (Exception ex) { HMessage.ShowException(this, "The agent could not be saved.", "Agent", ex); }
         }
 
         private sealed class ProviderItem

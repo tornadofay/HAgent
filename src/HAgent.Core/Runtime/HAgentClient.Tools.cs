@@ -22,8 +22,10 @@ namespace HAgent.Runtime
             if (tool == null) throw new ArgumentNullException(nameof(tool));
             if (tool.Definition == null || string.IsNullOrWhiteSpace(tool.Definition.Id))
                 throw new ArgumentException("A tool must have a definition with an id.", nameof(tool));
-            if (!ToolSchemaValidator.Validate(tool.Definition, new Dictionary<string, object>()).IsValid && string.IsNullOrWhiteSpace(tool.Definition.InputSchemaJson))
-                throw new ArgumentException("Tool schema could not be validated.", nameof(tool));
+
+            var schemaValidation = ToolSchemaValidator.Validate(tool.Definition, new Dictionary<string, object>());
+            if (!schemaValidation.IsValid && !string.IsNullOrWhiteSpace(tool.Definition.InputSchemaJson))
+                throw new ArgumentException("Tool input schema is invalid: " + string.Join(" ", schemaValidation.Errors.Select(x => "[" + x + "]")), nameof(tool));
 
             _toolRegistry.Register(tool);
             return true;

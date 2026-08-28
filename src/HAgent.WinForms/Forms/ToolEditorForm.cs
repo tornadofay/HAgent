@@ -106,8 +106,7 @@ namespace HAgent.WinForms.Forms
             var selectedType = Tool.Type;
             if (Tool.IsBuiltIn && selectedType == AiToolType.Application)
                 selectedType = AiToolType.BuiltIn;
-            _type.SelectedItem = new ToolTypeItem(selectedType, GetTypeDisplayName(selectedType));
-            if (_type.SelectedIndex < 0) _type.SelectedIndex = 1;
+            SelectType(selectedType);
             _type.SelectedIndexChanged += delegate { UpdateTypeHint(); };
 
             _typeHint.Text = "";
@@ -120,6 +119,20 @@ namespace HAgent.WinForms.Forms
             host.Controls.Add(_typeHint);
             host.Controls.Add(_type);
             layout.Controls.Add(host, 1, row);
+        }
+
+        private void SelectType(AiToolType type)
+        {
+            for (var i = 0; i < _type.Items.Count; i++)
+            {
+                var item = _type.Items[i] as ToolTypeItem;
+                if (item != null && item.Type == type)
+                {
+                    _type.SelectedIndex = i;
+                    return;
+                }
+            }
+            if (_type.Items.Count > 1) _type.SelectedIndex = 1;
         }
 
         private void AddType(AiToolType type, string name)
@@ -159,20 +172,6 @@ namespace HAgent.WinForms.Forms
                 default:
                     _typeHint.Text = string.Empty;
                     break;
-            }
-        }
-
-        private static string GetTypeDisplayName(AiToolType type)
-        {
-            switch (type)
-            {
-                case AiToolType.BuiltIn: return "Built-in";
-                case AiToolType.Application: return "Application tool";
-                case AiToolType.Declarative: return "Declarative tool";
-                case AiToolType.UI: return "UI tool";
-                case AiToolType.SqlServer: return "SQL Server tool";
-                case AiToolType.MySql: return "MySQL tool";
-                default: return type.ToString();
             }
         }
 

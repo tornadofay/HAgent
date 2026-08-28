@@ -7,7 +7,7 @@ using System.Linq;
 using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.WinForms.Forms;
-using HAgent.WinForms.Helpers.Button;
+using HAgent.WinForms.Helpers;
 
 namespace HAgent.WinForms
 {

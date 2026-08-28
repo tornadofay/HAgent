@@ -83,11 +83,17 @@ Provider responses must be normalized into a provider-neutral representation bef
 - Persistence after successful conversation turns.
 - Transactional rollback of a session turn when provider or persistence fails.
 - Manual persistent-session example in `HAgent.Example`.
+- Deterministic working-context builder with message and character budgets.
+- Approximate token estimation without a tokenizer dependency.
+- Conservative automatic conversation-memory policy with explicit remember triggers.
+- Automatic-memory provenance including session and policy identifiers.
+- Manual automatic-memory policy example in `HAgent.Example`.
+- Lightweight relevance ranking using phrase, whole-term, metadata, and recency signals.
+- Retrieval remains streaming and CPU-only without a vector/index dependency.
 
 ### Remaining 0.3 work
 
-- Automatic session-memory policy.
-- Working memory and context-window budgeting.
+- Richer automatic session-memory inference without silently saving ordinary conversation.
 - Short-term task/event memory.
 - Episodic memory.
 - Semantic/long-term memory.
@@ -96,8 +102,8 @@ Provider responses must be normalized into a provider-neutral representation bef
 - Lightweight persistent indexing for faster large-store retrieval.
 - Optional vector-memory adapter.
 - Remote embedding-provider support without local GPU requirements.
-- Improved relevance/ranking.
-- Context trimming and compaction.
+- More advanced relevance/ranking and normalization.
+- Context trimming and compaction/summarization.
 - Memory update/upsert semantics.
 - Richer memory provenance/source/type fields.
 - Retention/expiration policies.

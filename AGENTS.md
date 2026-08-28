@@ -17,6 +17,21 @@ This repository is designed to be worked on by both human developers and coding 
 11. Runtime execution must operate from an execution snapshot so mutable/deleted configuration cannot invalidate active work.
 12. Provider routing must be provider-neutral and must never assume OpenAI semantics in Core.
 13. Memory must work without a local GPU and must not require a large resident RAM footprint. Embeddings/vector search are optional adapters, never core requirements.
+14. Capabilities are discovered/declared explicitly. Never assume a discovered model supports chat, tools, vision, structured output, reasoning, embeddings, or streaming merely because the provider returned its model ID.
+15. Tool execution is a host capability boundary. Models may request registered tools, but they never receive arbitrary reflection, process, file, database, control-tree, or memory access.
+16. Guardrails, permissions, approval, budgets, and cancellation must be enforced outside the model's own instructions. A prompt saying “you are not allowed to do X” is not a security boundary.
+17. Provider responses must have a provider-neutral representation that can carry text, structured output, tool calls/results, reasoning metadata when explicitly exposed, usage, and raw provider metadata without forcing every provider to implement every field.
+18. Streaming is optional. Core contracts must support providers that stream and providers that do not.
+19. Observability must be possible without logging secrets or full sensitive payloads by default. Diagnostics should use correlation IDs and configurable redaction.
+20. Agent lifetime/scope is separate from agent profile. Do not create incompatible “agent types” merely for global/form/session/task use. Prefer explicit scope/binding concepts such as application, form, session, task, or ephemeral.
+21. WinForms integration belongs in `HAgent.WinForms`, not Core. It should expose a host bridge that can attach AI capabilities to a `Form` or control tree without making `HAgentClient` depend on WinForms.
+22. The WinForms integration feature is called **UI Context / Control Adapters**, not generic “form serialization.” Serialization is one operation produced by an adapter; reading and changing controls are explicit capabilities/tools.
+23. UI adapters must understand common WinForms controls and data sources without requiring callers to manually convert them: `DataGridView`, `DataTable`, `BindingSource`, `CurrencyManager`, common list sources, `TextBox`, `ComboBox`, `Button`, `CheckBox`, `RadioButton`, `DateTimePicker`, `NumericUpDown`, `ListBox`, `TreeView`, and custom/user controls where an explicit adapter is available.
+24. UI context must expose stable semantic identities and safe summaries, not raw object graphs. DataGridView access should prefer data-source extraction (`DataTable`, `BindingSource`, `IList`, etc.) before falling back to visible rows.
+25. The WinForms host bridge must support an attached/flyout UI, but attaching an agent to a form must not automatically grant write/execute permission. Read, write, invoke, and data-export capabilities are separately controllable.
+26. Cross-form memory must use memory ownership/scope and provenance. A form identifier may be metadata; it is not a substitute for a user/session/application security boundary.
+27. Active runtime work must survive configuration edits/deletions safely. UI attachment removal, agent deletion, or form closure must have explicit behavior and must never silently invalidate running work.
+28. `HAgent.Example` is the manual verification surface for every meaningful completed capability, including provider capability discovery, response normalization, tool execution, UI context, permissions, approvals, and agent collaboration.
 
 ## Documentation is part of project state
 
@@ -136,13 +151,36 @@ Runtime responsibilities include:
 
 - execution lifecycle/state
 - provider routing/fallback
+- capability selection/compatibility
 - cancellation and timeout boundaries
 - execution snapshots
 - memory/context integration
 - tool execution integration
+- guardrails/permissions/approval boundaries
+- budgets and loop limits
 - structured failure reporting
+- correlation/observability hooks
 
 The runtime must not hide cancellation, timeout, or tool failures as ordinary provider fallbacks.
+
+## WinForms host bridge contract
+
+The future WinForms host bridge must remain outside Core and should expose concepts such as:
+
+```text
+Attach(Form)
+Detach()
+InspectControl(...)
+ReadControl(...)
+WriteControl(...)
+InvokeControl(...)
+ReadData(...)
+ShowAssistant(...)
+```
+
+Exact names may change, but the separation must remain: **UI context/introspection** describes what exists; **tools/capabilities** define what may be done.
+
+The bridge should support form-bound AI assistants and cross-form memory without forcing every attached form to share one global conversation. Form, session, task, and application relationships should be explicit.
 
 ## Compatibility
 

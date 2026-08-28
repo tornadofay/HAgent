@@ -106,9 +106,15 @@ This is the implementation ledger. Keep it synchronized with the repository. A m
 - [x] Agent Editor shows capability summary for the effective selected model.
 - [x] Full capability matrix available through editor status tooltips.
 - [x] Editor warning when Chat capability is explicitly Unsupported.
+- [x] Capability evidence/provenance with source, confidence, observation time, and explanatory note.
+- [x] OpenAI-compatible adapter records adapter-derived evidence for its known Chat capability.
+- [x] WinForms capability tooltip exposes support, source, and confidence.
+- [x] Provider/model error categories include actionable model-access diagnostics.
+- [x] `ModelTermsRequired`, `PermissionDenied`, and `ModelNotFound` provider error categories.
+- [x] Runtime/Example exposure of structured provider error kind.
 
 ### Remaining 0.4 work
-- [ ] Capability source/confidence metadata (provider metadata, adapter knowledge, user configuration, observed runtime).
+- [ ] Capability override/configuration UI for applications that explicitly need to declare or override a capability.
 - [ ] Capability cache persistence/expiration policy if needed beyond per-client caching.
 - [ ] Rich provider capability discovery where providers expose it.
 - [ ] Model suitability requirements beyond the mandatory Chat check.
@@ -342,21 +348,22 @@ This is the implementation ledger. Keep it synchronized with the repository. A m
 
 1. Core remains provider-neutral and dependency-light.
 2. Capabilities are explicit and tri-state; model IDs are not capability guarantees.
-3. Provider transport, agent profile, runtime, memory, tools, and host side effects remain separate.
-4. Agent profile and runtime scope are separate. Global/form/session/task/ephemeral behavior does not require incompatible agent classes.
-5. Prompt instructions are not security boundaries.
-6. Tools expose explicitly registered capabilities; they do not grant arbitrary host access.
-7. Sensitive actions can require human approval.
-8. Autonomous work is cancellable, observable, and budgeted.
-9. Provider responses are normalized without destroying provider-specific metadata.
-10. Reasoning/thinking is optional separate response content when explicitly exposed by a provider; embedded `<think>` markup is not assumed to be native reasoning.
-11. UI Context/introspection describes state; tools define permitted actions.
-12. “Form serialization” is a UI Context capability, not the name of the entire WinForms subsystem.
-13. WinForms data-source handling is centralized in control adapters.
-14. Data representation must be selected for performance and memory efficiency, not convenience. DataTable is an optional compatibility representation, never a requirement.
-15. Cross-form memory uses explicit scopes and provenance, not implicit global state.
-16. Stored conversation history and provider context are separate resources.
-17. Memory must work without a local GPU, embedding model, vector database, or large resident RAM footprint.
-18. Advanced integrations belong in optional assemblies/packages when they would otherwise bloat common deployments.
-19. `HAgent.Example` is the manual verification surface; `HAgent.Tests` is the automated testing surface.
-20. README, roadmap, plan, and AGENTS are project-state artifacts and must remain synchronized.
+3. Capability evidence should preserve source, confidence, observation time, and optional notes when available.
+4. Provider transport, agent profile, runtime, memory, tools, and host side effects remain separate.
+5. Agent profile and runtime scope are separate. Global/form/session/task/ephemeral behavior does not require incompatible agent classes.
+6. Prompt instructions are not security boundaries.
+7. Tools expose explicitly registered capabilities; they do not grant arbitrary host access.
+8. Sensitive actions can require human approval.
+9. Autonomous work is cancellable, observable, and budgeted.
+10. Provider responses are normalized without destroying provider-specific metadata.
+11. Reasoning/thinking is optional separate response content when explicitly exposed by a provider; embedded `<think>` markup is not assumed to be native reasoning.
+12. UI Context/introspection describes state; tools define permitted actions.
+13. “Form serialization” is a UI Context capability, not the name of the entire WinForms subsystem.
+14. WinForms data-source handling is centralized in control adapters.
+15. Data representation must be selected for performance and memory efficiency, not convenience. DataTable is an optional compatibility representation, never a requirement.
+16. Cross-form memory uses explicit scopes and provenance, not implicit global state.
+17. Stored conversation history and provider context are separate resources.
+18. Memory must work without a local GPU, embedding model, vector database, or large resident RAM footprint.
+19. Advanced integrations belong in optional assemblies/packages when they would otherwise bloat common deployments.
+20. `HAgent.Example` is the manual verification surface; `HAgent.Tests` is the automated testing surface.
+21. README, roadmap, plan, and AGENTS are project-state artifacts and must remain synchronized.

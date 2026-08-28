@@ -47,7 +47,7 @@ The 0.2 milestone establishes a provider-neutral execution layer without turning
 - Resolved system prompt inserted exactly once into provider requests.
 - Provider failure details preserved for diagnostics.
 
-0.2 deliberately does **not** claim to have completed persistent memory, provider-native tool calling, long-running durable tasks, or full multi-provider configuration UI.
+0.2 deliberately does **not** claim to have completed provider-native tool calling, long-running durable tasks, or full multi-provider configuration UI.
 
 ## Cross-cutting response handling
 
@@ -76,10 +76,16 @@ Provider responses must be normalized into a provider-neutral representation bef
 - Metadata filtering.
 - Creation timestamp/provenance baseline.
 - Bounded recall result count.
+- `IConversationStore` persistence abstraction.
+- Persistent file-backed conversation store.
+- Stable session IDs for persistent sessions.
+- `OpenSessionAsync` for reopening conversations.
+- Persistence after successful conversation turns.
+- Transactional rollback of a session turn when provider or persistence fails.
+- Manual persistent-session example in `HAgent.Example`.
 
 ### Remaining 0.3 work
 
-- Persistent conversation memory.
 - Automatic session-memory policy.
 - Working memory and context-window budgeting.
 - Short-term task/event memory.
@@ -95,7 +101,8 @@ Provider responses must be normalized into a provider-neutral representation bef
 - Memory update/upsert semantics.
 - Richer memory provenance/source/type fields.
 - Retention/expiration policies.
-- Manual Memory examples in `HAgent.Example`.
+- Conversation listing/search/metadata management.
+- Persistent conversation UI support belongs to the later chat milestone.
 
 ## 0.4 — Tools
 
@@ -182,7 +189,7 @@ Planned capabilities:
 - User ↔ agent chat window.
 - Agent selector in chat.
 - Conversation switching.
-- Persistent conversations.
+- Persistent conversations and reopening by conversation ID.
 - Conversation search.
 - Conversation metadata and titles.
 - Attachments/multimodal messages where supported.

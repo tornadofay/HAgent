@@ -50,15 +50,16 @@ namespace HAgent.Providers.OpenAICompatible
 
             // The OpenAI-compatible transport guarantees the chat request shape,
             // but the endpoint does not guarantee which optional model features exist.
-            result.Set(AiCapability.Chat, CapabilitySupport.Supported);
-            result.Set(AiCapability.Streaming, CapabilitySupport.Unknown);
-            result.Set(AiCapability.StructuredOutput, CapabilitySupport.Unknown);
-            result.Set(AiCapability.ToolCalling, CapabilitySupport.Unknown);
-            result.Set(AiCapability.Vision, CapabilitySupport.Unknown);
-            result.Set(AiCapability.AudioInput, CapabilitySupport.Unknown);
-            result.Set(AiCapability.AudioOutput, CapabilitySupport.Unknown);
-            result.Set(AiCapability.Embeddings, CapabilitySupport.Unknown);
-            result.Set(AiCapability.Reasoning, CapabilitySupport.Unknown);
+            result.Set(AiCapability.Chat, CapabilitySupport.Supported, CapabilitySource.AdapterKnowledge, 0.95d,
+                "The OpenAI-compatible adapter establishes support for the chat transport shape.");
+            result.Set(AiCapability.Streaming, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
+            result.Set(AiCapability.StructuredOutput, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
+            result.Set(AiCapability.ToolCalling, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
+            result.Set(AiCapability.Vision, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
+            result.Set(AiCapability.AudioInput, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
+            result.Set(AiCapability.AudioOutput, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
+            result.Set(AiCapability.Embeddings, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
+            result.Set(AiCapability.Reasoning, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
 
             return Task.FromResult(result);
         }

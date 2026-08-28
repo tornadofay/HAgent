@@ -20,61 +20,21 @@ namespace HAgent.Runtime
         private readonly IConversationMemoryPolicy _memoryPolicy;
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
-            : this(store, secrets, adapters, null, null, null, null, null)
-        {
-        }
+            : this(store, secrets, adapters, null, null, null, null, null) { }
 
-        public HAgentClient(
-            IAiStore store,
-            ISecretStore secrets,
-            IEnumerable<IAiProviderAdapter> adapters,
-            IProviderRouter router)
-            : this(store, secrets, adapters, router, null, null, null, null)
-        {
-        }
+        public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router)
+            : this(store, secrets, adapters, router, null, null, null, null) { }
 
-        public HAgentClient(
-            IAiStore store,
-            ISecretStore secrets,
-            IEnumerable<IAiProviderAdapter> adapters,
-            IProviderRouter router,
-            IMemoryStore memory)
-            : this(store, secrets, adapters, router, memory, null, null, null)
-        {
-        }
+        public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory)
+            : this(store, secrets, adapters, router, memory, null, null, null) { }
 
-        public HAgentClient(
-            IAiStore store,
-            ISecretStore secrets,
-            IEnumerable<IAiProviderAdapter> adapters,
-            IProviderRouter router,
-            IMemoryStore memory,
-            IConversationStore conversations)
-            : this(store, secrets, adapters, router, memory, conversations, null, null)
-        {
-        }
+        public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations)
+            : this(store, secrets, adapters, router, memory, conversations, null, null) { }
 
-        public HAgentClient(
-            IAiStore store,
-            ISecretStore secrets,
-            IEnumerable<IAiProviderAdapter> adapters,
-            IProviderRouter router,
-            IMemoryStore memory,
-            IConversationStore conversations,
-            ConversationContextOptions contextOptions)
-            : this(store, secrets, adapters, router, memory, conversations, contextOptions, null)
-        {
-        }
+        public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions)
+            : this(store, secrets, adapters, router, memory, conversations, contextOptions, null) { }
 
-        public HAgentClient(
-            IAiStore store,
-            ISecretStore secrets,
-            IEnumerable<IAiProviderAdapter> adapters,
-            IProviderRouter router,
-            IMemoryStore memory,
-            IConversationStore conversations,
-            ConversationContextOptions contextOptions,
-            IConversationMemoryPolicy memoryPolicy)
+        public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions, IConversationMemoryPolicy memoryPolicy)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -112,157 +72,106 @@ namespace HAgent.Runtime
 
             var failures = new List<string>();
             var contextMessages = _contextBuilder.Build(messages);
-
             foreach (var providerId in providerIds.Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 var provider = providers.FirstOrDefault(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
-                if (provider == null)
-                {
-                    failures.Add("Provider " + providerId + ": provider was not found.");
-                    continue;
-                }
-
-                if (!provider.Enabled)
-                {
-                    failures.Add("Provider " + provider.Name + ": provider is disabled.");
-                    continue;
-                }
+                if (provider == null) { failures.Add("Provider " + providerId + ": provider was not found."); continue; }
+                if (!provider.Enabled) { failures.Add("Provider " + provider.Name + ": provider is disabled."); continue; }
 
                 var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
-                if (adapter == null)
-                {
-                    failures.Add("Provider " + provider.Name + ": no registered adapter can handle kind '" + provider.Kind + "'.");
-                    continue;
-                }
+                if (adapter == null) { failures.Add("Provider " + provider.Name + ": no registered adapter can handle kind '" + provider.Kind + "'."); continue; }
 
                 try
                 {
-                    var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
-                        ? string.Empty
-                        : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
-                    var systemPrompt = BuildSystemPrompt(provider, agent);
-
-                    return await adapter.SendAsync(
-                        provider,
-                        agent,
-                        apiKey,
-                        systemPrompt,
-                        contextMessages,
-                        cancellationToken).ConfigureAwait(false);
+                    var apiKey = string.IsNullOrWhiteSpace(provider.SecretId) ? string.Empty : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
+                    return await adapter.SendAsync(provider, agent, apiKey, BuildSystemPrompt(provider, agent), contextMessages, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
-                    var messageText = string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
-                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + "): " + ex.GetType().Name + ": " + messageText);
+                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + "): " + ex.GetType().Name + ": " + (string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message));
                 }
             }
 
-            var detail = failures.Count == 0
-                ? "No provider candidates were configured for the agent."
-                : string.Join(Environment.NewLine, failures.Select(x => "- " + x));
-
-            throw new InvalidOperationException(
-                "No enabled and compatible provider could handle agent '" + agent.Name + "'." +
-                Environment.NewLine + Environment.NewLine + detail);
+            var detail = failures.Count == 0 ? "No provider candidates were configured for the agent." : string.Join(Environment.NewLine, failures.Select(x => "- " + x));
+            throw new InvalidOperationException("No enabled and compatible provider could handle agent '" + agent.Name + "'." + Environment.NewLine + Environment.NewLine + detail);
         }
 
-        public Task<AgentExecution> ExecuteAsync(
-            string agentId,
-            string message,
-            AgentExecutionOptions options = null,
-            CancellationToken cancellationToken = default(CancellationToken))
+        public Task<AgentExecution> ExecuteAsync(string agentId, string message, AgentExecutionOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             return _runtime.ExecuteAsync(agentId, message, options, cancellationToken);
         }
 
-        public AgentSession CreateSession(string agentId)
-        {
-            return CreateSession(agentId, Guid.NewGuid().ToString("N"), null, null);
-        }
-
-        public AgentSession CreateSession(string agentId, string sessionId)
-        {
-            return CreateSession(agentId, sessionId, _conversations, null);
-        }
-
-        public AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore)
-        {
-            return CreateSession(agentId, sessionId, conversationStore, null);
-        }
+        public AgentSession CreateSession(string agentId) { return CreateSession(agentId, Guid.NewGuid().ToString("N"), null, null); }
+        public AgentSession CreateSession(string agentId, string sessionId) { return CreateSession(agentId, sessionId, _conversations, null); }
+        public AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore) { return CreateSession(agentId, sessionId, conversationStore, null); }
 
         private AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore, IReadOnlyList<AIMessage> initialMessages)
         {
-            return new AgentSession(
-                agentId,
-                sessionId,
-                (messages, token) => SendAsync(agentId, messages, token),
-                conversationStore,
-                initialMessages,
-                null,
-                _memory,
-                _memoryPolicy);
+            return new AgentSession(agentId, sessionId, (messages, token) => SendAsync(agentId, messages, token), conversationStore, initialMessages, null, _memory, _memoryPolicy);
         }
 
         public async Task<AgentSession> OpenSessionAsync(string agentId, string sessionId, CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (_conversations == null)
-                throw new InvalidOperationException("No conversation store is configured for this HAgentClient.");
-            if (string.IsNullOrWhiteSpace(sessionId))
-                throw new ArgumentException("Session id is required.", nameof(sessionId));
-
+            if (_conversations == null) throw new InvalidOperationException("No conversation store is configured for this HAgentClient.");
+            if (string.IsNullOrWhiteSpace(sessionId)) throw new ArgumentException("Session id is required.", nameof(sessionId));
             var snapshot = await _conversations.LoadAsync(sessionId, cancellationToken).ConfigureAwait(false);
-            if (snapshot == null)
-                return CreateSession(agentId, sessionId, _conversations, null);
-
-            if (!string.Equals(snapshot.AgentId, agentId, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Conversation belongs to a different agent: " + snapshot.AgentId);
-
+            if (snapshot == null) return CreateSession(agentId, sessionId, _conversations, null);
+            if (!string.Equals(snapshot.AgentId, agentId, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Conversation belongs to a different agent: " + snapshot.AgentId);
             return CreateSession(agentId, sessionId, _conversations, snapshot.Messages);
         }
 
-        public async Task<string> RememberAsync(
-            string ownerId,
-            string content,
-            MemoryScope scope = MemoryScope.Agent,
-            IDictionary<string, string> metadata = null,
-            CancellationToken cancellationToken = default(CancellationToken))
+        public Task<string> RememberAsync(string ownerId, string content, MemoryScope scope = MemoryScope.Agent, IDictionary<string, string> metadata = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return RememberTypedAsync(ownerId, string.Empty, content, MemoryKind.Fact, scope, metadata, DateTimeOffset.UtcNow, cancellationToken);
+        }
+
+        public Task<string> RememberTaskEventAsync(string ownerId, string taskId, string content, MemoryKind kind = MemoryKind.Event, IDictionary<string, string> metadata = null, DateTimeOffset? occurredAt = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (kind != MemoryKind.Task && kind != MemoryKind.Event)
+                throw new ArgumentException("Task event memory must use MemoryKind.Task or MemoryKind.Event.", nameof(kind));
+            return RememberTypedAsync(ownerId, taskId, content, kind, MemoryScope.Task, metadata, occurredAt ?? DateTimeOffset.UtcNow, cancellationToken);
+        }
+
+        public Task<IReadOnlyList<MemoryEntry>> RecallTaskEventsAsync(string ownerId, string taskId, string text = null, int maxResults = 10, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            EnsureMemoryStore();
+            if (string.IsNullOrWhiteSpace(ownerId)) throw new ArgumentException("Memory owner ID is required.", nameof(ownerId));
+            if (string.IsNullOrWhiteSpace(taskId)) throw new ArgumentException("Task ID is required.", nameof(taskId));
+            return _memory.SearchAsync(new MemoryQuery
+            {
+                OwnerId = ownerId,
+                Scope = MemoryScope.Task,
+                TaskId = taskId,
+                Text = text ?? string.Empty,
+                MaxResults = maxResults
+            }, cancellationToken);
+        }
+
+        private async Task<string> RememberTypedAsync(string ownerId, string taskId, string content, MemoryKind kind, MemoryScope scope, IDictionary<string, string> metadata, DateTimeOffset occurredAt, CancellationToken cancellationToken)
         {
             EnsureMemoryStore();
             if (string.IsNullOrWhiteSpace(ownerId)) throw new ArgumentException("Memory owner ID is required.", nameof(ownerId));
             if (string.IsNullOrWhiteSpace(content)) throw new ArgumentException("Memory content is required.", nameof(content));
-
             var entry = new MemoryEntry
             {
                 Scope = scope,
+                Kind = kind,
                 OwnerId = ownerId,
+                TaskId = taskId ?? string.Empty,
                 Content = content.Trim(),
                 Metadata = metadata ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
+                OccurredAt = occurredAt
             };
-
             await _memory.AddAsync(entry, cancellationToken).ConfigureAwait(false);
             return entry.Id;
         }
 
-        public Task<IReadOnlyList<MemoryEntry>> RecallAsync(
-            string ownerId,
-            string text,
-            MemoryScope? scope = null,
-            int maxResults = 10,
-            IDictionary<string, string> metadata = null,
-            CancellationToken cancellationToken = default(CancellationToken))
+        public Task<IReadOnlyList<MemoryEntry>> RecallAsync(string ownerId, string text, MemoryScope? scope = null, int maxResults = 10, IDictionary<string, string> metadata = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             EnsureMemoryStore();
             if (string.IsNullOrWhiteSpace(ownerId)) throw new ArgumentException("Memory owner ID is required.", nameof(ownerId));
-
-            return _memory.SearchAsync(new MemoryQuery
-            {
-                OwnerId = ownerId,
-                Scope = scope,
-                Text = text ?? string.Empty,
-                MaxResults = maxResults,
-                Metadata = metadata
-            }, cancellationToken);
+            return _memory.SearchAsync(new MemoryQuery { OwnerId = ownerId, Scope = scope, Text = text ?? string.Empty, MaxResults = maxResults, Metadata = metadata }, cancellationToken);
         }
 
         public Task ForgetAsync(string memoryId, CancellationToken cancellationToken = default(CancellationToken))
@@ -271,17 +180,12 @@ namespace HAgent.Runtime
             return _memory.RemoveAsync(memoryId, cancellationToken);
         }
 
-        private void EnsureMemoryStore()
-        {
-            if (_memory == null)
-                throw new InvalidOperationException("No memory store is configured for this HAgentClient.");
-        }
+        private void EnsureMemoryStore() { if (_memory == null) throw new InvalidOperationException("No memory store is configured for this HAgentClient."); }
 
         private static string BuildSystemPrompt(AiProvider provider, AiAgent agent)
         {
             var providerPrompt = agent.UseProviderSystemPrompt ? provider.DefaultSystemPrompt : string.Empty;
             var agentPrompt = agent.SystemPrompt;
-
             if (string.IsNullOrWhiteSpace(providerPrompt)) return agentPrompt ?? string.Empty;
             if (string.IsNullOrWhiteSpace(agentPrompt)) return providerPrompt;
             return providerPrompt.Trim() + Environment.NewLine + Environment.NewLine + agentPrompt.Trim();

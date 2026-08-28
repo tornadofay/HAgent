@@ -262,7 +262,7 @@ namespace HAgent.Example
             AddApiTab("Session", "Run session test", "Creates one AgentSession, sends the editable first message, then asks the fixed recall question. The second request receives the session history.", "The response should identify HAgent-session-42 and the output should show the retained transcript.", "Store this temporary test value in our conversation: HAgent-session-42.", TestSessionAsync, "Memory boundary", "This validates in-session history forwarding. Durable memory is tested separately.");
             AddApiTab("Runtime 0.2", "Run runtime test", "Uses the 0.2 execution pipeline with timeout, provider-attempt, retry, lifecycle, and diagnostics behavior.", "Execution should reach Succeeded and show execution ID, state, provider, model, and response.", "Reply with the word RUNTIME-OK and nothing else.", TestRuntimeAsync, "Runtime boundary", "The runtime orchestrates execution but does not yet infer model suitability.");
             AddApiTab("Configuration", "Read configuration", "Reads providers and agents directly from the local file store.", "The output should show the settings path, provider count, agent count, and relationships.", "No AI request is sent by this example.", ReadConfigurationAsync, "Storage boundary", "This verifies host-side configuration reading.");
-            AddApiTab("Memory", "Run memory test", "Writes explicit memory to a persistent file store, closes it, opens a second instance, recalls the entry, and removes it.", "The second store instance should recall HAgent-memory-42, proving persistence outside the original object.", "Remember exactly this test value: HAgent-memory-42.", TestMemoryAsync, "Memory boundary", "Provider-independent and no AI request. Tests explicit durable memory operations.");
+            AddApiTab("Memory", "Run memory test", "Writes explicit memory to a persistent file store, closes it, opens a second instance, recalls the entry, and removes it.", "The second store instance should recall the same memory ID and content, proving persistence outside the original object.", "Remember exactly this test value: HAgent-memory-42.", TestMemoryAsync, "Memory boundary", "Provider-independent and no AI request. Tests explicit durable memory operations.");
         }
 
         private void AddApiTab(string title, string buttonText, string description, string expected, string initialMessage, Func<string, Task> test, string noteTitle, string noteText)
@@ -281,7 +281,7 @@ namespace HAgent.Example
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, title == "Configuration" ? 32 : 74));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
 
@@ -472,7 +472,7 @@ namespace HAgent.Example
         {
             var selection = await CreateClientAndAgentAsync();
             var response = await selection.Client.SendAsync(selection.Agent.Id, RequireInput(message));
-            Write("SEND MESSAGE", "Agent: " + selection.Agent.Name + Environment.NewLine + "Provider: " + selection.Provider.Name + Environment.NewLine + "Model: " + selection.Model + Environment.NewLine + "Response: " + response.Text);
+            Write("SEND MESSAGE", "Agent: " + selection.Agent.Name + Environment.NewLine + "Provider: " + selection.Provider.Name + Environment.NewLine + "Model: " + selection.Model + Environment.NewLine + "Request: " + message + Environment.NewLine + "Response: " + response.Text);
         }
 
         private async Task TestSessionAsync(string firstMessage)
@@ -506,14 +506,15 @@ namespace HAgent.Example
             var memoryPath = Path.Combine(_basePath, "memory", "example-memory.jsonl");
             var firstStore = new FileMemoryStore(memoryPath);
             string memoryId;
+            var originalInput = RequireInput(message);
+            var storedContent = ExtractMemorySearchText(originalInput);
             try
             {
-                var content = RequireInput(message);
                 var entry = new MemoryEntry
                 {
                     Scope = MemoryScope.Application,
                     OwnerId = "HAgent.Example",
-                    Content = content.IndexOf("HAgent-memory-42", StringComparison.OrdinalIgnoreCase) >= 0 ? "HAgent-memory-42" : content,
+                    Content = storedContent,
                     Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "source", "HAgent.Example" }, { "test", "persistent-memory" } },
                     CreatedAt = DateTimeOffset.UtcNow
                 };
@@ -528,7 +529,14 @@ namespace HAgent.Example
             var secondStore = new FileMemoryStore(memoryPath);
             try
             {
-                var recalled = await secondStore.SearchAsync(new MemoryQuery { OwnerId = "HAgent.Example", Scope = MemoryScope.Application, Text = "HAgent-memory-42", MaxResults = 10 }, CancellationToken.None);
+                var recalled = await secondStore.SearchAsync(new MemoryQuery
+                {
+                    OwnerId = "HAgent.Example",
+                    Scope = MemoryScope.Application,
+                    Text = storedContent,
+                    MaxResults = 10
+                }, CancellationToken.None);
+
                 var found = recalled.FirstOrDefault(x => string.Equals(x.Id, memoryId, StringComparison.OrdinalIgnoreCase));
                 if (found == null) throw new InvalidOperationException("The second memory-store instance could not recall the persisted entry.");
                 await secondStore.RemoveAsync(found.Id, CancellationToken.None);
@@ -540,34 +548,24 @@ namespace HAgent.Example
             }
         }
 
+        private static string ExtractMemorySearchText(string input)
+        {
+            var value = input ?? string.Empty;
+            var marker = "test value";
+            var index = value.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (index >= 0)
+            {
+                var colon = value.IndexOf(':', index);
+                if (colon >= 0 && colon + 1 < value.Length)
+                    return value.Substring(colon + 1).Trim().TrimEnd('.', '!', '?');
+            }
+            return value.Trim();
+        }
+
         private static string RequireInput(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) throw new ArgumentException("The example input cannot be empty.", nameof(input));
             return input;
-        }
-
-        private void OpenConfiguration()
-        {
-            var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
-            var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            AISettings.ShowMainAISettingsForm(store, secrets, this, new[] { new OpenAICompatibleProviderAdapter() });
-            _ = RefreshAgentsAsync();
-        }
-
-        private async Task RunExampleAsync(Func<Task> action)
-        {
-            SetBusy("Running example...");
-            try
-            {
-                await action();
-                SetReady();
-            }
-            catch (Exception ex)
-            {
-                Write("EXCEPTION", ex.ToString());
-                SetReady();
-                HMessage.ShowException(this, "The example failed.", "HAgent Example", ex);
-            }
         }
 
         private HButton CreateButton(string text, int width)

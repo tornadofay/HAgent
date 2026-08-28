@@ -17,7 +17,7 @@
 - [x] Agent/provider deletion rules in UI and storage.
 - [x] `HAgent.Example` manual integration host replacing the older sample host.
 - [x] Tabbed Example test bench with global output and global agent selection.
-- [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, runtime execution, and persistent memory.
+- [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, runtime execution, persistent memory, and persistent sessions.
 - [x] `HAgent.Example` entry point and `MainForm` split into separate source files.
 
 ### 0.2 Runtime foundation — completed
@@ -68,7 +68,13 @@
 - [x] Memory creation timestamps/provenance baseline.
 - [x] Bounded recall result count.
 - [x] Manual persistent-memory example in `HAgent.Example`.
-- [ ] Persistent conversation memory integration.
+- [x] `IConversationStore` abstraction for persisted conversations.
+- [x] Persistent file-backed conversation store.
+- [x] Persistent `AgentSession` support with stable session IDs.
+- [x] `OpenSessionAsync` for reopening a persisted conversation.
+- [x] Persist successful turns after each exchange.
+- [x] Transactional in-memory session rollback when provider or persistence fails.
+- [x] Manual persistent-session example in `HAgent.Example`.
 - [ ] Automatic session-memory policy.
 - [ ] Working memory/context-window budgeting.
 - [ ] Short-term task/event memory.

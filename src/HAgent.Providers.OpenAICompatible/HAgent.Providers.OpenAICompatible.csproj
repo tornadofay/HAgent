@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net481;net9.0</TargetFrameworks>
+    <AssemblyName>HAgent.Providers.OpenAICompatible</AssemblyName>
+    <RootNamespace>HAgent.Providers.OpenAICompatible</RootNamespace>
+    <PackageId>HAgent.Providers.OpenAICompatible</PackageId>
+    <Version>0.1.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HAgent.Core\HAgent.Core.csproj" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+</Project>

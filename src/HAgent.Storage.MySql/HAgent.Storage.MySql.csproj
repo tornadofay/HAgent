@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net481;net9.0</TargetFrameworks>
+    <AssemblyName>HAgent.Storage.MySql</AssemblyName>
+    <RootNamespace>HAgent.Storage.MySql</RootNamespace>
+    <PackageId>HAgent.Storage.MySql</PackageId>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HAgent.Core\HAgent.Core.csproj" />
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
+  </ItemGroup>
+</Project>

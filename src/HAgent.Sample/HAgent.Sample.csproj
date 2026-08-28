@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <TargetFrameworks>net481;net9.0-windows</TargetFrameworks>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HAgent.Core\HAgent.Core.csproj" />
+    <ProjectReference Include="..\HAgent.Providers.OpenAICompatible\HAgent.Providers.OpenAICompatible.csproj" />
+    <ProjectReference Include="..\HAgent.Storage.File\HAgent.Storage.File.csproj" />
+    <ProjectReference Include="..\HAgent.WinForms\HAgent.WinForms.csproj" />
+  </ItemGroup>
+</Project>

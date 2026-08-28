@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net481;net9.0</TargetFrameworks>
+    <AssemblyName>HAgent.Core</AssemblyName>
+    <RootNamespace>HAgent</RootNamespace>
+    <PackageId>HAgent.Core</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Lightweight provider and agent runtime for .NET.</Description>
+  </PropertyGroup>
+</Project>

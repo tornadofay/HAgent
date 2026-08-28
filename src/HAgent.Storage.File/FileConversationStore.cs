@@ -26,7 +26,7 @@ namespace HAgent.Storage.File
                 throw new ArgumentException("Conversation directory is required.", nameof(directory));
 
             _directory = directory;
-            Directory.CreateDirectory(_directory);
+            System.IO.Directory.CreateDirectory(_directory);
         }
 
         public string DirectoryPath { get { return _directory; } }
@@ -55,12 +55,14 @@ namespace HAgent.Storage.File
                     await writer.WriteAsync(json).ConfigureAwait(false);
                 }
 
-                if (File.Exists(path)) File.Delete(path);
-                File.Move(tempPath, path);
+                if (System.IO.File.Exists(path))
+                    System.IO.File.Delete(path);
+                System.IO.File.Move(tempPath, path);
             }
             finally
             {
-                if (File.Exists(tempPath)) File.Delete(tempPath);
+                if (System.IO.File.Exists(tempPath))
+                    System.IO.File.Delete(tempPath);
                 _gate.Release();
             }
         }
@@ -69,7 +71,7 @@ namespace HAgent.Storage.File
         {
             if (string.IsNullOrWhiteSpace(sessionId)) throw new ArgumentException("Session ID is required.", nameof(sessionId));
             var path = GetPath(sessionId);
-            if (!File.Exists(path)) return null;
+            if (!System.IO.File.Exists(path)) return null;
 
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -107,7 +109,8 @@ namespace HAgent.Storage.File
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                if (File.Exists(path)) File.Delete(path);
+                if (System.IO.File.Exists(path))
+                    System.IO.File.Delete(path);
             }
             finally
             {
@@ -121,7 +124,7 @@ namespace HAgent.Storage.File
                 char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.').ToArray());
             if (string.IsNullOrWhiteSpace(safe))
                 throw new ArgumentException("Session ID contains no valid filename characters.", nameof(sessionId));
-            return Path.Combine(_directory, safe + ".json");
+            return System.IO.Path.Combine(_directory, safe + ".json");
         }
 
         public void Dispose()

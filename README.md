@@ -46,7 +46,9 @@ Conversation
 
 Memory
   ├─ explicit remember / recall / forget
-  ├─ optional automatic-memory policy
+  ├─ automatic-memory policy
+  ├─ task / event memory
+  ├─ compact episodic experiences
   ├─ task / agent / user / application scopes
   ├─ provenance
   └─ replaceable storage/retrieval providers
@@ -148,7 +150,7 @@ var execution = await ai.ExecuteAsync(
 
 HAgent 0.2 established the runtime foundation: execution state, snapshots, provider routing, cancellation/timeouts, retries/backoff, lifecycle events, diagnostics, and lightweight memory abstractions.
 
-The active 0.3 line adds persistent conversations, persistent low-resource memory, explicit/automatic memory policy, and bounded context selection. Stored history remains separate from model context, so an application can preserve a complete transcript while sending only a safe bounded subset to the model.
+The active 0.3 line adds persistent conversations, persistent low-resource memory, explicit/automatic memory policy, task/event records, compact episodic experiences, relevance ranking, and bounded context selection. Stored history remains separate from model context, so an application can preserve a complete transcript while sending only a safe bounded subset to the model.
 
 The next milestones add explicit model/provider capabilities, normalized responses, the provider-neutral tool loop, guardrails and permissions, observability, and the WinForms-specific UI Context/control-adapter system.
 
@@ -249,6 +251,8 @@ HAgent does not claim that a model itself permanently remembers anything.
 
 Memory is explicit state stored by HAgent, retrieved according to policy, and supplied to the model when appropriate.
 
+The current memory layers distinguish ordinary facts/preferences from task/event records and compact episodic experiences. Episodes summarize meaningful completed work without requiring the full conversation or event stream to be sent to the model again.
+
 The default memory design is intentionally usable on machines with no GPU and only a few gigabytes of RAM. Vector memory is optional, not a prerequisite.
 
 ### 8. Stored history versus context
@@ -318,7 +322,7 @@ structured result
 
 The adapter layer should understand common controls and data sources without applications having to repeatedly write conversion code.
 
-For example, a `DataGridView` should prefer:
+For example, a `DataGridView` should prefer its bound data source when one exists, and use the lightest representation that is appropriate for the requested operation:
 
 ```text
 DataGridView
@@ -331,7 +335,9 @@ DataSource
    └─ supported custom source
 ```
 
-and normalize it into a safe tabular representation such as a `DataTable` when appropriate. Only when a supported bound data source is unavailable should the adapter fall back to reading visible grid state.
+Known sources should be adapted lazily. `DataTable` is a compatibility representation, not an architectural requirement. For large datasets, paging, streaming, projection, or a native/source representation should be preferred whenever it is more efficient and avoids unnecessary copies.
+
+Only when a supported bound data source is unavailable should the adapter fall back to reading visible grid state.
 
 Planned built-in adapters include:
 
@@ -453,7 +459,7 @@ Current targets:
 - `HAgent.Tests` verifies behavior automatically.
 - `HAgent.Example` lets a developer run completed features manually and inspect actual behavior.
 
-Current examples include configuration, provider-backed messaging, session history, persistent sessions, explicit memory, automatic memory, context budgeting, and runtime execution.
+Current examples include configuration, provider-backed messaging, session history, persistent sessions, explicit memory, automatic memory, context budgeting, task/event memory, episodic memory, and runtime execution.
 
 The Example form uses focused partial files rather than one monolithic test form. New large feature areas should get their own focused Example source file/component.
 

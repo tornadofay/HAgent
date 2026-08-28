@@ -122,14 +122,46 @@ namespace HAgent.Providers.OpenAICompatible
             if (!string.IsNullOrWhiteSpace(systemPrompt))
                 result.Add(new { role = "system", content = systemPrompt });
 
-            if (messages != null)
+            if (messages == null) return result;
+
+            foreach (var message in messages)
             {
-                foreach (var message in messages)
+                if (message == null) continue;
+
+                if (string.Equals(message.Role, "assistant", StringComparison.OrdinalIgnoreCase) && message.ToolCalls != null && message.ToolCalls.Count > 0)
                 {
-                    if (message == null) continue;
-                    result.Add(new { role = message.Role, content = message.Content });
+                    result.Add(new
+                    {
+                        role = "assistant",
+                        content = string.IsNullOrEmpty(message.Content) ? null : message.Content,
+                        tool_calls = message.ToolCalls.Select(x => new
+                        {
+                            id = x.Id,
+                            type = "function",
+                            function = new
+                            {
+                                name = x.Name,
+                                arguments = x.ArgumentsJson ?? string.Empty
+                            }
+                        }).ToList()
+                    });
+                    continue;
                 }
+
+                if (string.Equals(message.Role, "tool", StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Add(new
+                    {
+                        role = "tool",
+                        tool_call_id = message.ToolCallId ?? string.Empty,
+                        content = message.Content ?? string.Empty
+                    });
+                    continue;
+                }
+
+                result.Add(new { role = message.Role, content = message.Content });
             }
+
             return result;
         }
     }

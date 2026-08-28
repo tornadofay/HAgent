@@ -66,11 +66,13 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [x] Conservative explicit-trigger automatic memory policy.
 - [x] Automatic-memory session/policy provenance.
 - [x] Lightweight phrase/term/metadata/recency ranking.
-- [x] Manual Example coverage for memory, persistence, automatic memory, context budgeting, and task/event memory.
+- [x] Compact `EpisodicMemory` model.
+- [x] `RememberEpisodeAsync` and `RecallEpisodesAsync` APIs.
+- [x] Episodic outcome, task, session, and occurrence provenance.
+- [x] Manual Example coverage for memory, persistence, automatic memory, context budgeting, task/event memory, and episodic memory.
 
 ### Remaining
 - [ ] Richer automatic-memory inference without silently saving ordinary conversation.
-- [ ] Episodic memory representation.
 - [ ] Memory update/upsert semantics.
 - [ ] Retention/expiration policies.
 - [ ] Improved lightweight indexing for larger stores.

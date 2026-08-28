@@ -86,6 +86,7 @@ This file is the implementation ledger. Keep it synchronized with the repository
 - [x] `HAgentClient.SendWithToolsAsync(...)` provider-neutral entry point.
 - [x] Tool-call capability check does not reject `Unknown`; explicit `Unsupported` is rejected.
 - [x] Example Tool Registry coverage includes valid and invalid argument cases.
+- [x] Example Provider Tool Transport coverage with a local HTTP capture handler.
 
 ### Next implementation
 - [ ] Provider tool-call message transport for assistant tool-call and tool-result turns.
@@ -229,7 +230,7 @@ This file is the implementation ledger. Keep it synchronized with the repository
 6. Tools expose explicit capabilities; they never imply arbitrary host access.
 7. Sensitive actions may require human approval.
 8. Autonomous work is cancellable, observable, and budgeted.
-9. Provider responses are normalized without destroying provider-specific metadata.
+9. Provider responses are normalized without destroying useful provider metadata.
 10. Reasoning is optional separate response data when explicitly exposed; `<think>` markup alone is not treated as native reasoning.
 11. UI Context describes state; tools define permitted actions.
 12. “Form serialization” is a UI Context capability, not the name of the entire WinForms subsystem.

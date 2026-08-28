@@ -5,6 +5,25 @@ namespace HAgent.Runtime
 {
     internal static class ProviderErrorAdvisor
     {
+        public static ProviderErrorKind InferKind(Exception exception)
+        {
+            if (exception == null) return ProviderErrorKind.Unknown;
+
+            var message = exception.Message ?? string.Empty;
+            if (Contains(message, "model_terms_required") || Contains(message, "requires terms acceptance"))
+                return ProviderErrorKind.ModelTermsRequired;
+            if (Contains(message, "permission_denied") || Contains(message, "permission denied") || Contains(message, "access denied"))
+                return ProviderErrorKind.PermissionDenied;
+            if (Contains(message, "model_not_found") || Contains(message, "model not found") || Contains(message, "unknown model"))
+                return ProviderErrorKind.ModelNotFound;
+            if (Contains(message, "429") || Contains(message, "rate limit") || Contains(message, "too many requests"))
+                return ProviderErrorKind.RateLimited;
+            if (Contains(message, "401") || Contains(message, "unauthorized") || Contains(message, "authentication") || Contains(message, "api key"))
+                return ProviderErrorKind.Authentication;
+
+            return ProviderErrorKind.Unknown;
+        }
+
         public static string GetActionableMessage(ProviderErrorKind kind, string providerName, string model, string originalMessage)
         {
             var provider = string.IsNullOrWhiteSpace(providerName) ? "The provider" : providerName;
@@ -25,6 +44,11 @@ namespace HAgent.Runtime
                 default:
                     return originalMessage ?? string.Empty;
             }
+        }
+
+        private static bool Contains(string source, string value)
+        {
+            return source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 
@@ -67,6 +69,29 @@ namespace HAgent.Example
                 "Result: " + result.Output + Environment.NewLine +
                 "Definition count: " + definitions.Count + Environment.NewLine +
                 "Cleanup: tool unregistered successfully.");
+        }
+
+        private static HAgentClient CreateToolTestClient()
+        {
+            return new HAgentClient(new InMemoryAiStore(), new EmptySecretStore(), new IAgentToolProviderAdapter[0]);
+        }
+
+        private sealed class EmptySecretStore : ISecretStore
+        {
+            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.CompletedTask;
+            }
+
+            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.FromResult(string.Empty);
+            }
+
+            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.CompletedTask;
+            }
         }
     }
 }

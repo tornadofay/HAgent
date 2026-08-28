@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -463,7 +464,40 @@ namespace HAgent.WinForms.Forms
             ClearContent();
             Panel unused;
             var page = CreatePage("About HAgent", "Lightweight provider and agent management for desktop .NET applications.", null, null, out unused);
-            page.Controls.Add(new Label { Dock = DockStyle.Top, Height = 200, Text = "HAgent keeps the application API intentionally small. Providers define connections and shared defaults. Agents define behavior and may use multiple providers. Tools describe capabilities that the host application explicitly exposes for execution.\r\n\r\nThe runtime direction includes durable conversation memory, long-term memory, tool execution, agent-to-agent collaboration, routing, and execution policies.", ForeColor = Muted, Font = new Font("Segoe UI", 9.5f), Padding = new Padding(2, 8, 0, 0) });
+            var description = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 150,
+                Text = "HAgent keeps the application API intentionally small. Providers define connections and shared defaults. Agents define behavior and may use multiple providers. Tools describe capabilities that the host application explicitly exposes for execution.\r\n\r\nThe runtime direction includes durable conversation memory, long-term memory, tool execution, agent-to-agent collaboration, routing, and execution policies.",
+                ForeColor = Muted,
+                Font = new Font("Segoe UI", 9.5f),
+                Padding = new Padding(2, 8, 0, 0)
+            };
+            page.Controls.Add(description);
+
+            var github = new LinkLabel
+            {
+                Text = "GitHub: github.com/tornadofay/HAgent",
+                AutoSize = true,
+                Dock = DockStyle.Top,
+                LinkColor = Accent,
+                ActiveLinkColor = Accent,
+                VisitedLinkColor = Accent,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                Padding = new Padding(2, 6, 0, 0)
+            };
+            github.LinkClicked += delegate
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo("https://github.com/tornadofay/HAgent") { UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    HMessage.ShowException(this, "The GitHub repository could not be opened.", "GitHub", ex);
+                }
+            };
+            page.Controls.Add(github);
             _content.Controls.Add(page);
         }
     }

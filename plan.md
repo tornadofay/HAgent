@@ -87,13 +87,15 @@ This file is the implementation ledger. Keep it synchronized with the repository
 - [x] Tool-call capability check does not reject `Unknown`; explicit `Unsupported` is rejected.
 - [x] Example Tool Registry coverage includes valid and invalid argument cases.
 - [x] Example Provider Tool Transport coverage with a local HTTP capture handler.
+- [x] Provider tool-call message transport for assistant tool calls and tool results.
+- [x] Bounded provider-neutral tool-call execution loop.
+- [x] JSON tool-argument parsing before schema validation/execution.
+- [x] Explicit maximum-turn and maximum-tool-call guards.
+- [x] Tool errors are returned to the model as tool observations rather than silently hidden.
+- [x] Example Tool Loop coverage with two deterministic model turns.
 
 ### Next implementation
-- [ ] Provider tool-call message transport for assistant tool-call and tool-result turns.
-- [ ] Provider-neutral tool-call execution loop.
-- [ ] Tool result/observation messages.
-- [ ] Multiple model/tool turns.
-- [ ] Per-agent tool selection from persisted `ToolIds`.
+- [ ] Per-agent tool selection UX using persisted `ToolIds`.
 - [ ] Per-session temporary tools.
 - [ ] Built-in tool handlers.
 - [ ] Application tool registration guidance/API conventions.
@@ -104,12 +106,11 @@ This file is the implementation ledger. Keep it synchronized with the repository
 - [ ] Tool aliases/versioning.
 - [ ] Tool timeout/cancellation/progress.
 - [ ] Tool audit/history.
-- [ ] Tool-call and turn limits.
-- [ ] Loop detection.
+- [ ] Advanced tool-call/turn limits and loop detection policies.
 - [ ] Tool budgets.
-- [ ] Tool/provider capability negotiation.
+- [ ] Tool/provider capability negotiation for more than basic tool calling.
 - [ ] Complete tool configuration UI behavior.
-- [ ] Manual multi-step tool-loop Example.
+- [ ] Live provider tool-loop Example.
 
 ### Initial tool types
 - BuiltIn — supplied by HAgent.
@@ -162,7 +163,7 @@ This file is the implementation ledger. Keep it synchronized with the repository
 
 ## 0.9 Agent Orchestration + Collaboration
 - [ ] Agents-as-tools.
-- [ ] Handoffs/delegation and specialist agents.
+- [ ] Handoffs/delegation.
 - [ ] Agent-to-agent messaging board/channels/direct/broadcast.
 - [ ] Shared workspace context.
 - [ ] Routing and collaboration budgets.

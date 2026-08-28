@@ -118,11 +118,7 @@ namespace HAgent.Runtime
             if (provider == null) throw new InvalidOperationException("Provider was not found: " + providerId);
             if (!provider.Enabled) throw new InvalidOperationException("Provider is disabled: " + provider.Name);
 
-            var adapter = _adapters.OfType<IProviderModelCapabilities>().FirstOrDefault(x =>
-            {
-                var providerAdapter = x as IAiProviderAdapter;
-                return providerAdapter != null && providerAdapter.CanHandle(provider);
-            });
+            var adapter = _adapters.FirstOrDefault(x => x is IProviderModelCapabilities && x.CanHandle(provider));
 
             var selectedModel = string.IsNullOrWhiteSpace(model) ? provider.DefaultModel : model;
             if (adapter == null) return new AiModelCapabilities { Model = selectedModel ?? string.Empty };

@@ -81,7 +81,7 @@ HAgent is intended to become a small, provider-neutral agent platform for .NET d
 - Optional vector-memory adapter.
 - Remote embedding-provider integration without local GPU requirements.
 
-## 0.4 — Provider Capabilities and Response Normalization — Active
+## 0.4 — Provider Capabilities and Response Normalization — Active foundation complete
 
 This milestone prevents HAgent from treating every discovered model as interchangeable.
 
@@ -100,20 +100,25 @@ This milestone prevents HAgent from treating every discovered model as interchan
 - Explicit provider `reasoning_content` normalization.
 - Detection metadata for `<think>` markup without claiming native reasoning.
 - Provider-specific error classification and actionable diagnostics for model/account/provider failures.
+- Normalized structured JSON response field.
+- Normalized provider-neutral tool-call representation.
+- Normalized token usage including prompt/completion/total/cached/reasoning fields when supplied.
+- Provider-neutral streaming delta contract.
+- OpenAI-compatible Server-Sent Events streaming implementation.
+- `HAgentClient.StreamAsync(...)` public streaming API.
+- Streaming cancellation boundaries.
 - Manual capability inspection and UI capability evidence display.
+- Manual response-normalization contract coverage.
+- Manual streaming contract coverage.
+- `HAgent.Example` live streaming verification with incremental global output and cancellation.
 
-### Remaining
+### Remaining 0.4 work
 
 - Provider capability confidence override/configuration UI where applications need explicit declarations.
 - Rich provider capability discovery where providers expose structured capability metadata.
 - Model suitability requirements beyond mandatory Chat support, including tool calling, vision, structured output, audio, embeddings, and reasoning.
 - Capability-aware routing for those advanced requirements.
-- Provider-neutral structured-output representation.
-- Provider-neutral tool-call representation.
-- Usage/token/cost normalization beyond the current usage dictionary.
-- Streaming response abstraction.
 - Application policy for displaying/storing/logging/discarding reasoning.
-- Manual response-normalization test with an explicit provider reasoning field.
 
 ## 0.5 — Tools and Agent Loop
 

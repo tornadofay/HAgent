@@ -79,12 +79,17 @@ This file is the implementation ledger. Keep it synchronized with the repository
 - [x] `DelegateAgentTool` for code-defined custom tools.
 - [x] `HAgentClient` tool registration, lookup, definition inspection, and direct execution.
 - [x] Tool type selection in the Tool editor.
-- [x] Deterministic Example tool-registry test.
+- [x] Dependency-free JSON Schema validation for tool arguments.
+- [x] Tool arguments are validated before handlers execute.
+- [x] Invalid tool schemas are rejected at registration.
+- [x] OpenAI-compatible provider tool-definition transport.
+- [x] `HAgentClient.SendWithToolsAsync(...)` provider-neutral entry point.
+- [x] Tool-call capability check does not reject `Unknown`; explicit `Unsupported` is rejected.
+- [x] Example Tool Registry coverage includes valid and invalid argument cases.
 
 ### Next implementation
-- [ ] JSON Schema validation and safe argument binding.
-- [ ] Provider tool-definition transport.
-- [ ] Provider-neutral tool-call loop.
+- [ ] Provider tool-call message transport for assistant tool-call and tool-result turns.
+- [ ] Provider-neutral tool-call execution loop.
 - [ ] Tool result/observation messages.
 - [ ] Multiple model/tool turns.
 - [ ] Per-agent tool selection from persisted `ToolIds`.
@@ -224,7 +229,7 @@ This file is the implementation ledger. Keep it synchronized with the repository
 6. Tools expose explicit capabilities; they never imply arbitrary host access.
 7. Sensitive actions may require human approval.
 8. Autonomous work is cancellable, observable, and budgeted.
-9. Provider responses are normalized without destroying useful provider metadata.
+9. Provider responses are normalized without destroying provider-specific metadata.
 10. Reasoning is optional separate response data when explicitly exposed; `<think>` markup alone is not treated as native reasoning.
 11. UI Context describes state; tools define permitted actions.
 12. “Form serialization” is a UI Context capability, not the name of the entire WinForms subsystem.
@@ -233,4 +238,6 @@ This file is the implementation ledger. Keep it synchronized with the repository
 15. No local GPU, vector database, or heavy resident embedding model is required for the base memory design.
 16. Tool configuration defines the contract and handler binding; it must never turn arbitrary configuration text into arbitrary code execution.
 17. Initial tool categories are BuiltIn, Application, Declarative, UI, SqlServer, and MySql. Extension tools are deferred.
-18. `HAgent.Example` is part of the development workflow and must cover meaningful completed public capabilities.
+18. Tool schemas are validated before execution and tool handlers never receive unvalidated model arguments.
+19. Provider tool transport is an optional adapter capability; unsupported providers are not silently given tool calls.
+20. `HAgent.Example` is part of the development workflow and must cover meaningful completed public capabilities.

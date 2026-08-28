@@ -15,6 +15,8 @@
 - [x] Provider connection test capability.
 - [x] Provider model catalog capability.
 - [x] Agent/provider deletion rules in UI and storage.
+- [x] `HAgent.Example` manual integration host replacing the older sample host.
+- [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, and runtime execution.
 
 ### 0.2 Runtime foundation — completed
 - [x] Agent runtime abstraction and default execution pipeline.
@@ -58,6 +60,7 @@
 - [ ] Memory provenance and timestamps.
 - [ ] Retention/expiration policies.
 - [ ] Bounded memory loading.
+- [ ] Add corresponding manual memory examples to `HAgent.Example` as each capability becomes complete.
 
 ## 0.4 — Tools
 - [ ] Tool definitions with JSON Schema.
@@ -73,6 +76,7 @@
 - [ ] Tool audit history.
 - [ ] Tool-call budgets and loop protection.
 - [ ] UI tool execution support.
+- [ ] Add manual tool-call examples to `HAgent.Example`.
 
 ## 0.5 — UI and application automation
 - [ ] Host-registered `ui.*` tools.
@@ -85,6 +89,7 @@
 - [ ] Dry-run/preview mode.
 - [ ] Undo/rollback hooks where host supports them.
 - [ ] Per-control permissions.
+- [ ] Example scenarios in `HAgent.Example` for moving controls and setting control values.
 
 ## 0.6 — Chat and interaction
 - [ ] User ↔ agent chat window.
@@ -98,6 +103,7 @@
 - [ ] Cancel/stop response.
 - [ ] Multiple simultaneous conversations.
 - [ ] Safe handling of deleted agents referenced by open chat/tasks.
+- [ ] Add chat examples to `HAgent.Example`.
 
 ## 0.7 — Agent collaboration
 - [ ] Agent-to-agent messaging board.
@@ -112,6 +118,7 @@
 - [ ] Collaboration transcript.
 - [ ] Shared/private memory rules.
 - [ ] Parallel agent execution.
+- [ ] Add collaboration examples to `HAgent.Example`.
 
 ## 0.8 — Workflows and autonomy
 - [ ] Explicit tasks/jobs.
@@ -124,6 +131,7 @@
 - [ ] Conditional/parallel branches.
 - [ ] Event-triggered agents.
 - [ ] Execution budgets.
+- [ ] Add workflow examples to `HAgent.Example`.
 
 ## 0.9 — Provider ecosystem
 - [ ] Azure OpenAI adapter.
@@ -157,6 +165,7 @@
 - [ ] Agent simulation/test mode.
 - [ ] Diagnostics/trace viewer.
 - [ ] UI automation/database/document workflow examples.
+- [ ] Expand `HAgent.Example` into the executable manual verification suite for every completed capability.
 
 ## 1.0 — Stable HAgent platform
 - [ ] Stable public contracts.
@@ -178,4 +187,6 @@ AI models must never receive arbitrary access to WinForms controls, processes, f
 
 Configuration deletion must not silently destroy active runtime work. Execution snapshots isolate running work from later configuration changes.
 
-Project-state documentation is part of the repository contract. Meaningful architecture or milestone changes must update `README.md`, `roadmap.md`, `plan.md`, and `AGENTS.md` as appropriate.
+`HAgent.Example` is the manual integration and feature-verification application. `HAgent.Tests` remains the automated testing project; the two have different purposes.
+
+Project-state documentation is part of the repository contract. Meaningful architecture or milestone changes must keep `README.md`, `roadmap.md`, `plan.md`, and `AGENTS.md` synchronized with the actual implementation.

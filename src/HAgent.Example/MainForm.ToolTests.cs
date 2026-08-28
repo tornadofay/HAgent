@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
+using HAgent.Providers.OpenAICompatible;
 using HAgent.Runtime;
 
 namespace HAgent.Example
@@ -101,9 +104,84 @@ namespace HAgent.Example
                 "Cleanup: tool unregistered successfully.");
         }
 
+        private async Task TestProviderToolTransportAsync(string input)
+        {
+            var handler = new RecordingToolRequestHandler();
+            using (var httpClient = new HttpClient(handler))
+            {
+                var adapter = new OpenAICompatibleProviderAdapter(httpClient);
+                var provider = new AiProvider
+                {
+                    Id = "provider-example",
+                    Name = "Example Provider",
+                    Kind = OpenAICompatibleProviderAdapter.ProviderKind,
+                    BaseUrl = "https://example.invalid/v1",
+                    DefaultModel = "example-model",
+                    Enabled = true
+                };
+                var agent = new AiAgent
+                {
+                    Id = "example-agent",
+                    Name = "Example Agent",
+                    ProviderId = provider.Id,
+                    Model = provider.DefaultModel,
+                    Enabled = true
+                };
+                var tool = new AiTool
+                {
+                    Id = "example.echo",
+                    Name = "example_echo",
+                    Description = "Returns a supplied value.",
+                    InputSchemaJson = "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"]}",
+                    Type = AiToolType.Application,
+                    Enabled = true
+                };
+
+                var response = await adapter.SendWithToolsAsync(
+                    provider,
+                    agent,
+                    string.Empty,
+                    string.Empty,
+                    new List<AIMessage> { new AIMessage("user", string.IsNullOrWhiteSpace(input) ? "Call the tool." : input) },
+                    new List<AiTool> { tool },
+                    CancellationToken.None);
+
+                var request = handler.RequestBody ?? string.Empty;
+                if (request.IndexOf("\"tools\"", StringComparison.OrdinalIgnoreCase) < 0 ||
+                    request.IndexOf("example_echo", StringComparison.OrdinalIgnoreCase) < 0 ||
+                    request.IndexOf("\"parameters\"", StringComparison.OrdinalIgnoreCase) < 0)
+                    throw new InvalidOperationException("Provider request did not contain the expected tool definition and JSON schema.");
+                if (response.ToolCalls == null || response.ToolCalls.Count != 1 || response.ToolCalls[0].Name != "example_echo")
+                    throw new InvalidOperationException("Provider response tool call was not normalized correctly.");
+
+                Write("PROVIDER TOOL TRANSPORT",
+                    "Contract test succeeded." + Environment.NewLine +
+                    "Tool definition sent: " + tool.Name + Environment.NewLine +
+                    "Schema sent: yes" + Environment.NewLine +
+                    "Response tool call: " + response.ToolCalls[0].Name + Environment.NewLine +
+                    "Tool call ID: " + response.ToolCalls[0].Id + Environment.NewLine +
+                    "No external provider was contacted; HTTP was captured by the local test handler.");
+            }
+        }
+
         private static HAgentClient CreateToolTestClient()
         {
             return new HAgentClient(new InMemoryAiStore(), new EmptySecretStore(), new IAiProviderAdapter[0]);
+        }
+
+        private sealed class RecordingToolRequestHandler : HttpMessageHandler
+        {
+            public string RequestBody { get; private set; }
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                RequestBody = await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var body = "{\"id\":\"tool-request-42\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-tool-42\",\"type\":\"function\",\"function\":{\"name\":\"example_echo\",\"arguments\":\"{\\\"value\\\":\\\"HAgent-tool-42\\\"}\"}}]}}]}";
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
+                };
+            }
         }
 
         private sealed class EmptySecretStore : ISecretStore

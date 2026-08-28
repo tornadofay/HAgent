@@ -4,7 +4,7 @@
     <AssemblyName>HAgent.Core</AssemblyName>
     <RootNamespace>HAgent</RootNamespace>
     <PackageId>HAgent.Core</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.8</Version>
     <Description>Lightweight provider and agent runtime for .NET.</Description>
   </PropertyGroup>
 </Project>

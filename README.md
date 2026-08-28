@@ -4,7 +4,7 @@
 
 HAgent gives a WinForms application one small API for managing AI providers, defining agents, storing configuration securely, and sending messages without hard-coding a specific AI vendor into the application.
 
-> Status: **0.1.0 — foundation / early test release**
+> Status: **0.1.x — foundation / early test release**
 
 ## Why HAgent exists
 
@@ -204,9 +204,13 @@ No vector database, RAG pipeline, tool calling framework, autonomous loop, workf
 
 Those features can be layered on later. The point of HAgent is to make the first 80% of application integration boring and stable.
 
+## Project plan
+
+See [plan.md](plan.md) for the active implementation checklist and current milestone.
+
 ## Roadmap
 
-See [roadmap.md](roadmap.md).
+See [roadmap.md](roadmap.md) for the longer-term feature roadmap.
 
 ## Contributing
 

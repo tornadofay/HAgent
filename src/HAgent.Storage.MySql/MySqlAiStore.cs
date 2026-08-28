@@ -49,7 +49,18 @@ CREATE TABLE IF NOT EXISTS HAgentAgents (
 
         public Task SaveProviderAsync(AiProvider p, CancellationToken t = default(CancellationToken)) => UpsertProvider(p, t);
         public Task SaveAgentAsync(AiAgent a, CancellationToken t = default(CancellationToken)) => UpsertAgent(a, t);
-        public async Task DeleteProviderAsync(string id, CancellationToken t = default(CancellationToken)) { await ExecuteAsync("DELETE FROM HAgentProviders WHERE Id=@id", id, t).ConfigureAwait(false); }
+        public async Task DeleteProviderAsync(string id, CancellationToken t = default(CancellationToken))
+        {
+            using (var c = new MySqlConnection(_connectionString))
+            using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM HAgentAgents WHERE ProviderId=@id", c))
+            {
+                cmd.Parameters.AddWithValue("@id", id);
+                await c.OpenAsync(t).ConfigureAwait(false);
+                var count = Convert.ToInt32(await cmd.ExecuteScalarAsync(t).ConfigureAwait(false));
+                if (count > 0) throw new InvalidOperationException("Provider cannot be deleted while an agent references it.");
+            }
+            await ExecuteAsync("DELETE FROM HAgentProviders WHERE Id=@id", id, t).ConfigureAwait(false);
+        }
         public async Task DeleteAgentAsync(string id, CancellationToken t = default(CancellationToken)) { await ExecuteAsync("DELETE FROM HAgentAgents WHERE Id=@id", id, t).ConfigureAwait(false); }
 
         private async Task UpsertProvider(AiProvider p, CancellationToken t) { const string sql="INSERT INTO HAgentProviders(Id,Name,Kind,BaseUrl,DefaultModel,DefaultSystemPrompt,SecretId,Enabled) VALUES(@Id,@Name,@Kind,@BaseUrl,@DefaultModel,@DefaultSystemPrompt,@SecretId,@Enabled) ON DUPLICATE KEY UPDATE Name=VALUES(Name),Kind=VALUES(Kind),BaseUrl=VALUES(BaseUrl),DefaultModel=VALUES(DefaultModel),DefaultSystemPrompt=VALUES(DefaultSystemPrompt),SecretId=VALUES(SecretId),Enabled=VALUES(Enabled);"; using(var c=new MySqlConnection(_connectionString)) using(var cmd=new MySqlCommand(sql,c)){ BindProvider(cmd,p); await c.OpenAsync(t).ConfigureAwait(false); await cmd.ExecuteNonQueryAsync(t).ConfigureAwait(false); } }

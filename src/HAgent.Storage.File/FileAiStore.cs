@@ -68,8 +68,10 @@ namespace HAgent.Storage.File
         {
             lock (_sync)
             {
-                _data.Agents.RemoveAll(x => x.ProviderId == providerId);
-                _data.Providers.RemoveAll(x => x.Id == providerId);
+                if (_data.Agents.Any(x => string.Equals(x.ProviderId, providerId, StringComparison.OrdinalIgnoreCase) ||
+                                          (x.ProviderIds != null && x.ProviderIds.Any(id => string.Equals(id, providerId, StringComparison.OrdinalIgnoreCase)))))
+                    throw new InvalidOperationException("Provider cannot be deleted while an agent references it.");
+                _data.Providers.RemoveAll(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
                 Persist();
             }
             return Task.CompletedTask;

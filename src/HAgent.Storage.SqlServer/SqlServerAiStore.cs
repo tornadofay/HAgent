@@ -102,8 +102,11 @@ END;";
 
         public async Task DeleteProviderAsync(string providerId, CancellationToken cancellationToken = default(CancellationToken))
         {
+            const string sql = @"IF EXISTS (SELECT 1 FROM dbo.HAgentAgents WHERE ProviderId=@id)
+    THROW 51001, 'Provider cannot be deleted while an agent references it.', 1;
+DELETE FROM dbo.HAgentProviders WHERE Id=@id;";
             using (var connection = new SqlConnection(_connectionString))
-            using (var command = new SqlCommand("DELETE FROM dbo.HAgentAgents WHERE ProviderId=@id; DELETE FROM dbo.HAgentProviders WHERE Id=@id;", connection))
+            using (var command = new SqlCommand(sql, connection))
             {
                 command.Parameters.AddWithValue("@id", providerId);
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);

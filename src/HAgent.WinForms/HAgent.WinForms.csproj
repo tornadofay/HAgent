@@ -7,7 +7,7 @@
     <AssemblyName>HAgent.WinForms</AssemblyName>
     <RootNamespace>HAgent.WinForms</RootNamespace>
     <PackageId>HAgent.WinForms</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.8</Version>
   </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <Reference Include="System.Net.Http" />

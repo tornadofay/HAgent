@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -37,7 +38,13 @@ namespace HAgent.Runtime
 
         public Task DeleteProviderAsync(string providerId, CancellationToken cancellationToken = default(CancellationToken))
         {
-            lock (_sync) _providers.Remove(providerId);
+            lock (_sync)
+            {
+                if (_agents.Values.Any(x => string.Equals(x.ProviderId, providerId, StringComparison.OrdinalIgnoreCase) ||
+                                             (x.ProviderIds != null && x.ProviderIds.Any(id => string.Equals(id, providerId, StringComparison.OrdinalIgnoreCase)))))
+                    throw new InvalidOperationException("Provider cannot be deleted while an agent references it.");
+                _providers.Remove(providerId);
+            }
             return Task.CompletedTask;
         }
 
@@ -55,9 +62,11 @@ namespace HAgent.Runtime
 
         private static AiAgent Clone(AiAgent x) => new AiAgent
         {
-            Id = x.Id, Name = x.Name, ProviderId = x.ProviderId, Model = x.Model, SystemPrompt = x.SystemPrompt,
+            Id = x.Id, Name = x.Name, ProviderId = x.ProviderId,
+            ProviderIds = x.ProviderIds == null ? new List<string>() : new List<string>(x.ProviderIds),
+            Model = x.Model, SystemPrompt = x.SystemPrompt,
             UseProviderSystemPrompt = x.UseProviderSystemPrompt, Temperature = x.Temperature,
-            MaxOutputTokens = x.MaxOutputTokens, Enabled = x.Enabled
+            MaxOutputTokens = x.MaxOutputTokens, ToolIds = x.ToolIds == null ? new List<string>() : new List<string>(x.ToolIds), Enabled = x.Enabled
         };
     }
 }

@@ -4,7 +4,7 @@
     <AssemblyName>HAgent.Storage.File</AssemblyName>
     <RootNamespace>HAgent.Storage.File</RootNamespace>
     <PackageId>HAgent.Storage.File</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.8</Version>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HAgent.Core\HAgent.Core.csproj" />

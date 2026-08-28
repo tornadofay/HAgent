@@ -4,7 +4,7 @@
     <AssemblyName>HAgent.Storage.MySql</AssemblyName>
     <RootNamespace>HAgent.Storage.MySql</RootNamespace>
     <PackageId>HAgent.Storage.MySql</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.8</Version>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HAgent.Core\HAgent.Core.csproj" />

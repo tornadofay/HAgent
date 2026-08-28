@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
@@ -31,7 +32,23 @@ namespace HAgent.WinForms
                 new OpenAICompatibleProviderAdapter()
             };
 
-            Application.Run(new Forms.AISettingsForm(store, secrets, adapters));
+            var tools = new InMemoryToolRegistry();
+            tools.Register(new DelegateAgentTool(
+                new AiTool
+                {
+                    Id = "built-in-app-info",
+                    Name = "application_info",
+                    Description = "Returns basic information supplied by the host application.",
+                    Category = "System",
+                    IsBuiltIn = true,
+                    InputSchemaJson = "{\"type\":\"object\",\"properties\":{}}"
+                },
+                delegate(ToolExecutionContext context)
+                {
+                    return Task.FromResult(ToolExecutionResult.Success("HAgent WinForms development host"));
+                }));
+
+            Application.Run(new Forms.AISettingsForm(store, secrets, adapters, tools));
         }
     }
 }

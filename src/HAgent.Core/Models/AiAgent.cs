@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 namespace HAgent.Models
 {
     public sealed class AiAgent
@@ -11,6 +12,7 @@ namespace HAgent.Models
         public bool UseProviderSystemPrompt { get; set; }
         public double? Temperature { get; set; }
         public int? MaxOutputTokens { get; set; }
+        public List<string> ToolIds { get; set; }
         public bool Enabled { get; set; }
 
         public AiAgent()
@@ -24,6 +26,7 @@ namespace HAgent.Models
             UseProviderSystemPrompt = true;
             Temperature = null;
             MaxOutputTokens = null;
+            ToolIds = new List<string>();
             Enabled = true;
         }
     }

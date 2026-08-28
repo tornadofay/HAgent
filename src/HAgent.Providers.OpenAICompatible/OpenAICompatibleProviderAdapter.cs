@@ -15,7 +15,7 @@ namespace HAgent.Providers.OpenAICompatible
     /// Adapter for providers exposing an OpenAI-compatible /chat/completions endpoint.
     /// Uses Newtonsoft.Json so the same source works on .NET Framework 4.8.1 and modern .NET.
     /// </summary>
-    public sealed class OpenAICompatibleProviderAdapter : IAiProviderAdapter
+    public sealed class OpenAICompatibleProviderAdapter : IAiProviderAdapter, IProviderConnectionTester, IProviderModelCatalog
     {
         public const string ProviderKind = "openai-compatible";
 
@@ -33,6 +33,46 @@ namespace HAgent.Providers.OpenAICompatible
         {
             return provider != null &&
                    string.Equals(provider.Kind, ProviderKind, StringComparison.OrdinalIgnoreCase);
+        }
+
+
+        public async Task TestConnectionAsync(AiProvider provider, string apiKey, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var models = await GetModelsAsync(provider, apiKey, cancellationToken).ConfigureAwait(false);
+            if (models == null)
+                throw new InvalidOperationException("The provider returned no model catalog.");
+        }
+
+        public async Task<IReadOnlyList<string>> GetModelsAsync(AiProvider provider, string apiKey, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (provider == null) throw new ArgumentNullException(nameof(provider));
+            var url = NormalizeModelsEndpoint(provider.BaseUrl);
+
+            using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+                using (var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                {
+                    var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
+                        throw new HttpRequestException("AI provider model request returned " + (int)response.StatusCode + ": " + body);
+
+                    var dto = JsonConvert.DeserializeObject<ModelListResponse>(body);
+                    var result = new List<string>();
+                    if (dto != null && dto.Data != null)
+                    {
+                        foreach (var item in dto.Data)
+                        {
+                            if (item != null && !string.IsNullOrWhiteSpace(item.Id) && !result.Contains(item.Id, StringComparer.OrdinalIgnoreCase))
+                                result.Add(item.Id);
+                        }
+                    }
+                    result.Sort(StringComparer.OrdinalIgnoreCase);
+                    return result.AsReadOnly();
+                }
+            }
         }
 
         public async Task<AIResponse> SendAsync(
@@ -116,6 +156,14 @@ namespace HAgent.Providers.OpenAICompatible
             return baseUrl.TrimEnd('/') + "/chat/completions";
         }
 
+        private static string NormalizeModelsEndpoint(string baseUrl)
+        {
+            if (string.IsNullOrWhiteSpace(baseUrl))
+                throw new InvalidOperationException("Provider Base URL is required.");
+
+            return baseUrl.TrimEnd('/') + "/models";
+        }
+
         private static List<ChatMessageDto> ToDtos(
             IReadOnlyList<AIMessage> messages,
             string systemPrompt)
@@ -188,6 +236,18 @@ namespace HAgent.Providers.OpenAICompatible
         {
             [JsonProperty("message")]
             public ChatMessageDto Message { get; set; }
+        }
+
+        private sealed class ModelListResponse
+        {
+            [JsonProperty("data")]
+            public List<ModelDto> Data { get; set; }
+        }
+
+        private sealed class ModelDto
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; }
         }
 
         private sealed class UsageDto

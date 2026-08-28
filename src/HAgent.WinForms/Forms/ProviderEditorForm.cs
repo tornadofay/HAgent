@@ -9,6 +9,7 @@ using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers;
+using HAgent.WinForms.Helpers.Button;
 
 namespace HAgent.WinForms.Forms
 {
@@ -25,7 +26,7 @@ namespace HAgent.WinForms.Forms
         private readonly ComboBox _model = new ComboBox();
         private readonly TextBox _prompt = new TextBox();
         private readonly CheckBox _enabled = new CheckBox();
-        private readonly Button _test = new HFlatButton();
+        private readonly HButton _test = new HButton();
         private readonly Label _status = new Label();
 
         public ProviderEditorForm(AiProvider provider, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
@@ -75,13 +76,10 @@ namespace HAgent.WinForms.Forms
             _model.Text = Provider.DefaultModel;
 
             var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 52, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = Color.FromArgb(248, 248, 252) };
-            var save = new HFlatButton { Text = "Save provider", Width = 140, Height = 36, Margin = new Padding(8, 4, 0, 0) };
+            var save = CreateButton("Save provider", 140, 36);
+            save.Margin = new Padding(8, 4, 0, 0);
             save.Click += async delegate { await SaveAsync(); };
-            _test.Text = "Test connection";
-            _test.Width = 130;
-            _test.Height = 36;
-            _test.FlatStyle = FlatStyle.Flat;
-            _test.FlatAppearance.BorderSize = 0;
+            ConfigureButton(_test, "Test connection", 130, 36);
             _test.Margin = new Padding(8, 4, 0, 0);
             _test.Click += async delegate { await TestAsync(); };
             _status.AutoSize = true;
@@ -107,10 +105,60 @@ namespace HAgent.WinForms.Forms
             var host = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 9, 0, 0) };
             _model.Dock = DockStyle.Fill;
             host.Controls.Add(_model);
-            var refresh = new HFlatButton { Text = "Refresh models", Width = 112, Height = 30, Dock = DockStyle.Right, Margin = new Padding(8, 0, 0, 0) };
+            var refresh = CreateButton("Refresh models", 112, 30);
+            refresh.Dock = DockStyle.Right;
+            refresh.Margin = new Padding(8, 0, 0, 0);
             refresh.Click += async delegate { await LoadModelsAsync(true); };
             host.Controls.Add(refresh);
             _layout.Controls.Add(host, 1, row);
+        }
+
+        private static HButton CreateButton(string text, int width, int height)
+        {
+            var button = new HButton
+            {
+                Text = text,
+                Width = width,
+                Height = height,
+                RoundButton = true,
+                Edge = 10,
+                ButtonLeaveBackGroundColor1 = Color.FromArgb(92, 67, 168),
+                ButtonLeaveBackGroundColor2 = Color.FromArgb(57, 40, 108),
+                ButtonLeaveForeColor = Color.White,
+                ButtonLeaveBorderColor = Color.FromArgb(116, 76, 210),
+                ButtonEnterBackGroundColor1 = Color.FromArgb(126, 94, 214),
+                ButtonEnterBackGroundColor2 = Color.FromArgb(79, 54, 145),
+                ButtonEnterForeColor = Color.White,
+                ButtonEnterBorderColor = Color.FromArgb(146, 118, 232),
+                ButtonDownBackGroundColor1 = Color.FromArgb(72, 52, 132),
+                ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88),
+                ButtonDownForeColor = Color.White,
+                ButtonDownBorderColor = Color.FromArgb(104, 79, 176),
+                TextMargin = 8
+            };
+            return button;
+        }
+
+        private static void ConfigureButton(HButton button, string text, int width, int height)
+        {
+            button.Text = text;
+            button.Width = width;
+            button.Height = height;
+            button.RoundButton = true;
+            button.Edge = 10;
+            button.ButtonLeaveBackGroundColor1 = Color.FromArgb(92, 67, 168);
+            button.ButtonLeaveBackGroundColor2 = Color.FromArgb(57, 40, 108);
+            button.ButtonLeaveForeColor = Color.White;
+            button.ButtonLeaveBorderColor = Color.FromArgb(116, 76, 210);
+            button.ButtonEnterBackGroundColor1 = Color.FromArgb(126, 94, 214);
+            button.ButtonEnterBackGroundColor2 = Color.FromArgb(79, 54, 145);
+            button.ButtonEnterForeColor = Color.White;
+            button.ButtonEnterBorderColor = Color.FromArgb(146, 118, 232);
+            button.ButtonDownBackGroundColor1 = Color.FromArgb(72, 52, 132);
+            button.ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88);
+            button.ButtonDownForeColor = Color.White;
+            button.ButtonDownBorderColor = Color.FromArgb(104, 79, 176);
+            button.TextMargin = 8;
         }
 
         private void AddField(int row, string title, string description, Control control)

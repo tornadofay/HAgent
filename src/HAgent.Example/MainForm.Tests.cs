@@ -169,10 +169,11 @@ namespace HAgent.Example
             Write("RUNTIME", "Execution: " + execution.Id + Environment.NewLine +
                              "State: " + execution.State + Environment.NewLine +
                              "Failure: " + execution.FailureKind + Environment.NewLine +
-                             "Provider: " + selection.Provider.Name + " (" + execution.Response.ProviderId + ")" + Environment.NewLine +
+                             "Provider error: " + execution.ProviderErrorKind + Environment.NewLine +
+                             "Provider: " + selection.Provider.Name + " (" + (execution.Response == null ? string.Empty : execution.Response.ProviderId) + ")" + Environment.NewLine +
                              "Model: " + selection.Model + Environment.NewLine +
                              "Request: " + request + Environment.NewLine +
-                             "Response: " + execution.Response.Text);
+                             "Response: " + (execution.Response == null ? string.Empty : execution.Response.Text));
         }
 
         private async Task ReadConfigurationAsync(string unused)

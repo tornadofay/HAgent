@@ -22,6 +22,8 @@ namespace HAgent.Runtime
             if (tool == null) throw new ArgumentNullException(nameof(tool));
             if (tool.Definition == null || string.IsNullOrWhiteSpace(tool.Definition.Id))
                 throw new ArgumentException("A tool must have a definition with an id.", nameof(tool));
+            if (!ToolSchemaValidator.Validate(tool.Definition, new Dictionary<string, object>()).IsValid && string.IsNullOrWhiteSpace(tool.Definition.InputSchemaJson))
+                throw new ArgumentException("Tool schema could not be validated.", nameof(tool));
 
             _toolRegistry.Register(tool);
             return true;
@@ -55,11 +57,18 @@ namespace HAgent.Runtime
             if (!tool.Definition.Enabled)
                 return ToolExecutionResult.Failure("Tool is disabled: " + tool.Definition.Name);
 
+            var source = arguments == null
+                ? new Dictionary<string, object>()
+                : new Dictionary<string, object>(arguments, StringComparer.OrdinalIgnoreCase);
+            var validation = ToolSchemaValidator.Validate(tool.Definition, source);
+            if (!validation.IsValid)
+                return ToolExecutionResult.Failure("Tool arguments failed schema validation: " + string.Join(" ", validation.Errors.Select(x => "[" + x + "]")));
+
             var context = new ToolExecutionContext
             {
                 AgentId = agentId,
                 ToolCallId = toolCallId ?? string.Empty,
-                Arguments = arguments ?? new Dictionary<string, object>(),
+                Arguments = validation.Arguments,
                 CancellationToken = cancellationToken
             };
 

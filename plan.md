@@ -83,6 +83,8 @@
 - [x] Automatic memory metadata provenance including session and policy.
 - [x] Manual automatic-memory policy example in `HAgent.Example`.
 - [x] Context budget manual example in `HAgent.Example`.
+- [x] Lightweight relevance ranking with phrase, whole-term, metadata, and recency signals.
+- [x] Retrieval remains streaming and CPU-only without a vector/index dependency.
 - [ ] Automatic session-memory policy with richer inference.
 - [ ] Short-term task/event memory.
 - [ ] Episodic memory.
@@ -92,7 +94,7 @@
 - [ ] Persistent lightweight indexing for faster large-store retrieval without a large RAM footprint.
 - [ ] Optional vector-memory adapter.
 - [ ] Remote embedding-provider support without local GPU requirements.
-- [ ] Improved relevance/ranking.
+- [ ] Improved relevance/ranking beyond the current lightweight heuristic.
 - [ ] Context trimming and compaction/summarization.
 - [ ] Memory update/upsert semantics.
 - [ ] Richer memory provenance/source/type fields.

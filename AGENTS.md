@@ -14,6 +14,9 @@ This repository is designed to be worked on by both human developers and coding 
 8. Public APIs should support cancellation tokens and remain async for network/database operations.
 9. Preserve .NET Framework 4.8.1 compatibility for projects that currently target it.
 10. Do not introduce a framework-sized dependency for a feature that can be implemented in a small adapter.
+11. Runtime execution must operate from an execution snapshot so mutable/deleted configuration cannot invalidate active work.
+12. Provider routing must be provider-neutral and must never assume OpenAI semantics in Core.
+13. Memory must work without a local GPU and must not require a large resident RAM footprint. Embeddings/vector search are optional adapters, never core requirements.
 
 ## UI rules
 
@@ -88,6 +91,20 @@ Implement `IAiStore` for persisted providers and agents.
 If a backend needs secrets, prefer composing it with `ISecretStore` rather than storing raw secrets in the normal configuration table.
 
 Provider deletion must not silently delete dependent agents. Data-integrity restrictions must be enforced by the storage implementation, not only by the UI.
+
+## Runtime contract
+
+Runtime responsibilities include:
+
+- execution lifecycle/state
+- provider routing/fallback
+- cancellation and timeout boundaries
+- execution snapshots
+- memory/context integration
+- tool execution integration
+- structured failure reporting
+
+The runtime must not hide cancellation, timeout, or tool failures as ordinary provider fallbacks.
 
 ## Compatibility
 

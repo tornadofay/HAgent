@@ -18,14 +18,16 @@ namespace HAgent.Example
                 Id = toolId,
                 Name = "Example Echo",
                 Description = "Returns the supplied value so the tool contract can be verified without a provider.",
-                InputSchemaJson = "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"]}",
+                InputSchemaJson = "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"additionalProperties\":false}",
                 Category = "Example",
                 IsBuiltIn = false,
                 Enabled = true
             };
 
+            var invocationCount = 0;
             var tool = new DelegateAgentTool(definition, context =>
             {
+                invocationCount++;
                 object value;
                 context.Arguments.TryGetValue("value", out value);
                 return Task.FromResult(ToolExecutionResult.Success(Convert.ToString(value) ?? string.Empty));
@@ -49,6 +51,32 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Registered tool returned a failure: " + result.Error);
             if (!string.Equals(result.Output, valueText, StringComparison.Ordinal))
                 throw new InvalidOperationException("Tool did not receive or return the expected argument.");
+            if (invocationCount != 1)
+                throw new InvalidOperationException("Tool handler invocation count was unexpected after valid execution.");
+
+            var invalidType = await client.ExecuteToolAsync(
+                "example-agent",
+                toolId,
+                "call-invalid-type",
+                new Dictionary<string, object> { { "value", 42 } });
+            if (invalidType.Succeeded || invocationCount != 1 || invalidType.Error.IndexOf("expected a string", StringComparison.OrdinalIgnoreCase) < 0)
+                throw new InvalidOperationException("Invalid argument type was not rejected before the handler executed.");
+
+            var missingRequired = await client.ExecuteToolAsync(
+                "example-agent",
+                toolId,
+                "call-missing",
+                new Dictionary<string, object>());
+            if (missingRequired.Succeeded || invocationCount != 1 || missingRequired.Error.IndexOf("required argument is missing", StringComparison.OrdinalIgnoreCase) < 0)
+                throw new InvalidOperationException("Missing required argument was not rejected before the handler executed.");
+
+            var extraArgument = await client.ExecuteToolAsync(
+                "example-agent",
+                toolId,
+                "call-extra",
+                new Dictionary<string, object> { { "value", valueText }, { "unexpected", true } });
+            if (extraArgument.Succeeded || invocationCount != 1 || extraArgument.Error.IndexOf("not allowed", StringComparison.OrdinalIgnoreCase) < 0)
+                throw new InvalidOperationException("Unexpected argument was not rejected by the schema.");
 
             var definitions = client.GetToolDefinitions();
             if (definitions.Count != 1 || definitions[0].Id != toolId)
@@ -67,6 +95,8 @@ namespace HAgent.Example
                 "Tool call ID: call-example-42" + Environment.NewLine +
                 "Argument value: " + valueText + Environment.NewLine +
                 "Result: " + result.Output + Environment.NewLine +
+                "Schema validation: valid, wrong type, missing required, and extra argument cases verified." + Environment.NewLine +
+                "Handler invocations: " + invocationCount + Environment.NewLine +
                 "Definition count: " + definitions.Count + Environment.NewLine +
                 "Cleanup: tool unregistered successfully.");
         }

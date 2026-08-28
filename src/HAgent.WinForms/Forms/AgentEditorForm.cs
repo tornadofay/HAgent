@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
+using HAgent.WinForms;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
@@ -208,11 +209,37 @@ namespace HAgent.WinForms.Forms
                 foreach (var model in models) _model.Items.Add(model);
                 _model.Text = selectedText;
                 if (models.Count > 0) _status.Text = models.Count + " model(s) available";
+                await ShowCapabilitiesAsync(provider, adapter, _model.Text).ConfigureAwait(true);
             }
             catch (Exception ex)
             {
                 if (showErrors) HMessage.ShowException(this, "The model list could not be loaded.", "Load models", ex);
             }
+        }
+
+        private async Task ShowCapabilitiesAsync(AiProvider provider, IAiProviderAdapter adapter, string model)
+        {
+            var capabilityAdapter = adapter as IProviderModelCapabilities;
+            if (capabilityAdapter == null)
+            {
+                _status.Text = "Capabilities: unavailable";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(model))
+            {
+                _status.Text = "Capabilities: select a model";
+                return;
+            }
+
+            var capabilities = await capabilityAdapter.GetCapabilitiesAsync(
+                provider,
+                model.Trim(),
+                await GetApiKeyAsync(provider),
+                CancellationToken.None).ConfigureAwait(true);
+
+            _status.Text = CapabilityDisplay.BuildSummary(capabilities);
+            CapabilityDisplay.AttachToolTip(_status, capabilities);
         }
 
         private async Task TestAsync()
@@ -234,8 +261,7 @@ namespace HAgent.WinForms.Forms
                     if (models.Count > 0 && !models.Any(x => string.Equals(x, _model.Text.Trim(), StringComparison.OrdinalIgnoreCase)))
                         throw new InvalidOperationException("The provider connection is valid, but model '" + _model.Text.Trim() + "' was not returned by its model catalog.");
                 }
-                _status.Text = "Agent configuration is valid";
-                _status.ForeColor = Color.FromArgb(22, 101, 52);
+                await ShowCapabilitiesAsync(provider, adapter, _model.Text).ConfigureAwait(true);
             }
             catch (Exception ex)
             {

@@ -92,5 +92,75 @@ namespace HAgent.Example
                 }
             }
         }
+
+        private async Task TestEpisodicMemoryAsync(string input)
+        {
+            var agent = GetSelectedAgent();
+            if (agent == null) throw new InvalidOperationException("Select an agent first.");
+
+            var memoryPath = Path.Combine(_basePath, "memory", "example-episodic-" + Guid.NewGuid().ToString("N") + ".jsonl");
+            var memory = new FileMemoryStore(memoryPath);
+            var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+            var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
+
+            try
+            {
+                var client = new HAgentClient(
+                    store,
+                    secrets,
+                    new[] { new OpenAICompatibleProviderAdapter() },
+                    null,
+                    memory);
+
+                var taskId = "task-" + Guid.NewGuid().ToString("N");
+                var sessionId = "session-" + Guid.NewGuid().ToString("N");
+                var summary = RequireInput(input);
+                var episode = new EpisodicMemory
+                {
+                    OwnerId = agent.Id,
+                    TaskId = taskId,
+                    SessionId = sessionId,
+                    Title = "Customer import",
+                    Summary = summary,
+                    Outcome = "Completed successfully",
+                    OccurredAt = DateTimeOffset.UtcNow
+                };
+
+                var id = await client.RememberEpisodeAsync(episode, MemoryScope.Agent, CancellationToken.None);
+                var recalled = await client.RecallEpisodesAsync(agent.Id, "Customer import", taskId, 10, CancellationToken.None);
+                var found = recalled.FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+
+                if (found == null)
+                    throw new InvalidOperationException("The episodic memory could not be recalled.");
+                if (found.Metadata == null || !found.Metadata.ContainsKey("outcome"))
+                    throw new InvalidOperationException("The episodic memory did not preserve outcome metadata.");
+                if (!found.Metadata.ContainsKey("taskId") || !string.Equals(found.Metadata["taskId"], taskId, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("The episodic memory did not preserve task provenance.");
+
+                await client.ForgetAsync(found.Id, CancellationToken.None);
+
+                Write("EPISODIC MEMORY", "Test succeeded." + Environment.NewLine +
+                                         "Episode ID: " + found.Id + Environment.NewLine +
+                                         "Task ID: " + taskId + Environment.NewLine +
+                                         "Session ID: " + sessionId + Environment.NewLine +
+                                         "Title: Customer import" + Environment.NewLine +
+                                         "Summary: " + found.Content + Environment.NewLine +
+                                         "Outcome: " + found.Metadata["outcome"] + Environment.NewLine +
+                                         "Provenance: session + task metadata preserved." + Environment.NewLine +
+                                         "The episode was removed after verification.");
+            }
+            finally
+            {
+                memory.Dispose();
+                try
+                {
+                    if (File.Exists(memoryPath)) File.Delete(memoryPath);
+                }
+                catch
+                {
+                    // Example cleanup must not hide the actual test result.
+                }
+            }
+        }
     }
 }

@@ -32,10 +32,8 @@ namespace HAgent.WinForms.Controls
         }
 
         protected Panel BodyPanel { get; private set; }
-
         protected virtual int HeaderHeight { get { return 54; } }
         protected virtual int CornerRadius { get { return 14; } }
-
         protected Header WindowHeader { get { return _header; } }
 
         private void BuildChrome(string title, string subtitle)
@@ -104,7 +102,6 @@ namespace HAgent.WinForms.Controls
         private void UpdateRoundedRegion()
         {
             if (Width <= 0 || Height <= 0) return;
-
             using (var path = CreateRoundedPath(new Rectangle(0, 0, Width, Height), CornerRadius))
                 Region = new Region(path);
         }
@@ -120,19 +117,5 @@ namespace HAgent.WinForms.Controls
             path.CloseFigure();
             return path;
         }
-    }
-
-    public enum CloseType
-    {
-        ExitForm,
-        ExitApplication,
-        CancelDialogResult,
-        Hide
-    }
-
-    public enum LanguageMode
-    {
-        English,
-        Arabic
     }
 }

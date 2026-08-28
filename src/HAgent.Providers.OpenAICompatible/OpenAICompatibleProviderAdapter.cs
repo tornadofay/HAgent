@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -15,7 +16,7 @@ namespace HAgent.Providers.OpenAICompatible
     /// Adapter for providers exposing an OpenAI-compatible /chat/completions endpoint.
     /// Uses Newtonsoft.Json so the same source works on .NET Framework 4.8.1 and modern .NET.
     /// </summary>
-    public sealed class OpenAICompatibleProviderAdapter : IAiProviderAdapter, IProviderConnectionTester, IProviderModelCatalog, IProviderModelCapabilities
+    public sealed class OpenAICompatibleProviderAdapter : IAiProviderAdapter, IProviderConnectionTester, IProviderModelCatalog, IProviderModelCapabilities, IProviderStreamingAdapter
     {
         public const string ProviderKind = "openai-compatible";
 
@@ -50,7 +51,8 @@ namespace HAgent.Providers.OpenAICompatible
 
             result.Set(AiCapability.Chat, CapabilitySupport.Supported, CapabilitySource.AdapterKnowledge, 0.95d,
                 "The OpenAI-compatible adapter establishes support for the chat transport shape.");
-            result.Set(AiCapability.Streaming, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
+            result.Set(AiCapability.Streaming, CapabilitySupport.Supported, CapabilitySource.AdapterKnowledge, 0.90d,
+                "The adapter supports OpenAI-compatible Server-Sent Events streaming.");
             result.Set(AiCapability.StructuredOutput, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
             result.Set(AiCapability.ToolCalling, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
             result.Set(AiCapability.Vision, CapabilitySupport.Unknown, CapabilitySource.Unknown, 0d, "Not established by the adapter.");
@@ -165,13 +167,9 @@ namespace HAgent.Providers.OpenAICompatible
                         usage["completion_tokens"] = dto.Usage.CompletionTokens;
                         usage["total_tokens"] = dto.Usage.TotalTokens;
                         if (dto.Usage.PromptTokensDetails != null)
-                        {
                             usage["prompt_tokens_details"] = dto.Usage.PromptTokensDetails;
-                        }
                         if (dto.Usage.CompletionTokensDetails != null)
-                        {
                             usage["completion_tokens_details"] = dto.Usage.CompletionTokensDetails;
-                        }
                     }
 
                     var metadata = new Dictionary<string, object>();
@@ -198,6 +196,180 @@ namespace HAgent.Providers.OpenAICompatible
                         Usage = usage,
                         ProviderMetadata = metadata
                     };
+                }
+            }
+        }
+
+        public async Task<AIResponse> SendStreamingAsync(
+            AiProvider provider,
+            AiAgent agent,
+            string apiKey,
+            string systemPrompt,
+            IReadOnlyList<AIMessage> messages,
+            IProgress<AIResponseDelta> progress,
+            CancellationToken cancellationToken)
+        {
+            if (provider == null) throw new ArgumentNullException(nameof(provider));
+            if (agent == null) throw new ArgumentNullException(nameof(agent));
+
+            var url = NormalizeEndpoint(provider.BaseUrl);
+            var request = new ChatCompletionRequest
+            {
+                Model = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model,
+                Messages = ToRequestDtos(messages, systemPrompt),
+                Temperature = agent.Temperature,
+                MaxTokens = agent.MaxOutputTokens,
+                Stream = true
+            };
+
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Post, url))
+            {
+                var json = JsonConvert.SerializeObject(request);
+                httpRequest.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                    httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+                using (var response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
+                {
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        throw new HttpRequestException("AI provider returned " + (int)response.StatusCode + ": " + errorBody);
+                    }
+
+                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var reader = new StreamReader(stream))
+                    {
+                        var text = new StringBuilder();
+                        var reasoning = new StringBuilder();
+                        var toolBuilders = new Dictionary<int, StreamingToolBuilder>();
+                        var requestId = string.Empty;
+                        AIUsage normalizedUsage = new AIUsage();
+
+                        while (true)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            string line;
+                            try
+                            {
+                                line = await reader.ReadLineAsync().ConfigureAwait(false);
+                            }
+                            catch (Exception) when (cancellationToken.IsCancellationRequested)
+                            {
+                                throw new OperationCanceledException(cancellationToken);
+                            }
+
+                            if (line == null) break;
+                            if (line.Length == 0 || !line.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
+
+                            var payload = line.Substring(5).TrimStart();
+                            if (string.Equals(payload, "[DONE]", StringComparison.OrdinalIgnoreCase)) break;
+                            if (string.IsNullOrWhiteSpace(payload)) continue;
+
+                            StreamResponse chunk;
+                            try
+                            {
+                                chunk = JsonConvert.DeserializeObject<StreamResponse>(payload);
+                            }
+                            catch (JsonException)
+                            {
+                                continue;
+                            }
+
+                            if (chunk == null) continue;
+                            if (string.IsNullOrWhiteSpace(requestId)) requestId = chunk.Id ?? string.Empty;
+                            if (chunk.Usage != null) normalizedUsage = NormalizeUsage(chunk.Usage);
+                            if (chunk.Choices == null) continue;
+
+                            foreach (var choice in chunk.Choices)
+                            {
+                                if (choice == null || choice.Delta == null) continue;
+
+                                var textDelta = choice.Delta.Content ?? string.Empty;
+                                var reasoningDelta = choice.Delta.ReasoningContent ?? string.Empty;
+                                if (!string.IsNullOrEmpty(textDelta)) text.Append(textDelta);
+                                if (!string.IsNullOrEmpty(reasoningDelta)) reasoning.Append(reasoningDelta);
+
+                                if (choice.Delta.ToolCalls != null)
+                                {
+                                    foreach (var call in choice.Delta.ToolCalls)
+                                    {
+                                        if (call == null) continue;
+                                        StreamingToolBuilder builder;
+                                        if (!toolBuilders.TryGetValue(call.Index, out builder))
+                                        {
+                                            builder = new StreamingToolBuilder();
+                                            toolBuilders.Add(call.Index, builder);
+                                        }
+
+                                        if (!string.IsNullOrWhiteSpace(call.Id)) builder.Id = call.Id;
+                                        if (call.Function != null)
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(call.Function.Name)) builder.Name = call.Function.Name;
+                                            if (!string.IsNullOrEmpty(call.Function.Arguments)) builder.Arguments.Append(call.Function.Arguments);
+                                        }
+                                    }
+                                }
+
+                                if (progress != null && (!string.IsNullOrEmpty(textDelta) || !string.IsNullOrEmpty(reasoningDelta)))
+                                {
+                                    progress.Report(new AIResponseDelta
+                                    {
+                                        Text = textDelta,
+                                        Reasoning = reasoningDelta
+                                    });
+                                }
+
+                                if (progress != null && choice.Delta.ToolCalls != null)
+                                {
+                                    foreach (var call in choice.Delta.ToolCalls)
+                                    {
+                                        if (call == null) continue;
+                                        progress.Report(new AIResponseDelta
+                                        {
+                                            ToolCallId = call.Id ?? string.Empty,
+                                            ToolCallName = call.Function == null ? string.Empty : call.Function.Name ?? string.Empty,
+                                            ToolCallArgumentsDelta = call.Function == null ? string.Empty : call.Function.Arguments ?? string.Empty
+                                        });
+                                    }
+                                }
+                            }
+                        }
+
+                        var toolCalls = new List<AIToolCall>();
+                        foreach (var pair in toolBuilders)
+                        {
+                            var builder = pair.Value;
+                            if (string.IsNullOrWhiteSpace(builder.Name)) continue;
+                            toolCalls.Add(new AIToolCall(builder.Id ?? string.Empty, builder.Name, builder.Arguments.ToString()));
+                        }
+
+                        var finalText = text.ToString();
+                        var structuredOutput = IsJsonDocument(finalText) ? finalText.Trim() : string.Empty;
+                        var metadata = new Dictionary<string, object>();
+                        if (!string.IsNullOrWhiteSpace(requestId)) metadata["provider_request_id"] = requestId;
+                        metadata["streaming"] = true;
+                        if (toolCalls.Count > 0) metadata["tool_call_count"] = toolCalls.Count;
+                        if (!string.IsNullOrWhiteSpace(reasoning.ToString())) metadata["reasoning_source"] = "provider-field";
+
+                        return new AIResponse
+                        {
+                            AgentId = agent.Id,
+                            ProviderId = provider.Id,
+                            Model = request.Model,
+                            Text = finalText,
+                            Reasoning = reasoning.ToString(),
+                            RawText = finalText,
+                            StructuredOutputJson = structuredOutput,
+                            ToolCalls = toolCalls.AsReadOnly(),
+                            RequestId = requestId,
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            NormalizedUsage = normalizedUsage,
+                            Usage = normalizedUsage.ProviderUsage,
+                            ProviderMetadata = metadata
+                        };
+                    }
                 }
             }
         }
@@ -313,6 +485,9 @@ namespace HAgent.Providers.OpenAICompatible
 
             [JsonProperty("max_tokens")]
             public int? MaxTokens { get; set; }
+
+            [JsonProperty("stream", NullValueHandling = NullValueHandling.Ignore)]
+            public bool? Stream { get; set; }
         }
 
         private sealed class RequestChatMessageDto
@@ -376,6 +551,71 @@ namespace HAgent.Providers.OpenAICompatible
         {
             [JsonProperty("message")]
             public ResponseChatMessageDto Message { get; set; }
+        }
+
+        private sealed class StreamResponse
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; }
+
+            [JsonProperty("choices")]
+            public List<StreamChoiceDto> Choices { get; set; }
+
+            [JsonProperty("usage")]
+            public UsageDto Usage { get; set; }
+        }
+
+        private sealed class StreamChoiceDto
+        {
+            [JsonProperty("index")]
+            public int Index { get; set; }
+
+            [JsonProperty("delta")]
+            public StreamDeltaDto Delta { get; set; }
+        }
+
+        private sealed class StreamDeltaDto
+        {
+            [JsonProperty("role")]
+            public string Role { get; set; }
+
+            [JsonProperty("content")]
+            public string Content { get; set; }
+
+            [JsonProperty("reasoning_content")]
+            public string ReasoningContent { get; set; }
+
+            [JsonProperty("tool_calls")]
+            public List<StreamToolCallDto> ToolCalls { get; set; }
+        }
+
+        private sealed class StreamToolCallDto
+        {
+            [JsonProperty("index")]
+            public int Index { get; set; }
+
+            [JsonProperty("id")]
+            public string Id { get; set; }
+
+            [JsonProperty("type")]
+            public string Type { get; set; }
+
+            [JsonProperty("function")]
+            public ResponseToolFunctionDto Function { get; set; }
+        }
+
+        private sealed class StreamingToolBuilder
+        {
+            public string Id { get; set; }
+            public string Name { get; set; }
+            public StringBuilder Arguments { get; private set; }
+
+            public StreamingToolBuilder()
+            {
+                Id = string.Empty;
+                Name = string.Empty;
+                Arguments = new StringBuilder();
+            }
         }
 
         private sealed class ModelListResponse

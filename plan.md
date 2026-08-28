@@ -1,8 +1,8 @@
 # HAgent Development Plan
 
-## Current milestone: 0.3 — Memory and Context
+## Current milestone: 0.4 — Provider Capabilities and Response Normalization
 
-This is the implementation ledger. Keep it synchronized with the repository. A roadmap item is not complete until the implementation and corresponding manual Example coverage exist.
+This is the implementation ledger. Keep it synchronized with the repository. A milestone item is not complete until the implementation and corresponding manual Example coverage exist.
 
 ### 0.1 Foundation — completed
 - [x] Multi-target core for .NET Framework 4.8.1 and .NET 9.
@@ -40,7 +40,7 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [x] Correct system-prompt resolution and single insertion into provider requests.
 - [x] Provider failure detail preservation.
 
-## 0.3 Memory and Context — active
+## 0.3 Memory and Context — foundation completed
 
 ### Implemented
 - [x] `IMemoryStore` abstraction.
@@ -71,7 +71,7 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [x] Episodic outcome, task, session, and occurrence provenance.
 - [x] Manual Example coverage for memory, persistence, automatic memory, context budgeting, task/event memory, and episodic memory.
 
-### Remaining
+### Remaining advanced memory work
 - [ ] Richer automatic-memory inference without silently saving ordinary conversation.
 - [ ] Memory update/upsert semantics.
 - [ ] Retention/expiration policies.
@@ -83,22 +83,32 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [ ] Optional vector-memory adapter.
 - [ ] Remote embedding-provider integration without local GPU requirements.
 
-## 0.4 Provider Capabilities and Response Normalization — planned
-- [ ] Explicit provider/model capability model.
-- [ ] Chat, streaming, structured output, tool calling, vision, audio, embeddings, and reasoning capability flags.
+## 0.4 Provider Capabilities and Response Normalization — active
+
+### Implemented first slice
+- [x] Tri-state capability support model: Supported / Unsupported / Unknown.
+- [x] `AiCapability` flags for chat, streaming, structured output, tool calling, vision, audio, embeddings, and reasoning.
+- [x] Optional `IProviderModelCapabilities` adapter contract.
+- [x] `HAgentClient.GetModelCapabilitiesAsync(...)` public lookup API.
+- [x] OpenAI-compatible adapter reports Chat as Supported and optional features as Unknown unless established.
+- [x] `AIResponse.Reasoning` for explicitly exposed reasoning content.
+- [x] `AIResponse.RawText` for original provider text.
+- [x] `AIResponse.ProviderMetadata` for provider-neutral metadata.
+- [x] OpenAI-compatible parsing of explicit `reasoning_content` into the separate reasoning field.
+- [x] Detection metadata for `<think>` markup without treating it as native reasoning.
+- [x] Manual `HAgent.Example` capability inspection tab.
+
+### Remaining 0.4 work
 - [ ] Capability cache.
-- [ ] Model suitability checks.
-- [ ] Provider-neutral response object.
-- [ ] Separate assistant content from provider-exposed reasoning.
-- [ ] Preserve explicit reasoning metadata.
-- [ ] Do not assume `<think>...</think>` is universally native reasoning metadata.
+- [ ] Model suitability checks based on capability requirements.
+- [ ] Capability-aware provider/model selection in routing.
+- [ ] Provider-neutral structured-output representation.
+- [ ] Provider-neutral tool-call representation.
+- [ ] Usage/token/cost normalization beyond the current usage dictionary.
+- [ ] Streaming response abstraction.
 - [ ] Application policy for displaying/storing/logging/discarding reasoning.
-- [ ] Structured output representation.
-- [ ] Tool-call representation.
-- [ ] Usage/token/cost metadata where available.
-- [ ] Raw provider metadata preservation.
-- [ ] Streaming abstraction.
-- [ ] Manual Example coverage.
+- [ ] Rich provider capability discovery where providers expose it.
+- [ ] Manual response-normalization test with an explicit provider reasoning field.
 
 ## 0.5 Tools and Agent Loop — planned
 - [ ] First-class tool definitions.
@@ -149,7 +159,6 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 - [ ] Lightweight internal observability with optional exporters.
 
 ## 0.7 WinForms UI Context and Application Automation — planned
-
 ### UI Context / Control Adapters
 - [ ] Form/UserControl/custom-control attachment model.
 - [ ] Stable control identity.
@@ -322,7 +331,7 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 ## Architecture decisions to preserve
 
 1. Core remains provider-neutral and dependency-light.
-2. Capabilities are explicit; model IDs are not capability guarantees.
+2. Capabilities are explicit and tri-state; model IDs are not capability guarantees.
 3. Provider transport, agent profile, runtime, memory, tools, and host side effects remain separate.
 4. Agent profile and runtime scope are separate. Global/form/session/task/ephemeral behavior does not require incompatible agent classes.
 5. Prompt instructions are not security boundaries.
@@ -330,7 +339,7 @@ This is the implementation ledger. Keep it synchronized with the repository. A r
 7. Sensitive actions can require human approval.
 8. Autonomous work is cancellable, observable, and budgeted.
 9. Provider responses are normalized without destroying provider-specific metadata.
-10. Reasoning/thinking is optional separate response content when explicitly exposed by a provider.
+10. Reasoning/thinking is optional separate response content when explicitly exposed by a provider; embedded `<think>` markup is not assumed to be native reasoning.
 11. UI Context/introspection describes state; tools define permitted actions.
 12. “Form serialization” is a UI Context capability, not the name of the entire WinForms subsystem.
 13. WinForms data-source handling is centralized in control adapters.

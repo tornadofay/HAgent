@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Models;
+using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
 
 namespace HAgent.Example

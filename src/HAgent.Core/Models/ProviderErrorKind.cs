@@ -8,6 +8,9 @@ namespace HAgent.Models
         RateLimited = 3,
         Unavailable = 4,
         Transient = 5,
-        Cancelled = 6
+        Cancelled = 6,
+        ModelTermsRequired = 7,
+        PermissionDenied = 8,
+        ModelNotFound = 9
     }
 }

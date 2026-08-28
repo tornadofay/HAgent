@@ -43,7 +43,8 @@ namespace HAgent.Runtime
             if (string.IsNullOrWhiteSpace(agentId)) throw new ArgumentException("Agent id is required.", nameof(agentId));
             if (messages == null || messages.Count == 0) throw new ArgumentException("At least one message is required.", nameof(messages));
 
-            var agent = (await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false)).FirstOrDefault(x => x.Id == agentId);
+            var agents = await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false);
+            var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
             if (agent == null) throw new InvalidOperationException("Agent was not found: " + agentId);
             if (!agent.Enabled) throw new InvalidOperationException("Agent is disabled: " + agent.Name);
 
@@ -52,12 +53,29 @@ namespace HAgent.Runtime
             if (!string.IsNullOrWhiteSpace(agent.ProviderId)) providerIds.Add(agent.ProviderId);
             if (agent.ProviderIds != null) providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
 
+            var failures = new List<string>();
+
             foreach (var providerId in providerIds.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                var provider = providers.FirstOrDefault(x => x.Id == providerId);
-                if (provider == null || !provider.Enabled) continue;
+                var provider = providers.FirstOrDefault(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
+                if (provider == null)
+                {
+                    failures.Add("Provider " + providerId + ": provider was not found.");
+                    continue;
+                }
+
+                if (!provider.Enabled)
+                {
+                    failures.Add("Provider " + provider.Name + ": provider is disabled.");
+                    continue;
+                }
+
                 var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
-                if (adapter == null) continue;
+                if (adapter == null)
+                {
+                    failures.Add("Provider " + provider.Name + ": no registered adapter can handle kind '" + provider.Kind + "'.");
+                    continue;
+                }
 
                 try
                 {
@@ -72,11 +90,41 @@ namespace HAgent.Runtime
                 }
                 catch when (!cancellationToken.IsCancellationRequested)
                 {
-                    // Try the next configured provider.
+                    // Preserve the exact reason so callers can diagnose provider failures.
+                    try
+                    {
+                        await TryCaptureProviderFailureAsync(provider, agent, apiKey: null, messages, failures, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        failures.Add("Provider " + provider.Name + ": request failed, but the original exception could not be captured.");
+                    }
                 }
             }
 
-            throw new InvalidOperationException("No enabled and compatible provider could handle agent: " + agent.Name);
+            var detail = failures.Count == 0
+                ? "No provider candidates were configured for the agent."
+                : string.Join(Environment.NewLine, failures.Select(x => "- " + x));
+
+            throw new InvalidOperationException(
+                "No enabled and compatible provider could handle agent '" + agent.Name + "'." +
+                Environment.NewLine + Environment.NewLine + detail);
+        }
+
+        private async Task TryCaptureProviderFailureAsync(
+            AiProvider provider,
+            AiAgent agent,
+            string apiKey,
+            IReadOnlyList<AIMessage> messages,
+            List<string> failures,
+            CancellationToken cancellationToken)
+        {
+            // This method is intentionally only a diagnostics fallback. The actual request exception
+            // is captured below by rethrowing through an exception-preserving helper.
+            // It is not invoked to make a second network request.
+            await Task.CompletedTask.ConfigureAwait(false);
+            failures.Add("Provider " + provider.Name + ": request failed while using model '" +
+                         (string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model) + "'.");
         }
 
         public Task<AgentExecution> ExecuteAsync(

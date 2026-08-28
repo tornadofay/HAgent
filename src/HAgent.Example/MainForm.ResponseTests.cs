@@ -24,7 +24,15 @@ namespace HAgent.Example
                 RawText = "Customer data is ready.",
                 StructuredOutputJson = "{\"customerId\":42,\"status\":\"active\"}",
                 ToolCalls = toolCalls,
-                RequestId = "request-42"
+                RequestId = "request-42",
+                NormalizedUsage = new AIUsage
+                {
+                    PromptTokens = 120,
+                    CompletionTokens = 80,
+                    TotalTokens = 200,
+                    CachedPromptTokens = 40,
+                    ReasoningTokens = 25
+                }
             };
 
             if (response.ToolCalls == null || response.ToolCalls.Count != 1)
@@ -37,6 +45,15 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Backward-compatible response text was not preserved.");
             if (response.Reasoning != "Provider-side reasoning metadata.")
                 throw new InvalidOperationException("Separate reasoning content was not preserved.");
+            if (!response.NormalizedUsage.HasTokenUsage ||
+                response.NormalizedUsage.PromptTokens != 120 ||
+                response.NormalizedUsage.CompletionTokens != 80 ||
+                response.NormalizedUsage.TotalTokens != 200 ||
+                response.NormalizedUsage.CachedPromptTokens != 40 ||
+                response.NormalizedUsage.ReasoningTokens != 25)
+            {
+                throw new InvalidOperationException("Normalized usage values were not preserved.");
+            }
 
             Write("RESPONSE NORMALIZATION",
                 "Contract test succeeded." + Environment.NewLine +
@@ -46,6 +63,11 @@ namespace HAgent.Example
                 "Tool calls: " + response.ToolCalls.Count + Environment.NewLine +
                 "Tool: " + response.ToolCalls[0].Name + Environment.NewLine +
                 "Arguments JSON: " + response.ToolCalls[0].ArgumentsJson + Environment.NewLine +
+                "Prompt tokens: " + response.NormalizedUsage.PromptTokens + Environment.NewLine +
+                "Completion tokens: " + response.NormalizedUsage.CompletionTokens + Environment.NewLine +
+                "Cached prompt tokens: " + response.NormalizedUsage.CachedPromptTokens + Environment.NewLine +
+                "Reasoning tokens: " + response.NormalizedUsage.ReasoningTokens + Environment.NewLine +
+                "Total tokens: " + response.NormalizedUsage.TotalTokens + Environment.NewLine +
                 "Request ID: " + response.RequestId);
 
             await Task.CompletedTask;

@@ -115,7 +115,7 @@ A tool definition describes a capability; it is not executable code. The host ap
 | `HAgent.Storage.SqlServer` | SQL Server persistence + schema bootstrap |
 | `HAgent.Storage.MySql` | MySQL persistence + schema bootstrap |
 | `HAgent.WinForms` | Designer-free configuration/development UI and shared HAgent UI helpers |
-| `HAgent.Example` | Manual integration and feature test application |
+| `HAgent.Example` | Manual integration and feature verification application |
 | `HAgent.Tests` | Automated test project; separate from the manual example host |
 
 ## Supported targets
@@ -179,19 +179,24 @@ Default local storage uses:
 - `HAgent.Tests` is for automated tests.
 - `HAgent.Example` is for running the library and seeing how completed features behave.
 
-Set `HAgent.Example` as the startup project and press **F5**. The window provides:
+Set `HAgent.Example` as the startup project and press **F5**. The example host is organized into feature tabs so new runtime capabilities can be added without turning the main form into a wall of controls.
 
-- **Configuration** — opens the HAgent management UI.
-- **Read configuration** — verifies provider/agent persistence can be read by the host.
-- **Send message** — sends a real request through the configured agent/provider.
-- **Test session** — exercises conversation history forwarding.
-- **Test runtime** — exercises execution IDs, state, timeout, provider-attempt limits, retries, and diagnostics.
+Current tabs include:
 
-Every major feature added to HAgent should eventually have a small manual example in this project so it can be tested directly on a developer machine.
+- **Messaging** — sends a real request through the configured agent/provider.
+- **Session** — exercises conversation history forwarding.
+- **Runtime 0.2** — exercises execution IDs, state, timeout, provider-attempt limits, retries, and diagnostics.
+- **Configuration** — verifies provider/agent persistence can be read by the host.
+
+A shared **Global output** area displays the latest result across all examples. Each feature tab describes what it tests and the expected result.
+
+Every major feature added to HAgent should eventually have a corresponding manual example here so it can be tested directly on a developer machine.
 
 ## Provider adapters
 
 The first adapter is OpenAI-compatible. It supports the common `/chat/completions` request shape and `/models` discovery endpoint.
+
+Model discovery currently returns model IDs supplied by the provider. It does not yet guarantee that every discovered model is suitable for chat, tools, embeddings, moderation, or other specific capabilities. Capability negotiation is a later provider milestone. A model such as Meta's Llama Prompt Guard is a classifier rather than a general conversational model, so it should not be used for the conversational examples. citeturn932660search0turn932660search1
 
 The architecture intentionally permits separate adapters for providers such as Azure OpenAI, Anthropic, Google/Gemini, Ollama, LM Studio, local services, and custom enterprise endpoints. Provider capabilities will be negotiated through optional adapter interfaces instead of being assumed globally.
 

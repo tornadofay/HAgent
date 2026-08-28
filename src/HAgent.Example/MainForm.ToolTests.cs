@@ -73,7 +73,7 @@ namespace HAgent.Example
 
         private static HAgentClient CreateToolTestClient()
         {
-            return new HAgentClient(new InMemoryAiStore(), new EmptySecretStore(), new IAgentToolProviderAdapter[0]);
+            return new HAgentClient(new InMemoryAiStore(), new EmptySecretStore(), new IAiProviderAdapter[0]);
         }
 
         private sealed class EmptySecretStore : ISecretStore

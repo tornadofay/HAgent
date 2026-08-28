@@ -22,6 +22,7 @@ Completed foundation capabilities:
 - Provider model discovery.
 - Agent/provider deletion rules.
 - Shared HAgent `Header`, `HMessage`, and `HButton` UI primitives.
+- `HAgent.Example` manual integration host for developer-facing feature verification.
 
 ## 0.2 — Runtime Foundation — Completed
 
@@ -46,7 +47,7 @@ The 0.2 milestone establishes a provider-neutral execution layer without turning
 
 0.2 deliberately does **not** claim to have completed persistent memory, provider-native tool calling, long-running durable tasks, or full multi-provider configuration UI.
 
-## 0.3 — Memory
+## 0.3 — Memory — Current
 
 - Persistent conversation memory.
 - Working memory and context-window budgeting.
@@ -110,7 +111,7 @@ The 0.2 milestone establishes a provider-neutral execution layer without turning
 - Per-agent tool selection.
 - Permission and confirmation policies.
 
-## 0.5 — UI and application automation
+## 0.5 — UI/application automation
 
 This milestone enables scenarios such as:
 
@@ -244,6 +245,7 @@ Planned capabilities:
 - Agent simulation/test mode.
 - Diagnostics/trace viewer.
 - Developer examples for UI automation, database tasks, document workflows, and multi-agent collaboration.
+- Expand `HAgent.Example` as the executable manual verification suite for every completed capability.
 
 ## 1.0 — Stable HAgent platform
 
@@ -274,6 +276,7 @@ Planned capabilities:
 - Every autonomous action should be observable, cancellable, and policy-controlled.
 - File/database/vector stores remain replaceable.
 - Advanced functionality belongs in optional assemblies when it would otherwise bloat common deployments.
+- The manual example host is part of the development workflow, not a substitute for automated tests.
 - .NET Framework 4.8.1 and .NET 9 remain the current supported targets.
 - No local GPU, local embedding model, vector database, or large resident RAM footprint may be a prerequisite for normal operation.
 

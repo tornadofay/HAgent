@@ -16,7 +16,7 @@ namespace HAgent.Providers.OpenAICompatible
     /// Adapter for providers exposing an OpenAI-compatible /chat/completions endpoint.
     /// Uses Newtonsoft.Json so the same source works on .NET Framework 4.8.1 and modern .NET.
     /// </summary>
-    public sealed class OpenAICompatibleProviderAdapter : IAiProviderAdapter, IProviderConnectionTester, IProviderModelCatalog, IProviderModelCapabilities, IProviderStreamingAdapter
+    public sealed partial class OpenAICompatibleProviderAdapter : IAiProviderAdapter, IProviderConnectionTester, IProviderModelCatalog, IProviderModelCapabilities, IProviderStreamingAdapter, IProviderToolCallingAdapter
     {
         public const string ProviderKind = "openai-compatible";
 

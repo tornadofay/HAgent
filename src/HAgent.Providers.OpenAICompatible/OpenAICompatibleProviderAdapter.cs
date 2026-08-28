@@ -120,7 +120,7 @@ namespace HAgent.Providers.OpenAICompatible
             var request = new ChatCompletionRequest
             {
                 Model = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model,
-                Messages = ToDtos(messages, systemPrompt),
+                Messages = ToRequestDtos(messages, systemPrompt),
                 Temperature = agent.Temperature,
                 MaxTokens = agent.MaxOutputTokens
             };
@@ -203,13 +203,13 @@ namespace HAgent.Providers.OpenAICompatible
             return baseUrl.TrimEnd('/') + "/models";
         }
 
-        private static List<ChatMessageDto> ToDtos(IReadOnlyList<AIMessage> messages, string systemPrompt)
+        private static List<RequestChatMessageDto> ToRequestDtos(IReadOnlyList<AIMessage> messages, string systemPrompt)
         {
-            var result = new List<ChatMessageDto>();
+            var result = new List<RequestChatMessageDto>();
 
             if (!string.IsNullOrWhiteSpace(systemPrompt))
             {
-                result.Add(new ChatMessageDto { Role = "system", Content = systemPrompt });
+                result.Add(new RequestChatMessageDto { Role = "system", Content = systemPrompt });
             }
 
             if (messages != null)
@@ -217,7 +217,7 @@ namespace HAgent.Providers.OpenAICompatible
                 foreach (var message in messages)
                 {
                     if (message == null) continue;
-                    result.Add(new ChatMessageDto { Role = message.Role, Content = message.Content });
+                    result.Add(new RequestChatMessageDto { Role = message.Role, Content = message.Content });
                 }
             }
 
@@ -230,7 +230,7 @@ namespace HAgent.Providers.OpenAICompatible
             public string Model { get; set; }
 
             [JsonProperty("messages")]
-            public List<ChatMessageDto> Messages { get; set; }
+            public List<RequestChatMessageDto> Messages { get; set; }
 
             [JsonProperty("temperature")]
             public double? Temperature { get; set; }
@@ -239,7 +239,16 @@ namespace HAgent.Providers.OpenAICompatible
             public int? MaxTokens { get; set; }
         }
 
-        private sealed class ChatMessageDto
+        private sealed class RequestChatMessageDto
+        {
+            [JsonProperty("role")]
+            public string Role { get; set; }
+
+            [JsonProperty("content")]
+            public string Content { get; set; }
+        }
+
+        private sealed class ResponseChatMessageDto
         {
             [JsonProperty("role")]
             public string Role { get; set; }
@@ -266,7 +275,7 @@ namespace HAgent.Providers.OpenAICompatible
         private sealed class ChoiceDto
         {
             [JsonProperty("message")]
-            public ChatMessageDto Message { get; set; }
+            public ResponseChatMessageDto Message { get; set; }
         }
 
         private sealed class ModelListResponse

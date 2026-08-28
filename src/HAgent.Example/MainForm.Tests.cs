@@ -87,15 +87,16 @@ namespace HAgent.Example
             var request = RequireInput(firstMessage);
             var conversationPath = Path.Combine(_basePath, "conversations");
             var sessionId = "example-" + Guid.NewGuid().ToString("N");
-            var memoryFile = Path.Combine(conversationPath, sessionId + ".json");
 
             string originalTranscript;
             var firstConversationStore = new FileConversationStore(conversationPath);
             try
             {
+                var firstStore = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+                var firstSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
                 var firstClient = new HAgentClient(
-                    selection.ClientStore,
-                    selection.Secrets,
+                    firstStore,
+                    firstSecrets,
                     new[] { new OpenAICompatibleProviderAdapter() },
                     null,
                     null,
@@ -114,9 +115,11 @@ namespace HAgent.Example
             var secondConversationStore = new FileConversationStore(conversationPath);
             try
             {
+                var secondStore = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+                var secondSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
                 var secondClient = new HAgentClient(
-                    selection.ClientStore,
-                    selection.Secrets,
+                    secondStore,
+                    secondSecrets,
                     new[] { new OpenAICompatibleProviderAdapter() },
                     null,
                     null,
@@ -124,13 +127,13 @@ namespace HAgent.Example
 
                 var reopened = await secondClient.OpenSessionAsync(selection.Agent.Id, sessionId, CancellationToken.None);
                 var reopenedRead = await reopened.ReadAsync();
-                var expected = reopenedRead.Messages.Any(x => string.Equals(x.Content, request, StringComparison.Ordinal));
+                var retained = reopenedRead.Messages.Any(x => string.Equals(x.Content, request, StringComparison.Ordinal));
 
-                if (!expected)
+                if (!retained)
                     throw new InvalidOperationException("The reopened session did not retain the original user message.");
 
                 Write("PERSISTENT SESSION", "Session ID: " + sessionId + Environment.NewLine +
-                                          "File: " + memoryFile + Environment.NewLine +
+                                          "File: " + Path.Combine(conversationPath, sessionId + ".json") + Environment.NewLine +
                                           "Agent: " + selection.Agent.Name + Environment.NewLine +
                                           "Provider: " + selection.Provider.Name + Environment.NewLine +
                                           "Model: " + selection.Model + Environment.NewLine +

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace HAgent.Example
@@ -34,6 +35,7 @@ namespace HAgent.Example
         private readonly TabControl _tabs = new TabControl();
         private readonly List<HButton> _testButtons = new List<HButton>();
         private readonly List<AiAgent> _agents = new List<AiAgent>();
+        private CancellationTokenSource _streamingCts;
 
         public MainForm()
             : base(
@@ -67,6 +69,15 @@ namespace HAgent.Example
 
             AddFeatureTabs();
             Shown += async delegate { await RefreshAgentsAsync(); };
+            FormClosed += delegate
+            {
+                if (_streamingCts != null)
+                {
+                    _streamingCts.Cancel();
+                    _streamingCts.Dispose();
+                    _streamingCts = null;
+                }
+            };
         }
 
         private void BuildShell()

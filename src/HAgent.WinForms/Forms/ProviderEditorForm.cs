@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
+using HAgent.WinForms;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
@@ -245,11 +246,36 @@ namespace HAgent.WinForms.Forms
                 foreach (var model in models) _model.Items.Add(model);
                 _model.Text = current;
                 if (models.Count > 0) _status.Text = models.Count + " model(s) available";
+                await ShowCapabilitiesAsync(adapter, _model.Text).ConfigureAwait(true);
             }
             catch (Exception ex)
             {
                 if (showErrors) HMessage.ShowException(this, "The model list could not be loaded.", "Load models", ex);
             }
+        }
+
+        private async Task ShowCapabilitiesAsync(IAiProviderAdapter adapter, string model)
+        {
+            var capabilityAdapter = adapter as IProviderModelCapabilities;
+            if (capabilityAdapter == null)
+            {
+                _status.Text = "Capabilities: unavailable";
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(model))
+            {
+                _status.Text = "Capabilities: select a model";
+                return;
+            }
+
+            var capabilities = await capabilityAdapter.GetCapabilitiesAsync(
+                CreateWorkingProvider(),
+                model.Trim(),
+                await GetApiKeyAsync(),
+                CancellationToken.None).ConfigureAwait(true);
+
+            _status.Text = CapabilityDisplay.BuildSummary(capabilities);
+            CapabilityDisplay.AttachToolTip(_status, capabilities);
         }
 
         private void ValidateConnectionFields()

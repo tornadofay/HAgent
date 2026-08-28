@@ -57,25 +57,32 @@
 - [ ] Provider/model capability metadata and automatic suitability filtering.
 
 ## 0.3 — Memory — current
-- [ ] Persistent conversation memory.
+- [x] Persistent `FileMemoryStore` using append-oriented JSONL records.
+- [x] Streaming file search so the whole memory file does not need to be loaded into RAM.
+- [x] Explicit `remember` through `HAgentClient.RememberAsync`.
+- [x] Explicit `recall` through `HAgentClient.RecallAsync`.
+- [x] Explicit `forget` through `HAgentClient.ForgetAsync`.
+- [x] Memory scopes: session, task, agent, user, application, shared.
+- [x] Memory metadata filtering.
+- [x] Memory creation timestamps/provenance baseline.
+- [x] Bounded recall result count.
+- [ ] Persistent conversation memory integration.
+- [ ] Automatic session-memory policy.
 - [ ] Working memory/context-window budgeting.
 - [ ] Short-term task/event memory.
 - [ ] Episodic memory.
 - [ ] Semantic/long-term memory.
-- [ ] File memory store.
 - [ ] SQL Server memory store.
 - [ ] MySQL memory store.
-- [ ] Lightweight indexed text retrieval for low-RAM systems.
+- [ ] Persistent lightweight indexing for faster large-store retrieval without a large RAM footprint.
 - [ ] Optional vector-memory adapter.
 - [ ] Remote embedding-provider support without local GPU requirements.
-- [ ] Memory scopes: session, task, agent, user, application, shared.
-- [ ] Relevance ranking.
+- [ ] Improved relevance/ranking.
 - [ ] Context trimming and compaction.
-- [ ] Explicit `remember`, `recall`, and `forget` operations.
-- [ ] Memory provenance and timestamps.
+- [ ] Memory update/upsert semantics.
+- [ ] Richer memory provenance source/type fields.
 - [ ] Retention/expiration policies.
-- [ ] Bounded memory loading.
-- [ ] Add corresponding manual memory examples to `HAgent.Example` as each capability becomes complete.
+- [ ] Add manual memory examples to `HAgent.Example`.
 
 ## 0.4 — Tools
 - [ ] Tool definitions with JSON Schema.
@@ -100,7 +107,7 @@
 - [ ] Set/read control text/value.
 - [ ] Approved click/invoke actions.
 - [ ] Enable/disable controls.
-- [ ] Batch UI actions.
+- [ ] Batch UI operations.
 - [ ] Dry-run/preview mode.
 - [ ] Undo/rollback hooks where host supports them.
 - [ ] Per-control permissions.

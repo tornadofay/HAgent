@@ -54,11 +54,11 @@ Memory
   └─ replaceable storage/retrieval providers
 
 Tools
-  ├─ capability definition
-  ├─ schema / validation
-  ├─ executable host handler
-  ├─ registry
-  └─ observation/result
+  ├─ typed definition
+  ├─ tool type
+  ├─ JSON Schema contract
+  ├─ registry / handler
+  └─ result / observation
 
 Host integration
   ├─ WinForms UI context
@@ -173,7 +173,34 @@ HAgent 0.3 added persistent conversations, low-resource memory, explicit/automat
 
 HAgent 0.4 established provider capability and response-normalization foundations: tri-state capabilities, evidence/provenance, capability caching, suitability checks, separate reasoning/raw/structured/tool-call/usage metadata, provider error diagnostics, provider-neutral streaming, OpenAI-compatible SSE streaming, and live Example verification.
 
-HAgent 0.5 is now active. The first tool foundation is implemented: `AiTool`, `IAgentTool`, `IToolRegistry`, `InMemoryToolRegistry`, `DelegateAgentTool`, plus `HAgentClient` registration/lookup/direct-execution APIs and a deterministic Example verification tab. The next work is JSON Schema validation, provider tool-definition transport, and the model↔tool execution loop.
+HAgent 0.5 is now active. The tool foundation includes `AiTool`, explicit tool types, `IAgentTool`, `IToolRegistry`, `InMemoryToolRegistry`, `DelegateAgentTool`, and `HAgentClient` registration/lookup/direct execution APIs. The next work is JSON Schema validation, provider tool-definition transport, and the model↔tool execution loop.
+
+## Tool types
+
+The initial tool categories are deliberately explicit:
+
+| Type | Handler source | Purpose |
+|---|---|---|
+| **Built-in** | HAgent | Capabilities shipped by the framework itself |
+| **Application tool** | Host application | Developer-supplied executable handler registered with HAgent |
+| **Declarative tool** | HAgent declarative engine | Safe configuration-driven operations; configuration is never arbitrary code |
+| **UI tool** | `HAgent.WinForms` | Form/control context adapters and approved UI operations |
+| **SQL Server tool** | SQL Server tool layer | Restricted database operations against SQL Server |
+| **MySQL tool** | MySQL tool layer | Restricted database operations against MySQL |
+
+**Extension tools are intentionally deferred** to a future extensibility milestone. They are not part of the initial tool implementation.
+
+The key separation is:
+
+```text
+Tool Definition
+    = what the model is allowed to request
+
+Tool Handler
+    = what the host actually executes
+```
+
+A Tool Configuration form therefore defines the contract and type; it does not contain arbitrary C# code and must never turn configuration text into arbitrary executable code.
 
 ## Architecture principles
 
@@ -245,7 +272,7 @@ Tool call?
       ↓
  Optional human approval
       ↓
- Execute
+ Execute registered handler
       ↓
  Tool result / observation
       ↓
@@ -254,7 +281,33 @@ Tool call?
  ...
 ```
 
-The current tool layer already separates persisted tool definitions from executable handlers. Provider transport and the full multi-turn tool loop are the next implementation pieces.
+The initial tool layer supports provider-independent registration and direct execution. Provider transport and the full multi-turn tool loop are the next implementation pieces.
+
+### Tool configuration is not code execution
+
+The configuration UI defines:
+
+```text
+Name
+Description
+Type
+Category
+JSON Schema
+Enabled
+```
+
+The executable implementation comes from the corresponding handler source:
+
+```text
+BuiltIn       → HAgent
+Application   → host application registry
+Declarative   → restricted declarative engine
+UI            → WinForms adapter layer
+SqlServer     → restricted SQL Server layer
+MySql         → restricted MySQL layer
+```
+
+There is deliberately no “paste C# and run it” feature.
 
 ### Prompts are not security boundaries
 

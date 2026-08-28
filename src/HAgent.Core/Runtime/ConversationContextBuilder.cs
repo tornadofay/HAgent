@@ -32,36 +32,35 @@ namespace HAgent.Runtime
             if (messages.Count <= maxMessages && CountCharacters(messages) <= maxCharacters)
                 return new List<AIMessage>(messages).AsReadOnly();
 
-            var selected = new List<AIMessage>();
+            var selected = new List<IndexedMessage>();
             var selectedIndices = new HashSet<int>();
 
             for (var i = 0; i < leading && selected.Count < maxMessages; i++)
             {
-                selected.Add(messages[i]);
+                selected.Add(new IndexedMessage(i, messages[i]));
                 selectedIndices.Add(i);
             }
 
-            var start = Math.Max(leading, messages.Count - recent);
-            for (var i = start; i < messages.Count && selected.Count < maxMessages; i++)
+            var recentStart = Math.Max(leading, messages.Count - recent);
+            for (var i = recentStart; i < messages.Count && selected.Count < maxMessages; i++)
             {
                 if (!selectedIndices.Contains(i))
                 {
-                    selected.Add(messages[i]);
+                    selected.Add(new IndexedMessage(i, messages[i]));
                     selectedIndices.Add(i);
                 }
             }
 
-            // Fill any remaining slots from the newest messages that fit the character budget.
             for (var i = messages.Count - 1; i >= 0 && selected.Count < maxMessages; i--)
             {
                 if (selectedIndices.Contains(i)) continue;
-                selected.Insert(leading, messages[i]);
+                selected.Add(new IndexedMessage(i, messages[i]));
                 selectedIndices.Add(i);
             }
 
-            selected.Sort(delegate(AIMessage x, AIMessage y)
+            selected.Sort(delegate(IndexedMessage x, IndexedMessage y)
             {
-                return messages.IndexOf(x).CompareTo(messages.IndexOf(y));
+                return x.Index.CompareTo(y.Index);
             });
 
             while (CountCharacters(selected) > maxCharacters && selected.Count > 1)
@@ -71,7 +70,10 @@ namespace HAgent.Runtime
                 selected.RemoveAt(removeIndex);
             }
 
-            return selected.AsReadOnly();
+            var result = new List<AIMessage>(selected.Count);
+            foreach (var item in selected)
+                result.Add(item.Message);
+            return result.AsReadOnly();
         }
 
         public int EstimateTokens(IReadOnlyList<AIMessage> messages)
@@ -87,19 +89,41 @@ namespace HAgent.Runtime
             foreach (var message in messages)
             {
                 if (message == null) continue;
-                total += (message.Role == null ? 0 : message.Role.Length);
+                total += message.Role == null ? 0 : message.Role.Length;
                 total += message.Content == null ? 0 : message.Content.Length;
             }
             return total;
         }
 
-        private static int FindOldestRemovableIndex(List<AIMessage> messages, int leadingCount)
+        private static int CountCharacters(List<IndexedMessage> messages)
         {
-            for (var i = 0; i < messages.Count; i++)
+            var total = 0;
+            foreach (var item in messages)
             {
-                if (i >= leadingCount) return i;
+                if (item.Message == null) continue;
+                total += item.Message.Role == null ? 0 : item.Message.Role.Length;
+                total += item.Message.Content == null ? 0 : item.Message.Content.Length;
             }
+            return total;
+        }
+
+        private static int FindOldestRemovableIndex(List<IndexedMessage> messages, int leadingCount)
+        {
+            for (var i = leadingCount; i < messages.Count; i++)
+                return i;
             return -1;
+        }
+
+        private sealed class IndexedMessage
+        {
+            public IndexedMessage(int index, AIMessage message)
+            {
+                Index = index;
+                Message = message;
+            }
+
+            public int Index { get; private set; }
+            public AIMessage Message { get; private set; }
         }
     }
 }

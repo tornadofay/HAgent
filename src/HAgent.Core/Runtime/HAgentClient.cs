@@ -13,12 +13,23 @@ namespace HAgent.Runtime
         private readonly IAiStore _store;
         private readonly ISecretStore _secrets;
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
+        private readonly IAgentRuntime _runtime;
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
+            : this(store, secrets, adapters, null)
+        {
+        }
+
+        public HAgentClient(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IProviderRouter router)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters))).ToList().AsReadOnly();
+            _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router);
         }
 
         public Task<AIResponse> SendAsync(string agentId, string message, CancellationToken cancellationToken = default(CancellationToken))
@@ -66,6 +77,15 @@ namespace HAgent.Runtime
             }
 
             throw new InvalidOperationException("No enabled and compatible provider could handle agent: " + agent.Name);
+        }
+
+        public Task<AgentExecution> ExecuteAsync(
+            string agentId,
+            string message,
+            AgentExecutionOptions options = null,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _runtime.ExecuteAsync(agentId, message, options, cancellationToken);
         }
 
         public AgentSession CreateSession(string agentId)

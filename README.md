@@ -1,16 +1,18 @@
 # HAgent
 
-**Lightweight AI provider and agent management for .NET desktop applications.**
+**Lightweight AI provider and agent runtime for .NET desktop applications.**
 
-HAgent gives a WinForms application one small API for managing AI providers, defining agents, storing configuration securely, and sending messages without hard-coding a specific AI vendor into the application.
+HAgent gives a desktop application one small, provider-neutral API for configuring AI providers, defining agents, securely storing credentials, executing agent requests, and building toward memory, tools, collaboration, and application automation.
 
-> Status: **0.1.x — foundation / early test release**
+> Status: **0.2 complete — runtime foundation / early development release**
+>
+> Current development targets: **.NET Framework 4.8.1 and .NET 9**.
 
 ## Why HAgent exists
 
-AI integration often starts simple and quickly becomes application-specific plumbing: API keys, endpoints, model names, system prompts, provider switching, database tables, and settings screens end up scattered through the application.
+AI integration quickly becomes application-specific plumbing: API keys, endpoints, model names, system prompts, provider switching, persistence, settings screens, conversations, tools, and task execution end up scattered through the application.
 
-HAgent centralizes that plumbing behind a small model:
+HAgent centralizes that foundation behind a small model:
 
 ```text
 Provider
@@ -20,14 +22,23 @@ Provider
   └─ optional shared system instruction
 
 Agent
-  ├─ provider
+  ├─ preferred provider
+  ├─ optional additional providers
   ├─ optional model override
   ├─ system instruction
   ├─ generation settings
-  └─ enabled state
+  └─ tool references
+
+Runtime
+  ├─ execution snapshot
+  ├─ provider routing
+  ├─ timeout / cancellation
+  ├─ retry / backoff
+  ├─ lifecycle state
+  └─ diagnostics
 ```
 
-An application eventually talks to an agent rather than directly to a provider:
+Applications talk to an agent rather than directly to a vendor:
 
 ```csharp
 var response = await ai.SendAsync(
@@ -47,51 +58,76 @@ await session.SendAsync("Now explain recursion simply.");
 var history = await session.ReadAsync();
 ```
 
+For controlled execution:
+
+```csharp
+var execution = await ai.ExecuteAsync(
+    "assistant",
+    "Perform this task.",
+    new AgentExecutionOptions
+    {
+        Timeout = TimeSpan.FromSeconds(60),
+        MaxProviderAttempts = 3,
+        RetryCountPerProvider = 1
+    });
+```
+
+## Current status
+
+HAgent 0.2 establishes the runtime foundation needed for later agent capabilities. It includes execution state, execution snapshots, provider routing, cancellation/timeouts, retry/backoff, lifecycle events, diagnostics, and a lightweight memory abstraction.
+
+The executable WinForms host is still primarily a configuration/development host. Persistent memory, full autonomous tool calling, multi-agent collaboration, and the user chat experience are deliberately separate milestones.
+
 ## Design principles
 
 ### Small core
-`HAgent.Core` contains the domain objects, store abstractions, provider adapter abstraction, session API, and runtime. It does not depend on WinForms, SQL Server, MySQL, or a particular AI vendor.
+`HAgent.Core` contains domain objects, abstractions, runtime, sessions, and lightweight in-memory infrastructure. It does not depend on WinForms, SQL Server, MySQL, a particular AI vendor, or a vector database.
 
 ### Provider versus agent
 A provider answers **“how do I connect?”**.
 
 An agent answers **“how should this AI behave?”**.
 
-The provider may define an optional shared system instruction. Agents inherit it by default and append their own system instruction. Every agent also has a visible setting to disable provider-prompt inheritance. This keeps the feature useful without creating a hidden prompt hierarchy.
+Providers can expose shared defaults such as a shared system instruction. Agents explicitly decide whether that instruction is inherited; there is no hidden prompt hierarchy.
 
-### Secrets never live beside normal settings
-The default file implementation stores structured settings as JSON and secrets separately through Windows DPAPI. This is deliberately preferable to putting API keys into an `.ini` file or ordinary JSON.
+### Runtime versus configuration
+Configuration objects can change or be deleted while an execution is running. An execution captures an `AgentExecutionSnapshot` so runtime work operates against a stable view of the relevant agent/providers.
 
-### Optional persistence
-Applications can start with local files and later move the same domain model to SQL Server or MySQL. Storage is an implementation detail behind `IAiStore`.
+### Provider fallback is policy, not vendor logic
+The runtime knows how to order candidate providers, limit attempts, classify broad failures, and back off. Provider adapters remain responsible for translating their own API protocol.
 
-### Provider adapters are plugins
-The first transport is OpenAI-compatible HTTP because it covers a large family of APIs with the same request shape. More adapters can be added without changing agents or storage.
+### Memory is externalized state
+HAgent does not claim that an AI model permanently remembers anything. Memory is explicit application state retrieved and supplied as context. The default memory direction must work without a local GPU and without loading a large store entirely into RAM.
+
+### Tools are controlled capabilities
+A tool definition describes a capability; it is not executable code. The host application owns the actual handler and side effects. An AI model must never receive arbitrary access to controls, processes, files, databases, or reflection.
 
 ## Assemblies
 
 | Assembly | Purpose |
 |---|---|
-| `HAgent.Core` | Core models, abstractions, runtime, sessions |
-| `HAgent.Providers.OpenAICompatible` | OpenAI-compatible `/chat/completions` adapter |
-| `HAgent.Storage.File` | JSON settings + DPAPI secret store |
+| `HAgent.Core` | Core models, abstractions, sessions, runtime, and lightweight infrastructure |
+| `HAgent.Providers.OpenAICompatible` | OpenAI-compatible chat and model-catalog adapter |
+| `HAgent.Storage.File` | JSON settings + Windows DPAPI secret store |
 | `HAgent.Storage.SqlServer` | SQL Server persistence + schema bootstrap |
 | `HAgent.Storage.MySql` | MySQL persistence + schema bootstrap |
-| `HAgent.WinForms` | Designer-free settings UI |
-| `HAgent.Sample` | Testable WinForms sample application |
+| `HAgent.WinForms` | Designer-free configuration/development UI and shared HAgent UI helpers |
+| `HAgent.Sample` | Development/sample host |
 
 ## Supported targets
 
-The current release targets:
+Current targets:
 
 - .NET Framework 4.8.1
 - .NET 9
 
-.NET 10 is intentionally not a build target yet. It is planned for a later upgrade once the development environment moves to a Visual Studio version that supports it.
+.NET 10 is intentionally not a current build target. It is planned after the development environment moves to a Visual Studio release that supports it.
 
 ## Quick start
 
-Add:
+For the development host, set `HAgent.WinForms` as the Visual Studio startup project and press F5.
+
+For application integration, add the assemblies you need:
 
 ```text
 HAgent.Core
@@ -100,20 +136,7 @@ HAgent.Storage.File
 HAgent.WinForms
 ```
 
-Then open the management UI with:
-
-```csharp
-HAgent.WinForms.AISettings.ShowMainAISettingsForm(this);
-```
-
-The parameterless storage path uses:
-
-```text
-%LOCALAPPDATA%\HAgent\settings.json
-%LOCALAPPDATA%\HAgent\secrets\
-```
-
-For a custom application-owned store:
+The Windows Forms UI can be opened through the supplied `AISettings` helper. Runtime usage is application-owned:
 
 ```csharp
 var store = new HAgent.Storage.File.FileAiStore(
@@ -122,15 +145,6 @@ var store = new HAgent.Storage.File.FileAiStore(
 var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(
     @"C:\MyApp\ai\secrets");
 
-HAgent.WinForms.AISettings.ShowMainAISettingsForm(
-    store,
-    secrets,
-    this);
-```
-
-Runtime:
-
-```csharp
 var ai = new HAgent.Runtime.HAgentClient(
     store,
     secrets,
@@ -144,82 +158,80 @@ var result = await ai.SendAsync(
     "Give me a concise status message.");
 ```
 
-## UI philosophy
+Default local storage uses:
 
-The settings window is deliberately not a typical giant property grid. It uses task-oriented navigation:
+```text
+%LOCALAPPDATA%\HAgent\settings.json
+%LOCALAPPDATA%\HAgent\secrets\
+```
 
-- **Overview** — what is configured and what needs attention.
-- **Providers** — connections, authentication, defaults, and which agents use each provider.
-- **Agents** — behavior, provider, model overrides, and generation controls.
-- **About** — explains the mental model inside the application itself.
+## Provider adapters
 
-Controls use plain-language descriptions beside settings instead of relying on tooltips alone. The first release is English-first and is built without a WinForms designer file so the visual structure stays under source control.
+The first adapter is OpenAI-compatible. It supports the common `/chat/completions` request shape and `/models` discovery endpoint.
 
-High-DPI behavior should be configured by the host application. Modern WinForms supports explicit high-DPI modes, while .NET Framework 4.7+ requires opt-in configuration. citeturn553369search1turn553369search2
+The architecture intentionally permits separate adapters for providers such as Azure OpenAI, Anthropic, Google/Gemini, Ollama, LM Studio, local services, and custom enterprise endpoints. Provider capabilities will be negotiated through optional adapter interfaces instead of being assumed globally.
 
 ## Storage
 
 ### File storage
 
-Use the file store when the application is a desktop product with one local configuration profile.
-
-Normal settings:
-
-```json
-{
-  "Providers": [],
-  "Agents": []
-}
-```
-
-Secrets are not serialized into that JSON.
+Use file storage for a local desktop configuration profile. Structured settings are stored as JSON. Secrets are kept separately through the configured secret store and, in the default implementation, protected using Windows DPAPI under the current Windows user context.
 
 ### SQL Server / MySQL
 
-Use the database stores when several installations or administrative workflows need a centralized configuration source. Each storage package exposes `EnsureSchemaAsync(...)` so an application can bootstrap HAgent's tables during startup or setup.
+Use database storage when configuration needs to be centralized or shared between installations/administrative workflows. The storage packages use direct ADO.NET access rather than an ORM to keep them small and predictable.
 
-HAgent does not use an ORM for these stores. It uses direct ADO.NET providers to keep the storage assemblies predictable and small.
+## UI conventions
+
+HAgent WinForms uses a custom borderless shell and shared HAgent controls rather than standard Windows chrome for the management experience.
+
+Important UI rules:
+
+- `Header` is the shared window header.
+- `HMessage` is used for HAgent information, questions, delete confirmation, errors, and exceptions.
+- `HButton` is the application action button.
+- Forms use explanatory labels and task-oriented navigation rather than a giant property grid.
+
+## Memory and low-resource design
+
+Memory is a first-class runtime abstraction, but vector storage is optional.
+
+The default design is intended to remain useful on machines with no GPU and as little as a few gigabytes of RAM. Lightweight text/metadata retrieval can be used without local embedding models. Optional vector memory may use a remote embedding service or a companion package when an application actually needs it.
+
+HAgent must not make an embedding model, GPU, vector database, or large in-memory index a prerequisite for normal agent execution.
+
+## Tools and application automation
+
+Tools are planned as explicit, typed capabilities that the host registers and executes. For example, a host could expose:
+
+```text
+ui.move_control
+ui.set_text
+ui.read_control
+```
+
+The model requests a named tool with structured arguments; HAgent validates the request; the host executes the permitted side effect; and the result becomes an observation for the agent.
+
+The actual provider-neutral tool-call execution loop is planned for the Tools milestone and is not forced into the 0.2 core.
 
 ## Security boundary
 
-The first release protects local secrets using Windows DPAPI `CurrentUser`. That means the secret is tied to the Windows user context that created it. It is not a replacement for a server-side secret manager.
+HAgent does not place raw API keys into normal agent/provider configuration records. The runtime resolves secrets through `ISecretStore` before calling an adapter.
 
-For centrally managed deployments, the architecture intentionally leaves room for a custom `ISecretStore` implementation backed by a vault, Windows Credential Manager, or another enterprise secret provider.
+Tool execution is intentionally bounded by explicit host registration and, in later milestones, permission/approval policies. Runtime failures and diagnostics must not expose secrets.
 
-## Current provider support
+## Roadmap and project tracking
 
-`HAgent.Providers.OpenAICompatible` sends chat requests to:
+- [plan.md](plan.md) — current implementation state and active milestone.
+- [roadmap.md](roadmap.md) — long-term product/architecture direction.
+- [AGENTS.md](AGENTS.md) — repository engineering and UI rules.
 
-```text
-{BaseUrl}/chat/completions
-```
-
-This intentionally covers APIs that expose the common OpenAI-style chat contract. It should not be interpreted as a guarantee that every provider using similar URLs implements every request field identically.
-
-Microsoft's `Microsoft.Extensions.AI.IChatClient` is a useful ecosystem reference and is available to .NET Framework through a package-provided `netstandard2.0` surface, but HAgent does not require it in the core in order to keep the first version small. citeturn553369search0
-
-## What is intentionally not in 0.1
-
-No vector database, RAG pipeline, tool calling framework, autonomous loop, workflow engine, remote configuration service, telemetry backend, or secret-vault dependency is forced into the core.
-
-Those features can be layered on later. The point of HAgent is to make the first 80% of application integration boring and stable.
-
-## Project plan
-
-See [plan.md](plan.md) for the active implementation checklist and current milestone.
-
-## Roadmap
-
-See [roadmap.md](roadmap.md) for the longer-term feature roadmap.
+These documents are part of the project state and must be updated with meaningful milestone or architecture changes.
 
 ## Contributing
 
-See [AGENTS.md](AGENTS.md) for repository conventions and safe extension points.
+Read [AGENTS.md](AGENTS.md) before modifying the repository.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-## Development host
-
-`HAgent.WinForms` is an executable development host. Set it as the Visual Studio startup project and press F5 to launch the HAgent configuration UI directly. The host registers the built-in OpenAI-compatible adapter; additional provider adapters can be supplied by application code or future companion packages.

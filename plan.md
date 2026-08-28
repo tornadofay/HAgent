@@ -85,7 +85,7 @@ This is the implementation ledger. Keep it synchronized with the repository. A m
 
 ## 0.4 Provider Capabilities and Response Normalization — active
 
-### Implemented first slice
+### Implemented
 - [x] Tri-state capability support model: Supported / Unsupported / Unknown.
 - [x] `AiCapability` flags for chat, streaming, structured output, tool calling, vision, audio, embeddings, and reasoning.
 - [x] Optional `IProviderModelCapabilities` adapter contract.
@@ -97,17 +97,27 @@ This is the implementation ledger. Keep it synchronized with the repository. A m
 - [x] OpenAI-compatible parsing of explicit `reasoning_content` into the separate reasoning field.
 - [x] Detection metadata for `<think>` markup without treating it as native reasoning.
 - [x] Manual `HAgent.Example` capability inspection tab.
+- [x] In-process provider/model capability cache keyed by provider kind, provider ID, endpoint, and model.
+- [x] Cache eviction on failed capability discovery.
+- [x] Known-unsupported Chat models are skipped during normal `SendAsync` provider routing.
+- [x] Legacy adapters without capability discovery remain compatible and report Unknown.
+- [x] `ClearModelCapabilityCache()` public cache reset operation.
+- [x] Provider Editor shows capability summary for the selected default model.
+- [x] Agent Editor shows capability summary for the effective selected model.
+- [x] Full capability matrix available through editor status tooltips.
+- [x] Editor warning when Chat capability is explicitly Unsupported.
 
 ### Remaining 0.4 work
-- [ ] Capability cache.
-- [ ] Model suitability checks based on capability requirements.
-- [ ] Capability-aware provider/model selection in routing.
+- [ ] Capability source/confidence metadata (provider metadata, adapter knowledge, user configuration, observed runtime).
+- [ ] Capability cache persistence/expiration policy if needed beyond per-client caching.
+- [ ] Rich provider capability discovery where providers expose it.
+- [ ] Model suitability requirements beyond the mandatory Chat check.
+- [ ] Capability-aware provider/model selection in routing for tools, vision, structured output, audio, and reasoning.
 - [ ] Provider-neutral structured-output representation.
 - [ ] Provider-neutral tool-call representation.
 - [ ] Usage/token/cost normalization beyond the current usage dictionary.
 - [ ] Streaming response abstraction.
 - [ ] Application policy for displaying/storing/logging/discarding reasoning.
-- [ ] Rich provider capability discovery where providers expose it.
 - [ ] Manual response-normalization test with an explicit provider reasoning field.
 
 ## 0.5 Tools and Agent Loop — planned

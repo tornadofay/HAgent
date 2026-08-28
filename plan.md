@@ -19,6 +19,7 @@
 - [x] Tabbed Example test bench with global output and global agent selection.
 - [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, runtime execution, persistent memory, and persistent sessions.
 - [x] `HAgent.Example` entry point and `MainForm` split into separate source files.
+- [x] `HAgent.Example.MainForm` feature code split into partial files for shell, tabs, context, tests, UI helpers, context tests, and memory tests.
 
 ### 0.2 Runtime foundation — completed
 - [x] Agent runtime abstraction and default execution pipeline.
@@ -48,8 +49,8 @@
 - [ ] Keep plain-text providers fully compatible.
 - [ ] Let applications choose whether exposed reasoning is displayed, stored, logged, or discarded.
 - [ ] Prevent exposed reasoning from unexpectedly appearing as ordinary user-facing text.
-- [ ] Add provider/model capability metadata before automatic reasoning handling.
 - [ ] Add manual response-normalization coverage to `HAgent.Example`.
+- [ ] Add provider/model capability metadata before automatic reasoning handling.
 
 ### Deferred from 0.2 into later milestones
 - [ ] Persistent multi-provider routing configuration/UI.
@@ -75,8 +76,14 @@
 - [x] Persist successful turns after each exchange.
 - [x] Transactional in-memory session rollback when provider or persistence fails.
 - [x] Manual persistent-session example in `HAgent.Example`.
-- [ ] Automatic session-memory policy.
-- [ ] Working memory/context-window budgeting.
+- [x] Deterministic working-context builder with message and character budgets.
+- [x] Approximate token estimation without a tokenizer dependency.
+- [x] Automatic session-memory policy contract.
+- [x] Conservative default explicit-memory policy.
+- [x] Automatic memory metadata provenance including session and policy.
+- [x] Manual automatic-memory policy example in `HAgent.Example`.
+- [x] Context budget manual example in `HAgent.Example`.
+- [ ] Automatic session-memory policy with richer inference.
 - [ ] Short-term task/event memory.
 - [ ] Episodic memory.
 - [ ] Semantic/long-term memory.
@@ -86,9 +93,9 @@
 - [ ] Optional vector-memory adapter.
 - [ ] Remote embedding-provider support without local GPU requirements.
 - [ ] Improved relevance/ranking.
-- [ ] Context trimming and compaction.
+- [ ] Context trimming and compaction/summarization.
 - [ ] Memory update/upsert semantics.
-- [ ] Richer memory provenance source/type fields.
+- [ ] Richer memory provenance/source/type fields.
 - [ ] Retention/expiration policies.
 
 ## 0.4 — Tools

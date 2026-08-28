@@ -12,6 +12,7 @@ using HAgent.Storage.File;
 using HAgent.WinForms;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
+using HAgent.WinForms.Controls;
 
 namespace HAgent.Example
 {

@@ -16,6 +16,7 @@
 - [x] Provider model catalog capability.
 - [x] Agent/provider deletion rules in UI and storage.
 - [x] `HAgent.Example` manual integration host replacing the older sample host.
+- [x] Tabbed Example test bench with global output and expected-result descriptions.
 - [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, and runtime execution.
 
 ### 0.2 Runtime foundation — completed
@@ -35,11 +36,14 @@
 - [x] Structured execution failure categories.
 - [x] Dependency-free lightweight memory abstraction/foundation.
 - [x] No-GPU/low-RAM memory design rule.
+- [x] Provider request path inserts the resolved system prompt exactly once.
+- [x] `SendAsync` preserves provider failure details instead of returning only a generic compatibility error.
 
 ### Deferred from 0.2 into later milestones
 - [ ] Persistent multi-provider routing configuration/UI.
 - [ ] Provider-native tool-call loop.
 - [ ] Strong runtime leases for coordinated lifecycle ownership.
+- [ ] Provider/model capability metadata and automatic suitability filtering.
 
 ## 0.3 — Memory — current
 - [ ] Persistent conversation memory.

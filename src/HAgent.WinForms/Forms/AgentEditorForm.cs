@@ -9,6 +9,7 @@ using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers;
+using HAgent.WinForms.Helpers.Button;
 
 namespace HAgent.WinForms.Forms
 {
@@ -27,7 +28,7 @@ namespace HAgent.WinForms.Forms
         private readonly CheckBox _enabled = new CheckBox();
         private readonly NumericUpDown _temperature = new NumericUpDown();
         private readonly NumericUpDown _tokens = new NumericUpDown();
-        private readonly Button _test = new HFlatButton();
+        private readonly HButton _test = new HButton();
         private readonly Label _status = new Label();
 
         public AgentEditorForm(AiAgent agent, IReadOnlyList<AiProvider> providers, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
@@ -92,13 +93,10 @@ namespace HAgent.WinForms.Forms
             _inherit.AutoSize = true;
 
             var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 52, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = Color.FromArgb(248, 248, 252) };
-            var save = new HFlatButton { Text = "Save agent", Width = 130, Height = 36, Margin = new Padding(8, 4, 0, 0) };
+            var save = CreateButton("Save agent", 130, 36);
+            save.Margin = new Padding(8, 4, 0, 0);
             save.Click += delegate { Save(); };
-            _test.Text = "Test agent";
-            _test.Width = 110;
-            _test.Height = 36;
-            _test.FlatStyle = FlatStyle.Flat;
-            _test.FlatAppearance.BorderSize = 0;
+            ConfigureButton(_test, "Test agent", 110, 36);
             _test.Margin = new Padding(8, 4, 0, 0);
             _test.Click += async delegate { await TestAsync(); };
             _status.AutoSize = true;
@@ -116,6 +114,35 @@ namespace HAgent.WinForms.Forms
             BodyPanel.Controls.Add(_layout);
             BodyPanel.Controls.Add(footer);
             Shown += async delegate { await LoadModelsAsync(false); };
+        }
+
+        private static HButton CreateButton(string text, int width, int height)
+        {
+            var button = new HButton { Text = text, Width = width, Height = height, RoundButton = true, Edge = 10, TextMargin = 8 };
+            ConfigureButton(button, text, width, height);
+            return button;
+        }
+
+        private static void ConfigureButton(HButton button, string text, int width, int height)
+        {
+            button.Text = text;
+            button.Width = width;
+            button.Height = height;
+            button.RoundButton = true;
+            button.Edge = 10;
+            button.ButtonLeaveBackGroundColor1 = Color.FromArgb(92, 67, 168);
+            button.ButtonLeaveBackGroundColor2 = Color.FromArgb(57, 40, 108);
+            button.ButtonLeaveForeColor = Color.White;
+            button.ButtonLeaveBorderColor = Color.FromArgb(116, 76, 210);
+            button.ButtonEnterBackGroundColor1 = Color.FromArgb(126, 94, 214);
+            button.ButtonEnterBackGroundColor2 = Color.FromArgb(79, 54, 145);
+            button.ButtonEnterForeColor = Color.White;
+            button.ButtonEnterBorderColor = Color.FromArgb(146, 118, 232);
+            button.ButtonDownBackGroundColor1 = Color.FromArgb(72, 52, 132);
+            button.ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88);
+            button.ButtonDownForeColor = Color.White;
+            button.ButtonDownBorderColor = Color.FromArgb(104, 79, 176);
+            button.TextMargin = 8;
         }
 
         private void AddField(int row, string title, string description, Control control)

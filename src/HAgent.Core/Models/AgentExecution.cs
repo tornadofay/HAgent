@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 
 namespace HAgent.Models
 {
@@ -12,6 +11,7 @@ namespace HAgent.Models
             Snapshot = snapshot;
             Messages = messages;
             State = Runtime.AgentExecutionState.Created;
+            FailureKind = AgentExecutionFailureKind.None;
             CreatedAt = DateTimeOffset.UtcNow;
         }
 
@@ -21,9 +21,16 @@ namespace HAgent.Models
         public AIResponse Response { get; internal set; }
         public Exception Error { get; internal set; }
         public Runtime.AgentExecutionState State { get; internal set; }
+        public AgentExecutionFailureKind FailureKind { get; internal set; }
+        public string LastProviderId { get; internal set; }
         public DateTimeOffset CreatedAt { get; private set; }
         public DateTimeOffset? StartedAt { get; internal set; }
         public DateTimeOffset? CompletedAt { get; internal set; }
+        public TimeSpan? Duration
+        {
+            get { return StartedAt.HasValue && CompletedAt.HasValue ? CompletedAt.Value - StartedAt.Value : (TimeSpan?)null; }
+        }
+
         public bool IsCompleted
         {
             get

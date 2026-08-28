@@ -14,17 +14,20 @@ namespace HAgent.Runtime
         private readonly ISecretStore _secrets;
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
         private readonly IProviderRouter _router;
+        private readonly IProviderErrorClassifier _errorClassifier;
 
         public DefaultAgentRuntime(
             IAiStore store,
             ISecretStore secrets,
             IEnumerable<IAiProviderAdapter> adapters,
-            IProviderRouter router = null)
+            IProviderRouter router = null,
+            IProviderErrorClassifier errorClassifier = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters))).ToList().AsReadOnly();
             _router = router ?? new DefaultProviderRouter();
+            _errorClassifier = errorClassifier ?? new DefaultProviderErrorClassifier();
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
@@ -43,6 +46,10 @@ namespace HAgent.Runtime
                 throw new ArgumentOutOfRangeException(nameof(options.Timeout), "Timeout must be greater than zero.");
             if (options.MaxProviderAttempts <= 0)
                 throw new ArgumentOutOfRangeException(nameof(options.MaxProviderAttempts), "MaxProviderAttempts must be greater than zero.");
+            if (options.MaxRetriesPerProvider < 0)
+                throw new ArgumentOutOfRangeException(nameof(options.MaxRetriesPerProvider), "MaxRetriesPerProvider cannot be negative.");
+            if (options.RetryBaseDelay < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(options.RetryBaseDelay), "RetryBaseDelay cannot be negative.");
 
             var agents = await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false);
             var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
@@ -68,43 +75,76 @@ namespace HAgent.Runtime
                     var candidates = _router.OrderProviders(snapshot.Agent, snapshot.Providers);
                     var attempts = 0;
                     Exception lastError = null;
+                    ProviderErrorKind lastErrorKind = ProviderErrorKind.Unknown;
 
                     foreach (var provider in candidates)
                     {
                         if (attempts >= options.MaxProviderAttempts) break;
                         token.ThrowIfCancellationRequested();
-                        attempts++;
 
                         var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
                         if (adapter == null) continue;
 
-                        try
-                        {
-                            var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
-                                ? string.Empty
-                                : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
-                            var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent);
-                            var outgoing = BuildOutgoingMessages(systemPrompt, execution.Messages);
+                        execution.LastProviderId = provider.Id;
+                        var retries = 0;
 
-                            execution.Response = await adapter.SendAsync(
-                                provider,
-                                snapshot.Agent,
-                                apiKey,
-                                systemPrompt,
-                                outgoing,
-                                token).ConfigureAwait(false);
-
-                            execution.State = AgentExecutionState.Succeeded;
-                            execution.CompletedAt = DateTimeOffset.UtcNow;
-                            Notify(execution);
-                            return execution;
-                        }
-                        catch (Exception ex)
+                        while (true)
                         {
-                            lastError = ex;
-                            if (token.IsCancellationRequested) throw;
+                            token.ThrowIfCancellationRequested();
+                            attempts++;
+                            if (attempts > options.MaxProviderAttempts) break;
+
+                            try
+                            {
+                                var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
+                                    ? string.Empty
+                                    : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
+                                var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent);
+                                var outgoing = BuildOutgoingMessages(systemPrompt, execution.Messages);
+
+                                execution.Response = await adapter.SendAsync(
+                                    provider,
+                                    snapshot.Agent,
+                                    apiKey,
+                                    systemPrompt,
+                                    outgoing,
+                                    token).ConfigureAwait(false);
+
+                                execution.State = AgentExecutionState.Succeeded;
+                                execution.FailureKind = AgentExecutionFailureKind.None;
+                                execution.CompletedAt = DateTimeOffset.UtcNow;
+                                Notify(execution);
+                                return execution;
+                            }
+                            catch (Exception ex)
+                            {
+                                lastError = ex;
+                                lastErrorKind = _errorClassifier.Classify(ex);
+                                if (token.IsCancellationRequested) throw;
+
+                                var retryable = lastErrorKind == ProviderErrorKind.Transient ||
+                                                lastErrorKind == ProviderErrorKind.Unavailable ||
+                                                lastErrorKind == ProviderErrorKind.RateLimited;
+
+                                if (!retryable || retries >= options.MaxRetriesPerProvider)
+                                    break;
+
+                                retries++;
+                                var delay = CalculateBackoff(options.RetryBaseDelay, retries, lastErrorKind == ProviderErrorKind.RateLimited);
+                                if (delay > TimeSpan.Zero)
+                                    await Task.Delay(delay, token).ConfigureAwait(false);
+                            }
                         }
                     }
+
+                    execution.FailureKind = lastErrorKind == ProviderErrorKind.Authentication ||
+                                            lastErrorKind == ProviderErrorKind.InvalidRequest
+                        ? AgentExecutionFailureKind.Configuration
+                        : lastErrorKind == ProviderErrorKind.Unavailable
+                            ? AgentExecutionFailureKind.ProviderUnavailable
+                            : lastErrorKind == ProviderErrorKind.Transient || lastErrorKind == ProviderErrorKind.RateLimited
+                                ? AgentExecutionFailureKind.ProviderFailed
+                                : AgentExecutionFailureKind.Unknown;
 
                     throw lastError ?? new InvalidOperationException(
                         "No enabled and compatible provider could handle agent: " + snapshot.Agent.Name);
@@ -113,6 +153,9 @@ namespace HAgent.Runtime
                 {
                     execution.State = AgentExecutionState.Cancelled;
                     execution.CompletedAt = DateTimeOffset.UtcNow;
+                    execution.FailureKind = cancellationToken.IsCancellationRequested
+                        ? AgentExecutionFailureKind.Cancelled
+                        : AgentExecutionFailureKind.Timeout;
                     execution.Error = cancellationToken.IsCancellationRequested
                         ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
                         : new TimeoutException("Agent execution exceeded its configured timeout.");
@@ -123,11 +166,22 @@ namespace HAgent.Runtime
                 {
                     execution.State = AgentExecutionState.Failed;
                     execution.CompletedAt = DateTimeOffset.UtcNow;
+                    if (execution.FailureKind == AgentExecutionFailureKind.None)
+                        execution.FailureKind = AgentExecutionFailureKind.Unknown;
                     execution.Error = ex;
                     Notify(execution);
                     throw;
                 }
             }
+        }
+
+        private static TimeSpan CalculateBackoff(TimeSpan baseDelay, int retryNumber, bool rateLimited)
+        {
+            if (baseDelay <= TimeSpan.Zero) return TimeSpan.Zero;
+            var multiplier = Math.Pow(2, Math.Max(0, retryNumber - 1));
+            if (rateLimited) multiplier *= 2;
+            var milliseconds = Math.Min(baseDelay.TotalMilliseconds * multiplier, 30000d);
+            return TimeSpan.FromMilliseconds(milliseconds);
         }
 
         private static IReadOnlyList<AIMessage> BuildOutgoingMessages(string systemPrompt, IReadOnlyList<AIMessage> messages)

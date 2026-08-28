@@ -16,7 +16,7 @@
 - [x] Provider model catalog capability.
 - [x] Agent/provider deletion rules in UI and storage.
 - [x] `HAgent.Example` manual integration host replacing the older sample host.
-- [x] Tabbed Example test bench with global output and expected-result descriptions.
+- [x] Tabbed Example test bench with global output and global agent selection.
 - [x] Example coverage for configuration, provider-backed messaging, session history, configuration reads, and runtime execution.
 
 ### 0.2 Runtime foundation — completed
@@ -38,6 +38,17 @@
 - [x] No-GPU/low-RAM memory design rule.
 - [x] Provider request path inserts the resolved system prompt exactly once.
 - [x] `SendAsync` preserves provider failure details instead of returning only a generic compatibility error.
+
+### Cross-cutting response handling — planned
+- [ ] Normalize provider responses into a provider-neutral representation.
+- [ ] Keep ordinary assistant content separate from provider-exposed reasoning/thinking content.
+- [ ] Preserve explicitly exposed reasoning metadata without coupling core contracts to one provider.
+- [ ] Do not assume `<think>...</think>` markup is universally provider-native reasoning.
+- [ ] Keep plain-text providers fully compatible.
+- [ ] Let applications choose whether exposed reasoning is displayed, stored, logged, or discarded.
+- [ ] Prevent exposed reasoning from unexpectedly appearing as ordinary user-facing text.
+- [ ] Add provider/model capability metadata before automatic reasoning handling.
+- [ ] Add manual response-normalization coverage to `HAgent.Example`.
 
 ### Deferred from 0.2 into later milestones
 - [ ] Persistent multi-provider routing configuration/UI.
@@ -104,6 +115,7 @@
 - [ ] Attachments/multimodal messages where supported.
 - [ ] Live execution status.
 - [ ] Tool-call visualization.
+- [ ] Reasoning/thinking visibility policy where the provider exposes reasoning separately.
 - [ ] Cancel/stop response.
 - [ ] Multiple simultaneous conversations.
 - [ ] Safe handling of deleted agents referenced by open chat/tasks.
@@ -148,6 +160,7 @@
 - [ ] Streaming.
 - [ ] Multimodal abstraction.
 - [ ] Embedding-provider abstraction.
+- [ ] Provider response normalization/capability metadata.
 
 ## 0.10 — Extensibility and storage ecosystem
 - [ ] Provider adapter DLL loading.
@@ -190,6 +203,8 @@ Memory must not require a local GPU, local embedding model, vector database, or 
 AI models must never receive arbitrary access to WinForms controls, processes, files, databases, reflection, or host resources. Applications expose such capabilities explicitly as validated tools.
 
 Configuration deletion must not silently destroy active runtime work. Execution snapshots isolate running work from later configuration changes.
+
+Provider responses must be normalized without destroying provider-specific metadata. Reasoning/thinking is an optional separate response component when explicitly exposed by a provider; markup-based guessing must not be the default assumption.
 
 `HAgent.Example` is the manual integration and feature-verification application. `HAgent.Tests` remains the automated testing project; the two have different purposes.
 

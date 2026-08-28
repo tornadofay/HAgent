@@ -6,158 +6,176 @@
 - [x] Multi-target core for .NET Framework 4.8.1 and .NET 9.
 - [x] Provider-neutral adapter contract.
 - [x] OpenAI-compatible provider adapter.
-- [x] File storage with protected secret storage.
+- [x] File persistence with protected secret storage.
 - [x] SQL Server and MySQL storage foundations.
 - [x] Provider, agent, and tool management UI.
 - [x] Shared HAgent `Header` and `HMessage` UI conventions.
-- [x] HButton used as the HAgent WinForms action control.
+- [x] `HButton` used as the HAgent WinForms action control.
 - [x] Agent conversation session history and context forwarding.
 - [x] Provider connection test capability.
 - [x] Provider model catalog capability.
-- [x] Agent/provider deletion rules in the UI and storage.
+- [x] Agent/provider deletion rules in UI and storage.
 
 ### 0.2 Runtime foundation — completed
 - [x] Agent runtime abstraction and default execution pipeline.
 - [x] Agent execution state model.
-- [x] Execution correlation IDs via stable execution IDs.
-- [x] Agent/provider execution snapshots so running work is independent from mutable configuration.
+- [x] Stable execution IDs/correlation identifiers.
+- [x] Agent/provider execution snapshots.
 - [x] Default provider routing abstraction.
-- [x] Multiple configured provider candidates per agent in the runtime.
-- [x] Configurable provider-attempt limits.
-- [x] Explicit cancellation boundary.
-- [x] Explicit timeout boundary.
-- [x] Distinguish caller cancellation from runtime timeout.
-- [x] Configurable retry count per provider.
+- [x] Multiple provider candidates and attempt limits.
+- [x] Explicit cancellation and timeout boundaries.
+- [x] Distinguish caller cancellation from timeout.
+- [x] Configurable provider retry count.
 - [x] Conservative provider error classification.
-- [x] Exponential retry backoff with stronger delay for rate-limit conditions.
-- [x] Execution lifecycle events for host applications.
-- [x] Execution duration and last-provider diagnostics.
+- [x] Exponential retry backoff with stronger delay for rate limits.
+- [x] Execution lifecycle events.
+- [x] Execution duration/provider diagnostics.
 - [x] Structured execution failure categories.
-- [x] Dependency-free memory abstraction and in-memory lightweight text/metadata search foundation.
-- [x] Memory design explicitly avoids requiring GPU, local embedding models, or large resident RAM.
+- [x] Dependency-free lightweight memory abstraction/foundation.
+- [x] No-GPU/low-RAM memory design rule.
 
 ### Deferred from 0.2 into later milestones
 - [ ] Persistent multi-provider routing configuration/UI.
-- [ ] Executable provider-native tool-call loop.
-- [ ] Runtime leases beyond execution snapshots where host applications require coordinated lifecycle ownership.
+- [ ] Provider-native tool-call loop.
+- [ ] Strong runtime leases for coordinated lifecycle ownership.
 
-## Milestone: 0.3 — Memory
+## 0.3 — Memory — current
 - [ ] Persistent conversation memory.
-- [ ] Working memory/context window management.
-- [ ] Task memory.
+- [ ] Working memory/context-window budgeting.
+- [ ] Short-term task/event memory.
 - [ ] Episodic memory.
-- [ ] Semantic/long-term memory abstraction.
-- [ ] File/SQL memory stores.
+- [ ] Semantic/long-term memory.
+- [ ] File memory store.
+- [ ] SQL Server memory store.
+- [ ] MySQL memory store.
 - [ ] Lightweight indexed text retrieval for low-RAM systems.
-- [ ] Optional vector-memory adapter abstraction.
-- [ ] Remote embedding provider support without local GPU requirements.
+- [ ] Optional vector-memory adapter.
+- [ ] Remote embedding-provider support without local GPU requirements.
 - [ ] Memory scopes: session, task, agent, user, application, shared.
-- [ ] Memory retrieval and relevance ranking.
-- [ ] Context compaction and summarization.
-- [ ] Explicit remember/forget APIs.
+- [ ] Relevance ranking.
+- [ ] Context trimming and compaction.
+- [ ] Explicit `remember`, `recall`, and `forget` operations.
 - [ ] Memory provenance and timestamps.
-- [ ] Memory retention/expiration policies.
-- [ ] Bounded memory loading so large stores are not fully loaded into RAM.
+- [ ] Retention/expiration policies.
+- [ ] Bounded memory loading.
 
-## Milestone: 0.4 — Tools
+## 0.4 — Tools
 - [ ] Tool definitions with JSON Schema.
 - [ ] Executable tool handlers.
-- [ ] Predefined tool registry.
-- [ ] Custom tool registry.
+- [ ] Predefined/custom tool registry.
 - [ ] Per-agent tool selection.
-- [ ] Tool permission policies.
-- [ ] Approval-required tools.
-- [ ] Tool execution timeout/cancellation.
+- [ ] Provider capability negotiation for tool/function calling.
+- [ ] Provider-neutral tool-call representation.
 - [ ] Tool result/observation protocol.
-- [ ] Tool audit history.
-- [ ] Host UI-control tools for WinForms.
-- [ ] Generic database/file/http/workflow tool abstractions.
-- [ ] Tool DLL/plugin loading.
-- [ ] Tool schema validation.
-- [ ] Tool-call budget and loop protection.
 - [ ] Typed argument binding and validation.
-- [ ] Provider-native tool/function calling capability negotiation.
+- [ ] Tool permissions and approval policies.
+- [ ] Tool timeout/cancellation/progress.
+- [ ] Tool audit history.
+- [ ] Tool-call budgets and loop protection.
+- [ ] UI tool execution support.
 
-## Milestone: 0.5 — Agent collaboration
-- [ ] Agent-to-agent messaging board.
-- [ ] Agent delegation and handoff.
-- [ ] Shared task context.
-- [ ] Agent collaboration permissions.
-- [ ] Maximum hop/depth limits.
-- [ ] Loop detection.
-- [ ] Parallel agent execution.
-- [ ] Collaboration history.
-- [ ] Agent roles/capabilities for delegation.
-- [ ] Cancellation propagation across agent trees.
+## 0.5 — UI and application automation
+- [ ] Host-registered `ui.*` tools.
+- [ ] UI-thread dispatch abstraction.
+- [ ] Set control position/size.
+- [ ] Set/read control text/value.
+- [ ] Approved click/invoke actions.
+- [ ] Enable/disable controls.
+- [ ] Batch UI actions.
+- [ ] Dry-run/preview mode.
+- [ ] Undo/rollback hooks where host supports them.
+- [ ] Per-control permissions.
 
-## Milestone: 0.6 — Chat and tasks
-- [ ] User-to-agent chat window.
-- [ ] Agent selector in chat.
+## 0.6 — Chat and interaction
+- [ ] User ↔ agent chat window.
+- [ ] Agent selector.
+- [ ] Conversation switching.
 - [ ] Persistent conversations.
-- [ ] Conversation search.
-- [ ] Attachments/multimodal messages.
-- [ ] Long-running task UI.
-- [ ] Progress/status events.
-- [ ] Background execution.
-- [ ] Pause/resume/cancel.
-- [ ] Task checkpoints.
-- [ ] Resume interrupted executions from checkpoints.
-- [ ] Live tool-call/status visualization.
-- [ ] Agent deletion semantics for open chat/task references.
+- [ ] Conversation search and metadata.
+- [ ] Attachments/multimodal messages where supported.
+- [ ] Live execution status.
+- [ ] Tool-call visualization.
+- [ ] Cancel/stop response.
+- [ ] Multiple simultaneous conversations.
+- [ ] Safe handling of deleted agents referenced by open chat/tasks.
 
-## Milestone: 0.7 — Extensibility
+## 0.7 — Agent collaboration
+- [ ] Agent-to-agent messaging board.
+- [ ] Collaboration channels.
+- [ ] Direct/broadcast messages.
+- [ ] Shared workspace context.
+- [ ] Handoff/delegation.
+- [ ] Agent roles/capabilities.
+- [ ] Routing policies.
+- [ ] Maximum hops/depth.
+- [ ] Loop detection.
+- [ ] Collaboration transcript.
+- [ ] Shared/private memory rules.
+- [ ] Parallel agent execution.
+
+## 0.8 — Workflows and autonomy
+- [ ] Explicit tasks/jobs.
+- [ ] Multi-step workflows.
+- [ ] Planning/execution/verification.
+- [ ] Background execution.
+- [ ] Scheduling.
+- [ ] Pause/resume.
+- [ ] Durable checkpoints.
+- [ ] Conditional/parallel branches.
+- [ ] Event-triggered agents.
+- [ ] Execution budgets.
+
+## 0.9 — Provider ecosystem
+- [ ] Azure OpenAI adapter.
+- [ ] Anthropic adapter.
+- [ ] Google/Gemini adapter.
+- [ ] Ollama/LM Studio adapters.
+- [ ] Custom HTTP provider model.
+- [ ] Provider capability matrix.
+- [ ] Model discovery/cache.
+- [ ] Streaming.
+- [ ] Multimodal abstraction.
+- [ ] Embedding-provider abstraction.
+
+## 0.10 — Extensibility and storage ecosystem
 - [ ] Provider adapter DLL loading.
 - [ ] Tool DLL loading.
-- [ ] Custom storage provider DLLs.
-- [ ] Provider capability discovery.
-- [ ] Provider model catalogs.
-- [ ] Persistent multi-provider routing configuration/UI.
-- [ ] Streaming responses.
-- [ ] Multimodal provider abstractions.
-- [ ] OpenAI, Anthropic, Google, Azure, Ollama, and custom adapters as separate packages where appropriate.
-- [ ] Versioned extension contract.
-- [ ] Extension isolation and failure handling.
+- [ ] Custom storage providers.
+- [ ] Versioned extension contracts.
+- [ ] Conversation persistence across file/SQL/MySQL.
+- [ ] Memory persistence across file/SQL/MySQL.
+- [ ] Optional vector/semantic companion package.
+- [ ] External secret stores and rotation.
+- [ ] Configuration profiles/workspaces.
+- [ ] Audit logging.
 
-## Milestone: 0.8 — Safety and operations
-- [ ] Per-agent permissions.
-- [ ] Tool-level allow/deny policies.
-- [ ] Confirmation policies for destructive operations.
-- [ ] Secret isolation.
-- [ ] Audit log abstraction.
-- [ ] Usage/token/cost tracking.
-- [ ] Concurrency limits.
-- [ ] Resource budgets.
-- [ ] Rate-limit/backoff policies.
-- [ ] Safe defaults for autonomous execution.
-- [ ] Human approval checkpoints.
-- [ ] Sensitive-data redaction in logs.
-
-## Milestone: 0.9 — Developer platform
-- [ ] Stable host integration API.
-- [ ] Agent lifecycle events.
-- [ ] Tool registration API for application controls/services.
-- [ ] UI-thread dispatch abstraction for WinForms tools.
-- [ ] Custom agent runtime hooks.
-- [ ] Custom memory providers.
-- [ ] Custom execution strategies.
+## 0.11 — Developer platform
+- [ ] Optional dependency injection.
+- [ ] Optional `Microsoft.Extensions.AI` integration.
+- [ ] Provider/tool SDKs.
+- [ ] Provider/tool contract test harnesses.
+- [ ] Agent simulation/test mode.
 - [ ] Diagnostics/trace viewer.
-- [ ] Examples for UI automation, database tasks, document workflows, and multi-agent collaboration.
+- [ ] UI automation/database/document workflow examples.
 
-## Milestone: 1.0 — Stable HAgent runtime
-- [ ] Stable public interfaces.
-- [ ] Migration/versioning support for saved configuration.
-- [ ] Backward-compatible storage format.
-- [ ] Comprehensive unit/integration tests.
-- [ ] Documentation and examples.
+## 1.0 — Stable HAgent platform
+- [ ] Stable public contracts.
+- [ ] Storage migrations/versioning.
 - [ ] NuGet packages.
-- [ ] Provider/tool extension guide.
-- [ ] .NET 10 target after the Windows 11 / VS 2026 development environment is adopted.
+- [ ] Comprehensive integration tests.
+- [ ] Security/permission tests.
+- [ ] Provider/tool extension guides.
+- [ ] Memory/retrieval guides.
+- [ ] Collaboration/workflow guides.
+- [ ] .NET 10 target after the development environment is upgraded to a compatible Visual Studio release.
 
 ## Non-negotiable design rules
-HAgent must remain provider-neutral. A provider supplies model connectivity and capabilities; an agent supplies behavior; memory supplies context; tools supply controlled actions; the runtime coordinates execution; the host application owns real-world side effects.
+HAgent is provider-neutral. Providers supply model connectivity/capabilities; agents supply behavior; memory supplies context; tools supply controlled actions; the runtime coordinates execution; the host application owns real-world side effects.
 
-Memory must not require a local GPU, embedding model, vector database, or large resident RAM footprint. Vector memory is optional and must sit behind an adapter.
+Memory must not require a local GPU, local embedding model, vector database, or large resident RAM footprint. Vector memory is optional and belongs behind an adapter/companion package.
 
-An AI model must never receive arbitrary access to WinForms controls, reflection, processes, files, databases, or other host resources. Those capabilities must be exposed explicitly as typed tools with validation and policy enforcement.
+AI models must never receive arbitrary access to WinForms controls, processes, files, databases, reflection, or host resources. Applications expose such capabilities explicitly as validated tools.
 
-Deleting configuration must not silently destroy a running execution. Runtime work operates from an execution snapshot so an active task can finish independently of later configuration changes.
+Configuration deletion must not silently destroy active runtime work. Execution snapshots isolate running work from later configuration changes.
+
+Project-state documentation is part of the repository contract. Meaningful architecture or milestone changes must update `README.md`, `roadmap.md`, `plan.md`, and `AGENTS.md` as appropriate.

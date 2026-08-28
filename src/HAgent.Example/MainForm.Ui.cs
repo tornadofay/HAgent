@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Models;
+using HAgent.WinForms;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
 

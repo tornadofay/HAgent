@@ -1,13 +1,12 @@
+using HAgent.Models;
+using HAgent.WinForms.Controls;
+using HAgent.WinForms.Helpers.Button;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using HAgent.Models;
-using HAgent.WinForms;
-using HAgent.WinForms.Helpers.Button;
 
 namespace HAgent.Example
 {

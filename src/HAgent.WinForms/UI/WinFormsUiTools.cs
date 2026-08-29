@@ -80,7 +80,10 @@ namespace HAgent.WinForms.UI
 
             var winFormsContext = context as WinFormsUiContext;
             if (winFormsContext != null)
+            {
                 RegisterSemanticDiscoveryTool(registry, winFormsContext);
+                RegisterDataSourceDiscoveryTool(registry, winFormsContext);
+            }
         }
 
         private static void Require(IUiContext context, Func<UiAutomationPermissions, bool> allowed, string message)

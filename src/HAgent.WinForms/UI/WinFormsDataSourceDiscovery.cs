@@ -83,7 +83,7 @@ namespace HAgent.WinForms.UI
                     : bindingSource.List.GetType().FullName,
                 DataMember = dataMember,
                 BindingPath = bindingPath,
-                CurrencyManagerType = ResolveCurrencyManagerType(control, binding),
+                CurrencyManagerType = ResolveCurrencyManagerType(control, source),
                 Position = TryGetPosition(source),
                 ItemType = ResolveItemType(effectiveSource),
                 Count = TryGetCount(source, effectiveSource),
@@ -105,25 +105,18 @@ namespace HAgent.WinForms.UI
             return source.GetType().Name;
         }
 
-        private static string ResolveCurrencyManagerType(Control control, Binding binding)
+        private static string ResolveCurrencyManagerType(Control control, object source)
         {
-            if (control == null || binding == null || binding.DataSource == null) return null;
+            if (control == null || source == null) return null;
             try
             {
-                var manager = control.BindingContext[binding.DataSource, GetBindingMember(binding)];
+                var manager = control.BindingContext[source];
                 return manager == null ? null : manager.GetType().FullName;
             }
             catch
             {
                 return null;
             }
-        }
-
-        private static string GetBindingMember(Binding binding)
-        {
-            if (binding == null) return string.Empty;
-            try { return binding.BindingMemberInfo.BindingMember ?? string.Empty; }
-            catch { return string.Empty; }
         }
 
         private static int? TryGetPosition(object source)

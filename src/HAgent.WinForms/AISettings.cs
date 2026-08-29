@@ -30,7 +30,7 @@ namespace HAgent.WinForms
         {
             var basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HAgent");
             Directory.CreateDirectory(basePath);
-            return new HAgent.Storage.File.UiPermissionStore(Path.Combine(basePath, "ui-permissions.json")).Load();
+            return new UiPermissionStore(Path.Combine(basePath, "ui-permissions.json")).Load();
         }
 
         public static void SaveUiPermissions(UiAutomationPermissions permissions)
@@ -38,7 +38,7 @@ namespace HAgent.WinForms
             if (permissions == null) throw new ArgumentNullException(nameof(permissions));
             var basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HAgent");
             Directory.CreateDirectory(basePath);
-            new HAgent.Storage.File.UiPermissionStore(Path.Combine(basePath, "ui-permissions.json")).Save(permissions);
+            new UiPermissionStore(Path.Combine(basePath, "ui-permissions.json")).Save(permissions);
         }
 
         public static void ShowMainAISettingsForm(

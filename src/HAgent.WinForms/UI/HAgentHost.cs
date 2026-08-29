@@ -22,10 +22,19 @@ namespace HAgent.WinForms.UI
 
         public static HAgentHost Attach(Form form, IToolRegistry tools, bool registerUiTools = true)
         {
+            return Attach(form, tools, registerUiTools, null);
+        }
+
+        public static HAgentHost Attach(
+            Form form,
+            IToolRegistry tools,
+            bool registerUiTools,
+            UiAutomationPermissions permissions)
+        {
             if (form == null) throw new ArgumentNullException(nameof(form));
             if (tools == null) throw new ArgumentNullException(nameof(tools));
 
-            var context = new WinFormsUiContext(form);
+            var context = new WinFormsUiContext(form, permissions);
             var host = new HAgentHost(form, tools, context);
             if (registerUiTools) WinFormsUiTools.RegisterDefaultTools(tools, context);
             return host;

@@ -18,74 +18,116 @@ Remaining tool work:
 
 ## 0.6 Safety + Permissions
 
+The permission model is a shared authorization concept, not just a WinForms checkbox collection.
+
 - [ ] General permission configuration UI.
-- [ ] Read/write/invoke/export permissions.
+- [ ] Read/write/invoke/export permissions across all tool categories.
 - [ ] Host authorization callbacks.
 - [ ] Human approval lifecycle.
 - [ ] Input/output/tool guardrails.
 - [ ] Budgets and observability.
 - [ ] Sensitive-data redaction.
 
-## 0.7 WinForms UI Context + Automation
+## 0.7 UI Context + Automation
 
-The WinForms subsystem uses **UI Context**, not generic “form serialization”. Two supported development modes are intentional:
+The public concept is **UI Context / Control Adapters**. “Form serialization” is only one possible implementation technique inside a broader system.
 
-1. **Explicit domain abstraction** — the host can expose typed concepts such as Customer, Contact, Invoice, or a custom view-model/tool instead of allowing HAgent to inspect arbitrary controls.
-2. **Automatic UI Context** — HAgent can discover controls, bound data, and useful relationships automatically when the host explicitly enables the appropriate permission policy.
+### Two development modes
 
-Automatic discovery is convenience, not authority. Attaching a form must never automatically grant write or invoke access.
+1. **Explicit domain abstraction** — the developer can expose typed application concepts such as Customer, Contact, Invoice, or a custom view-model/tool. This is the preferred option for high-control and sensitive applications.
+2. **Automatic UI/data discovery** — HAgent can inspect controls, bindings, and data sources when explicitly enabled by policy. Automatic discovery is convenience, never authority.
 
 ### Implemented foundation
 
 - [x] `IUiContext` / `WinFormsUiContext`.
-- [x] Stable control lookup by WinForms control name.
-- [x] UI-thread-safe inspection/read operations.
+- [x] Stable WinForms control lookup.
+- [x] Same-thread lifecycle-safe inspection even before a native form handle exists.
+- [x] UI-thread-safe cross-thread reads when a handle exists.
 - [x] `UiControlSnapshot`.
 - [x] `ui.inspect`.
 - [x] `ui.read_control`.
 - [x] `ui.read_data`.
-- [x] Bound/native DataGridView source preference.
-- [x] Bounded data extraction.
-- [x] Light-weight representation rule: avoid unnecessary `DataTable` materialization.
-- [x] `UiAutomationPermissions` with safe defaults.
-- [x] Read-only UI tools enforce the permission policy.
+- [x] Bound/native `DataGridView` source preference.
+- [x] Bounded extraction and lazy adaptation.
+- [x] `DataTable` explicitly optional, not the architectural default.
+- [x] Coarse `UiAutomationPermissions` with safe defaults.
+- [x] Read-only UI tools enforce the policy.
+- [x] Explicit permission-aware `HAgentHost.Attach(...)` overload.
 
-### Automatic data understanding
+### Automatic application understanding
 
-- [ ] Semantic discovery of common WinForms controls and relationships.
-- [ ] Domain-friendly labels/semantic IDs in addition to raw control names.
-- [ ] BindingSource/CurrencyManager/IList/collection adapters.
-- [ ] Lazy/native data projections.
-- [ ] Safe identification of tabular data without scraping visible cells when a bound source exists.
+- [ ] Semantic control labels and logical IDs in addition to raw control names.
+- [ ] BindingSource/CurrencyManager/IList/native collection adapters.
+- [ ] Relationship discovery between controls, bound records, lists, and forms.
+- [ ] Lightweight semantic projections without unnecessary copying.
 - [ ] Optional application-defined semantic adapters for Customer/Invoice/etc.
-- [ ] Restricted query abstraction for application/SQL data rather than arbitrary SQL execution.
+- [ ] Restricted data-query abstraction that can target application data, SQL Server, or MySQL without exposing arbitrary SQL by default.
+- [ ] Cross-form context and memory under explicit scope/policy.
 
-### Permission model
+### Permission design
 
-The initial coarse permission groups are:
+Automatic UI/data behavior should be configurable at a coarse level first:
 
-- Automatic discovery.
-- Read controls.
-- Read data.
-- Write controls.
-- Invoke controls.
+```text
+Automatic discovery
+Read controls
+Read data
+Write controls
+Invoke controls
+```
 
-Developers may disable automatic behavior and implement their own authorization/abstraction path. Future SQL Server/MySQL query permissions must remain separate from UI permissions.
+Hosts may disable automatic behavior entirely and provide their own abstractions and authorization logic.
+
+Database permissions are separate from UI permissions. The presence of provenance, a form attachment, or an agent instruction never grants authorization.
 
 ### UI automation
 
-- [ ] Permission configuration tab in the main HAgent settings UI.
-- [ ] Persist permission policy.
-- [ ] Form/UserControl attachment and stable logical identity.
-- [ ] `HAgentHost.Attach(ai, form)` bridge.
-- [ ] Floating assistant/flyout.
+- [ ] Permissions configuration tab.
+- [ ] Persist permission policy through the public settings path.
+- [ ] Form/UserControl/custom-control attachment and stable logical identity.
+- [ ] Floating HAgent assistant/flyout.
 - [ ] `ui.write_control`.
 - [ ] `ui.move_control`.
 - [ ] `ui.resize_control`.
 - [ ] `ui.invoke` / approved click.
-- [ ] `ui.enable_control` / `ui.disable_control`.
+- [ ] Enable/disable operations.
 - [ ] Batch operations.
 - [ ] Dry-run/preview.
 - [ ] Human approval.
 - [ ] Per-control permissions.
-- [ ] Optional undo/rollback hooks.
+- [ ] Undo/rollback hooks where host controls support them.
+
+### Cross-platform direction
+
+The boundary should remain provider-neutral so the same concepts can later be implemented by adapters for:
+
+- HControl/BaseForm and custom controls.
+- GDI-rendered objects and scenes.
+- DirectX interactive objects.
+- Unity components/scenes.
+- Other interactive application surfaces.
+
+These platform implementations belong outside `HAgent.Core`.
+
+### Data representation rule
+
+Always use the lightest representation that preserves the required information. Prefer bound/native sources, lazy adapters, projections, paging, and streaming. Avoid unnecessary copying/materialization. `DataTable` is valid when naturally present or actually useful, but it is never the mandatory representation.
+
+## Example developer experience
+
+Every Example feature should provide:
+
+- editable input/message;
+- expected behavior and explanation;
+- copyable C# reproduction snippet beside the input;
+- global agent selection where an agent is involved;
+- a global output area when the result can be shared across examples.
+
+## Future
+
+- [ ] Chat between user and selected agent.
+- [ ] Agent-to-agent messaging board.
+- [ ] Agent collaboration and handoffs.
+- [ ] Tasks/workflows/background execution.
+- [ ] Additional provider adapters.
+- [ ] Extension/DLL ecosystem.

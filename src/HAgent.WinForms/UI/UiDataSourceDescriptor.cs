@@ -14,6 +14,7 @@ namespace HAgent.WinForms.UI
         public string BindingPath { get; set; }
         public string CurrencyManagerType { get; set; }
         public int? Position { get; set; }
+        public string CurrentItemType { get; set; }
         public string ItemType { get; set; }
         public int? Count { get; set; }
         public IReadOnlyList<string> FieldNames { get; set; }

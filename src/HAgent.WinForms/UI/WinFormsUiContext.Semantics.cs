@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace HAgent.WinForms.UI
 {
     public sealed partial class WinFormsUiContext
     {
-        private readonly IUiSemanticProvider _semanticProvider;
+        private IUiSemanticProvider _semanticProvider;
 
         public void SetSemanticProvider(IUiSemanticProvider provider)
         {
@@ -23,25 +24,8 @@ namespace HAgent.WinForms.UI
                     throw new InvalidOperationException("Automatic UI discovery is disabled by the current permission policy.");
 
                 var discovery = new WinFormsSemanticDiscovery();
-                var discovered = discovery.Discover(_form, Permissions);
-                if (_semanticProvider == null)
-                    return discovered;
-
-                var result = new List<UiSemanticDescriptor>(discovered.Count);
-                foreach (var item in discovered)
-                {
-                    var control = FindControlForSemantic(item.ControlId);
-                    var custom = control == null ? null : _semanticProvider.Describe(control);
-                    result.Add(custom ?? item);
-                }
-                return (IReadOnlyList<UiSemanticDescriptor>)result.AsReadOnly();
+                return discovery.Discover(_form, Permissions, _semanticProvider);
             });
-        }
-
-        private Control FindControlForSemantic(string controlId)
-        {
-            if (string.IsNullOrWhiteSpace(controlId)) return null;
-            return FindControl(_form, controlId);
         }
     }
 }

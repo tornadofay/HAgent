@@ -22,7 +22,7 @@ namespace HAgent.Example
 
             var sourceStore = new FileAiStore(Path.Combine(_basePath, "settings.json"));
             var sourceSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            var providers = await sourceStore.GetProvidersAsync().ConfigureAwait(false);
+            var providers = await sourceStore.GetProvidersAsync();
             var providerIds = new List<string>();
             if (!string.IsNullOrWhiteSpace(selected.ProviderId)) providerIds.Add(selected.ProviderId);
             if (selected.ProviderIds != null) providerIds.AddRange(selected.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
@@ -45,8 +45,8 @@ namespace HAgent.Example
             agent.ToolIds = new List<string> { tool.Id };
 
             var store = new InMemoryAiStore();
-            await store.SaveProviderAsync(CloneProvider(provider), CancellationToken.None).ConfigureAwait(false);
-            await store.SaveAgentAsync(agent, CancellationToken.None).ConfigureAwait(false);
+            await store.SaveProviderAsync(CloneProvider(provider));
+            await store.SaveAgentAsync(agent);
 
             var client = new HAgentClient(store, sourceSecrets, new IAiProviderAdapter[] { new OpenAICompatibleProviderAdapter() });
             var calls = 0;
@@ -68,20 +68,42 @@ namespace HAgent.Example
                 ? "You must use the example_add tool with a=3 and b=4. After the tool returns, reply with the result in one short sentence."
                 : input);
 
-            var loop = await client.RunToolLoopAsync(selected.Id, request, 4, 4, CancellationToken.None).ConfigureAwait(false);
-            if (calls < 1)
-                throw new InvalidOperationException("The live provider completed without calling example_add. The selected model may not have chosen the tool.");
+            try
+            {
+                var loop = await client.RunToolLoopAsync(selected.Id, request, 4, 4, CancellationToken.None);
+                if (calls < 1)
+                    throw new InvalidOperationException("The live provider completed without calling example_add. The selected model may not have chosen the tool.");
 
-            Write("LIVE TOOL LOOP",
-                "Live provider test completed." + Environment.NewLine +
-                "Agent: " + selected.Name + Environment.NewLine +
-                "Provider: " + provider.Name + Environment.NewLine +
-                "Model: " + (string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model) + Environment.NewLine +
-                "Request: " + request + Environment.NewLine +
-                "Tool calls executed: " + loop.ToolCallsExecuted + Environment.NewLine +
-                "Tool arguments: " + argumentsSeen + Environment.NewLine +
-                "Turns: " + loop.Turns + Environment.NewLine +
-                "Final response: " + (loop.Response == null ? string.Empty : loop.Response.Text));
+                Write("LIVE TOOL LOOP",
+                    "Live provider test completed." + Environment.NewLine +
+                    "Agent: " + selected.Name + Environment.NewLine +
+                    "Provider: " + provider.Name + Environment.NewLine +
+                    "Model: " + (string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model) + Environment.NewLine +
+                    "Request: " + request + Environment.NewLine +
+                    "Tool calls executed: " + loop.ToolCallsExecuted + Environment.NewLine +
+                    "Tool arguments: " + argumentsSeen + Environment.NewLine +
+                    "Turns: " + loop.Turns + Environment.NewLine +
+                    "Final response: " + (loop.Response == null ? string.Empty : loop.Response.Text));
+            }
+            catch (InvalidOperationException ex)
+            {
+                if (ex.Message.IndexOf("tool-compatible provider", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    ex.Message.IndexOf("tool calling", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    ex.Message.IndexOf("Tool Calling", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    Write("LIVE TOOL LOOP",
+                        "Live provider test was not executed because the selected model/provider does not support tool calling." + Environment.NewLine +
+                        "Agent: " + selected.Name + Environment.NewLine +
+                        "Provider: " + provider.Name + Environment.NewLine +
+                        "Model: " + (string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model) + Environment.NewLine +
+                        "Request: " + request + Environment.NewLine +
+                        "Action: Select a model with Tool Calling support and run the test again." + Environment.NewLine +
+                        "Provider detail: " + ex.Message);
+                    return;
+                }
+
+                throw;
+            }
         }
 
         private static AiProvider CloneProvider(AiProvider source)

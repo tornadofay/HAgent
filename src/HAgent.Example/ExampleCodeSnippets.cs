@@ -184,6 +184,36 @@ using (var host = HAgentHost.Attach(
     Console.WriteLine(context.RootId);
     Console.WriteLine(snapshot.Id);
 }";
+                case "UI Native IList": return @"using System.Collections.Generic;
+using System.Windows.Forms;
+using HAgent.WinForms.UI;
+
+var panel = new UserControl { Name = ""NativeListPanel"" };
+var grid = new DataGridView { Name = ""gridNativeCustomers"" };
+var customers = new List<NativeCustomer>
+{
+    new NativeCustomer { Id = 20, Name = ""Native Alice"" },
+    new NativeCustomer { Id = 21, Name = ""Native Bob"" }
+};
+
+grid.DataSource = customers;
+panel.Controls.Add(grid);
+
+var permissions = new UiAutomationPermissions
+{
+    AutomaticDiscovery = true,
+    ReadControls = true,
+    ReadData = true
+};
+
+var sources = new WinFormsDataSourceDiscovery().Discover(panel, permissions);
+var source = sources[0];
+
+Console.WriteLine(source.SourceKind);
+Console.WriteLine(source.CurrencyManagerType);
+Console.WriteLine(source.CurrentItemType);
+Console.WriteLine(source.ItemType);
+Console.WriteLine(source.Position + "" / "" + source.Count);";
                 default: return @"// See the corresponding HAgent example source file.
 // The Example application uses the public HAgent API shown here as the reference pattern.";
             }

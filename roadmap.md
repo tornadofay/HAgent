@@ -38,68 +38,93 @@ Tool definitions, six initial tool types, handler/definition separation, registr
 
 ## 0.5 Tools + Agent Loop
 
-### Completed
+Tool definitions, validation, persistence, per-agent assignment, provider tool transport, deterministic tool loops, and live Groq tool calling are implemented.
 
-- Definition/handler separation.
-- Registry and direct execution.
-- JSON Schema validation before execution.
-- Provider tool-definition transport.
-- Bounded multi-turn tool loop.
-- File tool-definition persistence.
-- Six initial tool categories: BuiltIn, Application, Declarative, UI, SqlServer, MySql.
-- Per-agent tool selection using persisted `ToolIds`.
-- Agent/tool persistence verification.
-- Live Groq tool-loop verification.
+Remaining tool work:
 
-### Next
+- [ ] Per-session temporary tools.
+- [ ] Built-in tool handlers.
+- [ ] Declarative execution engine.
+- [ ] SQL Server tool execution layer.
+- [ ] MySQL tool execution layer.
+- [ ] Tool aliases/versioning.
+- [ ] Tool timeout/cancellation/progress.
+- [ ] Tool audit/history and budgets.
+- [ ] Stronger loop detection and provider/tool capability negotiation.
 
-- Per-session temporary tools.
-- Built-in tool handlers beyond the initial UI read-only tools.
-- Declarative execution engine.
-- SQL Server tool execution layer.
-- MySQL tool execution layer.
-- Tool timeout/cancellation/progress policies.
-- Tool audit/history and budgets.
-- Stronger loop detection and policy controls.
-- Provider/tool capability negotiation beyond basic tool calling.
+## 0.6 Safety + Permissions
 
-Extension tools are deliberately deferred to the later extensibility milestone.
+- [ ] General permission configuration UI.
+- [ ] Read/write/invoke/export permissions.
+- [ ] Host authorization callbacks.
+- [ ] Human approval lifecycle.
+- [ ] Input/output/tool guardrails.
+- [ ] Budgets and observability.
+- [ ] Sensitive-data redaction.
 
 ## 0.7 WinForms UI Context + Automation
 
+The WinForms subsystem uses **UI Context**, not generic “form serialization”. Two supported development modes are intentional:
+
+1. **Explicit domain abstraction** — the host can expose typed concepts such as Customer, Contact, Invoice, or a custom view-model/tool instead of allowing HAgent to inspect arbitrary controls.
+2. **Automatic UI Context** — HAgent can discover controls, bound data, and useful relationships automatically when the host explicitly enables the appropriate permission policy.
+
+Automatic discovery is convenience, not authority. Attaching a form must never automatically grant write or invoke access.
+
 ### Implemented foundation
 
-- `IUiContext` contract.
-- `WinFormsUiContext` attach/inspect/read operations.
-- Stable lookup by WinForms control name.
-- Lightweight form/control snapshots.
-- Common scalar-control value extraction.
-- DataGridView bound-source extraction.
-- DataTable/DataView/enumerable handling when naturally available.
-- Bounded row reads.
-- Read-only `ui.inspect`, `ui.read_control`, and `ui.read_data` tools.
-- `HAgentHost.Attach(form, registry)` bridge.
-- Example verification for the UI Context layer.
+- [x] `IUiContext` / `WinFormsUiContext`.
+- [x] Stable control lookup by WinForms control name.
+- [x] UI-thread-safe inspection/read operations.
+- [x] `UiControlSnapshot`.
+- [x] `ui.inspect`.
+- [x] `ui.read_control`.
+- [x] `ui.read_data`.
+- [x] Bound/native DataGridView source preference.
+- [x] Bounded data extraction.
+- [x] Light-weight representation rule: avoid unnecessary `DataTable` materialization.
+- [x] `UiAutomationPermissions` with safe defaults.
+- [x] Read-only UI tools enforce the permission policy.
 
-### Next
+### Automatic data understanding
 
-- Rich BindingSource/CurrencyManager/IList adapters.
-- Better semantic identities for UserControl/custom controls.
-- Public attach/detach lifetime management.
-- Floating assistant/flyout attached to a form.
-- `ui.write_control`.
-- `ui.move_control`.
-- `ui.resize_control`.
-- `ui.invoke` / approved click.
-- Enable/disable operations.
-- Batch operations.
-- UI-thread dispatch with real host cancellation.
-- Dry-run/preview and undo hooks.
-- Per-control permissions and human approval.
+- [ ] Semantic discovery of common WinForms controls and relationships.
+- [ ] Domain-friendly labels/semantic IDs in addition to raw control names.
+- [ ] BindingSource/CurrencyManager/IList/collection adapters.
+- [ ] Lazy/native data projections.
+- [ ] Safe identification of tabular data without scraping visible cells when a bound source exists.
+- [ ] Optional application-defined semantic adapters for Customer/Invoice/etc.
+- [ ] Restricted query abstraction for application/SQL data rather than arbitrary SQL execution.
 
-### Data representation rule
+### Permission model
 
-Always use the lightest representation that preserves the information required by the current operation. Prefer bound/native sources; adapt lazily; avoid unnecessary copies/materialization. `DataTable` is optional, never the architectural default. Large sources should use paging, projection, or streaming when appropriate.
+The initial coarse permission groups are:
+
+- Automatic discovery.
+- Read controls.
+- Read data.
+- Write controls.
+- Invoke controls.
+
+Developers may disable automatic behavior and implement their own authorization/abstraction path. Future SQL Server/MySQL query permissions must remain separate from UI permissions.
+
+### UI automation
+
+- [ ] Permission configuration tab in the main HAgent settings UI.
+- [ ] Persist permission policy.
+- [ ] Form/UserControl attachment and stable logical identity.
+- [ ] `HAgentHost.Attach(ai, form)` bridge.
+- [ ] Floating assistant/flyout.
+- [ ] `ui.write_control`.
+- [ ] `ui.move_control`.
+- [ ] `ui.resize_control`.
+- [ ] `ui.invoke` / approved click.
+- [ ] `ui.enable_control` / `ui.disable_control`.
+- [ ] Batch operations.
+- [ ] Dry-run/preview.
+- [ ] Human approval.
+- [ ] Per-control permissions.
+- [ ] Optional undo/rollback hooks.
 
 ## 0.3 advanced memory
 

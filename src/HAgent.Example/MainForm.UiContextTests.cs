@@ -96,7 +96,7 @@ namespace HAgent.Example
             }
         }
 
-        private static async Task TestUserControlAttachmentAsync(string unused)
+        private async Task TestUserControlAttachmentAsync(string unused)
         {
             using (var panel = new UserControl { Name = "CustomerPanel", Width = 400, Height = 250 })
             using (var nameBox = new TextBox { Name = "txtPanelCustomer", Text = "Panel Customer", Width = 200, Location = new Point(10, 10) })

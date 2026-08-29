@@ -100,6 +100,7 @@ namespace HAgent.WinForms.UI
                     children.Add(BuildSnapshot(child, true));
             }
 
+            var value = ReadValue(control);
             return new UiControlSnapshot
             {
                 Id = control.Name,
@@ -112,8 +113,8 @@ namespace HAgent.WinForms.UI
                 Top = control.Top,
                 Width = control.Width,
                 Height = control.Height,
-                Value = ReadValue(control),
-                ValueType = ReadValue(control) == null ? null : ReadValue(control).GetType().FullName,
+                Value = value,
+                ValueType = value == null ? null : value.GetType().FullName,
                 Children = children.AsReadOnly()
             };
         }
@@ -170,7 +171,7 @@ namespace HAgent.WinForms.UI
                 var data = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 foreach (var column in columns)
                     data[column.Name] = row.Cells[column.Index].Value;
-                rows.Add(new Dictionary<string, object>(data).AsReadOnly());
+                rows.Add(data);
             }
             return rows.AsReadOnly();
         }
@@ -222,7 +223,7 @@ namespace HAgent.WinForms.UI
             var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             foreach (DataColumn column in columns)
                 dict[column.ColumnName] = row[column] == DBNull.Value ? null : row[column];
-            return dict.AsReadOnly();
+            return dict;
         }
 
         private static IReadOnlyDictionary<string, object> RowFromObject(object item)
@@ -231,19 +232,19 @@ namespace HAgent.WinForms.UI
             if (item == null)
             {
                 dict["value"] = null;
-                return dict.AsReadOnly();
+                return dict;
             }
             if (item is string || item.GetType().IsPrimitive || item is decimal || item is DateTime)
             {
                 dict["value"] = item;
-                return dict.AsReadOnly();
+                return dict;
             }
             foreach (var property in item.GetType().GetProperties().Where(p => p.CanRead))
             {
                 try { dict[property.Name] = property.GetValue(item, null); }
                 catch { }
             }
-            return dict.AsReadOnly();
+            return dict;
         }
 
         public void Dispose()

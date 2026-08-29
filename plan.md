@@ -139,12 +139,14 @@ A feature is marked complete only after its implementation exists and matching `
 - [x] “Form serialization” is treated as UI context/adapter behavior, not arbitrary object serialization.
 - [x] Explicit developer abstractions remain a supported path for domain concepts such as Customer, Invoice, and Contact.
 - [x] Automatic semantic discovery can identify useful standard controls and bound data sources without forcing wrappers.
+- [x] UI Context can attach to a Form or an arbitrary WinForms control tree such as a UserControl with an explicit stable root ID.
+- [x] Semantic and data-source discovery can traverse an attached control-tree root without requiring a Form.
 - [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
 - [ ] Cross-form discovery/memory requires explicit scope and policy.
 - [x] The UI boundary remains outside `HAgent.Core`, allowing future HControl/BaseForm, GDI, DirectX, and Unity-style adapters.
 
 ### Next
-- [ ] Form/UserControl attachment and stable logical form identity.
+- [ ] Form/UserControl attachment and stable logical form identity — implementation added; pending local Example verification.
 - [ ] Stronger BindingSource/CurrencyManager/IList/native collection relationship modeling.
 - [ ] Semantic relationship discovery between controls and data beyond directly observable binding facts.
 - [ ] Safe data projection/query abstraction.

@@ -10,7 +10,7 @@ using HAgent.Models;
 
 namespace HAgent.Storage.File
 {
-    public sealed class FileToolStore : IToolStore
+    public sealed class FileToolStore : IToolStore, IDisposable
     {
         private sealed class Data
         {
@@ -20,6 +20,7 @@ namespace HAgent.Storage.File
         private readonly string _path;
         private readonly object _sync = new object();
         private Data _data;
+        private bool _disposed;
         private static readonly JsonSerializerOptions Options = new JsonSerializerOptions { WriteIndented = true };
 
         public FileToolStore(string path)
@@ -31,6 +32,7 @@ namespace HAgent.Storage.File
 
         public Task<IReadOnlyList<AiTool>> GetToolsAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
+            ThrowIfDisposed();
             lock (_sync)
             {
                 return Task.FromResult<IReadOnlyList<AiTool>>(_data.Tools.Select(Clone).ToList().AsReadOnly());
@@ -39,6 +41,7 @@ namespace HAgent.Storage.File
 
         public Task SaveToolAsync(AiTool tool, CancellationToken cancellationToken = default(CancellationToken))
         {
+            ThrowIfDisposed();
             if (tool == null) throw new ArgumentNullException(nameof(tool));
             if (string.IsNullOrWhiteSpace(tool.Id)) throw new ArgumentException("Tool ID is required.", nameof(tool));
             lock (_sync)
@@ -54,6 +57,7 @@ namespace HAgent.Storage.File
 
         public Task DeleteToolAsync(string toolId, CancellationToken cancellationToken = default(CancellationToken))
         {
+            ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(toolId)) return Task.CompletedTask;
             lock (_sync)
             {
@@ -61,6 +65,21 @@ namespace HAgent.Storage.File
                 Persist();
             }
             return Task.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            lock (_sync)
+            {
+                if (_disposed) return;
+                _disposed = true;
+                _data = new Data();
+            }
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(FileToolStore));
         }
 
         private Data Load()

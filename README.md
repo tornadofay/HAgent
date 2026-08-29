@@ -50,6 +50,7 @@ WinForms Context
  ├─ explicit domain abstractions
  ├─ automatic UI/data discovery
  ├─ permission policy
+ ├─ stable form/control-tree identity
  ├─ safe read capabilities
  └─ future write/invoke automation
 ```
@@ -183,11 +184,31 @@ Customer
  └─ Invoices
 ```
 
-Automatic mode can inspect a live form, its controls, bindings, and data sources when the host enables the relevant permission policy.
+Automatic mode can inspect a live form or an attached control tree, including a `UserControl`, its controls, bindings, and data sources when the host enables the relevant permission policy.
+
+Form attachment remains available through the existing overload:
 
 ```csharp
 var host = HAgentHost.Attach(form, registry, true, permissions);
 ```
+
+A `UserControl` or other control-tree root can be attached explicitly with a stable logical ID:
+
+```csharp
+var host = HAgentHost.Attach(
+    panel,
+    rootId: "CustomerPanel",
+    registry: registry,
+    registerUiTools: true,
+    permissions: new UiAutomationPermissions
+    {
+        AutomaticDiscovery = true,
+        ReadControls = true,
+        ReadData = true
+    });
+```
+
+`IUiContext.RootControl` exposes the actual attached WinForms root, `RootForm` remains available for Form attachments, and `RootId` identifies the attachment independently of the concrete WinForms type.
 
 Current read-only tools include:
 
@@ -195,6 +216,8 @@ Current read-only tools include:
 ui.inspect
 ui.read_control
 ui.read_data
+ui.discover
+ui.discover_data_sources
 ```
 
 The permission policy distinguishes automatic discovery, control reads, data reads, writes, and invocation. Safe defaults do not grant write/invoke access.

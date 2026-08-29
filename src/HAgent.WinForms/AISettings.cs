@@ -2,12 +2,14 @@ using HAgent.Abstractions;
 using HAgent.Runtime;
 using HAgent.WinForms.Forms;
 using HAgent.WinForms.Helpers;
+using HAgent.WinForms.Helpers.Button;
 using HAgent.WinForms.UI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace HAgent.WinForms
@@ -57,9 +59,66 @@ namespace HAgent.WinForms
 
             using (var form = new AISettingsForm(store, secrets, adapters, tools))
             {
+                AttachPermissionsNavigation(form);
                 AttachRepositoryLink(form);
                 form.ShowDialog(owner);
             }
+        }
+
+        private static void AttachPermissionsNavigation(Form form)
+        {
+            form.Shown += delegate
+            {
+                var nav = FindControl(form, c => c is FlowLayoutPanel && c.Width == 188 && c.BackColor == Color.FromArgb(31, 24, 69)) as FlowLayoutPanel;
+                if (nav == null || FindControl(nav, c => c is HButton && string.Equals(c.Text, "Permissions", StringComparison.Ordinal)) != null)
+                    return;
+
+                var button = new HButton
+                {
+                    Text = "Permissions",
+                    Width = 166,
+                    Height = 42,
+                    RoundButton = true,
+                    Edge = 10,
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    TextMargin = 16,
+                    Margin = new Padding(0, 0, 0, 6),
+                    Cursor = Cursors.Hand,
+                    ButtonLeaveBackGroundColor1 = Color.FromArgb(31, 24, 69),
+                    ButtonLeaveBackGroundColor2 = Color.FromArgb(25, 20, 54),
+                    ButtonLeaveForeColor = Color.FromArgb(239, 234, 250),
+                    ButtonLeaveBorderColor = Color.FromArgb(55, 45, 94),
+                    ButtonEnterBackGroundColor1 = Color.FromArgb(76, 54, 132),
+                    ButtonEnterBackGroundColor2 = Color.FromArgb(55, 39, 100),
+                    ButtonEnterForeColor = Color.White,
+                    ButtonEnterBorderColor = Color.FromArgb(116, 76, 210),
+                    ButtonDownBackGroundColor1 = Color.FromArgb(61, 43, 110),
+                    ButtonDownBackGroundColor2 = Color.FromArgb(42, 29, 78),
+                    ButtonDownForeColor = Color.White,
+                    ButtonDownBorderColor = Color.FromArgb(104, 76, 170),
+                    Font = new Font("Segoe UI", 9.5f)
+                };
+                button.Click += delegate
+                {
+                    using (var permissionsForm = new UiPermissionsForm(LoadUiPermissions()))
+                    {
+                        permissionsForm.ShowDialog(form);
+                    }
+                };
+
+                var aboutIndex = nav.Controls.Count;
+                for (var i = 0; i < nav.Controls.Count; i++)
+                {
+                    if (string.Equals(nav.Controls[i].Text, "About", StringComparison.Ordinal))
+                    {
+                        aboutIndex = i;
+                        break;
+                    }
+                }
+                nav.Controls.Add(button);
+                if (aboutIndex < nav.Controls.Count - 1)
+                    nav.Controls.SetChildIndex(button, aboutIndex);
+            };
         }
 
         private static void AttachRepositoryLink(Form form)

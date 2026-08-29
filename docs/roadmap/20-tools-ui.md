@@ -58,11 +58,14 @@ The public concept is **UI Context / Control Adapters**. “Form serialization�
 
 ### Automatic application understanding
 
-- [x] UI Context can attach to a Form or an arbitrary WinForms control tree such as a UserControl with an explicit stable root ID; pending local Example verification.
-- [x] Semantic and data-source discovery can traverse an attached control-tree root without requiring a Form; pending local Example verification.
+- [x] UI Context can attach to a Form or an arbitrary WinForms control tree such as a UserControl with an explicit stable root ID.
+- [x] Semantic and data-source discovery can traverse an attached control-tree root without requiring a Form.
+- [x] UserControl attachment, stable root identity, nested read access, semantic discovery, and bound data-source discovery verified locally in `HAgent.Example`.
+- [x] `BindingSource` data reads use the native bound list without intermediate `DataTable` normalization.
+- [x] Data-source descriptors expose observable BindingSource/CurrencyManager relationship metadata including source kind, underlying source type, list type, binding path, currency-manager type, position, and count.
 - [ ] Semantic control labels and logical IDs beyond raw control names.
-- [ ] BindingSource/CurrencyManager/IList/native collection relationship adapters.
-- [ ] Relationship discovery between controls, bound records, lists, and forms.
+- [ ] Stronger native collection (`IList`) relationship modeling.
+- [ ] Relationship discovery between controls, bound records, lists, and forms beyond directly observable binding facts.
 - [ ] Lightweight semantic projections without unnecessary copying.
 - [ ] Optional application-defined semantic adapters for Customer/Invoice/etc.
 - [ ] Restricted data-query abstraction that can target application data, SQL Server, or MySQL without exposing arbitrary SQL by default.
@@ -88,7 +91,7 @@ Database permissions are separate from UI permissions. The presence of provenanc
 
 - [x] Permissions configuration page in AI Settings.
 - [x] Persist permission policy through the public settings path.
-- [ ] Form/UserControl/custom-control attachment and stable logical identity — implementation added; pending local Example verification.
+- [x] Form/UserControl attachment and stable logical identity.
 - [ ] Floating HAgent assistant/flyout.
 - [ ] `ui.write_control`.
 - [ ] `ui.move_control`.

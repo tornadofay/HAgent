@@ -11,16 +11,16 @@
 - [x] File definition persistence.
 - [x] Six initial tool categories.
 - [x] Live Groq tool loop.
+- [x] Per-agent tool assignment via persisted `ToolIds`.
+- [x] Agent/tool persistence verification.
 
 ### Current work
-- [ ] Complete settings UI persistence wiring and refresh behavior.
-- [ ] Per-agent tool assignment UI verified locally.
 - [ ] Per-session temporary tools.
-- [ ] Built-in tool handlers.
+- [ ] Built-in tool handlers beyond the initial UI read-only tools.
 - [ ] Declarative execution engine.
 - [ ] SQL Server tool execution.
 - [ ] MySQL tool execution.
-- [ ] Tool timeout/cancellation/progress.
+- [ ] Tool timeout/cancellation/progress policy.
 - [ ] Tool audit/history.
 - [ ] Tool budgets and stronger loop detection.
 - [ ] More capability negotiation around tool calling.
@@ -34,15 +34,36 @@
 - [ ] Sensitive-data redaction.
 
 ## 0.7 WinForms UI Context
-- [ ] Form/UserControl attachment and stable identity.
-- [ ] UI state snapshots and provider-neutral context.
-- [ ] Native/bound data-source adapters.
-- [ ] DataGridView, BindingSource, CurrencyManager, IList and collection adapters.
-- [ ] `HAgentHost.Attach(ai, form)` bridge.
+
+### Implemented foundation
+- [x] `IUiContext` contract.
+- [x] `WinFormsUiContext` attachment/read/inspection path.
+- [x] Stable control lookup by WinForms control name.
+- [x] UI state snapshots for form/control trees.
+- [x] TextBox/ComboBox/CheckBox/RadioButton/NumericUpDown/DateTimePicker/ListBox/ListView/Label value extraction.
+- [x] DataGridView bound-source extraction.
+- [x] DataTable/DataView/native enumerable handling where naturally available.
+- [x] Bounded row reads and cancellation checks.
+- [x] Read-only `ui.inspect`, `ui.read_control`, and `ui.read_data` tools.
+- [x] `HAgentHost.Attach(form, registry)` bridge.
+- [x] Provider-independent Example UI Context test.
+
+### Current work
+- [ ] Data source adapters for BindingSource/CurrencyManager/IList and richer collection types.
+- [ ] Public attach/detach lifecycle suitable for application use.
+- [ ] Form/UserControl/custom-control semantic identity improvements.
 - [ ] Floating assistant/flyout.
-- [ ] `ui.inspect`, read, write, move, resize, invoke, enable/disable, batch.
-- [ ] UI thread dispatch, dry-run, undo hooks and per-control permissions.
-- [ ] Always prefer the lightest native representation; `DataTable` is optional.
+- [ ] `ui.write_control`, `ui.move_control`, `ui.resize_control`, `ui.invoke`.
+- [ ] UI-thread dispatch integrated with host cancellation.
+- [ ] Dry-run/preview and undo hooks.
+- [ ] Per-control permissions and human approval integration.
+
+### Mandatory representation rule
+- [x] Prefer the lightest representation that preserves required information.
+- [x] Prefer bound/native data sources over visible-cell scraping.
+- [x] Avoid eager copying/materialization.
+- [x] `DataTable` is optional, not the architectural default.
+- [ ] Add paging/projection/streaming adapters for large sources where appropriate.
 
 ## 0.8 Chat + scopes
 - [ ] Global/form/session/task/ephemeral scopes.

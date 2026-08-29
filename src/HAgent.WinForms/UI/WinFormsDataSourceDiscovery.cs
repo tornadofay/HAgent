@@ -10,17 +10,22 @@ namespace HAgent.WinForms.UI
 {
     public sealed class WinFormsDataSourceDiscovery
     {
-        public IReadOnlyList<UiDataSourceDescriptor> Discover(Form form, UiAutomationPermissions permissions)
+        public IReadOnlyList<UiDataSourceDescriptor> Discover(Control root, UiAutomationPermissions permissions)
         {
-            if (form == null) throw new ArgumentNullException(nameof(form));
+            if (root == null) throw new ArgumentNullException(nameof(root));
             if (permissions == null) throw new ArgumentNullException(nameof(permissions));
             permissions.Validate();
             if (!permissions.AutomaticDiscovery || !permissions.ReadData)
                 throw new InvalidOperationException("Automatic data-source discovery is disabled by the current permission policy.");
 
             var result = new List<UiDataSourceDescriptor>();
-            Visit(form, result);
+            Visit(root, result);
             return result.AsReadOnly();
+        }
+
+        public IReadOnlyList<UiDataSourceDescriptor> Discover(Form form, UiAutomationPermissions permissions)
+        {
+            return Discover((Control)form, permissions);
         }
 
         private static void Visit(Control control, List<UiDataSourceDescriptor> result)

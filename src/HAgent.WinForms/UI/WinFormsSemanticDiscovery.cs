@@ -9,7 +9,7 @@ namespace HAgent.WinForms.UI
 {
     public sealed class WinFormsSemanticDiscovery
     {
-        public IReadOnlyList<UiSemanticDescriptor> Discover(Form form, UiAutomationPermissions permissions)
+        public IReadOnlyList<UiSemanticDescriptor> Discover(Form form, UiAutomationPermissions permissions, IUiSemanticProvider customProvider = null)
         {
             if (form == null) throw new ArgumentNullException(nameof(form));
             if (permissions == null) throw new ArgumentNullException(nameof(permissions));
@@ -18,41 +18,34 @@ namespace HAgent.WinForms.UI
                 throw new InvalidOperationException("Automatic UI discovery is disabled by the current permission policy.");
 
             var result = new List<UiSemanticDescriptor>();
-            Visit(form, result, permissions);
+            Visit(form, result, permissions, customProvider);
             return result.AsReadOnly();
         }
 
-        private static void Visit(Control control, List<UiSemanticDescriptor> result, UiAutomationPermissions permissions)
+        private static void Visit(Control control, List<UiSemanticDescriptor> result, UiAutomationPermissions permissions, IUiSemanticProvider customProvider)
         {
-            var descriptor = Describe(control, permissions);
+            var descriptor = customProvider == null ? null : customProvider.Describe(control);
+            if (descriptor == null)
+                descriptor = Describe(control, permissions);
             if (descriptor != null) result.Add(descriptor);
 
             foreach (Control child in control.Controls)
-                Visit(child, result, permissions);
+                Visit(child, result, permissions, customProvider);
         }
 
         private static UiSemanticDescriptor Describe(Control control, UiAutomationPermissions permissions)
         {
-            var logicalName = FirstNonEmpty(
-                control.AccessibleName,
-                control.Tag as string,
-                control.Name,
-                control.Text);
+            var logicalName = FirstNonEmpty(control.AccessibleName, control.Name, control.Text);
+            if (string.IsNullOrWhiteSpace(logicalName)) return null;
 
-            if (string.IsNullOrWhiteSpace(logicalName))
-                return null;
-
-            var role = InferRole(control);
-            var dataRole = InferDataRole(control);
             var binding = FindBinding(control);
-
             return new UiSemanticDescriptor
             {
                 ControlId = control.Name,
                 LogicalName = NormalizeLogicalName(logicalName),
-                Role = role,
+                Role = InferRole(control),
                 Description = control.AccessibleDescription,
-                DataRole = dataRole,
+                DataRole = InferDataRole(control, binding),
                 DataMember = binding == null ? null : binding.DataMember,
                 BindingPath = binding == null ? null : binding.BindingPath,
                 Readable = permissions.ReadControls && IsReadable(control),
@@ -78,7 +71,7 @@ namespace HAgent.WinForms.UI
             return control.GetType().Name;
         }
 
-        private static string InferDataRole(Control control)
+        private static string InferDataRole(Control control, BindingInfo binding)
         {
             if (control is DataGridView)
             {
@@ -87,15 +80,12 @@ namespace HAgent.WinForms.UI
                 if (grid.DataSource is DataView) return "tabular-view";
                 if (grid.DataSource != null) return "bound-data";
             }
-
-            var binding = FindBinding(control);
             return binding == null ? null : "bound-value";
         }
 
         private static BindingInfo FindBinding(Control control)
         {
-            var bindings = control.DataBindings;
-            foreach (Binding binding in bindings)
+            foreach (Binding binding in control.DataBindings)
             {
                 if (binding == null) continue;
                 return new BindingInfo
@@ -107,9 +97,7 @@ namespace HAgent.WinForms.UI
 
             var grid = control as DataGridView;
             if (grid != null && grid.DataSource != null)
-            {
                 return new BindingInfo { BindingPath = "DataSource", DataMember = TryGetDataMember(grid.DataSource) };
-            }
 
             return null;
         }
@@ -140,7 +128,6 @@ namespace HAgent.WinForms.UI
                 metadata["rowCount"] = grid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow);
                 metadata["hasDataSource"] = grid.DataSource != null;
             }
-
             return metadata;
         }
 

@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
-using System.Drawing;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -66,8 +65,13 @@ namespace HAgent.WinForms.UI
         private Task<T> OnUiAsync<T>(Func<T> action)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(WinFormsUiContext));
-            if (!_form.IsHandleCreated || _form.IsDisposed) throw new InvalidOperationException("The attached form is not available.");
-            if (!_form.InvokeRequired) return Task.FromResult(action());
+            if (_form.IsDisposed) throw new InvalidOperationException("The attached form is disposed.");
+
+            if (!_form.InvokeRequired)
+                return Task.FromResult(action());
+
+            if (!_form.IsHandleCreated)
+                throw new InvalidOperationException("The attached form is not ready for cross-thread UI access. Attach it after the form has created its handle or call from the form's UI thread.");
 
             var tcs = new TaskCompletionSource<T>();
             try
@@ -161,7 +165,7 @@ namespace HAgent.WinForms.UI
             {
                 var bound = ExtractRowsFromSource(source, maxRows, cancellationToken);
                 if (bound.Count > 0 || source is DataTable || source is DataView || source is DataSet)
-                    return bound;
+                    return bound.AsReadOnly();
             }
 
             var rows = new List<IReadOnlyDictionary<string, object>>();

@@ -110,13 +110,20 @@ namespace HAgent.WinForms.UI
             if (control == null || binding == null || binding.DataSource == null) return null;
             try
             {
-                var manager = control.BindingContext[binding.DataSource, binding.BindingMember ?? string.Empty];
+                var manager = control.BindingContext[binding.DataSource, GetBindingMember(binding)];
                 return manager == null ? null : manager.GetType().FullName;
             }
             catch
             {
                 return null;
             }
+        }
+
+        private static string GetBindingMember(Binding binding)
+        {
+            if (binding == null) return string.Empty;
+            try { return binding.BindingMemberInfo.BindingMember ?? string.Empty; }
+            catch { return string.Empty; }
         }
 
         private static int? TryGetPosition(object source)
@@ -128,15 +135,6 @@ namespace HAgent.WinForms.UI
             if (currencyManager != null) return currencyManager.Position < 0 ? (int?)null : currencyManager.Position;
 
             return null;
-        }
-
-        private static object UnwrapBindingSource(object source, out string dataMember)
-        {
-            dataMember = null;
-            var bindingSource = source as BindingSource;
-            if (bindingSource == null) return source;
-            dataMember = string.IsNullOrWhiteSpace(bindingSource.DataMember) ? null : bindingSource.DataMember;
-            return bindingSource.List ?? bindingSource.DataSource;
         }
 
         private static string ResolveItemType(object source)
@@ -230,7 +228,15 @@ namespace HAgent.WinForms.UI
             if (member != null)
                 return string.IsNullOrWhiteSpace(member.DataMember) ? null : member.DataMember;
 
-            return TryGetDataMember(source);
+            try
+            {
+                var info = binding.BindingMemberInfo;
+                return string.IsNullOrWhiteSpace(info.BindingMember) ? null : info.BindingMember;
+            }
+            catch
+            {
+                return TryGetDataMember(source);
+            }
         }
 
         private static string TryGetDataMember(object source)

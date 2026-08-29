@@ -38,40 +38,96 @@ namespace HAgent.WinForms.UI
 
         private static UiDataSourceDescriptor Describe(Control control)
         {
+            if (control == null) return null;
+
             object source = null;
             string dataMember = null;
+            string bindingPath = null;
+            Binding binding = null;
 
             var grid = control as DataGridView;
             if (grid != null && grid.DataSource != null)
             {
                 source = grid.DataSource;
                 dataMember = TryGetDataMember(source);
+                bindingPath = "DataSource";
             }
             else
             {
-                foreach (Binding binding in control.DataBindings)
+                foreach (Binding candidate in control.DataBindings)
                 {
-                    if (binding == null || binding.DataSource == null) continue;
-                    source = UnwrapBindingSource(binding.DataSource, out dataMember);
-                    if (source != null) break;
+                    if (candidate == null || candidate.DataSource == null) continue;
+                    binding = candidate;
+                    source = candidate.DataSource;
+                    dataMember = TryGetBindingDataMember(candidate);
+                    bindingPath = candidate.PropertyName;
+                    break;
                 }
             }
 
             if (source == null) return null;
 
+            var bindingSource = source as BindingSource;
+            var effectiveSource = bindingSource == null ? source : (bindingSource.List ?? bindingSource.DataSource);
             var descriptor = new UiDataSourceDescriptor
             {
                 ControlId = control.Name,
                 ControlType = control.GetType().FullName,
+                SourceKind = ResolveSourceKind(source),
                 SourceType = source.GetType().FullName,
+                UnderlyingSourceType = bindingSource == null || bindingSource.DataSource == null
+                    ? null
+                    : bindingSource.DataSource.GetType().FullName,
+                ListType = bindingSource == null || bindingSource.List == null
+                    ? null
+                    : bindingSource.List.GetType().FullName,
                 DataMember = dataMember,
-                ItemType = ResolveItemType(source),
-                Count = TryGetCount(source),
-                FieldNames = ResolveFieldNames(source),
-                Metadata = BuildMetadata(source)
+                BindingPath = bindingPath,
+                CurrencyManagerType = ResolveCurrencyManagerType(control, binding),
+                Position = TryGetPosition(source),
+                ItemType = ResolveItemType(effectiveSource),
+                Count = TryGetCount(source, effectiveSource),
+                FieldNames = ResolveFieldNames(effectiveSource),
+                Metadata = BuildMetadata(source, effectiveSource)
             };
 
             return descriptor;
+        }
+
+        private static string ResolveSourceKind(object source)
+        {
+            if (source is BindingSource) return "BindingSource";
+            if (source is DataTable) return "DataTable";
+            if (source is DataView) return "DataView";
+            if (source is DataSet) return "DataSet";
+            if (source is IList) return "IList";
+            if (source is IEnumerable && !(source is string)) return "Enumerable";
+            return source.GetType().Name;
+        }
+
+        private static string ResolveCurrencyManagerType(Control control, Binding binding)
+        {
+            if (control == null || binding == null || binding.DataSource == null) return null;
+            try
+            {
+                var manager = control.BindingContext[binding.DataSource, binding.BindingMember ?? string.Empty];
+                return manager == null ? null : manager.GetType().FullName;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static int? TryGetPosition(object source)
+        {
+            var bindingSource = source as BindingSource;
+            if (bindingSource != null) return bindingSource.Position < 0 ? (int?)null : bindingSource.Position;
+
+            var currencyManager = source as CurrencyManager;
+            if (currencyManager != null) return currencyManager.Position < 0 ? (int?)null : currencyManager.Position;
+
+            return null;
         }
 
         private static object UnwrapBindingSource(object source, out string dataMember)
@@ -101,17 +157,20 @@ namespace HAgent.WinForms.UI
             return generic == null ? null : generic.GetGenericArguments()[0].FullName;
         }
 
-        private static int? TryGetCount(object source)
+        private static int? TryGetCount(object source, object effectiveSource)
         {
-            var table = source as DataTable;
+            var bindingSource = source as BindingSource;
+            if (bindingSource != null) return bindingSource.Count;
+
+            var table = effectiveSource as DataTable;
             if (table != null) return table.Rows.Count;
-            var view = source as DataView;
+            var view = effectiveSource as DataView;
             if (view != null) return view.Count;
-            var collection = source as ICollection;
+            var collection = effectiveSource as ICollection;
             if (collection != null) return collection.Count;
-            var property = source.GetType().GetProperty("Count", BindingFlags.Public | BindingFlags.Instance);
+            var property = effectiveSource == null ? null : effectiveSource.GetType().GetProperty("Count", BindingFlags.Public | BindingFlags.Instance);
             if (property == null || !property.CanRead) return null;
-            try { return Convert.ToInt32(property.GetValue(source, null)); }
+            try { return Convert.ToInt32(property.GetValue(effectiveSource, null)); }
             catch { return null; }
         }
 
@@ -137,11 +196,13 @@ namespace HAgent.WinForms.UI
             return fields.AsReadOnly();
         }
 
-        private static Dictionary<string, object> BuildMetadata(object source)
+        private static Dictionary<string, object> BuildMetadata(object source, object effectiveSource)
         {
             var metadata = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
-                ["sourceType"] = source.GetType().FullName
+                ["sourceType"] = source.GetType().FullName,
+                ["sourceKind"] = ResolveSourceKind(source),
+                ["effectiveSourceType"] = effectiveSource == null ? null : effectiveSource.GetType().FullName
             };
 
             var bindingSource = source as BindingSource;
@@ -149,13 +210,27 @@ namespace HAgent.WinForms.UI
             {
                 metadata["dataMember"] = bindingSource.DataMember;
                 metadata["listType"] = bindingSource.List == null ? null : bindingSource.List.GetType().FullName;
+                metadata["position"] = bindingSource.Position;
             }
 
-            var dataSet = source as DataSet;
+            var dataSet = effectiveSource as DataSet;
             if (dataSet != null)
                 metadata["tableCount"] = dataSet.Tables.Count;
 
             return metadata;
+        }
+
+        private static string TryGetBindingDataMember(Binding binding)
+        {
+            if (binding == null || binding.DataSource == null)
+                return null;
+
+            var source = binding.DataSource;
+            var member = source as BindingSource;
+            if (member != null)
+                return string.IsNullOrWhiteSpace(member.DataMember) ? null : member.DataMember;
+
+            return TryGetDataMember(source);
         }
 
         private static string TryGetDataMember(object source)

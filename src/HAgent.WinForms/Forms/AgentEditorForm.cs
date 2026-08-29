@@ -20,6 +20,7 @@ namespace HAgent.WinForms.Forms
         private readonly IReadOnlyList<AiProvider> _providers;
         private readonly ISecretStore _secrets;
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
+        private readonly IReadOnlyList<AiTool> _tools;
         private readonly TableLayoutPanel _layout = new TableLayoutPanel();
         private readonly TextBox _name = new TextBox();
         private readonly ComboBox _provider = new ComboBox();
@@ -29,16 +30,23 @@ namespace HAgent.WinForms.Forms
         private readonly CheckBox _enabled = new CheckBox();
         private readonly NumericUpDown _temperature = new NumericUpDown();
         private readonly NumericUpDown _tokens = new NumericUpDown();
+        private readonly CheckedListBox _toolList = new CheckedListBox();
         private readonly HButton _test = new HButton();
         private readonly Label _status = new Label();
 
-        public AgentEditorForm(AiAgent agent, IReadOnlyList<AiProvider> providers, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
-            : base("Agent behavior", "Define this agent's role, provider/model preferences, and runtime settings", new Size(820, 730), new Size(700, 650))
+        public AgentEditorForm(
+            AiAgent agent,
+            IReadOnlyList<AiProvider> providers,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IEnumerable<AiTool> tools = null)
+            : base("Agent behavior", "Define this agent's role, provider/model preferences, tools, and runtime settings", new Size(860, 790), new Size(720, 680))
         {
             Agent = agent ?? new AiAgent();
             _providers = providers ?? new List<AiProvider>();
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             _adapters = (adapters ?? new List<IAiProviderAdapter>()).ToList().AsReadOnly();
+            _tools = (tools ?? new List<AiTool>()).Where(x => x != null).ToList().AsReadOnly();
             Build();
         }
 
@@ -49,7 +57,7 @@ namespace HAgent.WinForms.Forms
             _layout.ColumnCount = 2;
             _layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 195));
             _layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            _layout.RowCount = 7;
+            _layout.RowCount = 8;
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
@@ -57,6 +65,7 @@ namespace HAgent.WinForms.Forms
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
             _layout.BackColor = Color.FromArgb(248, 248, 252);
 
             AddField(0, "Name", "How this agent appears in your application.", _name);
@@ -66,6 +75,7 @@ namespace HAgent.WinForms.Forms
             AddCheckField(4, "Instruction inheritance", "Also include the selected provider's shared instruction.", _inherit);
             AddField(5, "Temperature", "Optional sampling control. Empty keeps the provider/model default.", _temperature);
             AddField(6, "Max output tokens", "Optional upper limit for generated output.", _tokens);
+            AddToolField(7);
 
             _name.Text = Agent.Name;
             _prompt.Text = Agent.SystemPrompt;
@@ -77,7 +87,7 @@ namespace HAgent.WinForms.Forms
             var selected = _providers.FirstOrDefault(p => p.Id == Agent.ProviderId);
             if (selected != null) SelectProvider(selected.Id);
             else if (_provider.Items.Count > 0) _provider.SelectedIndex = 0;
-            _provider.SelectedIndexChanged += async delegate { await LoadModelsAsync(false); };
+            _provider.SelectedIndexChanged += async delegate { await LoadModelsAsync(); };
 
             _model.DropDownStyle = ComboBoxStyle.DropDown;
             _model.Text = Agent.Model;
@@ -114,7 +124,7 @@ namespace HAgent.WinForms.Forms
 
             BodyPanel.Controls.Add(_layout);
             BodyPanel.Controls.Add(footer);
-            Shown += async delegate { await LoadModelsAsync(false); };
+            Shown += async delegate { await LoadModelsAsync(); };
         }
 
         private static HButton CreateButton(string text, int width, int height)
@@ -164,6 +174,28 @@ namespace HAgent.WinForms.Forms
             _layout.Controls.Add(host, 1, row);
         }
 
+        private void AddToolField(int row)
+        {
+            _layout.Controls.Add(CreateLabelPanel("Tools", "Select the capabilities this agent is allowed to request. Assignment controls availability; handler registration controls execution."), 0, row);
+            var host = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 6, 0, 0) };
+            _toolList.Dock = DockStyle.Fill;
+            _toolList.BorderStyle = BorderStyle.FixedSingle;
+            _toolList.CheckOnClick = true;
+            _toolList.Font = new Font("Segoe UI", 8.8f);
+            _toolList.BackColor = Color.White;
+            _toolList.ForeColor = Color.FromArgb(68, 62, 88);
+
+            var assigned = new HashSet<string>(Agent.ToolIds ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+            foreach (var tool in _tools.OrderBy(x => x.Name))
+            {
+                var index = _toolList.Items.Add(new ToolItem(tool));
+                _toolList.SetItemChecked(index, assigned.Contains(tool.Id));
+            }
+
+            host.Controls.Add(_toolList);
+            _layout.Controls.Add(host, 1, row);
+        }
+
         private static Panel CreateLabelPanel(string title, string description)
         {
             var p = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 8, 12, 0) };
@@ -195,7 +227,7 @@ namespace HAgent.WinForms.Forms
             return await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(true);
         }
 
-        private async Task LoadModelsAsync(bool showErrors)
+        private async Task LoadModelsAsync()
         {
             try
             {
@@ -211,10 +243,7 @@ namespace HAgent.WinForms.Forms
                 if (models.Count > 0) _status.Text = models.Count + " model(s) available";
                 await ShowCapabilitiesAsync(provider, adapter, _model.Text).ConfigureAwait(true);
             }
-            catch (Exception ex)
-            {
-                if (showErrors) HMessage.ShowException(this, "The model list could not be loaded.", "Load models", ex);
-            }
+            catch { }
         }
 
         private async Task ShowCapabilitiesAsync(AiProvider provider, IAiProviderAdapter adapter, string model)
@@ -225,19 +254,12 @@ namespace HAgent.WinForms.Forms
                 _status.Text = "Capabilities: unavailable";
                 return;
             }
-
             if (string.IsNullOrWhiteSpace(model))
             {
                 _status.Text = "Capabilities: select a model";
                 return;
             }
-
-            var capabilities = await capabilityAdapter.GetCapabilitiesAsync(
-                provider,
-                model.Trim(),
-                await GetApiKeyAsync(provider),
-                CancellationToken.None).ConfigureAwait(true);
-
+            var capabilities = await capabilityAdapter.GetCapabilitiesAsync(provider, model.Trim(), await GetApiKeyAsync(provider), CancellationToken.None).ConfigureAwait(true);
             _status.Text = CapabilityDisplay.BuildSummary(capabilities);
             CapabilityDisplay.AttachToolTip(_status, capabilities);
         }
@@ -289,6 +311,12 @@ namespace HAgent.WinForms.Forms
                 Agent.Temperature = _temperature.Value == 0 ? (double?)null : (double)_temperature.Value;
                 Agent.MaxOutputTokens = _tokens.Value == 0 ? (int?)null : (int)_tokens.Value;
                 Agent.Enabled = _enabled.Checked;
+                Agent.ToolIds = new List<string>();
+                foreach (var item in _toolList.CheckedItems)
+                {
+                    var tool = item as ToolItem;
+                    if (tool != null && !string.IsNullOrWhiteSpace(tool.Tool.Id)) Agent.ToolIds.Add(tool.Tool.Id);
+                }
                 DialogResult = DialogResult.OK;
                 Close();
             }
@@ -300,6 +328,13 @@ namespace HAgent.WinForms.Forms
             public ProviderItem(AiProvider provider) { Provider = provider; }
             public AiProvider Provider { get; private set; }
             public override string ToString() { return Provider.Name; }
+        }
+
+        private sealed class ToolItem
+        {
+            public ToolItem(AiTool tool) { Tool = tool; }
+            public AiTool Tool { get; private set; }
+            public override string ToString() { return Tool.Name + "  —  " + Tool.Description; }
         }
     }
 }

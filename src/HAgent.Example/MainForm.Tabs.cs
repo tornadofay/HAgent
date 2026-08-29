@@ -60,7 +60,7 @@ namespace HAgent.Example
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 10));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 39));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 6));
 
@@ -77,6 +77,54 @@ namespace HAgent.Example
                 Margin = new Padding(0, 2, 0, 4)
             };
 
+            var code = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Both,
+                WordWrap = false,
+                Text = ExampleCodeSnippets.Get(title),
+                Font = new Font("Consolas", 8.8f),
+                BackColor = Color.White,
+                ForeColor = Text,
+                BorderStyle = BorderStyle.FixedSingle,
+                Margin = new Padding(0, 2, 0, 4)
+            };
+
+            var inputCode = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 2,
+                BackColor = Surface,
+                Margin = new Padding(0)
+            };
+            inputCode.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            inputCode.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            inputCode.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            inputCode.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            inputCode.Controls.Add(new Label
+            {
+                Text = "Test input / message — editable",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Text,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                Padding = new Padding(1, 2, 0, 0)
+            }, 0, 0);
+            inputCode.Controls.Add(new Label
+            {
+                Text = "C# reproduction snippet — copy",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Text,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                Padding = new Padding(10, 2, 0, 0)
+            }, 1, 0);
+            inputCode.Controls.Add(input, 0, 1);
+            inputCode.Controls.Add(code, 1, 1);
+
             var runButton = CreateButton(buttonText, 190);
             runButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
             runButton.Click += async delegate
@@ -86,16 +134,7 @@ namespace HAgent.Example
             _testButtons.Add(runButton);
 
             layout.Controls.Add(runButton, 0, 0);
-            layout.Controls.Add(new Label
-            {
-                Text = "Sent message / input  — editable",
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = Text,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                Padding = new Padding(1, 3, 0, 0)
-            }, 0, 1);
-            layout.Controls.Add(input, 0, 2);
+            layout.Controls.Add(inputCode, 0, 1);
             layout.Controls.Add(new Label
             {
                 Text = "Description\r\n" + description + "\r\n\r\nExpected result\r\n" + expected,

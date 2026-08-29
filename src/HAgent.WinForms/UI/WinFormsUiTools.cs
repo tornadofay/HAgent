@@ -19,7 +19,7 @@ namespace HAgent.WinForms.UI
             {
                 Id = "ui.inspect",
                 Name = "Inspect UI",
-                Description = "Inspect the attached WinForms form or a named control without changing it.",
+                Description = "Inspect the attached WinForms UI root or a named control without changing it.",
                 Category = "UI",
                 Type = AiToolType.UI,
                 InputSchemaJson = "{\"type\":\"object\",\"properties\":{\"controlId\":{\"type\":\"string\"}},\"additionalProperties\":false}",

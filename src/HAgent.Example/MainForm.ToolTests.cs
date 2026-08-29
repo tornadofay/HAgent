@@ -271,8 +271,11 @@ namespace HAgent.Example
                 }
                 else
                 {
-                    if (requestBody.IndexOf("The tool returned 7", StringComparison.OrdinalIgnoreCase) < 0)
-                        throw new InvalidOperationException("The second provider request did not contain the tool result observation.");
+                    var hasToolRole = requestBody.IndexOf("\"role\":\"tool\"", StringComparison.OrdinalIgnoreCase) >= 0;
+                    var hasToolCallId = requestBody.IndexOf("\"tool_call_id\":\"call-add-42\"", StringComparison.OrdinalIgnoreCase) >= 0;
+                    var hasToolOutput = requestBody.IndexOf("\"content\":\"7\"", StringComparison.OrdinalIgnoreCase) >= 0;
+                    if (!hasToolRole || !hasToolCallId || !hasToolOutput)
+                        throw new InvalidOperationException("The second provider request did not contain the expected tool result observation (role/tool_call_id/content=7).");
                     body = "{\"id\":\"loop-2\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"The tool returned 7.\"}}]}";
                 }
                 return new HttpResponseMessage(HttpStatusCode.OK)

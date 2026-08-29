@@ -29,6 +29,11 @@ namespace HAgent.Runtime
         {
             return new ToolValidationResult(false, new Dictionary<string, object>(), new List<string>(errors ?? new string[0]).AsReadOnly());
         }
+
+        private static bool IsIntegralDecimal(decimal value)
+        {
+            return decimal.Truncate(value) == value;
+        }
     }
 
     public static class ToolSchemaValidator
@@ -217,7 +222,19 @@ namespace HAgent.Runtime
 
         private static bool IsInteger(object value)
         {
-            return value is sbyte || value is byte || value is short || value is ushort || value is int || value is uint || value is long || value is ulong;
+            if (value is sbyte || value is byte || value is short || value is ushort || value is int || value is uint || value is long || value is ulong)
+                return true;
+
+            if (value is decimal)
+                return decimal.Truncate((decimal)value) == (decimal)value;
+
+            if (value is double)
+                return !double.IsNaN((double)value) && !double.IsInfinity((double)value) && Math.Truncate((double)value) == (double)value;
+
+            if (value is float)
+                return !float.IsNaN((float)value) && !float.IsInfinity((float)value) && (float)Math.Truncate((float)value) == (float)value;
+
+            return false;
         }
 
         private static bool IsNumber(object value)

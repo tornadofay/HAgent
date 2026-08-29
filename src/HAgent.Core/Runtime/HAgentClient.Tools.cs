@@ -59,9 +59,13 @@ namespace HAgent.Runtime
             if (!tool.Definition.Enabled)
                 return ToolExecutionResult.Failure("Tool is disabled: " + tool.Definition.Name);
 
-            var source = arguments == null
-                ? new Dictionary<string, object>()
-                : new Dictionary<string, object>(arguments, StringComparer.OrdinalIgnoreCase);
+            var source = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            if (arguments != null)
+            {
+                foreach (var pair in arguments)
+                    source[pair.Key] = pair.Value;
+            }
+
             var validation = ToolSchemaValidator.Validate(tool.Definition, source);
             if (!validation.IsValid)
                 return ToolExecutionResult.Failure("Tool arguments failed schema validation: " + string.Join(" ", validation.Errors.Select(x => "[" + x + "]")));

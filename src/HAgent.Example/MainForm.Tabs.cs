@@ -32,49 +32,58 @@ namespace HAgent.Example
             AddApiTab("UI Context", "Run UI context test", "Attaches a lightweight UI context to a sample WinForms form, inspects controls, reads a TextBox, and reads DataGridView data from its bound source.", "The form and controls should be discovered, the TextBox value should be read, and two rows should be returned from the bound DataTable without requiring a default DataTable architecture.", "No AI request is sent by this example.", TestUiContextAsync, "UI boundary", "Read-only in this slice. UI write, click, move, resize, and approval require the later guardrail/permission layer.");
         }
 
-        private void AddApiTab(
-            string title,
-            string buttonText,
-            string description,
-            string expected,
-            string initialMessage,
-            Func<string, Task> test,
-            string noteTitle,
-            string noteText)
+        private void AddApiTab(string title, string buttonText, string description, string expected, string initialMessage, Func<string, Task> test, string noteTitle, string noteText)
         {
-            var page = new TabPage(title)
-            {
-                BackColor = Surface,
-                Padding = new Padding(0)
-            };
-            _tabs.TabPages.Add(page);
+            var page = new TabPage(title) { BackColor = Surface, Padding = new Padding(0) };
 
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 5,
+                RowCount = 4,
                 BackColor = Surface,
                 Padding = new Padding(22)
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 10));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 39));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 68));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 6));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 12));
+
+            var runButton = CreateButton(buttonText, 190);
+            runButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+            runButton.Click += async delegate
+            {
+                await RunExampleAsync(delegate { return test(input.Text); });
+            };
+            _testButtons.Add(runButton);
+            layout.Controls.Add(runButton, 0, 0);
+
+            var editors = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 2,
+                BackColor = Surface,
+                Margin = new Padding(0),
+                Padding = new Padding(0)
+            };
+            editors.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            editors.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            editors.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+            editors.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             var input = new TextBox
             {
                 Dock = DockStyle.Fill,
-                Multiline = title != "Configuration",
-                ScrollBars = title == "Configuration" ? ScrollBars.None : ScrollBars.Vertical,
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical,
                 Text = initialMessage,
                 Font = new Font("Segoe UI", 9.2f),
                 BackColor = Color.White,
                 ForeColor = Text,
                 BorderStyle = BorderStyle.FixedSingle,
-                Margin = new Padding(0, 2, 0, 4)
+                Margin = new Padding(0, 0, 8, 0)
             };
 
             var code = new TextBox
@@ -86,73 +95,55 @@ namespace HAgent.Example
                 WordWrap = false,
                 Text = ExampleCodeSnippets.Get(title),
                 Font = new Font("Consolas", 8.8f),
-                BackColor = Color.White,
+                BackColor = Color.FromArgb(244, 243, 248),
                 ForeColor = Text,
                 BorderStyle = BorderStyle.FixedSingle,
-                Margin = new Padding(0, 2, 0, 4)
+                Margin = new Padding(8, 0, 0, 0)
             };
 
-            var inputCode = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                RowCount = 2,
-                BackColor = Surface,
-                Margin = new Padding(0)
-            };
-            inputCode.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            inputCode.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            inputCode.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-            inputCode.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            inputCode.Controls.Add(new Label
+            editors.Controls.Add(new Label
             {
                 Text = "Test input / message — editable",
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = Text,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                Padding = new Padding(1, 2, 0, 0)
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
             }, 0, 0);
-            inputCode.Controls.Add(new Label
+            editors.Controls.Add(new Label
             {
                 Text = "C# reproduction snippet — copy",
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = Text,
                 Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                Padding = new Padding(10, 2, 0, 0)
+                Padding = new Padding(8, 0, 0, 0)
             }, 1, 0);
-            inputCode.Controls.Add(input, 0, 1);
-            inputCode.Controls.Add(code, 1, 1);
+            editors.Controls.Add(input, 0, 1);
+            editors.Controls.Add(code, 1, 1);
+            layout.Controls.Add(editors, 0, 1);
 
-            var runButton = CreateButton(buttonText, 190);
-            runButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
-            runButton.Click += async delegate
-            {
-                await RunExampleAsync(delegate { return test(input.Text); });
-            };
-            _testButtons.Add(runButton);
-
-            layout.Controls.Add(runButton, 0, 0);
-            layout.Controls.Add(inputCode, 0, 1);
             layout.Controls.Add(new Label
             {
                 Text = "Description\r\n" + description + "\r\n\r\nExpected result\r\n" + expected,
                 Dock = DockStyle.Fill,
                 ForeColor = Text,
                 Font = new Font("Segoe UI", 9f),
-                Padding = new Padding(1, 4, 20, 0)
-            }, 0, 3);
+                Padding = new Padding(1, 10, 20, 0),
+                AutoEllipsis = false
+            }, 0, 2);
+
             layout.Controls.Add(new Label
             {
                 Text = noteTitle + ": " + noteText,
                 Dock = DockStyle.Fill,
                 ForeColor = Muted,
                 Font = new Font("Segoe UI", 8.6f),
-                Padding = new Padding(1, 8, 20, 0)
-            }, 0, 4);
+                Padding = new Padding(1, 6, 20, 0),
+                AutoEllipsis = false
+            }, 0, 3);
 
             page.Controls.Add(layout);
+            _tabs.TabPages.Add(page);
         }
     }
 }

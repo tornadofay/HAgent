@@ -40,6 +40,7 @@
 - [x] `IUiContext` and `WinFormsUiContext`.
 - [x] Stable control lookup by WinForms control name.
 - [x] UI-thread dispatch for context reads.
+- [x] UI lifecycle-safe same-thread inspection before a native handle exists.
 - [x] `UiControlSnapshot` inspection model.
 - [x] `ui.inspect`, `ui.read_control`, and `ui.read_data` read-only tools.
 - [x] Bound/native `DataGridView` source preference.
@@ -47,7 +48,7 @@
 - [x] `DataTable` treated as optional rather than the default representation.
 - [x] Coarse `UiAutomationPermissions` policy.
 - [x] Built-in UI tools enforce the permission policy.
-- [x] Permission policy defaults to no automatic discovery/write/invoke.
+- [x] Explicit permission-aware `HAgentHost.Attach(...)` overload.
 
 ### Current design
 - [ ] Automatic UI discovery should be optional convenience behavior, never implicit authority.
@@ -57,17 +58,29 @@
 - [ ] Automatic semantic discovery should be able to identify useful controls and bound data sources without forcing developers to write wrappers.
 - [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
 - [ ] Cross-form discovery/memory requires explicit scope and policy.
+- [ ] The same provider-neutral boundary should allow future HControl/BaseForm, GDI, DirectX, and Unity-style adapters without moving those platform concepts into Core.
 
 ### Next
 - [ ] Permission configuration UI in AI Settings.
-- [ ] Persist permission policy.
+- [ ] Persist permission policy through the public configuration path.
 - [ ] Form/UserControl attachment and stable logical form identity.
 - [ ] Semantic control discovery beyond exact `Name` lookup.
 - [ ] BindingSource/CurrencyManager/IList/native collection adapters.
 - [ ] Safe data projection/query abstraction.
 - [ ] SQL Server/MySQL read/query tools under separate restricted permissions.
 - [ ] UI write/invoke tools only after permission/approval foundation.
-- [ ] `HAgentHost.Attach(ai, form)` bridge and floating assistant/flyout.
+- [ ] Floating assistant/flyout.
+
+## Example host
+- [x] Every current Example tab has editable input and expected-output guidance.
+- [x] Every current Example tab has a copyable C# reproduction snippet beside its input.
+- [ ] Keep snippets synchronized whenever a public API used by an example changes.
+- [ ] Maintain focused partial test files instead of returning to one monolithic `MainForm` implementation.
+
+## Documentation workflow
+- [x] Small source files under `docs/plan/` and `docs/roadmap/`.
+- [x] Generated root `plan.md` and `roadmap.md` workflow.
+- [ ] Treat documentation source changes as part of the same implementation change, not a later cleanup task.
 
 ## 0.8 Chat + scopes
 - [ ] Agent profile separated from runtime binding.

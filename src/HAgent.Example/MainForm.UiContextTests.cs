@@ -52,7 +52,7 @@ namespace HAgent.Example
 
                     var permissions = new UiAutomationPermissions { AutomaticDiscovery = true, ReadControls = true, ReadData = true };
                     var sourceDiscovery = new WinFormsDataSourceDiscovery();
-                    var sources = sourceDiscovery.Discover(form, permissions);
+                    var sources = sourceDiscovery.Discover((Control)form, permissions);
                     var gridSource = sources.FirstOrDefault(x => string.Equals(x.ControlId, "gridCustomers", StringComparison.OrdinalIgnoreCase));
                     if (gridSource == null)
                         throw new InvalidOperationException("UI data-source discovery did not identify the bound DataGridView source.");
@@ -132,11 +132,11 @@ namespace HAgent.Example
                     if (rows.Count != 1 || !string.Equals(Convert.ToString(rows[0]["Name"]), "Panel Alice", StringComparison.Ordinal))
                         throw new InvalidOperationException("UserControl attachment did not read the nested bound BindingSource data correctly.");
 
-                    var semantics = new WinFormsSemanticDiscovery().Discover(panel, permissions);
+                    var semantics = new WinFormsSemanticDiscovery().Discover((Control)panel, permissions);
                     if (!semantics.Any(x => string.Equals(x.ControlId, "txtPanelCustomer", StringComparison.OrdinalIgnoreCase)))
                         throw new InvalidOperationException("Semantic discovery did not traverse the attached UserControl root.");
 
-                    var sources = new WinFormsDataSourceDiscovery().Discover(panel, permissions);
+                    var sources = new WinFormsDataSourceDiscovery().Discover((Control)panel, permissions);
                     var gridSource = sources.FirstOrDefault(x => string.Equals(x.ControlId, "gridPanelCustomers", StringComparison.OrdinalIgnoreCase));
                     if (gridSource == null)
                         throw new InvalidOperationException("Data-source discovery did not traverse the attached UserControl root.");

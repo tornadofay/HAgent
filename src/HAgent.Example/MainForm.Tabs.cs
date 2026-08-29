@@ -45,9 +45,9 @@ namespace HAgent.Example
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 68));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 35));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 12));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 5));
 
             var editors = new TableLayoutPanel
             {
@@ -76,13 +76,13 @@ namespace HAgent.Example
                 Margin = new Padding(0, 0, 8, 0)
             };
 
-            var code = new TextBox
+            var code = new RichTextBox
             {
                 Dock = DockStyle.Fill,
                 Multiline = true,
                 ReadOnly = true,
-                ScrollBars = ScrollBars.Both,
-                WordWrap = false,
+                ScrollBars = RichTextBoxScrollBars.Vertical,
+                WordWrap = true,
                 Text = ExampleCodeSnippets.Get(title),
                 Font = new Font("Consolas", 9.0f),
                 BackColor = Color.FromArgb(244, 243, 248),

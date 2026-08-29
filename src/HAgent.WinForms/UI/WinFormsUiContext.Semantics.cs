@@ -24,7 +24,7 @@ namespace HAgent.WinForms.UI
                     throw new InvalidOperationException("Automatic UI discovery is disabled by the current permission policy.");
 
                 var discovery = new WinFormsSemanticDiscovery();
-                return discovery.Discover(_form, Permissions, _semanticProvider);
+                return discovery.Discover(_rootControl, Permissions, _semanticProvider);
             });
         }
     }

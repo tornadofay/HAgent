@@ -67,13 +67,15 @@
 - [x] Automatic semantic discovery can identify useful standard controls and bound data sources without forcing wrappers.
 - [x] UI Context can attach to a Form or an arbitrary WinForms control tree such as a UserControl with an explicit stable root ID.
 - [x] Semantic and data-source discovery can traverse an attached control-tree root without requiring a Form.
+- [x] UserControl attachment, stable root identity, nested read access, semantic discovery, and bound data-source discovery verified in `HAgent.Example`.
+- [x] `BindingSource` data reads use the native bound list and remain bounded; no intermediate `DataTable` normalization is introduced.
+- [x] Data-source descriptors expose observable binding relationship metadata including source kind, underlying source type, list type, binding path, currency-manager type, position, and count.
 - [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
 - [ ] Cross-form discovery/memory requires explicit scope and policy.
 - [x] The UI boundary remains outside `HAgent.Core`, allowing future HControl/BaseForm, GDI, DirectX, and Unity-style adapters.
 
 ### Next
-- [ ] Form/UserControl attachment and stable logical form identity — implementation added; pending local Example verification.
-- [ ] Stronger BindingSource/CurrencyManager/IList/native collection relationship modeling.
+- [ ] Stronger native collection (`IList`) and `CurrencyManager` relationship modeling.
 - [ ] Semantic relationship discovery between controls and data beyond directly observable binding facts.
 - [ ] Safe data projection/query abstraction.
 - [ ] SQL Server/MySQL read/query tools under separate restricted permissions.

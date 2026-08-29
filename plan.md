@@ -85,22 +85,23 @@ A feature is marked complete only after its implementation exists and matching `
 - [x] File definition persistence.
 - [x] Six initial tool categories.
 - [x] Live Groq tool loop.
-- [x] Per-agent tool assignment via persisted `ToolIds`.
-- [x] Agent/tool persistence verification.
+- [x] Per-agent tool assignment persisted through `AiAgent.ToolIds`.
+- [x] Agent assignment Example verification.
 
-### Current work
+### Remaining
 - [ ] Per-session temporary tools.
-- [ ] Built-in tool handlers beyond the initial UI read-only tools.
+- [ ] Built-in tool handlers.
+- [ ] Application tool registration guidance/API conventions.
 - [ ] Declarative execution engine.
 - [ ] SQL Server tool execution.
 - [ ] MySQL tool execution.
-- [ ] Tool timeout/cancellation/progress policy.
+- [ ] Tool timeout/cancellation/progress.
 - [ ] Tool audit/history.
 - [ ] Tool budgets and stronger loop detection.
 - [ ] More capability negotiation around tool calling.
 
 ## 0.6 Safety
-- [ ] Read/write/invoke/export permissions.
+- [ ] Read/write/invoke/export permissions across all tool types.
 - [ ] Host authorization callbacks.
 - [ ] Human approval lifecycle.
 - [ ] Input/output/tool guardrails.
@@ -110,43 +111,48 @@ A feature is marked complete only after its implementation exists and matching `
 ## 0.7 WinForms UI Context
 
 ### Implemented foundation
-- [x] `IUiContext` contract.
-- [x] `WinFormsUiContext` attachment/read/inspection path.
+- [x] `IUiContext` and `WinFormsUiContext`.
 - [x] Stable control lookup by WinForms control name.
-- [x] UI state snapshots for form/control trees.
-- [x] TextBox/ComboBox/CheckBox/RadioButton/NumericUpDown/DateTimePicker/ListBox/ListView/Label value extraction.
-- [x] DataGridView bound-source extraction.
-- [x] DataTable/DataView/native enumerable handling where naturally available.
-- [x] Bounded row reads and cancellation checks.
-- [x] Read-only `ui.inspect`, `ui.read_control`, and `ui.read_data` tools.
-- [x] `HAgentHost.Attach(form, registry)` bridge.
-- [x] Provider-independent Example UI Context test.
+- [x] UI-thread dispatch for context reads.
+- [x] `UiControlSnapshot` inspection model.
+- [x] `ui.inspect`, `ui.read_control`, and `ui.read_data` read-only tools.
+- [x] Bound/native `DataGridView` source preference.
+- [x] Bounded data extraction with lazy adaptation.
+- [x] `DataTable` treated as optional rather than the default representation.
+- [x] Coarse `UiAutomationPermissions` policy.
+- [x] Built-in UI tools enforce the permission policy.
+- [x] Permission policy defaults to no automatic discovery/write/invoke.
 
-### Current work
-- [ ] Data source adapters for BindingSource/CurrencyManager/IList and richer collection types.
-- [ ] Public attach/detach lifecycle suitable for application use.
-- [ ] Form/UserControl/custom-control semantic identity improvements.
-- [ ] Floating assistant/flyout.
-- [ ] `ui.write_control`, `ui.move_control`, `ui.resize_control`, `ui.invoke`.
-- [ ] UI-thread dispatch integrated with host cancellation.
-- [ ] Dry-run/preview and undo hooks.
-- [ ] Per-control permissions and human approval integration.
+### Current design
+- [ ] Automatic UI discovery should be optional convenience behavior, never implicit authority.
+- [ ] Developers may replace the coarse policy with application-specific authorization logic.
+- [ ] “Form serialization” is treated as UI context/adapter behavior, not as arbitrary object serialization.
+- [ ] Explicit developer abstractions remain a supported path for domain concepts such as Customer, Invoice, and Contact.
+- [ ] Automatic semantic discovery should be able to identify useful controls and bound data sources without forcing developers to write wrappers.
+- [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
+- [ ] Cross-form discovery/memory requires explicit scope and policy.
 
-### Mandatory representation rule
-- [x] Prefer the lightest representation that preserves required information.
-- [x] Prefer bound/native data sources over visible-cell scraping.
-- [x] Avoid eager copying/materialization.
-- [x] `DataTable` is optional, not the architectural default.
-- [ ] Add paging/projection/streaming adapters for large sources where appropriate.
+### Next
+- [ ] Permission configuration UI in AI Settings.
+- [ ] Persist permission policy.
+- [ ] Form/UserControl attachment and stable logical form identity.
+- [ ] Semantic control discovery beyond exact `Name` lookup.
+- [ ] BindingSource/CurrencyManager/IList/native collection adapters.
+- [ ] Safe data projection/query abstraction.
+- [ ] SQL Server/MySQL read/query tools under separate restricted permissions.
+- [ ] UI write/invoke tools only after permission/approval foundation.
+- [ ] `HAgentHost.Attach(ai, form)` bridge and floating assistant/flyout.
 
 ## 0.8 Chat + scopes
-- [ ] Global/form/session/task/ephemeral scopes.
-- [ ] User ↔ agent chat.
-- [ ] Global/form agent selector.
-- [ ] Persistent conversations.
-- [ ] Streaming and tool activity UI.
+- [ ] Agent profile separated from runtime binding.
+- [ ] Application/global, form, session, task, and ephemeral scopes.
+- [ ] User ↔ agent chat with global/form agent selector.
+- [ ] Persistent conversations and conversation switching/search.
+- [ ] Streaming UI and tool activity visualization.
 - [ ] Reasoning visibility policy.
-- [ ] Deleted/disabled agent handling.
+- [ ] Cancel/stop and simultaneous conversations.
+- [ ] Safe handling of deleted/disabled agents.
+- [ ] Cross-form memory governed by scope and authorization policy.
 
 ## 0.9 Collaboration
 - [ ] Agents-as-tools.

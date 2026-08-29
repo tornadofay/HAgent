@@ -51,21 +51,25 @@
 - [x] Coarse `UiAutomationPermissions` policy.
 - [x] Built-in UI tools enforce the permission policy.
 - [x] Explicit permission-aware `HAgentHost.Attach(...)` overload.
+- [x] Semantic descriptor model for logical name, role, binding, data role, and permitted capabilities.
+- [x] Automatic semantic discovery for standard WinForms controls.
+- [x] Optional developer-supplied `IUiSemanticProvider` hook for custom controls/BaseForm/domain semantics.
+- [x] Read-only `ui.discover` tool, gated by automatic-discovery permission.
 
 ### Current design
-- [ ] Automatic UI discovery should be optional convenience behavior, never implicit authority.
-- [ ] Developers may replace the coarse policy with application-specific authorization logic.
-- [ ] “Form serialization” is treated as UI context/adapter behavior, not as arbitrary object serialization.
-- [ ] Explicit developer abstractions remain a supported path for domain concepts such as Customer, Invoice, and Contact.
-- [ ] Automatic semantic discovery should be able to identify useful controls and bound data sources without forcing developers to write wrappers.
+- [x] Automatic UI discovery is optional convenience behavior, never implicit authority.
+- [x] Developers may replace/enrich automatic semantics with application-specific authorization or semantic logic.
+- [x] “Form serialization” is treated as UI context/adapter behavior, not arbitrary object serialization.
+- [x] Explicit developer abstractions remain a supported path for domain concepts such as Customer, Invoice, and Contact.
+- [x] Automatic semantic discovery can identify useful standard controls and bound data sources without forcing wrappers.
 - [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
 - [ ] Cross-form discovery/memory requires explicit scope and policy.
-- [ ] The same provider-neutral boundary should allow future HControl/BaseForm, GDI, DirectX, and Unity-style adapters without moving those platform concepts into Core.
+- [x] The UI boundary remains outside `HAgent.Core`, allowing future HControl/BaseForm, GDI, DirectX, and Unity-style adapters.
 
 ### Next
 - [ ] Form/UserControl attachment and stable logical form identity.
-- [ ] Semantic control discovery beyond exact `Name` lookup.
 - [ ] BindingSource/CurrencyManager/IList/native collection adapters.
+- [ ] Semantic relationship discovery between controls and data.
 - [ ] Safe data projection/query abstraction.
 - [ ] SQL Server/MySQL read/query tools under separate restricted permissions.
 - [ ] UI write/invoke tools only after permission/approval foundation.

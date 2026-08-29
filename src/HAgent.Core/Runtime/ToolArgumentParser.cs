@@ -123,10 +123,46 @@ namespace HAgent.Runtime
             private object ParseNumber()
             {
                 var start = _index;
-                while (!IsEnd && "-+0123456789.eE".IndexOf(_json[_index]) >= 0) _index++;
+                var hasDecimalOrExponent = false;
+
+                while (!IsEnd)
+                {
+                    var c = _json[_index];
+                    if ("0123456789-+".IndexOf(c) >= 0)
+                    {
+                        _index++;
+                        continue;
+                    }
+
+                    if (c == '.' || c == 'e' || c == 'E')
+                    {
+                        hasDecimalOrExponent = true;
+                        _index++;
+                        continue;
+                    }
+
+                    break;
+                }
+
                 var token = _json.Substring(start, _index - start);
-                decimal value;
-                if (decimal.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return value;
+                if (string.IsNullOrWhiteSpace(token))
+                    throw new FormatException("Invalid JSON number.");
+
+                if (!hasDecimalOrExponent)
+                {
+                    long integerValue;
+                    if (long.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out integerValue))
+                    {
+                        if (integerValue >= int.MinValue && integerValue <= int.MaxValue)
+                            return (int)integerValue;
+                        return integerValue;
+                    }
+                }
+
+                decimal decimalValue;
+                if (decimal.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out decimalValue))
+                    return decimalValue;
+
                 throw new FormatException("Invalid JSON number.");
             }
 

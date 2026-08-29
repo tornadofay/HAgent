@@ -70,12 +70,12 @@
 - [x] UserControl attachment, stable root identity, nested read access, semantic discovery, and bound data-source discovery verified in `HAgent.Example`.
 - [x] `BindingSource` data reads use the native bound list and remain bounded; no intermediate `DataTable` normalization is introduced.
 - [x] Data-source descriptors expose observable binding relationship metadata including source kind, underlying source type, list type, binding path, currency-manager type, position, and count.
+- [x] Native `IList` data sources expose currency-manager position and bounded current-item type without copying the current item into the descriptor.
 - [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
 - [ ] Cross-form discovery/memory requires explicit scope and policy.
 - [x] The UI boundary remains outside `HAgent.Core`, allowing future HControl/BaseForm, GDI, DirectX, and Unity-style adapters.
 
 ### Next
-- [ ] Stronger native collection (`IList`) and `CurrencyManager` relationship modeling.
 - [ ] Semantic relationship discovery between controls and data beyond directly observable binding facts.
 - [ ] Safe data projection/query abstraction.
 - [ ] SQL Server/MySQL read/query tools under separate restricted permissions.

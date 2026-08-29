@@ -137,6 +137,20 @@ namespace HAgent.Example
                     var sources = new WinFormsDataSourceDiscovery().Discover(panel, permissions);
                     if (!sources.Any(x => string.Equals(x.ControlId, "gridPanelCustomers", StringComparison.OrdinalIgnoreCase)))
                         throw new InvalidOperationException("Data-source discovery did not traverse the attached UserControl root.");
+
+                    var uiTools = registry.GetDefinitions().Count(x => x.Type == AiToolType.UI);
+                    Write("UI CONTEXT USERCONTROL",
+                        "Contract test succeeded." + Environment.NewLine +
+                        "Root control: " + host.Context.RootControl.GetType().FullName + Environment.NewLine +
+                        "Root ID: " + host.Context.RootId + Environment.NewLine +
+                        "Root form: none" + Environment.NewLine +
+                        "Controls inspected: " + snapshot.Children.Count + Environment.NewLine +
+                        "TextBox value: " + Convert.ToString(name) + Environment.NewLine +
+                        "DataGridView rows: " + rows.Count + Environment.NewLine +
+                        "Discovered data sources: " + sources.Count + Environment.NewLine +
+                        "Semantic controls discovered: " + semantics.Count + Environment.NewLine +
+                        "UI tools registered: " + uiTools + Environment.NewLine +
+                        "Read-only attachment, semantic discovery, and bound data-source discovery verified.");
                 }
             }
         }

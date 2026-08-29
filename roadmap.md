@@ -1,406 +1,205 @@
 # HAgent Roadmap
 
-HAgent is intended to become a small, provider-neutral agent platform for .NET desktop applications. The roadmap is ordered by dependency so simple applications stay lightweight while advanced applications can add memory, tools, WinForms automation, collaboration, and workflows without forcing every feature into the base deployment.
+> This file is generated from smaller source documents. Do not edit it directly.
+> Source directory: `docs/roadmap`.
 
-## 0.1 — Foundation — Completed
+HAgent is a lightweight, provider-neutral agent platform for .NET desktop applications. The roadmap is dependency-ordered so simple applications stay small while advanced deployments can add memory, tools, WinForms automation, collaboration, and workflows.
 
-- Provider/agent domain model and relationships.
-- Multiple provider references on agents.
-- OpenAI-compatible provider adapter.
-- File persistence and Windows DPAPI secret protection.
-- SQL Server persistence foundation.
-- MySQL persistence foundation.
-- Provider, agent, and tool management UI.
-- Borderless rounded HAgent WinForms management UI.
-- Shared HAgent `Header`, `HMessage`, and `HButton` conventions.
-- Session API and history forwarding.
-- Provider connection testing.
-- Provider model discovery.
-- Agent/provider deletion rules.
-- `HAgent.Example` manual integration/verification host.
-- Global Example agent selection and output.
-- Example source split into focused partial files.
+## Current position
 
-## 0.2 — Runtime Foundation — Completed
+- 0.1 Foundation — complete
+- 0.2 Runtime — complete
+- 0.3 Memory + Context — foundation complete
+- 0.4 Provider Capabilities + Response Normalization — foundation complete
+- 0.5 Tools + Agent Loop — active
+- 0.7 WinForms UI Context is the next major platform layer after the tool foundation
 
-- Agent runtime abstraction.
-- Execution state/lifecycle.
-- Stable execution IDs and correlation identifiers.
-- Agent/provider execution snapshots.
-- Provider routing and ordered candidates.
-- Provider attempt limits.
-- Cancellation and timeout boundaries.
-- Caller-cancellation versus timeout distinction.
-- Retry count per provider.
-- Conservative provider error classification.
-- Exponential backoff with rate-limit-aware delay.
-- Execution lifecycle events.
-- Execution duration/provider diagnostics.
-- Structured execution failure categories.
-- No-GPU/low-RAM memory rule.
-- Correct single system-prompt resolution.
-- Provider failure detail preservation.
+The initial supported tool categories are **BuiltIn, Application, Declarative, UI, SQL Server, and MySQL**. Extension tools are intentionally deferred to the later extensibility milestone.
 
-## 0.3 — Memory and Context — Foundation Complete
+## 0.1 Foundation
 
-### Implemented
+Provider/agent models, multi-provider agent relationships, OpenAI-compatible provider adapter, File/SQL Server/MySQL configuration foundations, protected secrets, management UI, model discovery, connection testing, deletion rules, HAgent.Example, global agent selector/output, and modular Example tests.
 
-- Persistent file memory using JSONL.
-- Streaming memory search without loading the complete store into RAM.
-- Explicit remember/recall/forget.
-- Memory scopes: session, task, agent, user, application, shared.
-- Metadata filtering and bounded recall.
-- Creation/occurrence timestamps and provenance.
-- Persistent conversation store abstraction.
-- File-backed persistent sessions and stable session IDs.
-- Session reopening and transactional rollback.
-- Deterministic context builder.
-- Message/character context budgets.
-- Approximate token estimation without tokenizer dependency.
-- Conservative explicit-trigger automatic memory policy.
-- Automatic-memory session/policy provenance.
-- Lightweight phrase/term/metadata/recency ranking.
-- Typed Task/Event memory and task filtering.
-- Compact `EpisodicMemory` with task/session provenance.
-- Manual Example coverage for the completed memory/context features.
+## 0.2 Runtime
 
-### Advanced memory — Planned
+Execution lifecycle, stable IDs, provider routing, ordered candidates, retries, timeout/cancellation, diagnostics, provider failure classification, system-prompt resolution, and low-RAM/no-GPU constraints.
 
-- Richer automatic-memory inference without saving ordinary conversation by default.
-- Memory update/upsert semantics.
-- Retention/expiration policies.
-- Improved lightweight indexing for larger stores.
-- Context trimming and compaction/summarization.
-- SQL Server memory store.
-- MySQL memory store.
-- Conversation listing/search/metadata management.
-- Optional vector-memory adapter.
-- Remote embedding-provider integration without requiring a local GPU or large resident model.
+## 0.3 Memory + Context
 
-## 0.4 — Provider Capabilities and Response Normalization — Foundation Complete
+Persistent JSONL memory, scopes, typed Task/Event/Fact/Preference records, explicit recall/forget, lightweight relevance ranking, persistent conversations/sessions, context budgets, tokenizer-free estimation, conservative automatic memory, task/event memory, and episodic memory.
 
-- Explicit provider/model capability model.
-- Tri-state support: `Supported`, `Unsupported`, `Unknown`.
-- Capability evidence with source, confidence, observation time, and notes.
-- Capability cache with failure eviction/reset.
-- Basic capability-aware routing and known-unsupported Chat rejection.
-- Provider/Agent editor capability visibility and evidence tooltips.
-- Provider-neutral `AIResponse`.
-- Separate normal text, provider-exposed reasoning, raw text, structured JSON, tool calls, usage, and provider metadata.
-- Explicit `reasoning_content` normalization.
-- `<think>` detection without claiming native reasoning.
-- Provider/model/account error classification with actionable diagnostics.
-- Normalized structured JSON output.
-- Normalized provider-neutral tool calls.
-- Normalized prompt/completion/total/cached/reasoning token usage.
-- Provider-neutral streaming delta contract.
-- OpenAI-compatible SSE streaming and `HAgentClient.StreamAsync(...)`.
-- Streaming cancellation handling.
-- Response-normalization, streaming-contract, and live-stream Example coverage.
+## 0.4 Capabilities + Response Normalization
 
-### 0.4 — Remaining
+Tri-state capabilities with evidence/confidence, capability cache, response normalization, reasoning separation and `<think>` handling, structured JSON, normalized tool calls, normalized usage, provider-error advice, streaming deltas, OpenAI-compatible SSE, cancellation, and live streaming verification.
 
-- Capability override/configuration UI where applications explicitly need to declare a capability.
-- Rich provider capability discovery.
-- Advanced model suitability/routing for tool calling, vision, structured output, audio, embeddings, and reasoning.
-- Application reasoning policy for display/store/log/discard.
+## 0.5 Tool foundation verified
 
-## 0.5 — Tools and Agent Loop — Active
+Tool definitions, six initial tool types, handler/definition separation, registry and delegate tools, JSON Schema validation, OpenAI-compatible tool transport, bounded multi-turn tool loop, persisted File tool definitions, Agent `ToolIds`, and successful live Groq tool-loop verification.
 
-### Tool foundation — Completed
+## 0.5 Tools + Agent Loop
 
-- `AiTool` definition model.
-- Explicit `AiToolType`: BuiltIn, Application, Declarative, UI, SqlServer, MySql.
-- `IAgentTool` definition/handler separation.
-- `IToolRegistry` abstraction.
-- `InMemoryToolRegistry`.
-- `DelegateAgentTool` for code-defined custom tools.
-- `HAgentClient` tool registration, lookup, definition inspection, and direct execution.
-- Tool type selection in the Tool editor.
-- Dependency-free JSON Schema validation for tool arguments.
-- Tool arguments are validated before handlers execute.
-- Invalid tool schemas are rejected at registration.
-- OpenAI-compatible provider tool-definition transport.
-- `HAgentClient.SendWithToolsAsync(...)` provider-neutral entry point.
-- Explicit Unsupported Tool Calling blocks known-incompatible model use while Unknown remains usable.
-- Example Tool Registry coverage includes valid and invalid argument cases.
-- Example Provider Tool Transport coverage with a local HTTP capture handler.
+### Completed
+
+- Definition/handler separation.
+- Registry and direct execution.
+- JSON Schema validation before execution.
+- Provider tool-definition transport.
+- Bounded multi-turn tool loop.
+- File tool-definition persistence.
+- Six initial tool categories: BuiltIn, Application, Declarative, UI, SqlServer, MySql.
+- Per-agent tool selection using persisted `ToolIds`.
+- Agent/tool persistence verification.
+- Live Groq tool-loop verification.
 
 ### Next
 
-- Provider tool-call message transport for assistant tool-call and tool-result turns.
-- Provider-neutral tool-call execution loop.
-- Tool result/observation messages.
-- Multiple model/tool turns.
-- Per-agent tool selection using persisted `ToolIds`.
 - Per-session temporary tools.
-- Built-in tool handlers.
-- Application tool registration guidance/API conventions.
-- Declarative tool execution engine.
-- WinForms UI tool handlers.
-- SQL Server tool layer.
-- MySQL tool layer.
-- Tool aliases/versioning.
-- Tool timeout/cancellation/progress.
-- Tool audit/history.
-- Maximum tool calls/turns and loop detection.
-- Tool budgets.
-- Tool/provider capability negotiation.
-- Complete predefined/custom tool UI behavior.
-- Manual multi-step tool-loop Example coverage.
+- Built-in tool handlers beyond the initial UI read-only tools.
+- Declarative execution engine.
+- SQL Server tool execution layer.
+- MySQL tool execution layer.
+- Tool timeout/cancellation/progress policies.
+- Tool audit/history and budgets.
+- Stronger loop detection and policy controls.
+- Provider/tool capability negotiation beyond basic tool calling.
 
-### Initial tool types
+Extension tools are deliberately deferred to the later extensibility milestone.
 
-- **BuiltIn** — supplied by HAgent.
-- **Application** — executable handler registered by the host application.
-- **Declarative** — safe configuration-driven operation; configuration never becomes arbitrary code execution.
-- **UI** — supplied by `HAgent.WinForms` control/context adapters.
-- **SqlServer** — supplied by the SQL Server tool layer with restricted database operations.
-- **MySql** — supplied by the MySQL tool layer with restricted database operations.
-- **Extension** — future; not part of the initial implementation.
+## 0.7 WinForms UI Context + Automation
 
-## 0.6 — Safety, Guardrails, Permissions, Approval, Budgets, and Observability
+### Implemented foundation
 
-### Guardrails
+- `IUiContext` contract.
+- `WinFormsUiContext` attach/inspect/read operations.
+- Stable lookup by WinForms control name.
+- Lightweight form/control snapshots.
+- Common scalar-control value extraction.
+- DataGridView bound-source extraction.
+- DataTable/DataView/enumerable handling when naturally available.
+- Bounded row reads.
+- Read-only `ui.inspect`, `ui.read_control`, and `ui.read_data` tools.
+- `HAgentHost.Attach(form, registry)` bridge.
+- Example verification for the UI Context layer.
 
-- Input guardrails.
-- Output guardrails.
-- Tool input/output guardrails.
-- Termination/tripwire rules.
-- Configurable guardrail ordering.
+### Next
 
-### Permissions and approval
-
-- Read/write/invoke/export separation.
-- Agent/session/task policy scopes.
-- Host authorization callbacks.
-- Per-tool human approval.
-- Approval request/result state machine.
-- Approve/deny/cancel.
-- Approval timeout and audit history.
-
-### Budgets and observability
-
-- Maximum execution duration.
-- Maximum provider/model calls.
-- Maximum tool calls/turns.
-- Memory/context retrieval budgets.
-- Handoff/workflow depth budgets.
-- Optional token/cost budgets.
-- Execution traces and turn spans.
-- Provider/model/tool/memory timings.
-- Guardrail/approval/handoff events.
-- Correlation IDs throughout execution.
-- Sensitive-data redaction.
-- No secrets in diagnostics by default.
-- Lightweight internal events with optional external exporters.
-
-## 0.7 — WinForms UI Context and Application Automation
-
-The WinForms integration is deliberately outside Core. “Form serialization” is only one operation of the broader **UI Context / Control Adapter** system.
-
-### Performance rule
-
-> Always prefer the lightest representation that preserves the information required for the current operation. Prefer native/bound sources, adapt lazily, avoid unnecessary copying/materialization, and materialize a tabular representation only when it is actually required or demonstrably the most efficient representation for the workload.
-
-For `DataGridView`, prefer its bound data source. Resolve `BindingSource`, `CurrencyManager`, `IList`/collections, and known tabular sources through adapters. Do not scrape visible cells when the underlying source is available. Do not eagerly copy large datasets into `DataTable` merely for convenience.
-
-### UI Context / adapters
-
-- Form/UserControl/custom-control attachment.
-- Stable control identity and semantic discovery.
-- Safe UI state snapshots.
-- Provider-neutral context representation.
-- DataGridView/source extraction.
-- BindingSource/CurrencyManager support.
-- IList/collection support.
-- TextBox/RichTextBox.
-- ComboBox.
-- Button.
-- CheckBox/RadioButton.
-- DateTimePicker.
-- NumericUpDown.
-- ListBox/ListView/TreeView.
-- DataTable only when naturally present or actually required.
-
-### Form bridge
-
-A future public experience may resemble:
-
-```csharp
-var attached = HAgent.WinForms.HAgentHost.Attach(ai, this);
-```
-
-The bridge should support attach/detach, discovery, inspection, read access, approved write/invoke operations, form-aware context, agent/session selection, and an HAgent floating assistant/flyout.
-
-Attaching a form must never automatically grant write access.
-
-### UI tools
-
-- `ui.inspect`.
-- `ui.read_control`.
-- `ui.read_data`.
+- Rich BindingSource/CurrencyManager/IList adapters.
+- Better semantic identities for UserControl/custom controls.
+- Public attach/detach lifetime management.
+- Floating assistant/flyout attached to a form.
 - `ui.write_control`.
 - `ui.move_control`.
 - `ui.resize_control`.
 - `ui.invoke` / approved click.
-- `ui.enable_control` / `ui.disable_control`.
+- Enable/disable operations.
 - Batch operations.
-- UI-thread dispatch.
-- Dry-run/preview.
-- Human approval.
-- Optional undo/rollback hooks.
-- Per-control permissions.
+- UI-thread dispatch with real host cancellation.
+- Dry-run/preview and undo hooks.
+- Per-control permissions and human approval.
 
-## 0.8 — Agent Scope, Chat, and Interaction
+### Data representation rule
 
-Keep agent profile separate from runtime binding/lifetime.
+Always use the lightest representation that preserves the information required by the current operation. Prefer bound/native sources; adapt lazily; avoid unnecessary copies/materialization. `DataTable` is optional, never the architectural default. Large sources should use paging, projection, or streaming when appropriate.
 
-### Scopes
+## 0.3 advanced memory
 
-- Application/global.
-- Form-bound.
-- Session-bound.
-- Task-bound.
-- Ephemeral execution.
-- Parent/owner relationships.
+- [ ] Richer automatic-memory inference without saving ordinary conversation by default.
+- [ ] Memory update/upsert semantics.
+- [ ] Retention/expiration policies.
+- [ ] Larger-store indexing improvements.
+- [ ] Context compaction/summarization.
+- [ ] SQL Server/MySQL memory stores.
+- [ ] Conversation listing/search/metadata management.
+- [ ] Optional vector-memory adapter.
+- [ ] Remote embedding providers without local GPU or RAM-heavy resident models.
 
-### Chat
+## 0.8 Agent Scope + Chat
 
-- User ↔ agent chat window.
-- Global/form agent selector.
-- Conversation switching.
-- Persistent conversation UI.
-- Conversation search/titles/metadata.
-- Streaming UI.
-- Tool activity visualization.
-- Reasoning visibility policy.
-- Cancel/stop.
-- Multiple simultaneous conversations.
-- Safe handling of deleted/disabled agents in active chats/tasks.
+- [ ] Separate agent profile from runtime binding/lifetime.
+- [ ] Application/global, form, session, task, and ephemeral scopes.
+- [ ] User ↔ agent chat window with global/form agent selector.
+- [ ] Conversation switching/search/metadata/persistence.
+- [ ] Streaming UI and tool activity.
+- [ ] Reasoning visibility policy.
+- [ ] Cancel/stop and simultaneous conversations.
+- [ ] Safe handling of deleted/disabled agents.
+- [ ] Cross-form memory governed by explicit scope and policy.
 
-### Cross-form memory
+## 0.9 Orchestration + Collaboration
 
-Cross-form recall is allowed only when scope and policy permit it. Provenance can include form/session/task/application metadata, but provenance is never authorization.
+- [ ] Agents-as-tools.
+- [ ] Handoffs/delegation.
+- [ ] Agent-to-agent messaging board, channels, direct messages and broadcasts.
+- [ ] Shared workspace context.
+- [ ] Routing and collaboration budgets.
+- [ ] Maximum hops/depth and loop detection.
+- [ ] Shared/private memory policies.
+- [ ] Parallel execution and human intervention.
+- [ ] Active/disabled/retired/deleted lifecycle.
 
-## 0.9 — Agent Orchestration and Collaboration
+## 0.6 Safety + Guardrails + Approval + Observability
 
-- Agents as tools.
-- Handoffs/delegation.
-- Specialist agents.
-- Agent-to-agent messaging board.
-- Collaboration channels.
-- Direct messages and broadcasts.
-- Shared workspace context.
-- Agent roles/capabilities.
-- Routing policies.
-- Maximum hops/depth.
-- Loop detection.
-- Shared/private memory policies.
-- Collaboration transcript.
-- Human intervention points.
-- Parallel agent execution.
-- Collaboration budgets.
-- Active/disabled/retired/deleted lifecycle.
+- [ ] Input/output/tool guardrails.
+- [ ] Termination/tripwire rules.
+- [ ] Read/write/invoke/export permissions.
+- [ ] Host authorization callbacks.
+- [ ] Human approval and approval lifecycle/audit.
+- [ ] Execution/provider/tool/memory budgets.
+- [ ] Tracing, spans, timings, correlation IDs.
+- [ ] Sensitive-data redaction and no-secret diagnostics.
 
-## 0.10 — Tasks, Workflows, and Autonomy
+## 0.10 Tasks + Workflows + Autonomy
 
-- Explicit task/job model.
-- Task lifecycle/state machine.
-- Planning/execution/verification.
-- Multi-step workflows.
-- Background execution and scheduling.
-- Pause/resume.
-- Durable checkpoints.
-- Conditional/parallel branches.
-- Event-triggered agents.
-- Retry per workflow step.
-- Human approval steps.
-- Resource/autonomy budgets.
-- Restart recovery.
-- Task cancellation/cleanup.
-- Long-running execution leases.
-- Workflow observability.
+- [ ] Explicit task/job model and lifecycle.
+- [ ] Planning, execution, verification.
+- [ ] Multi-step workflows, branching, background execution, scheduling.
+- [ ] Pause/resume, durable checkpoints, restart recovery.
+- [ ] Event-triggered agents.
+- [ ] Per-step retry, approval, cancellation, leases.
+- [ ] Workflow observability and autonomy budgets.
 
-## 0.11 — Provider Ecosystem
+## 0.11 Provider ecosystem
 
-- Azure OpenAI.
-- Anthropic.
-- Google/Gemini.
-- Ollama.
-- LM Studio.
-- Custom HTTP providers.
-- Provider-specific capability negotiation.
-- Model discovery/cache.
-- Streaming.
-- Multimodal support.
-- Embedding providers.
-- Provider contract test harnesses.
-- Versioned provider extension contract.
+- [ ] Azure OpenAI.
+- [ ] Anthropic.
+- [ ] Google/Gemini.
+- [ ] Ollama.
+- [ ] LM Studio.
+- [ ] Custom HTTP providers.
+- [ ] Multimodal and embedding providers.
+- [ ] Provider-specific capability negotiation.
+- [ ] Streaming implementations.
+- [ ] Provider contract harness.
 
-## 0.12 — Extensibility and Storage Ecosystem
+## 0.12 Extensibility + storage ecosystem
 
-- Provider adapter DLL loading.
-- Tool DLL loading.
-- UI-control adapter DLL loading.
-- Custom storage provider DLLs.
-- Extension validation/failure isolation.
-- Persistent multi-provider routing configuration.
-- Conversation persistence across File/SQL Server/MySQL.
-- Memory persistence across File/SQL Server/MySQL.
-- Optional vector/semantic companion package.
-- MCP integration as an optional extension.
-- External secret stores and rotation.
-- Import/export with explicit secret handling.
-- Configuration profiles/workspaces.
-- Multi-user authorization hooks.
-- Audit logging.
+- [ ] Provider/tool/UI-adapter/storage DLL loading.
+- [ ] Extension validation and failure isolation.
+- [ ] Conversation and memory persistence across File/SQL Server/MySQL.
+- [ ] Optional vector/MCP companion integrations.
+- [ ] External secret stores and rotation.
+- [ ] Configuration profiles/workspaces.
+- [ ] Multi-user authorization hooks.
+- [ ] Audit logging.
 
-## 0.13 — Developer Platform
+Extension tools are intentionally deferred until this milestone.
 
-- Optional dependency-injection integration.
-- Optional `Microsoft.Extensions.AI` integration.
-- Provider SDK.
-- Tool SDK.
-- UI-context/control-adapter SDK.
-- Agent simulation/test mode.
-- Provider/tool/memory/security contract harnesses.
-- Diagnostics/trace viewer.
-- Examples for UI, database, document, workflow, and collaboration automation.
-- `HAgent.Example` coverage for every meaningful public capability.
+## 0.13 Developer platform
 
-## 1.0 — Stable HAgent Platform
+- [ ] Optional DI integration.
+- [ ] Optional `Microsoft.Extensions.AI` integration.
+- [ ] Provider SDK.
+- [ ] Tool SDK.
+- [ ] UI-context/control-adapter SDK.
+- [ ] Simulation/test mode.
+- [ ] Diagnostics/trace viewer.
+- [ ] Complete Example coverage for meaningful public capabilities.
 
-- Stable public contracts.
-- Backward compatibility policy.
-- Storage migration/versioning.
-- NuGet packages.
-- Signed releases.
-- Comprehensive integration tests.
-- Security/permission tests.
-- Provider/tool/memory documentation.
-- WinForms automation documentation.
-- Custom provider/tool/control-adapter guides.
-- .NET 10 target after migration to a compatible Visual Studio environment.
+## 1.0
 
-## Design principles
-
-- The core runtime stays small.
-- Provider transport is separate from agent behavior.
-- Capabilities are explicit; model names are not capability guarantees.
-- Capability claims preserve their source/confidence where practical.
-- Tool definitions describe capabilities; they are not arbitrary executable access.
-- Applications own real-world side effects.
-- Prompts are not security boundaries; guardrails and permissions are.
-- Sensitive actions can require human approval.
-- Autonomous operations are observable, cancellable, and budgeted.
-- Provider responses are normalized without destroying provider-specific metadata.
-- Reasoning/thinking is separate optional response content when explicitly exposed.
-- Agent profile and agent/session/form/task scope are separate concepts.
-- WinForms UI context is a host integration layer, not a Core dependency.
-- UI context describes state; tools define permitted actions.
-- Common WinForms data-source handling is centralized in adapters and must use the lightest practical representation.
-- DataGridView extraction must prefer native/bound sources when available, adapt lazily, and avoid unnecessary copies/materialization.
-- Memory works without a local GPU, local embedding model, vector database, or large resident RAM footprint.
-- Advanced integrations belong in optional assemblies/packages where possible.
-- `HAgent.Example` is part of the development workflow and demonstrates completed public capabilities.
+- [ ] Stable public contracts and compatibility policy.
+- [ ] Storage migration/versioning.
+- [ ] NuGet packages and signed releases.
+- [ ] Comprehensive integration/security/provider/tool/memory tests.
+- [ ] Documentation for providers, tools, memory, UI automation and workflows.
+- [ ] .NET 10 after migration to compatible Visual Studio.

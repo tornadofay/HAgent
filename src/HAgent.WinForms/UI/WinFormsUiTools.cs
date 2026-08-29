@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
@@ -28,7 +29,7 @@ namespace HAgent.WinForms.UI
                 object value;
                 execution.Arguments.TryGetValue("controlId", out value);
                 var id = value as string;
-                var snapshot = await context.InspectAsync(string.IsNullOrWhiteSpace(id) ? null : id, execution.CancellationToken).ConfigureAwait(false);
+                var snapshot = await context.InspectAsync(string.IsNullOrWhiteSpace(id) ? null : id, CancellationToken.None).ConfigureAwait(false);
                 return ToolExecutionResult.Success(snapshot);
             }));
 
@@ -47,7 +48,7 @@ namespace HAgent.WinForms.UI
                 object value;
                 execution.Arguments.TryGetValue("controlId", out value);
                 var id = Convert.ToString(value);
-                var result = await context.ReadControlAsync(id, execution.CancellationToken).ConfigureAwait(false);
+                var result = await context.ReadControlAsync(id, CancellationToken.None).ConfigureAwait(false);
                 return ToolExecutionResult.Success(result);
             }));
 
@@ -69,7 +70,7 @@ namespace HAgent.WinForms.UI
                 object rowsValue;
                 execution.Arguments.TryGetValue("maxRows", out rowsValue);
                 var maxRows = rowsValue == null ? 100 : Math.Max(1, Math.Min(1000, Convert.ToInt32(rowsValue)));
-                var result = await context.ReadDataAsync(id, maxRows, execution.CancellationToken).ConfigureAwait(false);
+                var result = await context.ReadDataAsync(id, maxRows, CancellationToken.None).ConfigureAwait(false);
                 return ToolExecutionResult.Success(result);
             }));
         }

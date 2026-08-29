@@ -30,7 +30,7 @@ Runtime
  ├─ execution lifecycle
  ├─ retry / timeout / cancellation
  ├─ snapshots / diagnostics
- └─ future tool loop
+ └─ bounded tool loop
 
 Memory
  ├─ explicit facts/preferences
@@ -46,11 +46,12 @@ Tools
  ├─ registry / handler
  └─ result / observation
 
-WinForms Host
- ├─ UI Context / Control Adapters
- ├─ safe read/write capabilities
- ├─ floating assistant
- └─ form-aware memory/session binding
+WinForms Context
+ ├─ explicit domain abstractions
+ ├─ automatic UI/data discovery
+ ├─ permission policy
+ ├─ safe read capabilities
+ └─ future write/invoke automation
 ```
 
 ## Basic API
@@ -143,17 +144,18 @@ Initial tool types:
 
 Extension tools are deliberately deferred to a future extensibility milestone.
 
-The current tool foundation provides:
+The tool foundation includes:
 
 - `AiTool` + explicit `AiToolType`.
 - `IAgentTool` and `IToolRegistry`.
 - `InMemoryToolRegistry` and `DelegateAgentTool`.
-- `HAgentClient` tool registration, lookup, definition inspection, and direct execution.
-- Dependency-free JSON Schema validation on tool execution.
-- Provider-neutral `SendWithToolsAsync(...)`.
-- OpenAI-compatible tool-definition transport.
+- Tool definition persistence through File/SQL Server/MySQL stores.
+- Per-agent tool assignment through `AiAgent.ToolIds`.
+- Dependency-free JSON Schema validation before handlers run.
+- Provider-neutral tool-call transport and bounded multi-turn execution.
+- Live OpenAI-compatible/Groq tool-loop verification.
 
-Invalid tool schemas are rejected during registration, and model-provided arguments are validated before the handler runs.
+Executable handlers are runtime-owned and are never persisted as configuration data.
 
 ## Memory and low-resource design
 
@@ -168,25 +170,49 @@ The design must work without:
 
 Vector/semantic memory is optional.
 
-For WinForms data extraction, HAgent will choose the lightest useful representation. It should prefer native/bound data sources over scraping visible cells, adapt lazily, and avoid unnecessary copies. `DataTable` is an available representation, not an architectural requirement.
+## WinForms UI Context
 
-## WinForms direction
+“Form serialization” is not the public subsystem name. HAgent supports both explicit domain abstractions and automatic UI/data discovery.
 
-The desktop-specific layer is **UI Context / Control Adapters**, not merely “form serialization”. The target API is conceptually:
+Explicit mode lets a host expose concepts such as:
 
-```csharp
-var attached = HAgent.WinForms.HAgentHost.Attach(ai, this);
+```text
+Customer
+ ├─ Name
+ ├─ Contact
+ └─ Invoices
 ```
 
-The bridge will eventually support safe inspection, read/write/invoke capabilities, form-aware sessions, cross-form memory, and an HAgent floating assistant.
+Automatic mode can inspect a live form, its controls, bindings, and data sources when the host enables the relevant permission policy.
 
-Attaching an agent never automatically grants write or execute permission.
+```csharp
+var host = HAgentHost.Attach(form, registry, true, permissions);
+```
+
+Current read-only tools include:
+
+```text
+ui.inspect
+ui.read_control
+ui.read_data
+```
+
+The permission policy distinguishes automatic discovery, control reads, data reads, writes, and invocation. Safe defaults do not grant write/invoke access.
+
+For `DataGridView`, HAgent prefers bound/native data sources and adapts lazily. `DataTable` is optional and must not be the architecture default when another lighter representation is better.
+
+The same abstraction boundary is intended to support future HControl/BaseForm adapters and other interactive surfaces such as GDI, DirectX, or Unity without making those platforms dependencies of `HAgent.Core`.
 
 ## Example application
 
 `HAgent.Example` is the manual integration/verification host and is separate from `HAgent.Tests`.
 
-Current examples cover configuration, messaging, sessions, persistent sessions, memory, task/event memory, episodic memory, runtime execution, capabilities, response normalization, streaming, live streaming, tool registry, tool schema validation, and provider tool-definition transport.
+Every Example tab is intended to show:
+
+- editable input/message;
+- expected behavior and notes;
+- a copyable C# reproduction snippet beside the input;
+- global agent selection where applicable.
 
 The Example form is split into focused partial files so it can continue growing without becoming a monolithic test harness.
 
@@ -196,10 +222,10 @@ The Example form is split into focused partial files so it can continue growing 
 |---|---|
 | `HAgent.Core` | Models, abstractions, sessions, runtime, memory/context, tools |
 | `HAgent.Providers.OpenAICompatible` | OpenAI-compatible transport, model discovery, capabilities, normalization, streaming, tool transport |
-| `HAgent.Storage.File` | JSON configuration, DPAPI secrets, JSONL memory, persistent conversations |
-| `HAgent.Storage.SqlServer` | SQL Server persistence foundation |
-| `HAgent.Storage.MySql` | MySQL persistence foundation |
-| `HAgent.WinForms` | HAgent management UI and future UI Context/control adapters |
+| `HAgent.Storage.File` | JSON configuration, DPAPI secrets, JSONL memory, persistent conversations, tool definitions |
+| `HAgent.Storage.SqlServer` | SQL Server persistence foundation and future restricted database tools |
+| `HAgent.Storage.MySql` | MySQL persistence foundation and future restricted database tools |
+| `HAgent.WinForms` | HAgent management UI and WinForms UI Context/control adapters |
 | `HAgent.Example` | Manual feature verification application |
 | `HAgent.Tests` | Automated tests |
 
@@ -210,42 +236,11 @@ The Example form is split into focused partial files so it can continue growing 
 
 .NET 10 is intentionally deferred until migration to a compatible Visual Studio environment.
 
-## Development state
-
-Completed foundation milestones:
-
-```text
-0.1  Foundation
-0.2  Runtime Foundation
-0.3  Memory + Context
-0.4  Provider Capabilities + Response Normalization
-```
-
-Active:
-
-```text
-0.5  Tools + Agent Loop
-```
-
-Current 0.5 focus:
-
-```text
-JSON Schema validation
-        ↓
-provider tool transport
-        ↓
-assistant tool-call + tool-result messages
-        ↓
-provider-neutral multi-turn tool loop
-        ↓
-permissions / budgets / audit
-```
-
-See [roadmap.md](roadmap.md) for the full dependency-ordered roadmap and [plan.md](plan.md) for the implementation ledger.
-
 ## Project-state documents
 
-`README.md`, `roadmap.md`, `plan.md`, and `AGENTS.md` are maintained together as part of the project state.
+Documentation is maintained as source files under `docs/plan/` and `docs/roadmap/`. GitHub Actions rebuild the generated root `plan.md` and `roadmap.md` from those smaller source files. `README.md`, architecture docs, `plan.md`, `roadmap.md`, and `AGENTS.md` are treated as part of the project state.
+
+When a milestone changes, update the relevant small source document in the same change as the implementation. Do not wait for a later cleanup pass.
 
 ## License
 

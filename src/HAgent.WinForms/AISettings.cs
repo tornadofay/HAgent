@@ -2,6 +2,7 @@ using HAgent.Abstractions;
 using HAgent.Runtime;
 using HAgent.WinForms.Forms;
 using HAgent.WinForms.Helpers;
+using HAgent.WinForms.UI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

@@ -35,7 +35,11 @@ namespace HAgent.WinForms
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (secrets == null) throw new ArgumentNullException(nameof(secrets));
 
-            using (var form = new AISettingsForm(store, secrets, adapters, null, toolStore))
+            IToolRegistry tools = toolStore == null
+                ? new InMemoryToolRegistry()
+                : new PersistentToolRegistry(toolStore);
+
+            using (var form = new AISettingsForm(store, secrets, adapters, tools))
             {
                 AttachRepositoryLink(form);
                 form.ShowDialog(owner);

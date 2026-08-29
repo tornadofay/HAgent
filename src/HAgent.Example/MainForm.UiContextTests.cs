@@ -101,12 +101,14 @@ namespace HAgent.Example
             using (var panel = new UserControl { Name = "CustomerPanel", Width = 400, Height = 250 })
             using (var nameBox = new TextBox { Name = "txtPanelCustomer", Text = "Panel Customer", Width = 200, Location = new Point(10, 10) })
             using (var grid = new DataGridView { Name = "gridPanelCustomers", Width = 360, Height = 150, Location = new Point(10, 45), AutoGenerateColumns = true })
+            using (var bindingSource = new BindingSource())
             {
                 var table = new DataTable();
                 table.Columns.Add("Id", typeof(int));
                 table.Columns.Add("Name", typeof(string));
                 table.Rows.Add(10, "Panel Alice");
-                grid.DataSource = table;
+                bindingSource.DataSource = table;
+                grid.DataSource = bindingSource;
                 panel.Controls.Add(nameBox);
                 panel.Controls.Add(grid);
                 panel.CreateControl();
@@ -128,15 +130,30 @@ namespace HAgent.Example
 
                     var rows = await host.Context.ReadDataAsync("gridPanelCustomers", 10, CancellationToken.None);
                     if (rows.Count != 1 || !string.Equals(Convert.ToString(rows[0]["Name"]), "Panel Alice", StringComparison.Ordinal))
-                        throw new InvalidOperationException("UserControl attachment did not read the nested bound grid correctly.");
+                        throw new InvalidOperationException("UserControl attachment did not read the nested bound BindingSource data correctly.");
 
                     var semantics = new WinFormsSemanticDiscovery().Discover(panel, permissions);
                     if (!semantics.Any(x => string.Equals(x.ControlId, "txtPanelCustomer", StringComparison.OrdinalIgnoreCase)))
                         throw new InvalidOperationException("Semantic discovery did not traverse the attached UserControl root.");
 
                     var sources = new WinFormsDataSourceDiscovery().Discover(panel, permissions);
-                    if (!sources.Any(x => string.Equals(x.ControlId, "gridPanelCustomers", StringComparison.OrdinalIgnoreCase)))
+                    var gridSource = sources.FirstOrDefault(x => string.Equals(x.ControlId, "gridPanelCustomers", StringComparison.OrdinalIgnoreCase));
+                    if (gridSource == null)
                         throw new InvalidOperationException("Data-source discovery did not traverse the attached UserControl root.");
+                    if (!string.Equals(gridSource.SourceKind, "BindingSource", StringComparison.Ordinal))
+                        throw new InvalidOperationException("Data-source discovery did not preserve the BindingSource relationship.");
+                    if (string.IsNullOrWhiteSpace(gridSource.UnderlyingSourceType) || gridSource.UnderlyingSourceType.IndexOf("DataTable", StringComparison.OrdinalIgnoreCase) < 0)
+                        throw new InvalidOperationException("Data-source discovery did not identify the BindingSource underlying DataTable.");
+                    if (string.IsNullOrWhiteSpace(gridSource.ListType))
+                        throw new InvalidOperationException("Data-source discovery did not identify the BindingSource list type.");
+                    if (!string.Equals(gridSource.BindingPath, "DataSource", StringComparison.Ordinal))
+                        throw new InvalidOperationException("Data-source discovery did not report the DataGridView binding path.");
+                    if (gridSource.CurrencyManagerType == null || gridSource.CurrencyManagerType.IndexOf("CurrencyManager", StringComparison.OrdinalIgnoreCase) < 0)
+                        throw new InvalidOperationException("Data-source discovery did not identify the control CurrencyManager.");
+                    if (gridSource.Count != 1 || gridSource.Position != 0)
+                        throw new InvalidOperationException("Data-source discovery reported incorrect BindingSource position or count.");
+                    if (gridSource.FieldNames == null || !gridSource.FieldNames.Contains("Id") || !gridSource.FieldNames.Contains("Name"))
+                        throw new InvalidOperationException("BindingSource field discovery did not expose the underlying DataTable fields.");
 
                     var uiTools = registry.GetDefinitions().Count(x => x.Type == AiToolType.UI);
                     Write("UI CONTEXT USERCONTROL",
@@ -147,10 +164,15 @@ namespace HAgent.Example
                         "Controls inspected: " + snapshot.Children.Count + Environment.NewLine +
                         "TextBox value: " + Convert.ToString(name) + Environment.NewLine +
                         "DataGridView rows: " + rows.Count + Environment.NewLine +
+                        "Data source kind: " + gridSource.SourceKind + Environment.NewLine +
+                        "Underlying source: " + gridSource.UnderlyingSourceType + Environment.NewLine +
+                        "List type: " + gridSource.ListType + Environment.NewLine +
+                        "Currency manager: " + gridSource.CurrencyManagerType + Environment.NewLine +
+                        "Position / count: " + Convert.ToString(gridSource.Position) + " / " + Convert.ToString(gridSource.Count) + Environment.NewLine +
                         "Discovered data sources: " + sources.Count + Environment.NewLine +
                         "Semantic controls discovered: " + semantics.Count + Environment.NewLine +
                         "UI tools registered: " + uiTools + Environment.NewLine +
-                        "Read-only attachment, semantic discovery, and bound data-source discovery verified.");
+                        "BindingSource relationship and bounded read verified.");
                 }
             }
         }

@@ -34,7 +34,8 @@ namespace HAgent.WinForms.UI
             if (form == null) throw new ArgumentNullException(nameof(form));
             if (tools == null) throw new ArgumentNullException(nameof(tools));
 
-            return Attach((Control)form, form.Name, form, tools, registerUiTools, permissions);
+            var rootId = string.IsNullOrWhiteSpace(form.Name) ? form.GetType().FullName : form.Name;
+            return Attach((Control)form, rootId, form, tools, registerUiTools, permissions);
         }
 
         /// <summary>

@@ -18,7 +18,7 @@ namespace HAgent.WinForms.UI
             {
                 Id = "ui.discover",
                 Name = "Discover UI semantics",
-                Description = "Discover semantic descriptions of controls, roles, bindings, data roles, and permitted capabilities on the attached WinForms form.",
+                Description = "Discover semantic descriptions of controls, roles, bindings, data roles, and permitted capabilities on the attached WinForms UI root.",
                 Category = "UI",
                 Type = AiToolType.UI,
                 InputSchemaJson = "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}",

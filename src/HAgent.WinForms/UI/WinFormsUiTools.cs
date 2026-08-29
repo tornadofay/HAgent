@@ -78,7 +78,9 @@ namespace HAgent.WinForms.UI
                 return ToolExecutionResult.Success(JsonConvert.SerializeObject(result));
             }));
 
-            RegisterSemanticDiscoveryTool(registry, (WinFormsUiContext)context);
+            var winFormsContext = context as WinFormsUiContext;
+            if (winFormsContext != null)
+                RegisterSemanticDiscoveryTool(registry, winFormsContext);
         }
 
         private static void Require(IUiContext context, Func<UiAutomationPermissions, bool> allowed, string message)

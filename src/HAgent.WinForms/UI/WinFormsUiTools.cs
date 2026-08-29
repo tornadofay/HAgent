@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 namespace HAgent.WinForms.UI
 {
-    public static class WinFormsUiTools
+    public static partial class WinFormsUiTools
     {
         public static void RegisterDefaultTools(IToolRegistry registry, IUiContext context)
         {
@@ -77,6 +77,8 @@ namespace HAgent.WinForms.UI
                 var result = await context.ReadDataAsync(id, maxRows, execution.CancellationToken).ConfigureAwait(false);
                 return ToolExecutionResult.Success(JsonConvert.SerializeObject(result));
             }));
+
+            RegisterSemanticDiscoveryTool(registry, (WinFormsUiContext)context);
         }
 
         private static void Require(IUiContext context, Func<UiAutomationPermissions, bool> allowed, string message)

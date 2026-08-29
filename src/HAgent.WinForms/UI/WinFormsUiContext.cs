@@ -10,17 +10,20 @@ using System.Windows.Forms;
 
 namespace HAgent.WinForms.UI
 {
-    public sealed class WinFormsUiContext : IUiContext, IDisposable
+    public sealed class WinFormsUiContext : IUiContext, IUiPermissionAwareContext, IDisposable
     {
         private readonly Form _form;
         private bool _disposed;
 
-        public WinFormsUiContext(Form form)
+        public WinFormsUiContext(Form form, UiAutomationPermissions permissions = null)
         {
             _form = form ?? throw new ArgumentNullException(nameof(form));
+            Permissions = (permissions ?? new UiAutomationPermissions()).Clone();
+            Permissions.Validate();
         }
 
         public Form RootForm { get { return _form; } }
+        public UiAutomationPermissions Permissions { get; private set; }
 
         public Task<UiControlSnapshot> InspectAsync(string controlId = null, CancellationToken cancellationToken = default(CancellationToken))
         {

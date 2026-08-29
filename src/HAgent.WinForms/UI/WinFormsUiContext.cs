@@ -11,17 +11,41 @@ namespace HAgent.WinForms.UI
 {
     public sealed partial class WinFormsUiContext : IUiContext, IUiPermissionAwareContext, IDisposable
     {
+        private readonly Control _rootControl;
         private readonly Form _form;
+        private readonly string _rootId;
         private bool _disposed;
 
         public WinFormsUiContext(Form form, UiAutomationPermissions permissions = null)
+            : this(form, null, permissions)
         {
-            _form = form ?? throw new ArgumentNullException(nameof(form));
+        }
+
+        public WinFormsUiContext(Control rootControl, string rootId, UiAutomationPermissions permissions = null)
+            : this(rootControl, rootId, permissions, null)
+        {
+        }
+
+        private WinFormsUiContext(Control rootControl, string rootId, UiAutomationPermissions permissions, Form formOverride)
+        {
+            _rootControl = rootControl ?? throw new ArgumentNullException(nameof(rootControl));
+            _form = formOverride ?? rootControl as Form;
+            _rootId = string.IsNullOrWhiteSpace(rootId) ? rootControl.Name : rootId.Trim();
+            if (string.IsNullOrWhiteSpace(_rootId))
+                throw new ArgumentException("A stable root ID is required when the attached control has no name.", nameof(rootId));
+
             Permissions = (permissions ?? new UiAutomationPermissions()).Clone();
             Permissions.Validate();
         }
 
+        private WinFormsUiContext(Form form, string rootId, UiAutomationPermissions permissions)
+            : this((Control)form, rootId, permissions, form)
+        {
+        }
+
         public Form RootForm { get { return _form; } }
+        public Control RootControl { get { return _rootControl; } }
+        public string RootId { get { return _rootId; } }
         public UiAutomationPermissions Permissions { get; private set; }
 
         public Task<UiControlSnapshot> InspectAsync(string controlId = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -29,7 +53,7 @@ namespace HAgent.WinForms.UI
             cancellationToken.ThrowIfCancellationRequested();
             return OnUiAsync(delegate
             {
-                var control = string.IsNullOrWhiteSpace(controlId) ? (Control)_form : FindControl(_form, controlId);
+                var control = string.IsNullOrWhiteSpace(controlId) ? _rootControl : FindControl(_rootControl, controlId);
                 if (control == null) throw new ArgumentException("Control was not found: " + controlId, nameof(controlId));
                 return BuildSnapshot(control, true);
             });
@@ -41,7 +65,7 @@ namespace HAgent.WinForms.UI
             cancellationToken.ThrowIfCancellationRequested();
             return OnUiAsync(delegate
             {
-                var control = FindControl(_form, controlId);
+                var control = FindControl(_rootControl, controlId);
                 if (control == null) throw new ArgumentException("Control was not found: " + controlId, nameof(controlId));
                 return ReadValue(control);
             });
@@ -54,7 +78,7 @@ namespace HAgent.WinForms.UI
             cancellationToken.ThrowIfCancellationRequested();
             return OnUiAsync(delegate
             {
-                var control = FindControl(_form, controlId);
+                var control = FindControl(_rootControl, controlId);
                 if (control == null) throw new ArgumentException("Control was not found: " + controlId, nameof(controlId));
                 var grid = control as DataGridView;
                 if (grid == null) throw new ArgumentException("Control is not a DataGridView: " + controlId, nameof(controlId));
@@ -65,18 +89,18 @@ namespace HAgent.WinForms.UI
         private Task<T> OnUiAsync<T>(Func<T> action)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(WinFormsUiContext));
-            if (_form.IsDisposed) throw new InvalidOperationException("The attached form is disposed.");
+            if (_rootControl.IsDisposed) throw new InvalidOperationException("The attached control is disposed.");
 
-            if (!_form.InvokeRequired)
+            if (!_rootControl.InvokeRequired)
                 return Task.FromResult(action());
 
-            if (!_form.IsHandleCreated)
-                throw new InvalidOperationException("The attached form is not ready for cross-thread UI access. Attach it after the form has created its handle or call from the form's UI thread.");
+            if (!_rootControl.IsHandleCreated)
+                throw new InvalidOperationException("The attached control is not ready for cross-thread UI access. Attach it after the control has created its handle or call from the control's UI thread.");
 
             var tcs = new TaskCompletionSource<T>();
             try
             {
-                _form.BeginInvoke((MethodInvoker)delegate
+                _rootControl.BeginInvoke((MethodInvoker)delegate
                 {
                     try { tcs.TrySetResult(action()); }
                     catch (Exception ex) { tcs.TrySetException(ex); }

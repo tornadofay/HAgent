@@ -34,8 +34,38 @@ namespace HAgent.WinForms.UI
             if (form == null) throw new ArgumentNullException(nameof(form));
             if (tools == null) throw new ArgumentNullException(nameof(tools));
 
-            var context = new WinFormsUiContext(form, permissions);
-            var host = new HAgentHost(form, tools, context);
+            return Attach((Control)form, form.Name, form, tools, registerUiTools, permissions);
+        }
+
+        /// <summary>
+        /// Attaches HAgent to a UserControl or other WinForms control tree without requiring a Form.
+        /// The supplied root ID is the stable logical identity of this attachment.
+        /// </summary>
+        public static HAgentHost Attach(
+            Control rootControl,
+            string rootId,
+            IToolRegistry tools,
+            bool registerUiTools = true,
+            UiAutomationPermissions permissions = null)
+        {
+            if (rootControl == null) throw new ArgumentNullException(nameof(rootControl));
+            if (tools == null) throw new ArgumentNullException(nameof(tools));
+            if (string.IsNullOrWhiteSpace(rootId)) throw new ArgumentException("Root ID is required.", nameof(rootId));
+
+            return Attach(rootControl, rootId, rootControl as Form, tools, registerUiTools, permissions);
+        }
+
+        private static HAgentHost Attach(
+            Control rootControl,
+            string rootId,
+            Form form,
+            IToolRegistry tools,
+            bool registerUiTools,
+            UiAutomationPermissions permissions)
+        {
+            var context = new WinFormsUiContext(rootControl, rootId, permissions);
+            var owner = (IWin32Window)(form ?? rootControl);
+            var host = new HAgentHost(owner, tools, context);
             if (registerUiTools) WinFormsUiTools.RegisterDefaultTools(tools, context);
             return host;
         }

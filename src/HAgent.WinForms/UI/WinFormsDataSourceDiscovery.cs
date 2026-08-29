@@ -69,6 +69,7 @@ namespace HAgent.WinForms.UI
 
             var bindingSource = source as BindingSource;
             var effectiveSource = bindingSource == null ? source : (bindingSource.List ?? bindingSource.DataSource);
+            var currencyManager = ResolveCurrencyManager(control, source);
             var descriptor = new UiDataSourceDescriptor
             {
                 ControlId = control.Name,
@@ -83,12 +84,13 @@ namespace HAgent.WinForms.UI
                     : bindingSource.List.GetType().FullName,
                 DataMember = dataMember,
                 BindingPath = bindingPath,
-                CurrencyManagerType = ResolveCurrencyManagerType(control, source),
-                Position = TryGetPosition(source),
+                CurrencyManagerType = currencyManager == null ? null : currencyManager.GetType().FullName,
+                Position = TryGetPosition(bindingSource, currencyManager),
+                CurrentItemType = ResolveCurrentItemType(bindingSource, currencyManager),
                 ItemType = ResolveItemType(effectiveSource),
                 Count = TryGetCount(source, effectiveSource),
                 FieldNames = ResolveFieldNames(effectiveSource),
-                Metadata = BuildMetadata(source, effectiveSource)
+                Metadata = BuildMetadata(source, effectiveSource, currencyManager)
             };
 
             return descriptor;
@@ -105,13 +107,12 @@ namespace HAgent.WinForms.UI
             return source.GetType().Name;
         }
 
-        private static string ResolveCurrencyManagerType(Control control, object source)
+        private static CurrencyManager ResolveCurrencyManager(Control control, object source)
         {
             if (control == null || source == null) return null;
             try
             {
-                var manager = control.BindingContext[source];
-                return manager == null ? null : manager.GetType().FullName;
+                return control.BindingContext[source] as CurrencyManager;
             }
             catch
             {
@@ -119,15 +120,32 @@ namespace HAgent.WinForms.UI
             }
         }
 
-        private static int? TryGetPosition(object source)
+        private static int? TryGetPosition(BindingSource bindingSource, CurrencyManager currencyManager)
         {
-            var bindingSource = source as BindingSource;
-            if (bindingSource != null) return bindingSource.Position < 0 ? (int?)null : bindingSource.Position;
+            if (bindingSource != null)
+                return bindingSource.Position < 0 ? (int?)null : bindingSource.Position;
 
-            var currencyManager = source as CurrencyManager;
-            if (currencyManager != null) return currencyManager.Position < 0 ? (int?)null : currencyManager.Position;
+            if (currencyManager != null)
+                return currencyManager.Position < 0 ? (int?)null : currencyManager.Position;
 
             return null;
+        }
+
+        private static string ResolveCurrentItemType(BindingSource bindingSource, CurrencyManager currencyManager)
+        {
+            object current = null;
+            if (bindingSource != null)
+            {
+                try { current = bindingSource.Current; }
+                catch { current = null; }
+            }
+            else if (currencyManager != null)
+            {
+                try { current = currencyManager.Current; }
+                catch { current = null; }
+            }
+
+            return current == null ? null : current.GetType().FullName;
         }
 
         private static string ResolveItemType(object source)
@@ -187,13 +205,15 @@ namespace HAgent.WinForms.UI
             return fields.AsReadOnly();
         }
 
-        private static Dictionary<string, object> BuildMetadata(object source, object effectiveSource)
+        private static Dictionary<string, object> BuildMetadata(object source, object effectiveSource, CurrencyManager currencyManager)
         {
             var metadata = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 ["sourceType"] = source.GetType().FullName,
                 ["sourceKind"] = ResolveSourceKind(source),
-                ["effectiveSourceType"] = effectiveSource == null ? null : effectiveSource.GetType().FullName
+                ["effectiveSourceType"] = effectiveSource == null ? null : effectiveSource.GetType().FullName,
+                ["currencyManagerType"] = currencyManager == null ? null : currencyManager.GetType().FullName,
+                ["position"] = currencyManager == null || currencyManager.Position < 0 ? null : (object)currencyManager.Position
             };
 
             var bindingSource = source as BindingSource;
@@ -202,6 +222,7 @@ namespace HAgent.WinForms.UI
                 metadata["dataMember"] = bindingSource.DataMember;
                 metadata["listType"] = bindingSource.List == null ? null : bindingSource.List.GetType().FullName;
                 metadata["position"] = bindingSource.Position;
+                metadata["currentItemType"] = bindingSource.Current == null ? null : bindingSource.Current.GetType().FullName;
             }
 
             var dataSet = effectiveSource as DataSet;

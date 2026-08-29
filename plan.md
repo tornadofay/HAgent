@@ -129,6 +129,9 @@ A feature is marked complete only after its implementation exists and matching `
 - [x] Automatic semantic discovery for standard WinForms controls.
 - [x] Optional developer-supplied `IUiSemanticProvider` hook for custom controls/BaseForm/domain semantics.
 - [x] Read-only `ui.discover` tool, gated by automatic-discovery permission.
+- [x] Bound data-source discovery for `DataTable`, `DataView`, `BindingSource`, arrays, and compatible collections.
+- [x] Read-only `ui.discover_data_sources` tool.
+- [x] Example verification for bound data-source discovery and field metadata.
 
 ### Current design
 - [x] Automatic UI discovery is optional convenience behavior, never implicit authority.
@@ -142,8 +145,8 @@ A feature is marked complete only after its implementation exists and matching `
 
 ### Next
 - [ ] Form/UserControl attachment and stable logical form identity.
-- [ ] BindingSource/CurrencyManager/IList/native collection adapters.
-- [ ] Semantic relationship discovery between controls and data.
+- [ ] Stronger BindingSource/CurrencyManager/IList/native collection relationship modeling.
+- [ ] Semantic relationship discovery between controls and data beyond directly observable binding facts.
 - [ ] Safe data projection/query abstraction.
 - [ ] SQL Server/MySQL read/query tools under separate restricted permissions.
 - [ ] UI write/invoke tools only after permission/approval foundation.

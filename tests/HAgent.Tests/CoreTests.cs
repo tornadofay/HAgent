@@ -41,15 +41,18 @@ namespace HAgent.Tests
         private sealed class EchoAdapter : HAgent.Abstractions.IAiProviderAdapter
         {
             public string Kind => "openai-compatible";
+            public string DisplayName => "Echo Adapter";
+            public bool CanHandle(AiProvider provider) => provider != null && string.Equals(provider.Kind, Kind, System.StringComparison.OrdinalIgnoreCase);
+
             public Task<AIResponse> SendAsync(AiProvider provider, AiAgent agent, string apiKey, string systemPrompt, System.Collections.Generic.IReadOnlyList<AIMessage> messages, System.Threading.CancellationToken token)
-                => Task.FromResult(new AIResponse { AgentId=agent.Id, ProviderId=provider.Id, Model=agent.Model, Text="echo: " + messages[messages.Count-1].Content });
+                => Task.FromResult(new AIResponse { AgentId = agent.Id, ProviderId = provider.Id, Model = agent.Model, Text = "echo: " + messages[messages.Count - 1].Content });
         }
 
         private sealed class FakeSecretStore : HAgent.Abstractions.ISecretStore
         {
-            public Task SetAsync(string id,string secret,System.Threading.CancellationToken t=default(System.Threading.CancellationToken))=>Task.CompletedTask;
-            public Task<string> GetAsync(string id,System.Threading.CancellationToken t=default(System.Threading.CancellationToken))=>Task.FromResult(string.Empty);
-            public Task DeleteAsync(string id,System.Threading.CancellationToken t=default(System.Threading.CancellationToken))=>Task.CompletedTask;
+            public Task SetAsync(string id, string secret, System.Threading.CancellationToken t = default(System.Threading.CancellationToken)) => Task.CompletedTask;
+            public Task<string> GetAsync(string id, System.Threading.CancellationToken t = default(System.Threading.CancellationToken)) => Task.FromResult(string.Empty);
+            public Task DeleteAsync(string id, System.Threading.CancellationToken t = default(System.Threading.CancellationToken)) => Task.CompletedTask;
         }
     }
 }

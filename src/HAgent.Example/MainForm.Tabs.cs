@@ -35,7 +35,6 @@ namespace HAgent.Example
         private void AddApiTab(string title, string buttonText, string description, string expected, string initialMessage, Func<string, Task> test, string noteTitle, string noteText)
         {
             var page = new TabPage(title) { BackColor = Surface, Padding = new Padding(0) };
-
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -77,21 +76,19 @@ namespace HAgent.Example
                 Margin = new Padding(0, 0, 8, 0)
             };
 
-            var code = new RichTextBox
+            var code = new TextBox
             {
                 Dock = DockStyle.Fill,
-                ReadOnly = true,
-                DetectUrls = false,
                 Multiline = true,
-                ScrollBars = RichTextBoxScrollBars.Both,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Both,
                 WordWrap = false,
                 Text = ExampleCodeSnippets.Get(title),
                 Font = new Font("Consolas", 9.0f),
                 BackColor = Color.FromArgb(244, 243, 248),
                 ForeColor = Text,
                 BorderStyle = BorderStyle.FixedSingle,
-                Margin = new Padding(8, 0, 0, 0),
-                HideSelection = false
+                Margin = new Padding(8, 0, 0, 0)
             };
 
             editors.Controls.Add(new Label

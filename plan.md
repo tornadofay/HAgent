@@ -101,6 +101,8 @@ A feature is marked complete only after its implementation exists and matching `
 - [ ] More capability negotiation around tool calling.
 
 ## 0.6 Safety
+- [x] General permission configuration UI for the current WinForms policy.
+- [x] Persist current UI permission policy through the public settings path.
 - [ ] Read/write/invoke/export permissions across all tool types.
 - [ ] Host authorization callbacks.
 - [ ] Human approval lifecycle.
@@ -135,8 +137,6 @@ A feature is marked complete only after its implementation exists and matching `
 - [ ] The same provider-neutral boundary should allow future HControl/BaseForm, GDI, DirectX, and Unity-style adapters without moving those platform concepts into Core.
 
 ### Next
-- [ ] Permission configuration UI in AI Settings.
-- [ ] Persist permission policy through the public configuration path.
 - [ ] Form/UserControl attachment and stable logical form identity.
 - [ ] Semantic control discovery beyond exact `Name` lookup.
 - [ ] BindingSource/CurrencyManager/IList/native collection adapters.
@@ -148,13 +148,14 @@ A feature is marked complete only after its implementation exists and matching `
 ## Example host
 - [x] Every current Example tab has editable input and expected-output guidance.
 - [x] Every current Example tab has a copyable C# reproduction snippet beside its input.
+- [ ] Every public-API snippet should become self-contained or link to a clearly identified shared setup snippet.
 - [ ] Keep snippets synchronized whenever a public API used by an example changes.
 - [ ] Maintain focused partial test files instead of returning to one monolithic `MainForm` implementation.
 
 ## Documentation workflow
 - [x] Small source files under `docs/plan/` and `docs/roadmap/`.
 - [x] Generated root `plan.md` and `roadmap.md` workflow.
-- [ ] Treat documentation source changes as part of the same implementation change, not a later cleanup task.
+- [x] Documentation source changes are part of implementation state.
 
 ## 0.8 Chat + scopes
 - [ ] Agent profile separated from runtime binding.

@@ -58,8 +58,10 @@ The public concept is **UI Context / Control Adapters**. “Form serialization�
 
 ### Automatic application understanding
 
-- [ ] Semantic control labels and logical IDs in addition to raw control names.
-- [ ] BindingSource/CurrencyManager/IList/native collection adapters.
+- [x] UI Context can attach to a Form or an arbitrary WinForms control tree such as a UserControl with an explicit stable root ID; pending local Example verification.
+- [x] Semantic and data-source discovery can traverse an attached control-tree root without requiring a Form; pending local Example verification.
+- [ ] Semantic control labels and logical IDs beyond raw control names.
+- [ ] BindingSource/CurrencyManager/IList/native collection relationship adapters.
 - [ ] Relationship discovery between controls, bound records, lists, and forms.
 - [ ] Lightweight semantic projections without unnecessary copying.
 - [ ] Optional application-defined semantic adapters for Customer/Invoice/etc.
@@ -86,7 +88,7 @@ Database permissions are separate from UI permissions. The presence of provenanc
 
 - [x] Permissions configuration page in AI Settings.
 - [x] Persist permission policy through the public settings path.
-- [ ] Form/UserControl/custom-control attachment and stable logical identity.
+- [ ] Form/UserControl/custom-control attachment and stable logical identity — implementation added; pending local Example verification.
 - [ ] Floating HAgent assistant/flyout.
 - [ ] `ui.write_control`.
 - [ ] `ui.move_control`.

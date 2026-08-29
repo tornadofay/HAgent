@@ -63,8 +63,8 @@ The public concept is **UI Context / Control Adapters**. â€œForm serializationâ€
 - [x] UserControl attachment, stable root identity, nested read access, semantic discovery, and bound data-source discovery verified locally in `HAgent.Example`.
 - [x] `BindingSource` data reads use the native bound list without intermediate `DataTable` normalization.
 - [x] Data-source descriptors expose observable BindingSource/CurrencyManager relationship metadata including source kind, underlying source type, list type, binding path, currency-manager type, position, and count.
+- [x] Native `IList` sources expose CurrencyManager position, count, item type, current-item type, and field metadata without copying the current item into the descriptor.
 - [ ] Semantic control labels and logical IDs beyond raw control names.
-- [ ] Stronger native collection (`IList`) relationship modeling.
 - [ ] Relationship discovery between controls, bound records, lists, and forms beyond directly observable binding facts.
 - [ ] Lightweight semantic projections without unnecessary copying.
 - [ ] Optional application-defined semantic adapters for Customer/Invoice/etc.

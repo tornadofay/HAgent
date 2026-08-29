@@ -50,15 +50,6 @@ namespace HAgent.Example
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 12));
 
-            var runButton = CreateButton(buttonText, 190);
-            runButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
-            runButton.Click += async delegate
-            {
-                await RunExampleAsync(delegate { return test(input.Text); });
-            };
-            _testButtons.Add(runButton);
-            layout.Controls.Add(runButton, 0, 0);
-
             var editors = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -120,8 +111,17 @@ namespace HAgent.Example
             }, 1, 0);
             editors.Controls.Add(input, 0, 1);
             editors.Controls.Add(code, 1, 1);
-            layout.Controls.Add(editors, 0, 1);
 
+            var runButton = CreateButton(buttonText, 190);
+            runButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+            runButton.Click += async delegate
+            {
+                await RunExampleAsync(delegate { return test(input.Text); });
+            };
+            _testButtons.Add(runButton);
+
+            layout.Controls.Add(runButton, 0, 0);
+            layout.Controls.Add(editors, 0, 1);
             layout.Controls.Add(new Label
             {
                 Text = "Description\r\n" + description + "\r\n\r\nExpected result\r\n" + expected,
@@ -131,7 +131,6 @@ namespace HAgent.Example
                 Padding = new Padding(1, 10, 20, 0),
                 AutoEllipsis = false
             }, 0, 2);
-
             layout.Controls.Add(new Label
             {
                 Text = noteTitle + ": " + noteText,

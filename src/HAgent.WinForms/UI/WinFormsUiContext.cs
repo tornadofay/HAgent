@@ -214,6 +214,10 @@ namespace HAgent.WinForms.UI
 
         private static List<IReadOnlyDictionary<string, object>> ExtractRowsFromSource(object source, int maxRows, CancellationToken cancellationToken)
         {
+            var bindingSource = source as BindingSource;
+            if (bindingSource != null)
+                return ExtractRowsFromSource(bindingSource.List ?? bindingSource.DataSource, maxRows, cancellationToken);
+
             var result = new List<IReadOnlyDictionary<string, object>>();
             var table = source as DataTable;
             if (table != null)

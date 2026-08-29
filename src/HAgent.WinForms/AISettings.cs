@@ -20,16 +20,22 @@ namespace HAgent.WinForms
             var basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HAgent");
             Directory.CreateDirectory(basePath);
             var store = new HAgent.Storage.File.FileAiStore(Path.Combine(basePath, "settings.json"));
+            var toolStore = new HAgent.Storage.File.FileToolStore(Path.Combine(basePath, "tool-definitions", "tools.json"));
             var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(Path.Combine(basePath, "secrets"));
-            ShowMainAISettingsForm(store, secrets, owner);
+            ShowMainAISettingsForm(store, secrets, owner, null, toolStore);
         }
 
-        public static void ShowMainAISettingsForm(IAiStore store, ISecretStore secrets, IWin32Window owner = null, IEnumerable<IAiProviderAdapter> adapters = null)
+        public static void ShowMainAISettingsForm(
+            IAiStore store,
+            ISecretStore secrets,
+            IWin32Window owner = null,
+            IEnumerable<IAiProviderAdapter> adapters = null,
+            IToolStore toolStore = null)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (secrets == null) throw new ArgumentNullException(nameof(secrets));
 
-            using (var form = new AISettingsForm(store, secrets, adapters))
+            using (var form = new AISettingsForm(store, secrets, adapters, null, toolStore))
             {
                 AttachRepositoryLink(form);
                 form.ShowDialog(owner);

@@ -158,6 +158,32 @@ await aiStore.SaveAgentAsync(agent, CancellationToken.None);";
     var name = await host.Context.ReadControlAsync(""txtCustomerName"");
     var rows = await host.Context.ReadDataAsync(""gridCustomers"", 100);
 }";
+                case "UI Context UserControl": return @"using System.Windows.Forms;
+using HAgent.WinForms.UI;
+
+var panel = new UserControl { Name = ""CustomerPanel"" };
+var registry = new InMemoryToolRegistry();
+
+using (var host = HAgentHost.Attach(
+    panel,
+    rootId: ""CustomerPanel"",
+    registry: registry,
+    registerUiTools: true,
+    permissions: new UiAutomationPermissions
+    {
+        AutomaticDiscovery = true,
+        ReadControls = true,
+        ReadData = true
+    }))
+{
+    var context = host.Context;
+    var snapshot = await context.InspectAsync();
+    var value = await context.ReadControlAsync(""txtCustomerName"");
+    var rows = await context.ReadDataAsync(""gridCustomers"", 100);
+
+    Console.WriteLine(context.RootId);
+    Console.WriteLine(snapshot.Id);
+}";
                 default: return @"// See the corresponding HAgent example source file.
 // The Example application uses the public HAgent API shown here as the reference pattern.";
             }

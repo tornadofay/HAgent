@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 using HAgent.WinForms.UI;

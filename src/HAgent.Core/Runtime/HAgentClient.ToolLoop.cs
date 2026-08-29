@@ -87,14 +87,24 @@ namespace HAgent.Runtime
                     }
                     else
                     {
-                        IDictionary<string, object> arguments;
+                        IReadOnlyDictionary<string, object> arguments;
+                        IDictionary<string, object> parsedArguments;
                         string parseError;
-                        if (!ToolArgumentParser.TryParseObject(call.ArgumentsJson, out arguments, out parseError))
+                        if (!ToolArgumentParser.TryParseObject(call.ArgumentsJson, out parsedArguments, out parseError))
                         {
                             result = ToolExecutionResult.Failure("Tool arguments are not valid JSON: " + parseError);
                         }
                         else
                         {
+                            arguments = parsedArguments as IReadOnlyDictionary<string, object>;
+                            if (arguments == null)
+                            {
+                                var normalizedArguments = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                                foreach (var pair in parsedArguments)
+                                    normalizedArguments[pair.Key] = pair.Value;
+                                arguments = normalizedArguments;
+                            }
+
                             result = await ExecuteToolAsync(agentId, definition.Id, call.Id, arguments, cancellationToken).ConfigureAwait(false);
                         }
                     }

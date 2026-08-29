@@ -20,13 +20,15 @@ Remaining tool work:
 
 The permission model is a shared authorization concept, not just a WinForms checkbox collection.
 
-- [ ] General permission configuration UI.
+- [x] General permission configuration UI.
 - [ ] Read/write/invoke/export permissions across all tool categories.
 - [ ] Host authorization callbacks.
 - [ ] Human approval lifecycle.
 - [ ] Input/output/tool guardrails.
 - [ ] Budgets and observability.
 - [ ] Sensitive-data redaction.
+
+The first WinForms policy UI persists the currently supported coarse permissions with safe defaults. Database-specific permissions and approval workflows remain separate work.
 
 ## 0.7 UI Context + Automation
 
@@ -82,8 +84,8 @@ Database permissions are separate from UI permissions. The presence of provenanc
 
 ### UI automation
 
-- [ ] Permissions configuration tab.
-- [ ] Persist permission policy through the public settings path.
+- [x] Permissions configuration page in AI Settings.
+- [x] Persist permission policy through the public settings path.
 - [ ] Form/UserControl/custom-control attachment and stable logical identity.
 - [ ] Floating HAgent assistant/flyout.
 - [ ] `ui.write_control`.
@@ -121,7 +123,8 @@ Every Example feature should provide:
 - expected behavior and explanation;
 - copyable C# reproduction snippet beside the input;
 - global agent selection where an agent is involved;
-- a global output area when the result can be shared across examples.
+- a global output area when the result can be shared across examples;
+- a self-contained setup snippet or a clearly identified shared setup section so a new developer can reproduce the example without guessing what `ai`, stores, providers, or adapters represent.
 
 ## Future
 

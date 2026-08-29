@@ -1,0 +1,34 @@
+name: Build project documentation
+
+on:
+  push:
+    paths:
+      - 'docs/plan/**'
+      - 'docs/roadmap/**'
+      - 'scripts/build-docs.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build generated plan and roadmap
+        run: python3 scripts/build-docs.py
+
+      - name: Commit generated documents
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plan.md roadmap.md
+          if git diff --cached --quiet; then
+            echo "Documentation is already up to date."
+          else
+            git commit -m "docs: regenerate plan and roadmap"
+            git push
+          fi

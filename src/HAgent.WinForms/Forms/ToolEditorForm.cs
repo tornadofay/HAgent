@@ -38,10 +38,10 @@ namespace HAgent.WinForms.Forms
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             AddField(layout, 0, "Name", "Stable tool name exposed to the model.", _name);
-            AddField(layout, 1, "Description", "Explain what the tool does and when the agent should use it.", _description);
+            AddField(layout, 1, "Description", "Explain what the tool does and when the agent should use it. Required.", _description);
             AddTypeField(layout, 2);
             AddField(layout, 3, "Category", "Human-facing grouping such as UI, Database, or Application.", _category);
-            AddField(layout, 4, "Input schema", "JSON Schema describing the arguments the model may send to the tool.", _schema);
+            AddField(layout, 4, "Input schema", "JSON Schema describing the arguments the model may send to the tool. Required.", _schema);
 
             _name.Text = Tool.Name;
             _description.Text = Tool.Description;
@@ -224,12 +224,29 @@ namespace HAgent.WinForms.Forms
 
         private void Save()
         {
+            if (string.IsNullOrWhiteSpace(_name.Text))
+            {
+                HMessage.ShowInformation(this, "Tool name is required.", "Tool");
+                _name.Focus();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_description.Text))
+            {
+                HMessage.ShowInformation(this, "Tool description is required because the model uses it to understand when the tool should be selected.", "Tool");
+                _description.Focus();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_schema.Text))
+            {
+                HMessage.ShowInformation(this, "Input schema is required. Use a JSON Schema object describing the tool arguments.", "Tool");
+                _schema.Focus();
+                return;
+            }
+
             try
             {
-                if (string.IsNullOrWhiteSpace(_name.Text)) throw new InvalidOperationException("Tool name is required.");
-                if (string.IsNullOrWhiteSpace(_description.Text)) throw new InvalidOperationException("Tool description is required.");
-                if (string.IsNullOrWhiteSpace(_schema.Text)) throw new InvalidOperationException("Input schema is required.");
-
                 var typeItem = _type.SelectedItem as ToolTypeItem;
                 var type = typeItem == null ? AiToolType.Application : typeItem.Type;
 

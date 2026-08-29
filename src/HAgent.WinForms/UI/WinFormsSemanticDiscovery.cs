@@ -9,17 +9,22 @@ namespace HAgent.WinForms.UI
 {
     public sealed class WinFormsSemanticDiscovery
     {
-        public IReadOnlyList<UiSemanticDescriptor> Discover(Form form, UiAutomationPermissions permissions, IUiSemanticProvider customProvider = null)
+        public IReadOnlyList<UiSemanticDescriptor> Discover(Control root, UiAutomationPermissions permissions, IUiSemanticProvider customProvider = null)
         {
-            if (form == null) throw new ArgumentNullException(nameof(form));
+            if (root == null) throw new ArgumentNullException(nameof(root));
             if (permissions == null) throw new ArgumentNullException(nameof(permissions));
             permissions.Validate();
             if (!permissions.AutomaticDiscovery)
                 throw new InvalidOperationException("Automatic UI discovery is disabled by the current permission policy.");
 
             var result = new List<UiSemanticDescriptor>();
-            Visit(form, result, permissions, customProvider);
+            Visit(root, result, permissions, customProvider);
             return result.AsReadOnly();
+        }
+
+        public IReadOnlyList<UiSemanticDescriptor> Discover(Form form, UiAutomationPermissions permissions, IUiSemanticProvider customProvider = null)
+        {
+            return Discover((Control)form, permissions, customProvider);
         }
 
         private static void Visit(Control control, List<UiSemanticDescriptor> result, UiAutomationPermissions permissions, IUiSemanticProvider customProvider)

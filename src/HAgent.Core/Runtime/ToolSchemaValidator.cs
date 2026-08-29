@@ -33,9 +33,56 @@ namespace HAgent.Runtime
 
     public static class ToolSchemaValidator
     {
+        public static ToolValidationResult ValidateSchema(AiTool definition)
+        {
+            if (definition == null)
+                return ToolValidationResult.Failure(new[] { "Tool definition is required." });
+
+            if (string.IsNullOrWhiteSpace(definition.InputSchemaJson))
+                return ToolValidationResult.Success(new Dictionary<string, object>());
+
+            try
+            {
+                var schema = ParseObject(definition.InputSchemaJson);
+                var errors = new List<string>();
+
+                string type;
+                if (TryGetString(schema, "type", out type) && !string.Equals(type, "object", StringComparison.OrdinalIgnoreCase))
+                    errors.Add("$: tool input schema root must use type 'object'.");
+
+                object rawProperties;
+                if (schema.TryGetValue("properties", out rawProperties) && rawProperties != null && !(rawProperties is Dictionary<string, object>))
+                    errors.Add("$.properties: must be a JSON object when provided.");
+
+                object rawRequired;
+                if (schema.TryGetValue("required", out rawRequired) && rawRequired != null)
+                {
+                    var required = rawRequired as List<object>;
+                    if (required == null)
+                        errors.Add("$.required: must be a JSON array when provided.");
+                    else
+                    {
+                        for (var i = 0; i < required.Count; i++)
+                            if (!(required[i] is string) || string.IsNullOrWhiteSpace((string)required[i]))
+                                errors.Add("$.required[" + i + "]: must contain a non-empty property name.");
+                    }
+                }
+
+                if (errors.Count > 0)
+                    return ToolValidationResult.Failure(errors);
+
+                return ToolValidationResult.Success(new Dictionary<string, object>());
+            }
+            catch (Exception ex)
+            {
+                return ToolValidationResult.Failure(new[] { "Tool input schema is invalid JSON: " + ex.Message });
+            }
+        }
+
         public static ToolValidationResult Validate(AiTool definition, IDictionary<string, object> arguments)
         {
-            if (definition == null) return ToolValidationResult.Failure(new[] { "Tool definition is required." });
+            var schemaResult = ValidateSchema(definition);
+            if (!schemaResult.IsValid) return schemaResult;
 
             Dictionary<string, object> schema;
             try

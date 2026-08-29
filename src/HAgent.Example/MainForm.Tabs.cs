@@ -21,7 +21,7 @@ namespace HAgent.Example
             AddApiTab("Episodic Memory", "Run episode test", "Stores one compact completed experience with title, summary, outcome, task ID, session ID, and provenance, then recalls it without storing the full conversation.", "The episode should be recalled by task ID and preserve its outcome, task provenance, and session provenance.", "1,284 customers imported successfully; 3 records were rejected because their email addresses were invalid.", TestEpisodicMemoryAsync, "Episodic memory", "An episode is a compact reusable experience record, not a transcript or a replacement for event history.");
             AddApiTab("Capabilities", "Inspect model capabilities", "Queries the selected provider adapter for capabilities of the selected model.", "Chat should be Supported for the OpenAI-compatible adapter; optional capabilities should remain Unknown unless the provider explicitly establishes them.", "No AI request is sent by this example.", TestCapabilitiesAsync, "Capability boundary", "Unknown is intentional. HAgent must not guess that a model supports tools, vision, reasoning, embeddings, or streaming.");
             AddApiTab("Response Normalization", "Run contract test", "Verifies the provider-neutral AIResponse contract can retain ordinary text, explicit reasoning, structured JSON output, and normalized tool calls at the same time.", "The output should show one tool call, valid structured JSON, separate reasoning, and unchanged response text.", "No AI request is sent by this example.", TestResponseNormalizationAsync, "Contract boundary", "This is provider-independent. Actual provider parsing is exercised by the adapter, while the public response contract remains stable.");
-            AddApiTab("Streaming", "Run stream contract test", "Verifies the provider-neutral streaming delta contract can assemble incremental text and preserve reasoning separately.", "The output should show ordered text assembly and separate reasoning content. No provider request is required for this contract test.", "No AI request is sent by this example.", TestStreamingContractAsync, "Streaming boundary", "Actual network/SSE streaming remains provider-specific; non-streaming providers continue to use the normal SendAsync path.");
+            AddApiTab("Streaming", "Run stream contract test", "Verifies the provider-neutral streaming delta contract can assemble incremental text and preserve reasoning separately.", "The output should show ordered text assembly and separate reasoning content. No provider request is required by this example.", "No AI request is sent by this example.", TestStreamingContractAsync, "Streaming boundary", "Actual network/SSE streaming remains provider-specific; non-streaming providers continue to use the normal SendAsync path.");
             AddLiveStreamingTab();
             AddApiTab("Tool Registry", "Run tool registry test", "Registers a deterministic custom tool, validates its JSON Schema arguments, executes it, reads its definition, and unregisters it without making an AI request.", "The tool should echo HAgent-tool-42 and reject invalid/missing/extra arguments before its handler executes.", "HAgent-tool-42", TestToolRegistryAsync, "Tool boundary", "This verifies registration, safe argument validation, execution, discovery, and cleanup before the model tool-call loop is enabled.");
             AddApiTab("Provider Tool Transport", "Run transport test", "Sends a tool definition through the OpenAI-compatible adapter using a local HTTP capture handler and normalizes the returned tool call.", "The captured request should contain the tool name and JSON Schema parameters, and the response should contain one normalized tool call.", "Call the example tool.", TestProviderToolTransportAsync, "Provider boundary", "No external provider is contacted. This verifies tool transport without invoking a live model.");
@@ -77,19 +77,21 @@ namespace HAgent.Example
                 Margin = new Padding(0, 0, 8, 0)
             };
 
-            var code = new TextBox
+            var code = new RichTextBox
             {
                 Dock = DockStyle.Fill,
-                Multiline = true,
                 ReadOnly = true,
-                ScrollBars = ScrollBars.Both,
+                DetectUrls = false,
+                Multiline = true,
+                ScrollBars = RichTextBoxScrollBars.Both,
                 WordWrap = false,
                 Text = ExampleCodeSnippets.Get(title),
-                Font = new Font("Consolas", 8.8f),
+                Font = new Font("Consolas", 9.0f),
                 BackColor = Color.FromArgb(244, 243, 248),
                 ForeColor = Text,
                 BorderStyle = BorderStyle.FixedSingle,
-                Margin = new Padding(8, 0, 0, 0)
+                Margin = new Padding(8, 0, 0, 0),
+                HideSelection = false
             };
 
             editors.Controls.Add(new Label

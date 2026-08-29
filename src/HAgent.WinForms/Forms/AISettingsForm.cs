@@ -422,7 +422,7 @@ namespace HAgent.WinForms.Forms
                 ShowProviders();
                 return;
             }
-            var editor = new AgentEditorForm(existing == null ? new AiAgent() : existing, _providers, _secrets, _adapters);
+            var editor = new AgentEditorForm(existing == null ? new AiAgent() : existing, _providers, _secrets, _adapters, _tools.GetDefinitions());
             if (editor.ShowDialog(this) == DialogResult.OK)
             {
                 try

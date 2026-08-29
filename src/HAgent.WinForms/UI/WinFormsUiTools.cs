@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
@@ -28,6 +27,7 @@ namespace HAgent.WinForms.UI
                 Enabled = true
             }, async execution =>
             {
+                Require(context, delegate(UiAutomationPermissions permissions) { return permissions.AutomaticDiscovery; }, "Automatic UI discovery is disabled by the current permission policy.");
                 object value;
                 execution.Arguments.TryGetValue("controlId", out value);
                 var id = value as string;
@@ -47,6 +47,7 @@ namespace HAgent.WinForms.UI
                 Enabled = true
             }, async execution =>
             {
+                Require(context, delegate(UiAutomationPermissions permissions) { return permissions.ReadControls; }, "Reading UI controls is disabled by the current permission policy.");
                 object value;
                 execution.Arguments.TryGetValue("controlId", out value);
                 var id = Convert.ToString(value);
@@ -66,6 +67,7 @@ namespace HAgent.WinForms.UI
                 Enabled = true
             }, async execution =>
             {
+                Require(context, delegate(UiAutomationPermissions permissions) { return permissions.ReadData; }, "Reading UI data is disabled by the current permission policy.");
                 object value;
                 execution.Arguments.TryGetValue("controlId", out value);
                 var id = Convert.ToString(value);
@@ -75,6 +77,13 @@ namespace HAgent.WinForms.UI
                 var result = await context.ReadDataAsync(id, maxRows, execution.CancellationToken).ConfigureAwait(false);
                 return ToolExecutionResult.Success(JsonConvert.SerializeObject(result));
             }));
+        }
+
+        private static void Require(IUiContext context, Func<UiAutomationPermissions, bool> allowed, string message)
+        {
+            var aware = context as IUiPermissionAwareContext;
+            if (aware == null || aware.Permissions == null || allowed == null || !allowed(aware.Permissions))
+                throw new InvalidOperationException(message);
         }
     }
 }

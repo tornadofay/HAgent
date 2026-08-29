@@ -37,6 +37,8 @@ namespace HAgent.Example
                     var snapshot = await host.Context.InspectAsync(null, CancellationToken.None);
                     if (snapshot == null || snapshot.Id != "ExampleForm" || snapshot.Children == null || snapshot.Children.Count < 2)
                         throw new InvalidOperationException("UI context did not inspect the attached form correctly.");
+                    if (host.Context.RootControl != form || host.Context.RootForm != form || host.Context.RootId != "ExampleForm")
+                        throw new InvalidOperationException("UI context did not expose the expected form root identity.");
 
                     var name = await host.Context.ReadControlAsync("txtCustomerName", CancellationToken.None);
                     if (!string.Equals(Convert.ToString(name), "HAgent Customer", StringComparison.Ordinal))
@@ -76,6 +78,8 @@ namespace HAgent.Example
                     var definitions = registry.GetDefinitions();
                     var uiTools = definitions.Count(x => x.Type == AiToolType.UI);
 
+                    await TestUserControlAttachmentAsync();
+
                     Write("UI CONTEXT",
                         "Contract test succeeded." + Environment.NewLine +
                         "Attached form: " + snapshot.Id + Environment.NewLine +
@@ -85,8 +89,54 @@ namespace HAgent.Example
                         "Data source: DataTable (bound source preferred)" + Environment.NewLine +
                         "Discovered data sources: " + sources.Count + Environment.NewLine +
                         "Discovered grid fields: " + string.Join(", ", gridSource.FieldNames) + Environment.NewLine +
+                        "UserControl attachment: verified" + Environment.NewLine +
                         "UI tools registered: " + uiTools + Environment.NewLine +
                         "Write/click/move/resize operations: not exposed in this read-only slice.");
+                }
+            }
+        }
+
+        private static async Task TestUserControlAttachmentAsync()
+        {
+            using (var panel = new UserControl { Name = "CustomerPanel", Width = 400, Height = 250 })
+            using (var nameBox = new TextBox { Name = "txtPanelCustomer", Text = "Panel Customer", Width = 200, Location = new Point(10, 10) })
+            using (var grid = new DataGridView { Name = "gridPanelCustomers", Width = 360, Height = 150, Location = new Point(10, 45), AutoGenerateColumns = true })
+            {
+                var table = new DataTable();
+                table.Columns.Add("Id", typeof(int));
+                table.Columns.Add("Name", typeof(string));
+                table.Rows.Add(10, "Panel Alice");
+                grid.DataSource = table;
+                panel.Controls.Add(nameBox);
+                panel.Controls.Add(grid);
+                panel.CreateControl();
+
+                var permissions = new UiAutomationPermissions { AutomaticDiscovery = true, ReadControls = true, ReadData = true };
+                var registry = new InMemoryToolRegistry();
+                using (var host = HAgentHost.Attach(panel, "CustomerPanel", registry, true, permissions))
+                {
+                    if (host.Context.RootControl != panel || host.Context.RootForm != null || host.Context.RootId != "CustomerPanel")
+                        throw new InvalidOperationException("UserControl attachment did not expose the expected root identity.");
+
+                    var snapshot = await host.Context.InspectAsync(null, CancellationToken.None);
+                    if (snapshot == null || snapshot.Id != "CustomerPanel" || snapshot.Children == null || snapshot.Children.Count != 2)
+                        throw new InvalidOperationException("UI context did not inspect the attached UserControl correctly.");
+
+                    var name = await host.Context.ReadControlAsync("txtPanelCustomer", CancellationToken.None);
+                    if (!string.Equals(Convert.ToString(name), "Panel Customer", StringComparison.Ordinal))
+                        throw new InvalidOperationException("UserControl attachment did not read the nested TextBox correctly.");
+
+                    var rows = await host.Context.ReadDataAsync("gridPanelCustomers", 10, CancellationToken.None);
+                    if (rows.Count != 1 || !string.Equals(Convert.ToString(rows[0]["Name"]), "Panel Alice", StringComparison.Ordinal))
+                        throw new InvalidOperationException("UserControl attachment did not read the nested bound grid correctly.");
+
+                    var semantics = new WinFormsSemanticDiscovery().Discover(panel, permissions);
+                    if (!semantics.Any(x => string.Equals(x.ControlId, "txtPanelCustomer", StringComparison.OrdinalIgnoreCase)))
+                        throw new InvalidOperationException("Semantic discovery did not traverse the attached UserControl root.");
+
+                    var sources = new WinFormsDataSourceDiscovery().Discover(panel, permissions);
+                    if (!sources.Any(x => string.Equals(x.ControlId, "gridPanelCustomers", StringComparison.OrdinalIgnoreCase)))
+                        throw new InvalidOperationException("Data-source discovery did not traverse the attached UserControl root.");
                 }
             }
         }

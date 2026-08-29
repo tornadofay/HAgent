@@ -8,6 +8,7 @@ using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Providers.OpenAICompatible;
 using HAgent.Runtime;
+using Newtonsoft.Json.Linq;
 
 namespace HAgent.Example
 {
@@ -259,28 +260,58 @@ namespace HAgent.Example
         private sealed class ToolLoopRequestHandler : HttpMessageHandler
         {
             public int RequestCount { get; private set; }
+            public string SecondRequestBody { get; private set; }
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 RequestCount++;
                 var requestBody = await request.Content.ReadAsStringAsync().ConfigureAwait(false);
-                string body;
                 if (RequestCount == 1)
                 {
-                    body = "{\"id\":\"loop-1\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-add-42\",\"type\":\"function\",\"function\":{\"name\":\"example_add\",\"arguments\":\"{\\\"a\\\":3,\\\"b\\\":4}\"}}]}}]}";
+                    var body = "{\"id\":\"loop-1\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call-add-42\",\"type\":\"function\",\"function\":{\"name\":\"example_add\",\"arguments\":\"{\\\"a\\\":3,\\\"b\\\":4}\"}}]}}]}";
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
+                    };
                 }
-                else
+
+                SecondRequestBody = requestBody;
+                JToken parsed;
+                try
                 {
-                    var hasToolRole = requestBody.IndexOf("\"role\":\"tool\"", StringComparison.OrdinalIgnoreCase) >= 0;
-                    var hasToolCallId = requestBody.IndexOf("\"tool_call_id\":\"call-add-42\"", StringComparison.OrdinalIgnoreCase) >= 0;
-                    var hasToolOutput = requestBody.IndexOf("\"content\":\"7\"", StringComparison.OrdinalIgnoreCase) >= 0;
-                    if (!hasToolRole || !hasToolCallId || !hasToolOutput)
-                        throw new InvalidOperationException("The second provider request did not contain the expected tool result observation (role/tool_call_id/content=7).");
-                    body = "{\"id\":\"loop-2\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"The tool returned 7.\"}}]}";
+                    parsed = JObject.Parse(requestBody);
                 }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("The second provider request was not valid JSON: " + ex.Message + Environment.NewLine + "Payload: " + requestBody);
+                }
+
+                var messages = parsed["messages"] as JArray;
+                JToken toolMessage = null;
+                if (messages != null)
+                {
+                    foreach (var message in messages)
+                    {
+                        if (message != null && string.Equals(Convert.ToString(message["role"]), "tool", StringComparison.OrdinalIgnoreCase))
+                        {
+                            toolMessage = message;
+                            break;
+                        }
+                    }
+                }
+
+                var hasToolCallId = toolMessage != null && string.Equals(Convert.ToString(toolMessage["tool_call_id"]), "call-add-42", StringComparison.Ordinal);
+                var hasToolOutput = toolMessage != null && string.Equals(Convert.ToString(toolMessage["content"]), "7", StringComparison.Ordinal);
+                if (!hasToolCallId || !hasToolOutput)
+                {
+                    var observed = toolMessage == null ? "<no tool message>" : toolMessage.ToString(Newtonsoft.Json.Formatting.None);
+                    throw new InvalidOperationException("The second provider request did not contain the expected tool result observation. Observed tool message: " + observed + Environment.NewLine + "Payload: " + requestBody);
+                }
+
+                var finalBody = "{\"id\":\"loop-2\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"The tool returned 7.\"}}]}";
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
+                    Content = new StringContent(finalBody, System.Text.Encoding.UTF8, "application/json")
                 };
             }
         }

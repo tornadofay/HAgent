@@ -9,7 +9,7 @@ using System.Windows.Forms;
 
 namespace HAgent.WinForms.UI
 {
-    public sealed class WinFormsUiContext : IUiContext, IUiPermissionAwareContext, IDisposable
+    public sealed partial class WinFormsUiContext : IUiContext, IUiPermissionAwareContext, IDisposable
     {
         private readonly Form _form;
         private bool _disposed;

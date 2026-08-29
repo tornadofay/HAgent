@@ -91,7 +91,7 @@ namespace HAgent.WinForms.UI
                 return new BindingInfo
                 {
                     BindingPath = binding.PropertyName,
-                    DataMember = binding.BindingManagerBase == null ? null : binding.BindingManagerBase.BindingPath
+                    DataMember = TryGetBindingDataMember(binding)
                 };
             }
 
@@ -100,6 +100,19 @@ namespace HAgent.WinForms.UI
                 return new BindingInfo { BindingPath = "DataSource", DataMember = TryGetDataMember(grid.DataSource) };
 
             return null;
+        }
+
+        private static string TryGetBindingDataMember(Binding binding)
+        {
+            if (binding == null || binding.DataSource == null)
+                return null;
+
+            var source = binding.DataSource;
+            var member = source as BindingSource;
+            if (member != null)
+                return string.IsNullOrWhiteSpace(member.DataMember) ? null : member.DataMember;
+
+            return TryGetDataMember(source);
         }
 
         private static string TryGetDataMember(object source)

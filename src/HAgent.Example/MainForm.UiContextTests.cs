@@ -157,7 +157,7 @@ namespace HAgent.Example
                     if (gridSource.FieldNames == null || !gridSource.FieldNames.Contains("Id") || !gridSource.FieldNames.Contains("Name"))
                         throw new InvalidOperationException("BindingSource field discovery did not expose the underlying DataTable fields.");
 
-                    await TestNativeIListRelationshipAsync();
+                    await TestNativeIListRelationshipAsync(unused);
 
                     var uiTools = registry.GetDefinitions().Count(x => x.Type == AiToolType.UI);
                     Write("UI CONTEXT USERCONTROL",
@@ -182,7 +182,7 @@ namespace HAgent.Example
             }
         }
 
-        private static async Task TestNativeIListRelationshipAsync()
+        private async Task TestNativeIListRelationshipAsync(string unused)
         {
             using (var panel = new UserControl { Name = "NativeListPanel", Width = 420, Height = 270 })
             using (var grid = new DataGridView { Name = "gridNativeCustomers", Width = 380, Height = 180, Location = new Point(10, 10), AutoGenerateColumns = true })
@@ -220,6 +220,17 @@ namespace HAgent.Example
                     if (rows.Count != 2 || !string.Equals(Convert.ToString(rows[0]["Name"]), "Native Alice", StringComparison.Ordinal))
                         throw new InvalidOperationException("UI context did not read the native IList through the bound DataGridView.");
                 }
+
+                Write("UI CONTEXT NATIVE ILIST",
+                    "Contract test succeeded." + Environment.NewLine +
+                    "Source kind: " + source.SourceKind + Environment.NewLine +
+                    "Source type: " + source.SourceType + Environment.NewLine +
+                    "Currency manager: " + source.CurrencyManagerType + Environment.NewLine +
+                    "Item type: " + source.ItemType + Environment.NewLine +
+                    "Current item type: " + source.CurrentItemType + Environment.NewLine +
+                    "Position / count: " + Convert.ToString(source.Position) + " / " + Convert.ToString(source.Count) + Environment.NewLine +
+                    "Fields: " + string.Join(", ", source.FieldNames) + Environment.NewLine +
+                    "Native IList bounded read: verified without DataTable normalization.");
             }
         }
 

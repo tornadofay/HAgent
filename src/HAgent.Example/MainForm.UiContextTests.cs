@@ -158,6 +158,7 @@ namespace HAgent.Example
                         throw new InvalidOperationException("BindingSource field discovery did not expose the underlying DataTable fields.");
 
                     await TestNativeIListRelationshipAsync(unused);
+                    await TestUiDataRelationshipsAsync(unused);
 
                     var uiTools = registry.GetDefinitions().Count(x => x.Type == AiToolType.UI);
                     Write("UI CONTEXT USERCONTROL",
@@ -234,7 +235,84 @@ namespace HAgent.Example
             }
         }
 
+        private async Task TestUiDataRelationshipsAsync(string unused)
+        {
+            using (var panel = new UserControl { Name = "RelationshipPanel", Width = 620, Height = 320 })
+            using (var idBox = new TextBox { Name = "txtCustomerId", Width = 180, Location = new Point(10, 10) })
+            using (var nameBox = new TextBox { Name = "txtCustomerName", Width = 180, Location = new Point(200, 10) })
+            using (var grid = new DataGridView { Name = "gridCustomers", Width = 560, Height = 220, Location = new Point(10, 45), AutoGenerateColumns = true })
+            using (var bindingSource = new BindingSource())
+            {
+                var customers = new List<RelationshipCustomer>
+                {
+                    new RelationshipCustomer { Id = 30, Name = "Relationship Alice" },
+                    new RelationshipCustomer { Id = 31, Name = "Relationship Bob" }
+                };
+                bindingSource.DataSource = customers;
+                idBox.DataBindings.Add("Text", bindingSource, "Id");
+                nameBox.DataBindings.Add("Text", bindingSource, "Name");
+                grid.DataSource = bindingSource;
+                panel.Controls.Add(idBox);
+                panel.Controls.Add(nameBox);
+                panel.Controls.Add(grid);
+                panel.CreateControl();
+
+                var permissions = new UiAutomationPermissions { AutomaticDiscovery = true, ReadControls = true, ReadData = true };
+                var relationships = new WinFormsDataRelationshipDiscovery().Discover((Control)panel, permissions);
+                var idRelationship = relationships.FirstOrDefault(x => string.Equals(x.ControlId, "txtCustomerId", StringComparison.OrdinalIgnoreCase));
+                var nameRelationship = relationships.FirstOrDefault(x => string.Equals(x.ControlId, "txtCustomerName", StringComparison.OrdinalIgnoreCase));
+                var gridRelationship = relationships.FirstOrDefault(x => string.Equals(x.ControlId, "gridCustomers", StringComparison.OrdinalIgnoreCase));
+
+                if (idRelationship == null || nameRelationship == null || gridRelationship == null)
+                    throw new InvalidOperationException("UI data relationship discovery did not identify all bound controls.");
+                if (!string.Equals(idRelationship.SourceKind, "BindingSource", StringComparison.Ordinal) ||
+                    !string.Equals(nameRelationship.SourceKind, "BindingSource", StringComparison.Ordinal) ||
+                    !string.Equals(gridRelationship.SourceKind, "BindingSource", StringComparison.Ordinal))
+                    throw new InvalidOperationException("UI data relationship discovery did not preserve the shared BindingSource.");
+
+                if (!idRelationship.RelatedControlIds.Contains("txtCustomerName", StringComparer.OrdinalIgnoreCase) ||
+                    !idRelationship.RelatedControlIds.Contains("gridCustomers", StringComparer.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("The ID control did not report the other controls sharing its data source.");
+                if (!nameRelationship.RelatedControlIds.Contains("txtCustomerId", StringComparer.OrdinalIgnoreCase) ||
+                    !nameRelationship.RelatedControlIds.Contains("gridCustomers", StringComparer.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("The Name control did not report the other controls sharing its data source.");
+                if (!gridRelationship.RelatedControlIds.Contains("txtCustomerId", StringComparer.OrdinalIgnoreCase) ||
+                    !gridRelationship.RelatedControlIds.Contains("txtCustomerName", StringComparer.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("The grid did not report the other controls sharing its data source.");
+
+                if (!string.Equals(idRelationship.RelationshipKind, "shares-data-source", StringComparison.Ordinal) ||
+                    !string.Equals(nameRelationship.RelationshipKind, "shares-data-source", StringComparison.Ordinal) ||
+                    !string.Equals(gridRelationship.RelationshipKind, "shares-data-source", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Shared BindingSource relationships were not classified correctly.");
+                if (idRelationship.Position != 0 || nameRelationship.Position != 0 || gridRelationship.Position != 0)
+                    throw new InvalidOperationException("Relationship discovery reported incorrect shared source position.");
+                if (idRelationship.CurrentItemType == null || idRelationship.CurrentItemType.IndexOf("RelationshipCustomer", StringComparison.OrdinalIgnoreCase) < 0)
+                    throw new InvalidOperationException("Relationship discovery did not identify the native current item type.");
+                if (idRelationship.CurrencyManagerType == null || idRelationship.CurrencyManagerType.IndexOf("CurrencyManager", StringComparison.OrdinalIgnoreCase) < 0)
+                    throw new InvalidOperationException("Relationship discovery did not identify the CurrencyManager.");
+
+                Write("UI DATA RELATIONSHIPS",
+                    "Contract test succeeded." + Environment.NewLine +
+                    "Shared source: " + idRelationship.SourceKind + Environment.NewLine +
+                    "Source type: " + idRelationship.SourceType + Environment.NewLine +
+                    "Customer ID related controls: " + string.Join(", ", idRelationship.RelatedControlIds) + Environment.NewLine +
+                    "Customer Name related controls: " + string.Join(", ", nameRelationship.RelatedControlIds) + Environment.NewLine +
+                    "Grid related controls: " + string.Join(", ", gridRelationship.RelatedControlIds) + Environment.NewLine +
+                    "Binding paths: " + idRelationship.BindingPath + ", " + nameRelationship.BindingPath + ", " + gridRelationship.BindingPath + Environment.NewLine +
+                    "Current item type: " + idRelationship.CurrentItemType + Environment.NewLine +
+                    "Currency manager: " + idRelationship.CurrencyManagerType + Environment.NewLine +
+                    "Position: " + Convert.ToString(idRelationship.Position) + Environment.NewLine +
+                    "Shared BindingSource relationship verified without domain inference.");
+            }
+        }
+
         private sealed class NativeCustomer
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+        }
+
+        private sealed class RelationshipCustomer
         {
             public int Id { get; set; }
             public string Name { get; set; }

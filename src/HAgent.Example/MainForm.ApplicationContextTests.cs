@@ -119,7 +119,7 @@ namespace HAgent.Example
                 {
                     host.Application.Attach("invoiceTable", tableInfo, maxDepth: 2, maxCollectionItems: 10);
                     var descriptor = host.Application.Describe("invoiceTable");
-                    if (descriptor == null || !descriptor.Type.Contains("TableInfoLike", StringComparison.OrdinalIgnoreCase))
+                    if (descriptor == null || descriptor.Type.IndexOf("TableInfoLike", StringComparison.OrdinalIgnoreCase) < 0)
                         throw new InvalidOperationException("Application object discovery did not identify the attached TableInfo-shaped object.");
 
                     var tableName = descriptor.Properties.FirstOrDefault(x => string.Equals(x.Name, "TableName", StringComparison.OrdinalIgnoreCase));
@@ -158,8 +158,6 @@ namespace HAgent.Example
                         "Bounded public-property discovery verified without knowing the TableInfo class at compile time.");
                 }
             }
-
-            await Task.CompletedTask;
         }
 
         private sealed class HyperLikeTextBox : TextBox
@@ -200,7 +198,7 @@ namespace HAgent.Example
             public List<TableInfoLike> ChildTable { get; } = new List<TableInfoLike>();
             public string BranchColumnName { get; set; }
             public string BranchId { get; set; }
-            public string DeleteType { get; set; } = "Delete";
+            public string DeleteType { get; set; }
             public string FieldString { get; set; }
             public string Filter { get; set; }
             public bool IsChildTable { get; private set; }

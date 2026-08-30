@@ -214,6 +214,43 @@ Console.WriteLine(source.CurrencyManagerType);
 Console.WriteLine(source.CurrentItemType);
 Console.WriteLine(source.ItemType);
 Console.WriteLine(source.Position + "" / "" + source.Count);";
+                case "UI Data Relationships": return @"using System.Collections.Generic;
+using System.Windows.Forms;
+using HAgent.WinForms.UI;
+
+var panel = new UserControl { Name = ""RelationshipPanel"" };
+var idBox = new TextBox { Name = ""txtCustomerId"" };
+var nameBox = new TextBox { Name = ""txtCustomerName"" };
+var grid = new DataGridView { Name = ""gridCustomers"" };
+var bindingSource = new BindingSource();
+
+bindingSource.DataSource = new List<Customer>
+{
+    new Customer { Id = 30, Name = ""Relationship Alice"" },
+    new Customer { Id = 31, Name = ""Relationship Bob"" }
+};
+
+idBox.DataBindings.Add(""Text"", bindingSource, ""Id"");
+nameBox.DataBindings.Add(""Text"", bindingSource, ""Name"");
+grid.DataSource = bindingSource;
+
+panel.Controls.Add(idBox);
+panel.Controls.Add(nameBox);
+panel.Controls.Add(grid);
+
+var permissions = new UiAutomationPermissions
+{
+    AutomaticDiscovery = true,
+    ReadControls = true,
+    ReadData = true
+};
+
+var relationships = new WinFormsDataRelationshipDiscovery()
+    .Discover(panel, permissions);
+
+foreach (var relationship in relationships)
+    Console.WriteLine(relationship.ControlId + "" -> "" +
+        string.Join("", "", relationship.RelatedControlIds));";
                 default: return @"// See the corresponding HAgent example source file.
 // The Example application uses the public HAgent API shown here as the reference pattern.";
             }

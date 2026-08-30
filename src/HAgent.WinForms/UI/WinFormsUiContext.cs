@@ -11,6 +11,7 @@ namespace HAgent.WinForms.UI
 {
     public sealed partial class WinFormsUiContext : IUiContext, IUiPermissionAwareContext, IDisposable
     {
+        private static readonly IUiControlAdapter DefaultControlAdapter = new ReflectionUiControlAdapter();
         private readonly Control _rootControl;
         private readonly Form _form;
         private readonly string _rootId;
@@ -152,6 +153,9 @@ namespace HAgent.WinForms.UI
 
         private static object ReadValue(Control control)
         {
+            if (DefaultControlAdapter.CanRead(control))
+                return DefaultControlAdapter.ReadValue(control);
+
             var textBox = control as TextBoxBase;
             if (textBox != null) return textBox.Text;
 

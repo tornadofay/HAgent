@@ -9,6 +9,8 @@ namespace HAgent.WinForms.UI
 {
     public sealed class WinFormsSemanticDiscovery
     {
+        private static readonly IUiControlAdapter DefaultControlAdapter = new ReflectionUiControlAdapter();
+
         public IReadOnlyList<UiSemanticDescriptor> Discover(Control root, UiAutomationPermissions permissions, IUiSemanticProvider customProvider = null)
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
@@ -40,23 +42,37 @@ namespace HAgent.WinForms.UI
 
         private static UiSemanticDescriptor Describe(Control control, UiAutomationPermissions permissions)
         {
-            var logicalName = FirstNonEmpty(control.AccessibleName, control.Name, control.Text);
+            var binding = FindBinding(control);
+            var adapterName = DefaultControlAdapter.CanAdapt(control)
+                ? DefaultControlAdapter.GetLogicalName(control)
+                : null;
+            var logicalName = FirstNonEmpty(
+                adapterName,
+                control.AccessibleName,
+                control.Name,
+                control.Text);
             if (string.IsNullOrWhiteSpace(logicalName)) return null;
 
-            var binding = FindBinding(control);
+            var adapterCanRead = DefaultControlAdapter.CanRead(control);
+            var adapterCanWrite = DefaultControlAdapter.CanWrite(control);
+            var adapterDataRole = DefaultControlAdapter.GetDataRole(control);
+            var adapterMetadata = DefaultControlAdapter.CanAdapt(control)
+                ? DefaultControlAdapter.GetMetadata(control)
+                : new Dictionary<string, object>();
+
             return new UiSemanticDescriptor
             {
                 ControlId = control.Name,
                 LogicalName = NormalizeLogicalName(logicalName),
-                Role = InferRole(control),
+                Role = adapterDataRole == "database-field" ? "database-field" : InferRole(control),
                 Description = control.AccessibleDescription,
-                DataRole = InferDataRole(control, binding),
+                DataRole = adapterDataRole ?? InferDataRole(control, binding),
                 DataMember = binding == null ? null : binding.DataMember,
                 BindingPath = binding == null ? null : binding.BindingPath,
-                Readable = permissions.ReadControls && IsReadable(control),
-                Writable = permissions.WriteControls && IsWritable(control),
+                Readable = permissions.ReadControls && (adapterCanRead || IsReadable(control)),
+                Writable = permissions.WriteControls && (adapterCanWrite || IsWritable(control)),
                 Invokable = permissions.InvokeControls && IsInvokable(control),
-                Metadata = BuildMetadata(control)
+                Metadata = MergeMetadata(BuildMetadata(control), adapterMetadata)
             };
         }
 
@@ -147,6 +163,24 @@ namespace HAgent.WinForms.UI
                 metadata["hasDataSource"] = grid.DataSource != null;
             }
             return metadata;
+        }
+
+        private static Dictionary<string, object> MergeMetadata(
+            IReadOnlyDictionary<string, object> standard,
+            IReadOnlyDictionary<string, object> adapter)
+        {
+            var merged = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            if (standard != null)
+            {
+                foreach (var pair in standard)
+                    merged[pair.Key] = pair.Value;
+            }
+            if (adapter != null)
+            {
+                foreach (var pair in adapter)
+                    merged[pair.Key] = pair.Value;
+            }
+            return merged;
         }
 
         private static bool IsReadable(Control control)

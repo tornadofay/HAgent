@@ -24,7 +24,7 @@ namespace HAgent.WinForms.UI
             {
                 Require(context, delegate(UiAutomationPermissions permissions) { return permissions.AutomaticDiscovery && permissions.ReadData; }, "Automatic data-source discovery is disabled by the current permission policy.");
                 var discovery = new WinFormsDataSourceDiscovery();
-                var sources = discovery.Discover(context.RootForm, context.Permissions);
+                var sources = discovery.Discover(context.RootControl, context.Permissions);
                 return ToolExecutionResult.Success(JsonConvert.SerializeObject(sources));
             }));
         }

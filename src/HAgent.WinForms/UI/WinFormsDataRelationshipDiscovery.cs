@@ -4,6 +4,7 @@ using System.Collections;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
+using System.Data;
 
 namespace HAgent.WinForms.UI
 {

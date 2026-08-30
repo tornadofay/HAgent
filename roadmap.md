@@ -100,8 +100,9 @@ The public concept is **UI Context / Control Adapters**. â€œForm serializationâ€
 - [x] `BindingSource` data reads use the native bound list without intermediate `DataTable` normalization.
 - [x] Data-source descriptors expose observable BindingSource/CurrencyManager relationship metadata including source kind, underlying source type, list type, binding path, currency-manager type, position, and count.
 - [x] Native `IList` sources expose CurrencyManager position, count, item type, current-item type, and field metadata without copying the current item into the descriptor.
+- [x] UI data relationship discovery reports actual control/source relationships and controls sharing the same native source without inferring domain meaning.
+- [x] UI data-source discovery tools operate from `RootControl`, so UserControl attachments do not require a Form root.
 - [ ] Semantic control labels and logical IDs beyond raw control names.
-- [ ] Relationship discovery between controls, bound records, lists, and forms beyond directly observable binding facts.
 - [ ] Lightweight semantic projections without unnecessary copying.
 - [ ] Optional application-defined semantic adapters for Customer/Invoice/etc.
 - [ ] Restricted data-query abstraction that can target application data, SQL Server, or MySQL without exposing arbitrary SQL by default.

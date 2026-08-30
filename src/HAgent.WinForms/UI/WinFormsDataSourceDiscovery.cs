@@ -193,16 +193,43 @@ namespace HAgent.WinForms.UI
             if (view != null)
                 return view.Table.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToList().AsReadOnly();
 
-            var itemTypeName = ResolveItemType(source);
-            if (string.IsNullOrWhiteSpace(itemTypeName)) return new List<string>().AsReadOnly();
-            var itemType = Type.GetType(itemTypeName, false);
-            if (itemType == null) return new List<string>().AsReadOnly();
+            if (source is IEnumerable && !(source is string))
+            {
+                var itemType = ResolveItemRuntimeType(source);
+                if (itemType != null)
+                {
+                    var fields = itemType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(p => p.CanRead)
+                        .Select(p => p.Name)
+                        .ToList();
+                    return fields.AsReadOnly();
+                }
+            }
 
-            var fields = itemType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.CanRead)
-                .Select(p => p.Name)
-                .ToList();
-            return fields.AsReadOnly();
+            return new List<string>().AsReadOnly();
+        }
+
+        private static Type ResolveItemRuntimeType(object source)
+        {
+            if (source == null || source is string) return null;
+
+            var type = source.GetType();
+            if (type.IsArray)
+                return type.GetElementType();
+
+            var enumerableType = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                ? type
+                : type.GetInterfaces()
+                    .FirstOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+            if (enumerableType != null)
+                return enumerableType.GetGenericArguments()[0];
+
+            var list = source as IList;
+            if (list != null && list.Count > 0 && list[0] != null)
+                return list[0].GetType();
+
+            return null;
         }
 
         private static Dictionary<string, object> BuildMetadata(object source, object effectiveSource, CurrencyManager currencyManager)

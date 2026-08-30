@@ -251,6 +251,31 @@ var relationships = new WinFormsDataRelationshipDiscovery()
 foreach (var relationship in relationships)
     Console.WriteLine(relationship.ControlId + "" -> "" +
         string.Join("", "", relationship.RelatedControlIds));";
+                case "UI Custom Control Adapter": return @"using System.Windows.Forms;
+using HAgent.WinForms.UI;
+
+var control = new MyHyperTextBox
+{
+    Name = ""txtCustomerName"",
+    DbFieldName = ""CustomerName"",
+    DisplayName = ""Customer Name""
+};
+
+var adapter = new ReflectionUiControlAdapter();
+var value = adapter.ReadValue(control);
+adapter.WriteValue(control, ""Changed Customer"");
+
+Console.WriteLine(control.DbFieldName);
+Console.WriteLine(value);
+Console.WriteLine(control.GetValue());";
+                case "Application Object Context": return @"using HAgent.WinForms.UI;
+
+var host = HAgentHost.Attach(panel, ""ApplicationContextPanel"", registry, false, permissions);
+host.Application.Attach(""invoiceTable"", tableInfo, maxDepth: 2, maxCollectionItems: 20);
+
+var descriptor = host.Application.Describe(""invoiceTable"");
+foreach (var property in descriptor.Properties)
+    Console.WriteLine(property.Name + "": "" + property.Kind);";
                 default: return @"// See the corresponding HAgent example source file.
 // The Example application uses the public HAgent API shown here as the reference pattern.";
             }

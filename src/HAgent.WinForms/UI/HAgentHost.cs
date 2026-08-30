@@ -77,7 +77,6 @@ namespace HAgent.WinForms.UI
         {
             if (_disposed) return;
             _disposed = true;
-            Application.DescribeAll();
             _context.Dispose();
         }
     }

@@ -15,10 +15,12 @@ namespace HAgent.WinForms.UI
             Owner = owner;
             _tools = tools;
             _context = context;
+            Application = new HAgentApplicationContext();
         }
 
         public IWin32Window Owner { get; private set; }
         public IUiContext Context { get { return _context; } }
+        public HAgentApplicationContext Application { get; private set; }
 
         public static HAgentHost Attach(Form form, IToolRegistry tools, bool registerUiTools = true)
         {
@@ -75,6 +77,7 @@ namespace HAgent.WinForms.UI
         {
             if (_disposed) return;
             _disposed = true;
+            Application.DescribeAll();
             _context.Dispose();
         }
     }

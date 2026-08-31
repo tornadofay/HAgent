@@ -331,15 +331,19 @@ The storage configuration file persists the backend as an explicit enum name (`F
 
 SQL Server and MySQL resolution bootstraps the HAgent-owned database before creating the corresponding internal repositories. No host application database is used by this resolution path.
 
-Storage settings that change the backend, application identity/path, database target, server, username, or related connection identity are persisted as configuration for the next process lifetime. The Storage UI informs the user that an application restart is required after such a change so the running HAgent instance does not silently mix storage backends.
+Storage settings that change the backend, application identity/path, database target, server, port, username, or related connection identity are persisted as configuration for the next process lifetime. The Storage UI informs the user that an application restart is required after such a change so the running HAgent instance does not silently mix storage backends.
+
+Database storage exposes an explicit TCP port with protocol defaults of 1433 for SQL Server and 3306 for MySQL. The selected port is persisted and used by both provider-specific connection builders.
+
+The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI/output, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected and the application restarted.
 
 ### Storage foundation
 
-`HAgent.Core` provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, and non-secret connection metadata. Database passwords remain outside this ordinary configuration model.
+`HAgent.Core` provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, database port, and non-secret connection metadata. Database passwords remain outside this ordinary configuration model.
 
 `HAgent.Storage.File` provides an application-specific `HAgentData` directory layout for configuration, providers, agents, tools, skills, memory, conversations, wiki, runtime state, cache, and logs.
 
-`HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` provide HAgent-owned database bootstrappers. They connect to the configured server, create the derived HAgent database when absent, then create only HAgent-owned tables and a schema-version record. The initial schema covers providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, and future migration metadata.
+`HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` provide HAgent-owned database bootstrappers. They connect to the configured server and port, create the derived HAgent database when absent, then create only HAgent-owned tables and a schema-version record. The initial schema covers providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, and future migration metadata.
 
 The previously implemented SQL Server `IDataQuerySource` path against arbitrary host tables was removed because it violated the internal-storage boundary. The provider-neutral structured-query contract remains independent and must not be interpreted as permission to use a host application's business database.
 

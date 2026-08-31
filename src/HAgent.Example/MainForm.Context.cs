@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using HAgent.Models;
-using HAgent.Storage.File;
 using HAgent.WinForms.Helpers;
 
 namespace HAgent.Example
@@ -15,7 +13,7 @@ namespace HAgent.Example
         {
             try
             {
-                var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+                var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
                 var agents = await store.GetAgentsAsync();
                 var previousId = GetSelectedAgentId();
                 _agents.Clear();
@@ -89,7 +87,7 @@ namespace HAgent.Example
 
             try
             {
-                var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+                var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
                 var providers = await store.GetProvidersAsync();
                 var providerIds = new List<string>();
                 if (!string.IsNullOrWhiteSpace(agent.ProviderId))

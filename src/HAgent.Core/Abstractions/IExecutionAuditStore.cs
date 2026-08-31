@@ -13,5 +13,6 @@ namespace HAgent.Abstractions
     {
         Task AppendAsync(AgentExecutionAuditRecord record, CancellationToken cancellationToken = default(CancellationToken));
         Task<IReadOnlyList<AgentExecutionAuditRecord>> SearchAsync(ExecutionAuditQuery query, CancellationToken cancellationToken = default(CancellationToken));
+        Task TrimAsync(int maxRecords, CancellationToken cancellationToken = default(CancellationToken));
     }
 }

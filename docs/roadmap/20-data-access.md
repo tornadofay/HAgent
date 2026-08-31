@@ -1,24 +1,42 @@
 # Phase 0.8 — Data Access + Authorization
 
 ## Goal
-Turn the verified data-discovery/query contracts into safe application and database access.
+Turn the verified data-discovery and structured-query contracts into safe real application/database access.
 
-## Sequence
+## Steps
 
-- [ ] Application-owned `IDataQuerySource` adapter.
-- [ ] Authoritative schema/field allow-list.
-- [ ] Separate discovery, query, export, and write permissions.
-- [ ] Host authorization callbacks.
-- [ ] Limits, cancellation, timeout, and resource budgets.
-- [ ] Restricted SQL Server read adapter.
-- [ ] Restricted MySQL read adapter.
-- [ ] Database audit/correlation metadata.
-- [ ] Live Example with runtime-only connection fields.
+1. Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
+2. Authoritative schema/field allow-list independent of model requests.
+3. Separate permissions for discovery, projection/query, export, and write operations.
+4. Host authorization callback contract.
+5. Query/result limits, cancellation, timeout, and resource budgets.
+6. Restricted SQL Server read adapter using generated parameterized commands only.
+7. Restricted MySQL read adapter using generated parameterized commands only.
+8. Database audit/correlation metadata.
+9. Read-only database tools before database writes.
+10. Live `HAgent.Example` integration against a disposable/read-only test database.
+
+## Live Example
+
+The SQL integration Example will provide runtime-only connection fields:
+
+```text
+Server Name
+User Name
+Password
+Database
+```
+
+It will verify connection, authorization, schema/field allow-listing, structured queries, bounded results, cancellation/timeout, and rejection of unauthorized operations. Connection values must never become persistent agent/tool configuration or normal logs.
 
 ## Boundaries
 
-No raw SQL tool. No implicit access to every table/field. Database credentials remain in the secret system. UI discovery and application-object metadata never grant database authorization.
+- No raw SQL tool.
+- No arbitrary SQL fragments in the structured query contract.
+- No implicit access to every table or field.
+- UI discovery, `TableInfo`-style metadata, provenance, or model instructions do not grant authorization.
+- Database passwords remain in the secret/connection boundary.
 
 ## Exit criterion
 
-A host can authorize a structured read against its application/database source, execute it through a restricted adapter, and observe bounded results and failures through the public Example verification surface.
+A host can authorize and execute a bounded structured read against its application or database source through the public HAgent abstractions, and the Example verifies both successful access and denied access cases.

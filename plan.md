@@ -3,6 +3,10 @@
 > This file is generated from smaller source documents. Do not edit it directly.
 > Source directory: `docs/plan`.
 
+## Current project state
+
+## Project
+
 HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for simple chat or embedded into a host application, simulation, game, or other environment.
 
 ## Supported targets
@@ -39,7 +43,7 @@ The repository currently contains verified foundations for:
 
 ## Active implementation
 
-The active implementation plan is `docs/plan/20-active.md` and contains only the current milestone.
+The active implementation plan is the current file `docs/plan/20-active.md`. It must contain only the work being implemented now.
 
 ## Verification rule
 
@@ -53,10 +57,12 @@ Do not claim local build/test success unless it was actually performed.
 - `AGENTS.md` — non-negotiable engineering and repository rules.
 - `docs/architecture/` — stable architectural design and boundaries.
 - `docs/plan/` — master direction, current state, and active implementation only.
-- `docs/roadmap/` — ordered implementation path, including completed phases and future work.
+- `docs/roadmap/` — ordered path from completed foundations to the long-term target.
 - `docs/storage.md` — persistence/backend details.
 
-The root `plan.md` and `roadmap.md` are generated views, not independent sources of truth.
+The root `plan.md` and `roadmap.md` are generated from their source directories. They are views, not independent sources of truth.
+
+## HAgent Master Plan
 
 ## Purpose
 
@@ -117,7 +123,7 @@ The distinction between persistent profiles and runtime instances is fundamental
 
 ## Host context
 
-HAgent supports two complementary ways for hosts to describe their environment.
+HAgent must support two complementary ways for hosts to describe their environment.
 
 ### Explicit developer abstraction
 
@@ -125,13 +131,15 @@ The host can deliberately expose semantic concepts such as `Customer`, `Invoice`
 
 ### Automatic discovery/adaptation
 
-HAgent may inspect live host objects through adapters when the host enables the capability. It can discover controls, bindings, native data sources, application objects, and other structural information without requiring HAgent to reference the host's concrete types.
+HAgent may inspect live host objects through adapters when the host enables the capability. The implementation can discover controls, bindings, native data sources, application objects, and other structural information without requiring HAgent to reference the host's concrete types.
 
-Discovery is evidence about what exists. It is never authorization and must not silently grant access to perform an operation.
+Discovery is evidence about what exists. It is never authorization and it must not silently grant access to perform an operation.
 
 ## Multi-agent target
 
-Multiple runtime agents are first-class. A common host pattern is:
+Multiple runtime agents must be first-class rather than a collection of unrelated special cases.
+
+A common host pattern is:
 
 ```text
 Workspace
@@ -150,25 +158,34 @@ Specialists may represent an entire domain, table, subsystem, simulation capabil
 
 ## Memory target
 
-Memory ownership is separable from the reusable agent profile. Two runtime instances created from the same profile can maintain independent private memories.
+Memory ownership must be separable from the reusable agent profile. Two runtime instances created from the same profile must be able to maintain independent private memories.
 
 Shared workspace/application memory is a separate, explicitly governed scope.
 
-Memory remains lightweight and works without a local GPU, embedding model, vector database, or large resident index.
+Memory should remain lightweight and work without a local GPU, embedding model, vector database, or large resident index.
 
 ## Context target
 
-An agent can receive a compact, bounded context snapshot containing only what the host has chosen to expose. Context sources may include UI state, data-source structure and selected data, application-owned objects, task/event information, external observations, and explicit developer-provided semantic abstractions.
+An agent should be able to receive a compact, bounded context snapshot containing only what the host has chosen to expose. Context sources may include:
+
+- UI state;
+- data-source structure and selected data;
+- application-owned objects;
+- task/event information;
+- external environment observations;
+- explicit developer-provided semantic abstractions.
 
 The representation should prefer native, lazy, projected, paged, and bounded forms over unnecessary materialization.
 
 ## Tool target
 
-Tool definitions describe what a model may request. Trusted handlers define what the host actually executes. Executable handlers are runtime-owned and never serialized.
+Tool definitions describe what a model may request. Trusted handlers define what the host actually executes.
 
-Permissions, authorization callbacks, approvals, budgets, and guardrails are enforced outside model instructions.
+Executable handlers are runtime-owned and never serialized.
 
-Initial tool taxonomy:
+Tool permissions, authorization callbacks, approvals, budgets, and guardrails must be enforced outside model instructions.
+
+The initial taxonomy remains:
 
 ```text
 BuiltIn
@@ -179,19 +196,35 @@ SqlServer
 MySql
 ```
 
+Extension tooling is a later platform concern.
+
 ## Security target
 
-No model instruction is an authorization boundary. The architecture distinguishes, wherever meaningful, discovery, read, projection/query, export, write, invoke, and approval.
+No model instruction is an authorization boundary.
 
-Database access uses restricted structured queries and parameterized execution. Raw model-generated SQL is outside the target design.
+The architecture must eventually distinguish, wherever meaningful:
+
+```text
+discovery
+read
+projection/query
+export
+write
+invoke
+approval
+```
+
+UI bindings, application-object metadata, provenance, and inferred semantics may help describe capabilities but must never by themselves authorize them.
+
+Database access must use restricted structured queries and parameterized execution. Raw model-generated SQL is outside the target design.
 
 ## External-consumer target
 
-HAgent remains independent of its host applications.
+HAgent must remain independent of the applications that consume it.
 
-HWorld is a primary architectural consumer. HWorld owns world state, simulation time, physics, perception, scheduling, rendering, and action validation. HAgent supplies generic agent/runtime capabilities. HAgent must not import HWorld types or rules.
+HWorld is a primary architectural consumer example. HWorld owns world state, simulation time, physics, perception, scheduling, rendering, and action validation. HAgent supplies generic agent/runtime capabilities. HAgent must not import HWorld types or rules.
 
-The same principle applies to business applications and future HControl/BaseForm, GDI, DirectX, Unity, or other host adapters.
+The same principle applies to business applications and future adapters for HControl/BaseForm, GDI, DirectX, Unity, or other host surfaces.
 
 ## Development principles
 
@@ -201,19 +234,19 @@ The same principle applies to business applications and future HControl/BaseForm
 - Design for low RAM and no GPU assumption.
 - Keep runtime work cancellable, bounded, correlated, and safe against stale results.
 - Keep persistent configuration separate from live runtime state.
-- Implement one coherent slice at a time.
+- Add one coherent implementation slice at a time.
 - Verify completed capabilities through `HAgent.Example` before marking them complete.
 - Keep documentation synchronized with implementation state.
 
-## End-state integration
+## What success looks like
 
-A developer should be able to start with:
+A developer should be able to add HAgent to a host and start with a simple call:
 
 ```csharp
 await ai.SendAsync("assistant", "Hello");
 ```
 
-and grow the same integration into:
+and later grow the same integration into:
 
 ```text
 host
@@ -227,6 +260,10 @@ host
 ```
 
 without replacing HAgent or introducing application-specific types into `HAgent.Core`.
+
+## Active implementation plan
+
+Only the current implementation milestone belongs here. Completed work is recorded in `10-completed.md`; future work belongs under `docs/roadmap/`.
 
 ## 0.8 Data Access + Authorization
 

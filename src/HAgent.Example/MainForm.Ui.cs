@@ -142,6 +142,7 @@ namespace HAgent.Example
         {
             try
             {
+                var runtimeOptions = await LoadStorageOptionsAsync().ConfigureAwait(true);
                 var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
                 var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
                 var toolStore = await CreateConfiguredToolStoreAsync().ConfigureAwait(true);
@@ -152,6 +153,15 @@ namespace HAgent.Example
                     this,
                     new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() },
                     toolStore);
+
+                var updatedOptions = await LoadStorageOptionsAsync().ConfigureAwait(true);
+                if (HasRuntimeStorageChanges(runtimeOptions, updatedOptions))
+                {
+                    _globalStatus.Text = "Storage settings changed. Restart HAgent to apply the new storage configuration.";
+                    _globalStatus.ForeColor = Accent;
+                    Write("STORAGE RESTART REQUIRED", "Storage settings were changed. The current runtime remains on the previous storage backend until the application is restarted.");
+                    return;
+                }
 
                 await RefreshExampleAgentsAsync().ConfigureAwait(true);
             }
@@ -167,6 +177,26 @@ namespace HAgent.Example
 
                 OpenStorageSettingsDirectly();
             }
+        }
+
+        private static bool HasRuntimeStorageChanges(HAgentStorageOptions before, HAgentStorageOptions after)
+        {
+            if (before == null || after == null) return before != after;
+
+            return before.StorageType != after.StorageType
+                || !string.Equals(before.ApplicationName, after.ApplicationName, StringComparison.Ordinal)
+                || !string.Equals(before.RootPath, after.RootPath, StringComparison.Ordinal)
+                || !ProfilesEqual(before.GetDatabaseProfile(HAgentStorageType.SqlServer), after.GetDatabaseProfile(HAgentStorageType.SqlServer))
+                || !ProfilesEqual(before.GetDatabaseProfile(HAgentStorageType.MySql), after.GetDatabaseProfile(HAgentStorageType.MySql));
+        }
+
+        private static bool ProfilesEqual(HAgentDatabaseStorageOptions left, HAgentDatabaseStorageOptions right)
+        {
+            if (left == null || right == null) return left == right;
+            return string.Equals(left.ServerName, right.ServerName, StringComparison.Ordinal)
+                && left.Port == right.Port
+                && string.Equals(left.UserName, right.UserName, StringComparison.Ordinal)
+                && string.Equals(left.PasswordSecretId, right.PasswordSecretId, StringComparison.Ordinal);
         }
 
         private void OpenStorageSettingsDirectly()

@@ -61,7 +61,7 @@ namespace HAgent.WinForms
             using (var form = new AISettingsForm(store, secrets, adapters, tools))
             {
                 AttachPermissionsNavigation(form);
-                AttachStorageNavigation(form);
+                AttachStorageNavigation(form, secrets);
                 AttachRepositoryLink(form);
                 form.ShowDialog(owner);
             }
@@ -97,7 +97,7 @@ namespace HAgent.WinForms
             };
         }
 
-        private static void AttachStorageNavigation(Form form)
+        private static void AttachStorageNavigation(Form form, ISecretStore secrets)
         {
             form.Shown += delegate
             {
@@ -108,7 +108,7 @@ namespace HAgent.WinForms
                 var button = CreateNavigationButton("Storage");
                 button.Click += delegate
                 {
-                    using (var storageForm = new HAgentStorageSettingsForm(AppContext.BaseDirectory, Process.GetCurrentProcess().ProcessName))
+                    using (var storageForm = new HAgentStorageSettingsForm(AppContext.BaseDirectory, Process.GetCurrentProcess().ProcessName, secrets))
                     {
                         storageForm.ShowDialog(form);
                     }

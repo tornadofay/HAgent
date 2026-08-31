@@ -296,18 +296,18 @@ Turn the verified structured-query contracts into safe application and database 
 - [x] Authoritative schema/field allow-list independent of model requests.
 - [x] Data permissions separated into discovery, projection/query, export, and write operations.
 - [x] Host authorization callback contract.
-- [ ] Query limits, cancellation, timeout, and resource budgets.
+- [x] Query limits, cancellation, timeout, and resource budgets.
 - [ ] Restricted SQL Server adapter using generated parameterized commands only.
 - [ ] Restricted MySQL adapter using generated parameterized commands only.
 - [ ] Read-only database tools and result/audit metadata before database writes.
 
-### Current slice: host authorization callback
+### Current slice: bounded structured-query execution
 
-`HAgent.Core` now provides `IDataAccessAuthorizer`, a runtime-owned host callback for request-specific data authorization. `DataAuthorizationRequest` carries the operation class, source identity, runtime identity/context, and relevant structured query while keeping authorization information separate from `DataQueryRequest` intent.
+`HAgent.Core` now provides `DataQueryExecutionPolicy` for host-owned query-shape, result-size, and execution-time limits. An application-owned `IDataQuerySource` validates the request against the execution policy and authoritative schema, then creates a linked cancellation token with the configured timeout for authorization and physical execution.
 
-The application-owned Example query source enforces its `ProjectionQuery` permission first and then requires a positive host authorization decision before executing the query. The Example verifies both an authorized and a denied runtime request and confirms that the callback receives the concrete operation, source, runtime identity, and query context.
+The Example verifies that oversized pages are rejected, caller cancellation propagates through authorization, execution timeouts cancel the operation, and successful bounded queries still return the expected page.
 
-The implementation is committed, but local build/Example verification has not been run. The authorization slice remains pending until that verification passes locally.
+The implementation is committed, but local build/Example verification has not been run. The execution-bounds slice remains pending until that verification passes locally.
 
 ### Live Example
 

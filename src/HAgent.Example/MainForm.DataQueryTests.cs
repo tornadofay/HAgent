@@ -13,6 +13,10 @@ namespace HAgent.Example
         private async Task TestDataQueryContractAsync(string unused)
         {
             var schema = new DataQuerySchema(new[] { "Id", "Name", "Amount" });
+            var permissions = new DataAccessPermissions
+            {
+                ProjectionQuery = true
+            };
             var source = new InMemoryDataQuerySource(new[]
             {
                 Row(1, "Alice", 120),
@@ -20,7 +24,7 @@ namespace HAgent.Example
                 Row(3, "Carol", 90),
                 Row(4, "David", 150),
                 Row(5, "Eve", 60)
-            }, schema);
+            }, schema, permissions);
 
             var request = new DataQueryRequest
             {
@@ -61,6 +65,23 @@ namespace HAgent.Example
             {
             }
 
+            var deniedSource = new InMemoryDataQuerySource(
+                new[] { Row(1, "Alice", 120) },
+                schema,
+                new DataAccessPermissions());
+            try
+            {
+                await deniedSource.QueryAsync(new DataQueryRequest
+                {
+                    Fields = new[] { "Id", "Name" },
+                    Take = 1
+                }, CancellationToken.None);
+                throw new InvalidOperationException("Application-owned data source executed a query without projection/query permission.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+
             var duplicateFields = new DataQueryRequest
             {
                 Fields = new[] { "Id", "id" },
@@ -85,6 +106,7 @@ namespace HAgent.Example
                 "Has more: " + result.HasMore + Environment.NewLine +
                 "First rows: " + Convert.ToString(result.Rows[0]["Name"]) + ", " + Convert.ToString(result.Rows[1]["Name"]) + Environment.NewLine +
                 "Authoritative schema rejected the non-approved Secret field." + Environment.NewLine +
+                "Projection/query permission accepted the authorized source and rejected the denied source." + Environment.NewLine +
                 "No SQL or executable expression accepted by the query contract.");
         }
 
@@ -103,19 +125,23 @@ namespace HAgent.Example
         {
             private readonly IReadOnlyList<IReadOnlyDictionary<string, object>> _rows;
             private readonly DataQuerySchema _schema;
+            private readonly DataAccessPermissions _permissions;
 
             public InMemoryDataQuerySource(
                 IEnumerable<IReadOnlyDictionary<string, object>> rows,
-                DataQuerySchema schema)
+                DataQuerySchema schema,
+                DataAccessPermissions permissions)
             {
                 if (rows == null) throw new ArgumentNullException(nameof(rows));
                 _schema = schema ?? throw new ArgumentNullException(nameof(schema));
+                _permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
                 _rows = rows.ToList().AsReadOnly();
             }
 
             public Task<DataQueryResult> QueryAsync(DataQueryRequest request, CancellationToken cancellationToken = default(CancellationToken))
             {
                 if (request == null) throw new ArgumentNullException(nameof(request));
+                _permissions.DemandProjectionQuery();
                 _schema.ValidateRequest(request);
                 cancellationToken.ThrowIfCancellationRequested();
 

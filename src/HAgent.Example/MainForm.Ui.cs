@@ -6,6 +6,9 @@ using HAgent.Models;
 using HAgent.WinForms;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
+using HAgent.Storage.File;
+using System.IO;
+using System.Linq;
 
 namespace HAgent.Example
 {
@@ -90,6 +93,31 @@ namespace HAgent.Example
             }
         }
 
+        private async Task RefreshExampleAgentsAsync()
+        {
+            var configurationPath = Path.Combine(_basePath, "configuration", "settings.json");
+            var store = new FileAiStore(configurationPath);
+            var agents = await store.GetAgentsAsync();
+
+            _agents.Clear();
+            _agents.AddRange(agents);
+
+            _agentSelector.BeginUpdate();
+            try
+            {
+                _agentSelector.Items.Clear();
+                foreach (var agent in _agents)
+                    _agentSelector.Items.Add(new AgentItem(agent));
+
+                if (_agentSelector.Items.Count > 0)
+                    _agentSelector.SelectedIndex = 0;
+            }
+            finally
+            {
+                _agentSelector.EndUpdate();
+            }
+        }
+
         private void OpenConfiguration()
         {
             var store = new HAgent.Storage.File.FileAiStore(System.IO.Path.Combine(_basePath, "configuration", "settings.json"));
@@ -99,7 +127,7 @@ namespace HAgent.Example
                 secrets,
                 this,
                 new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() });
-            _ = RefreshAgentsAsync();
+            _ = RefreshExampleAgentsAsync();
         }
 
         private sealed class AgentItem

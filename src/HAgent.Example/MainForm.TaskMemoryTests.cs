@@ -16,6 +16,7 @@ namespace HAgent.Example
             var input = RequireInput(message);
             var taskId = "task-" + Guid.NewGuid().ToString("N");
             var ownerId = "HAgent.Example";
+            var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
             var memory = await CreateConfiguredMemoryStoreAsync().ConfigureAwait(true);
             var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
@@ -63,7 +64,7 @@ namespace HAgent.Example
 
                 Write("TASK / EVENT MEMORY",
                     "Test succeeded." + Environment.NewLine +
-                    "Storage backend: " + GetConfiguredStorageTypeLabel() + Environment.NewLine +
+                    "Storage backend: " + options.StorageType + Environment.NewLine +
                     "Task ID: " + taskId + Environment.NewLine +
                     "Records: " + results.Count + Environment.NewLine +
                     string.Join(Environment.NewLine, results.Select(x =>
@@ -74,30 +75,6 @@ namespace HAgent.Example
                 var disposable = memory as IDisposable;
                 if (disposable != null) disposable.Dispose();
             }
-        }
-
-        private async Task<string> GetConfiguredStorageTypeLabelAsync()
-        {
-            var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
-            return options.StorageType.ToString();
-        }
-
-        private string GetConfiguredStorageTypeLabel()
-        {
-            var configurationPath = StorageConfigurationPath;
-            try
-            {
-                var json = System.IO.File.ReadAllText(configurationPath);
-                if (json.IndexOf("SqlServer", StringComparison.OrdinalIgnoreCase) >= 0)
-                    return "SqlServer";
-                if (json.IndexOf("MySql", StringComparison.OrdinalIgnoreCase) >= 0)
-                    return "MySql";
-            }
-            catch
-            {
-            }
-
-            return "File";
         }
     }
 }

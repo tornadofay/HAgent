@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Storage.File;
 using HAgent.WinForms.Controls;
@@ -12,7 +13,10 @@ namespace HAgent.WinForms.Forms
 {
     public sealed class HAgentStorageSettingsForm : HAgentForm
     {
+        private const string DatabasePasswordSecretId = "hagent.storage.database.password";
+
         private readonly FileHAgentStorageConfigurationStore _store;
+        private readonly ISecretStore _secrets;
         private readonly ComboBox _storageType = new ComboBox();
         private readonly TextBox _applicationName = new TextBox();
         private readonly TextBox _rootPath = new TextBox();
@@ -26,18 +30,21 @@ namespace HAgent.WinForms.Forms
         private static readonly Color Surface = Color.FromArgb(248, 248, 252);
         private static readonly Color Text = Color.FromArgb(68, 62, 88);
         private static readonly Color Muted = Color.FromArgb(100, 92, 120);
-        private static readonly Color Heading = Color.FromArgb(31, 24, 69);
         private static readonly Color Accent = Color.FromArgb(116, 76, 210);
 
-        public HAgentStorageSettingsForm(string basePath, string applicationName)
+        public HAgentStorageSettingsForm(string basePath, string applicationName, ISecretStore secrets)
             : base("HAgent Storage", "HAgent-owned providers, agents, memory, tools, skills, wiki, and runtime storage", new Size(900, 640), new Size(760, 520))
         {
+            if (secrets == null) throw new ArgumentNullException(nameof(secrets));
+
             var root = string.IsNullOrWhiteSpace(basePath) ? AppContext.BaseDirectory : basePath;
             var configurationPath = Path.Combine(root, "HAgentData", "configuration", "storage.json");
             _store = new FileHAgentStorageConfigurationStore(configurationPath);
+            _secrets = secrets;
 
             BuildShell();
             _applicationName.Text = applicationName ?? string.Empty;
+            _rootPath.Text = AppContext.BaseDirectory;
             _storageType.SelectedItem = HAgentStorageType.File;
             UpdateVisibility();
             Shown += async delegate { await LoadAsync(); };
@@ -104,7 +111,13 @@ namespace HAgent.WinForms.Forms
             actions.Controls.Add(save);
 
             var clear = CreateButton("Clear password", 145);
-            clear.Click += delegate { _password.Clear(); };
+            clear.Click += async delegate
+            {
+                _password.Clear();
+                try { await _secrets.DeleteAsync(DatabasePasswordSecretId); } catch { }
+                _status.Text = "Database password secret cleared.";
+                _status.ForeColor = Muted;
+            };
             actions.Controls.Add(clear);
 
             _status.AutoSize = true;
@@ -176,33 +189,47 @@ namespace HAgent.WinForms.Forms
 
             _storageType.SelectedItem = options.StorageType;
             _applicationName.Text = options.ApplicationName;
-            _rootPath.Text = options.RootPath ?? string.Empty;
+            _rootPath.Text = string.IsNullOrWhiteSpace(options.RootPath) ? AppContext.BaseDirectory : options.RootPath;
             _databaseName.Text = options.DatabaseName ?? string.Empty;
             _serverName.Text = options.ServerName ?? string.Empty;
             _userName.Text = options.UserName ?? string.Empty;
             _password.Clear();
             UpdateVisibility();
             UpdateResolvedDatabase();
+            if (!string.IsNullOrWhiteSpace(options.PasswordSecretId))
+            {
+                var existing = await _secrets.GetAsync(options.PasswordSecretId);
+                _status.Text = string.IsNullOrWhiteSpace(existing) ? "No database password secret is configured." : "Database password is stored separately in the secret store.";
+                _status.ForeColor = Muted;
+            }
         }
 
         private async System.Threading.Tasks.Task SaveAsync()
         {
-            HAgentStorageOptions options;
             try
             {
-                options = new HAgentStorageOptions
+                var options = new HAgentStorageOptions
                 {
                     StorageType = (HAgentStorageType)_storageType.SelectedItem,
                     ApplicationName = _applicationName.Text.Trim(),
                     RootPath = _rootPath.Text.Trim(),
                     DatabaseName = _databaseName.Text.Trim(),
                     ServerName = _serverName.Text.Trim(),
-                    UserName = _userName.Text.Trim()
+                    UserName = _userName.Text.Trim(),
+                    PasswordSecretId = _storageType.SelectedItem is HAgentStorageType selectedType && selectedType != HAgentStorageType.File
+                        ? DatabasePasswordSecretId
+                        : string.Empty
                 };
                 options.Validate();
                 await _store.SaveAsync(options);
+
+                if (options.StorageType != HAgentStorageType.File && !string.IsNullOrEmpty(_password.Text))
+                    await _secrets.SetAsync(DatabasePasswordSecretId, _password.Text);
+
                 _password.Clear();
-                _status.Text = "Settings saved. Database password remains runtime-only.";
+                _status.Text = options.StorageType == HAgentStorageType.File
+                    ? "Settings saved."
+                    : "Settings saved. Database password is stored separately in the secret store.";
                 _status.ForeColor = Accent;
             }
             catch (Exception ex)

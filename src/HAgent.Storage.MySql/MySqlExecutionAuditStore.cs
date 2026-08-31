@@ -17,6 +17,37 @@ namespace HAgent.Storage.MySql
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         }
 
+        public static async Task EnsureSchemaAsync(string connectionString, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            const string sql = @"
+CREATE TABLE IF NOT EXISTS HAgentExecutionAudits (
+    ExecutionId varchar(128) NOT NULL,
+    CorrelationId varchar(128) NOT NULL,
+    AgentId varchar(128) NOT NULL,
+    AgentName varchar(200) NOT NULL,
+    Model varchar(200) NOT NULL,
+    LastProviderId varchar(128) NOT NULL,
+    LastProviderName varchar(200) NOT NULL,
+    State varchar(50) NOT NULL,
+    FailureKind varchar(100) NOT NULL,
+    ProviderErrorKind varchar(100) NOT NULL,
+    CreatedAt datetime(6) NOT NULL,
+    StartedAt datetime(6) NULL,
+    CompletedAt datetime(6) NULL,
+    DurationMs double NULL,
+    PRIMARY KEY (ExecutionId),
+    INDEX IX_HAgentExecutionAudits_CorrelationId (CorrelationId),
+    INDEX IX_HAgentExecutionAudits_AgentCreated (AgentId, CreatedAt)
+);";
+
+            using (var connection = new MySqlConnection(connectionString))
+            using (var command = new MySqlCommand(sql, connection))
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         public async Task AppendAsync(AgentExecutionAuditRecord record, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (record == null) throw new ArgumentNullException(nameof(record));

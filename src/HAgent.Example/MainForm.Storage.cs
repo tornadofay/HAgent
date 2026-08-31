@@ -131,5 +131,35 @@ namespace HAgent.Example
                     throw new ArgumentOutOfRangeException(nameof(options.StorageType), "Unsupported HAgent storage type.");
             }
         }
+
+        private async Task<IMemoryStore> CreateConfiguredMemoryStoreAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var options = await LoadStorageOptionsAsync(cancellationToken).ConfigureAwait(false);
+            switch (options.StorageType)
+            {
+                case HAgentStorageType.File:
+                    return new FileMemoryStore(Path.Combine(options.GetEffectiveRootPath(), "memory", "memory.jsonl"));
+
+                case HAgentStorageType.SqlServer:
+                {
+                    var password = await LoadDatabasePasswordAsync(options, cancellationToken).ConfigureAwait(false);
+                    var bootstrapper = new SqlServerHAgentStorageBootstrapper();
+                    await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
+                    var connectionString = SqlServerHAgentStorageBootstrapper.BuildConnectionString(
+                        options.ServerName,
+                        options.UserName,
+                        password,
+                        options.GetEffectiveDatabaseName());
+                    await SqlServerMemoryStore.EnsureSchemaAsync(connectionString, cancellationToken).ConfigureAwait(false);
+                    return new SqlServerMemoryStore(connectionString);
+                }
+
+                case HAgentStorageType.MySql:
+                    throw new NotSupportedException("MySQL internal memory storage has not been enabled yet.");
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(options.StorageType), "Unsupported HAgent storage type.");
+            }
+        }
     }
 }

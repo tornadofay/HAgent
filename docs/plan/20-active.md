@@ -19,8 +19,6 @@
 - [ ] Built-in tool handlers.
 - [ ] Application tool registration guidance/API conventions.
 - [ ] Declarative execution engine.
-- [ ] SQL Server tool execution.
-- [ ] MySQL tool execution.
 - [ ] Tool timeout/cancellation/progress.
 - [ ] Tool audit/history.
 - [ ] Tool budgets and stronger loop detection.
@@ -36,63 +34,42 @@
 - [ ] Budgets and observability.
 - [ ] Sensitive-data redaction.
 
-## 0.7 WinForms UI Context
+## 0.8 Data Access + Authorization
+
+### Objective
+Build a safe data-access layer on top of the verified UI/data-discovery foundation. The model should be able to request structured data operations without receiving arbitrary SQL, reflection, application-object access, or database credentials as an implicit capability.
 
 ### Implemented foundation
-- [x] `IUiContext` and `WinFormsUiContext`.
-- [x] Stable control lookup by WinForms control name.
-- [x] UI-thread dispatch for context reads.
-- [x] UI lifecycle-safe same-thread inspection before a native handle exists.
-- [x] `UiControlSnapshot` inspection model.
-- [x] `ui.inspect`, `ui.read_control`, and `ui.read_data` read-only tools.
-- [x] Bound/native `DataGridView` source preference.
-- [x] Bounded data extraction with lazy adaptation.
-- [x] `DataTable` treated as optional rather than the default representation.
-- [x] Coarse `UiAutomationPermissions` policy.
-- [x] Built-in UI tools enforce the permission policy.
-- [x] Explicit permission-aware `HAgentHost.Attach(...)` overload.
-- [x] Semantic descriptor model for logical name, role, binding, data role, and permitted capabilities.
-- [x] Automatic semantic discovery for standard WinForms controls.
-- [x] Optional developer-supplied `IUiSemanticProvider` hook for custom controls/BaseForm/domain semantics.
-- [x] Read-only `ui.discover` tool, gated by automatic-discovery permission.
-- [x] Bound data-source discovery for `DataTable`, `DataView`, `BindingSource`, arrays, and compatible collections.
-- [x] Read-only `ui.discover_data_sources` tool.
-- [x] Example verification for bound data-source discovery and field metadata.
+- [x] Provider-neutral `DataProjectionRequest` with explicit field allow-list and bounded paging.
+- [x] Provider-neutral `IDataProjectionSource` abstraction.
+- [x] Provider-neutral `DataQueryRequest` with explicit fields, scalar filters, sorting, and bounded paging.
+- [x] Provider-neutral `IDataQuerySource` abstraction.
+- [x] Deterministic Example verification of structured query semantics.
 
-### Current design
-- [x] Automatic UI discovery is optional convenience behavior, never implicit authority.
-- [x] Developers may replace/enrich automatic semantics with application-specific authorization or semantic logic.
-- [x] “Form serialization” is treated as UI context/adapter behavior, not arbitrary object serialization.
-- [x] Explicit developer abstractions remain a supported path for domain concepts such as Customer, Invoice, and Contact.
-- [x] Automatic semantic discovery can identify useful standard controls and bound data sources without forcing wrappers.
-- [x] UI Context can attach to a Form or an arbitrary WinForms control tree such as a UserControl with an explicit stable root ID.
-- [x] Semantic and data-source discovery can traverse an attached control-tree root without requiring a Form.
-- [x] UserControl attachment, stable root identity, nested read access, semantic discovery, and bound data-source discovery verified in `HAgent.Example`.
-- [x] `BindingSource` data reads use the native bound list and remain bounded; no intermediate `DataTable` normalization is introduced.
-- [x] Data-source descriptors expose observable binding relationship metadata including source kind, underlying source type, list type, binding path, currency-manager type, position, and count.
-- [x] Native `IList` sources expose CurrencyManager position, count, item type, current-item type, and field metadata without copying the current item into the descriptor.
-- [x] UI data relationship discovery reports actual control/source relationships and controls sharing the same native source without inferring domain meaning.
-- [x] UI data-source discovery tools operate from `RootControl`, so UserControl attachments do not require a Form root.
-- [x] A convention-based `IUiControlAdapter` contract is available for application-owned WinForms controls.
-- [x] `ReflectionUiControlAdapter` recognizes an external `IHyperControl`-style shape through `DbFieldName`, `GetValue()`, and `SetValue(object)` without referencing the external assembly.
-- [x] Convention-based custom control metadata includes database-field identity, display/title metadata, and safe scalar binding metadata.
-- [x] `GetValue()` is integrated into `ReadControlAsync`; `SetValue(object)` is available at adapter level but remains outside the public UI write-tool surface until permission/approval work is complete.
-- [x] `HAgentApplicationContext` allows live application-owned objects to be attached by stable ID without serializing the object instance.
-- [x] `ReflectionApplicationObjectDiscovery` inspects bounded public property structure, scalar values, collection shape, and nested objects without executing arbitrary methods.
-- [x] `HAgentApplicationContext.Attach` documents and enforces `maxDepth` and `maxCollectionItems` bounds for predictable resource usage.
-- [x] Custom-control adapter and application-object context Examples verified locally.
-- [x] Provider-neutral structured data query contract supports explicit fields, scalar filters, explicit sorting, and bounded paging without SQL or executable expressions.
-- [ ] Local Example verification of the structured data query contract.
-- [ ] SQL Server/MySQL execution adapters for the structured query contract.
-- [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
-- [ ] Cross-form discovery/memory requires explicit scope and policy.
-- [x] The UI boundary remains outside `HAgent.Core`, allowing future HControl/BaseForm, GDI, DirectX, and Unity-style adapters.
+### Next implementation slices
+- [ ] Application-owned data adapter that maps approved application data sources to `IDataQuerySource`.
+- [ ] Query schema/field allow-list policy independent of the model's requested field names.
+- [ ] Separate data permissions for discovery, projection, query, export, and writes.
+- [ ] SQL Server restricted query adapter using parameterized generated commands only.
+- [ ] MySQL restricted query adapter using parameterized generated commands only.
+- [ ] SQL Server/MySQL Example integration tests with developer-entered connection settings (server, user, password, database) and an explicitly disposable/read-only test database.
+- [ ] Credential handling so test connection fields never become persistent agent/tool configuration or logs.
+- [ ] Query result limits, command timeout, cancellation, and resource budgets.
+- [ ] Read-only database tools before any database write tool.
+- [ ] Explicit host authorization callbacks for database operations.
 
-### Next
-- [ ] SQL Server/MySQL query execution adapters under separate restricted permissions.
-- [ ] Query authorization/schema allow-list layer.
-- [ ] UI write/invoke tools only after permission/approval foundation.
-- [ ] Floating assistant/flyout.
+### Non-goals
+- [ ] Raw SQL execution from model input.
+- [ ] Arbitrary SQL fragments in `DataQueryRequest`.
+- [ ] Implicit access to every table/column in a database.
+- [ ] Treating UI bindings or `TableInfo` metadata as authorization.
+- [ ] Persisting database passwords in normal configuration or tool definitions.
+
+### Design decisions to preserve
+- UI and application discovery remain convenience/introspection, never authorization.
+- Application-owned objects remain live runtime references and are bounded during inspection.
+- `DataTable` remains optional; native/bound/paged/streaming sources remain preferred.
+- SQL Server and MySQL implementations stay outside `HAgent.Core`.
 
 ## Example host
 - [x] Every current Example tab has editable input and expected-output guidance.
@@ -100,7 +77,8 @@
 - [ ] Every public-API snippet should become self-contained or link to a clearly identified shared setup snippet.
 - [ ] Keep snippets synchronized whenever a public API used by an example changes.
 - [x] Custom-control adapter and application-object context Examples are present and verified.
-- [ ] Structured data query Example verification is present and pending local verification.
+- [x] Structured data query Example verification is present and verified locally.
+- [ ] Add live SQL Server integration Example when the restricted adapter is implemented.
 - [ ] Maintain focused partial test files instead of returning to one monolithic `MainForm` implementation.
 
 ## Documentation workflow
@@ -108,7 +86,7 @@
 - [x] Generated root `plan.md` and `roadmap.md` workflow.
 - [x] Documentation source changes are part of implementation state.
 
-## 0.8 Chat + scopes
+## 0.9 Agent Scope + Chat
 - [ ] Agent profile separated from runtime binding.
 - [ ] Application/global, form, session, task, and ephemeral scopes.
 - [ ] User ↔ agent chat with global/form agent selector.
@@ -119,14 +97,14 @@
 - [ ] Safe handling of deleted/disabled agents.
 - [ ] Cross-form memory governed by scope and authorization policy.
 
-## 0.9 Collaboration
+## 0.10 Collaboration
 - [ ] Agents-as-tools.
 - [ ] Handoffs/delegation.
 - [ ] Agent-to-agent messaging board/channels.
 - [ ] Shared/private memory policies.
 - [ ] Parallel execution and collaboration budgets.
 
-## 0.10 Tasks + workflows
+## 0.11 Tasks + workflows
 - [ ] Task/job lifecycle.
 - [ ] Planning/execution/verification.
 - [ ] Durable checkpoints and restart recovery.

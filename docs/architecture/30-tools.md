@@ -29,6 +29,8 @@ The model may request a registered tool. HAgent validates structured arguments a
 
 Each tool execution carries execution-local correlation metadata. The execution context and result identify the agent, tool, and model tool-call, and carry a correlation ID plus start/completion timing. Validation failures and disabled/missing-tool failures receive the same metadata shape so callers can correlate accepted and rejected attempts without inspecting or logging tool arguments by default.
 
+Agent executions also receive their own immutable `CorrelationId` at execution creation. This ID is distinct from provider attempt identity and tool-call correlation IDs, providing a stable runtime-level anchor for later audit and telemetry without making persistence mandatory.
+
 Correlation metadata is execution state, not permission. It does not authorize a tool, expand its arguments, or grant access to host resources. Persistent audit storage is a separate capability and is not implied by these runtime fields.
 
 ## HAgent internal read tools

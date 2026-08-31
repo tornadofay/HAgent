@@ -276,6 +276,27 @@ host.Application.Attach(""invoiceTable"", tableInfo, maxDepth: 2, maxCollectionI
 var descriptor = host.Application.Describe(""invoiceTable"");
 foreach (var property in descriptor.Properties)
     Console.WriteLine(property.Name + "": "" + property.Kind);";
+                case "SQL Server Data Query": return @"// Runtime-only Example input:
+// Server Name
+// User Name
+// Password
+// Database
+
+var schema = new DataQuerySchema(new[] { ""Id"", ""Name"", ""Amount"" });
+var source = new SqlServerDataQuerySource(new SqlServerDataQuerySourceOptions
+{
+    ConnectionString = connectionString,
+    SourceId = ""sqlserver-example"",
+    RuntimeIdentity = ""example-agent"",
+    SchemaName = ""dbo"",
+    TableName = ""HAgentExampleCustomers"",
+    Schema = schema,
+    Permissions = new DataAccessPermissions { ProjectionQuery = true },
+    Authorizer = authorizer,
+    ExecutionPolicy = new DataQueryExecutionPolicy()
+});
+
+var result = await source.QueryAsync(request, CancellationToken.None);";
                 case "Data Query Contract": return @"var source = new MyDataQuerySource();
 
 var request = new DataQueryRequest

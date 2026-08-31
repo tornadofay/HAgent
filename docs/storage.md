@@ -20,6 +20,10 @@ The host application name is the storage identity shared by the configuration UI
 
 The configured backend is intended to become the backing store for HAgent's internal repositories: providers, agents, tools, memory, conversations, skills, wiki/content, runtime metadata, and future internal data introduced by HAgent.
 
+SQL Server and MySQL retain independent connection profiles. Switching the selected backend does not overwrite the other backend's server, port, username, or secret identity.
+
+The database name is derived by HAgent from the host application identity and is not an editable storage setting.
+
 ## File backend
 
 The File backend uses an application-specific root beneath the executable directory:
@@ -43,11 +47,13 @@ The layout is created on demand. Existing individual file stores can continue to
 
 ## Database backend lifecycle
 
-SQL Server and MySQL providers receive server credentials at runtime, connect to the server, derive or use the configured HAgent database name, create the database when it does not exist, then create or upgrade only HAgent-owned tables.
+SQL Server and MySQL providers receive server credentials at runtime, connect to the server, derive the HAgent database name, create the database when it does not exist, then create or upgrade only HAgent-owned tables.
 
 Database schema changes are versioned through an HAgent schema-info record. Future upgrades should use ordered migrations and must never silently recreate or modify unrelated application tables.
 
 Initial internal schema areas include providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, and schema metadata. Additional HAgent-owned tables may be added through later migrations.
+
+Conversation snapshots are persisted through `IConversationStore`. File storage keeps one JSON file per session; SQL Server and MySQL store the serialized message list in the HAgent-owned `HAgentConversations` table. Session identity and agent identity remain part of the persisted snapshot.
 
 ## Runtime state
 

@@ -21,6 +21,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Storage changes that affect the active runtime are identified as restart-required.
 - [x] Persistent-session Example test uses the selected HAgent AI storage backend instead of hardcoding File storage for agent lookup.
 - [x] Storage backend persistence uses explicit enum names and verifies the saved backend immediately.
+- [x] SQL Server internal memory store and Example routing for the selected backend.
 - [ ] Wire all internal repositories to the selected storage backend.
 - [ ] Versioned schema migrations beyond the initial bootstrap version.
 - [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
@@ -39,6 +40,14 @@ The storage configuration file persists the backend as an explicit enum name (`F
 SQL Server and MySQL resolution bootstraps the HAgent-owned database before creating the corresponding internal repositories. No host application database is used by this resolution path.
 
 Storage settings that change the backend, application identity/path, database target, server, username, or related connection identity are persisted as configuration for the next process lifetime. The Storage UI informs the user that an application restart is required after such a change so the running HAgent instance does not silently mix storage backends.
+
+### Internal memory backend slice
+
+`HAgent.Storage.SqlServer` now implements `IMemoryStore` for the HAgent-owned `HAgentMemoryEntries` table. Entries retain scope, kind, owner, task, content, metadata, and timestamps. Core filtering and bounded result counts are performed in SQL, while the existing provider-independent memory scoring behavior is preserved after retrieval.
+
+The Example automatic-memory and episodic-memory verification paths now obtain their memory store from the selected HAgent storage backend. Their File cleanup behavior was removed so a verification run cannot delete the real configured File memory store.
+
+MySQL internal memory persistence remains pending and is not silently treated as File-backed when MySQL is selected.
 
 ### Storage foundation
 

@@ -25,10 +25,10 @@ namespace HAgent.Storage.SqlServer
                 throw new ArgumentException("The storage options must use SQL Server.", nameof(options));
 
             var databaseName = options.GetEffectiveDatabaseName();
-            var serverConnection = BuildConnectionString(options.ServerName, options.UserName, password, null);
+            var serverConnection = BuildConnectionString(options.ServerName, options.GetEffectivePort(), options.UserName, password, null);
             await EnsureDatabaseAsync(serverConnection, databaseName, cancellationToken).ConfigureAwait(false);
 
-            var databaseConnection = BuildConnectionString(options.ServerName, options.UserName, password, databaseName);
+            var databaseConnection = BuildConnectionString(options.ServerName, options.GetEffectivePort(), options.UserName, password, databaseName);
             using (var connection = new SqlConnection(databaseConnection))
             using (var command = new SqlCommand(GetSchemaSql(), connection))
             {
@@ -40,10 +40,16 @@ namespace HAgent.Storage.SqlServer
 
         public static string BuildConnectionString(string serverName, string userName, string password, string databaseName)
         {
+            return BuildConnectionString(serverName, 1433, userName, password, databaseName);
+        }
+
+        public static string BuildConnectionString(string serverName, int port, string userName, string password, string databaseName)
+        {
             if (string.IsNullOrWhiteSpace(serverName)) throw new ArgumentException("Server name is required.", nameof(serverName));
+            if (port < 1 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
             var builder = new SqlConnectionStringBuilder
             {
-                DataSource = serverName,
+                DataSource = serverName.Trim() + "," + port,
                 InitialCatalog = databaseName ?? string.Empty,
                 TrustServerCertificate = true,
                 Encrypt = true,

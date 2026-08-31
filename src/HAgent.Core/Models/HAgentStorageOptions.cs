@@ -44,11 +44,6 @@ namespace HAgent.Models
             StorageType = HAgentStorageType.File;
             ApplicationName = string.Empty;
             RootPath = AppContext.BaseDirectory;
-            DatabaseName = string.Empty;
-            ServerName = string.Empty;
-            Port = 0;
-            UserName = string.Empty;
-            PasswordSecretId = string.Empty;
             SqlServer = new HAgentDatabaseStorageOptions();
             MySql = new HAgentDatabaseStorageOptions();
         }
@@ -57,33 +52,22 @@ namespace HAgent.Models
         public string ApplicationName { get; set; }
         public string RootPath { get; set; }
 
-        // Legacy shared database settings retained for migration from pre-profile configurations.
-        public string DatabaseName { get; set; }
-        public string ServerName { get; set; }
-        public int Port { get; set; }
-        public string UserName { get; set; }
-        public string PasswordSecretId { get; set; }
-
         public HAgentDatabaseStorageOptions SqlServer { get; set; }
         public HAgentDatabaseStorageOptions MySql { get; set; }
 
         public HAgentDatabaseStorageOptions GetDatabaseProfile(HAgentStorageType storageType)
         {
-            if (storageType == HAgentStorageType.SqlServer)
+            switch (storageType)
             {
-                if (SqlServer == null) SqlServer = new HAgentDatabaseStorageOptions();
-                MigrateLegacyDatabaseProfile(SqlServer, HAgentStorageType.SqlServer);
-                return SqlServer;
+                case HAgentStorageType.SqlServer:
+                    if (SqlServer == null) SqlServer = new HAgentDatabaseStorageOptions();
+                    return SqlServer;
+                case HAgentStorageType.MySql:
+                    if (MySql == null) MySql = new HAgentDatabaseStorageOptions();
+                    return MySql;
+                default:
+                    return null;
             }
-
-            if (storageType == HAgentStorageType.MySql)
-            {
-                if (MySql == null) MySql = new HAgentDatabaseStorageOptions();
-                MigrateLegacyDatabaseProfile(MySql, HAgentStorageType.MySql);
-                return MySql;
-            }
-
-            return null;
         }
 
         public string GetEffectiveDatabaseName()
@@ -117,10 +101,11 @@ namespace HAgent.Models
 
             var profile = GetDatabaseProfile(StorageType);
             if (profile == null || string.IsNullOrWhiteSpace(profile.ServerName))
-                throw new ArgumentException("Server name is required for database storage.", nameof(ServerName));
+                throw new ArgumentException("Server name is required for database storage.", nameof(profile.ServerName));
+
             var port = profile.GetEffectivePort(StorageType);
             if (port < 1 || port > 65535)
-                throw new ArgumentOutOfRangeException(nameof(Port), "Database port must be between 1 and 65535.");
+                throw new ArgumentOutOfRangeException(nameof(profile.Port), "Database port must be between 1 and 65535.");
         }
 
         public static string BuildDatabaseName(string applicationName)
@@ -128,18 +113,17 @@ namespace HAgent.Models
             return SanitizeDatabaseName(applicationName) + "-ai";
         }
 
-        private void MigrateLegacyDatabaseProfile(HAgentDatabaseStorageOptions profile, HAgentStorageType storageType)
+        internal void MigrateLegacyProfileIfNeeded(HAgentStorageType storageType, HAgentDatabaseStorageOptions profile, string legacyServerName, int legacyPort, string legacyUserName, string legacyPasswordSecretId)
         {
-            if (!string.IsNullOrWhiteSpace(profile.ServerName))
+            if (profile == null || !string.IsNullOrWhiteSpace(profile.ServerName))
+                return;
+            if (string.IsNullOrWhiteSpace(legacyServerName))
                 return;
 
-            if (StorageType != storageType && string.IsNullOrWhiteSpace(ServerName))
-                return;
-
-            profile.ServerName = ServerName ?? string.Empty;
-            profile.Port = Port;
-            profile.UserName = UserName ?? string.Empty;
-            profile.PasswordSecretId = PasswordSecretId ?? string.Empty;
+            profile.ServerName = legacyServerName;
+            profile.Port = legacyPort;
+            profile.UserName = legacyUserName ?? string.Empty;
+            profile.PasswordSecretId = legacyPasswordSecretId ?? string.Empty;
         }
 
         private static string SanitizeDatabaseName(string value)

@@ -322,6 +322,8 @@ The editable database-name field was removed. HAgent always derives its internal
 
 Legacy shared connection settings remain readable only as a compatibility migration path into the appropriate database profile.
 
+The settings UI persists a valid database profile when the user switches away from that backend, including a newly entered password. This makes switching between File, SQL Server, and MySQL durable rather than relying on transient form state. An incomplete database profile does not block switching; it remains unconfigured until valid connection details are supplied and saved.
+
 ### Current slice: internal memory backend parity
 
 `HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` implement `IMemoryStore` against the HAgent-owned `HAgentMemoryEntries` table. Entries retain scope, kind, owner, task, content, metadata, and timestamps. Core filtering and bounded result counts are performed by each relational provider, while the existing provider-independent memory scoring behavior is preserved after retrieval.

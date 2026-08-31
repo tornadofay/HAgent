@@ -92,7 +92,7 @@ namespace HAgent.Example
 
         private void OpenConfiguration()
         {
-            var store = new HAgent.Storage.File.FileAiStore(System.IO.Path.Combine(_basePath, "settings.json"));
+            var store = new HAgent.Storage.File.FileAiStore(System.IO.Path.Combine(_basePath, "configuration", "settings.json"));
             var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
             AISettings.ShowMainAISettingsForm(
                 store,

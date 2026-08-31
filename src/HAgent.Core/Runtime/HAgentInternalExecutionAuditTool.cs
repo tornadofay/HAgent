@@ -31,11 +31,17 @@ namespace HAgent.Runtime
             if (context == null) throw new ArgumentNullException(nameof(context));
             context.CancellationToken.ThrowIfCancellationRequested();
 
+            var requestedAgentId = ResolveOptionalString(context.Arguments, "agentId");
+            if (!string.IsNullOrWhiteSpace(context.AgentId) &&
+                !string.IsNullOrWhiteSpace(requestedAgentId) &&
+                !string.Equals(context.AgentId, requestedAgentId, StringComparison.OrdinalIgnoreCase))
+                return ToolExecutionResult.Success("Audit records are not available for another agent.");
+
             var query = new ExecutionAuditQuery
             {
                 ExecutionId = ResolveOptionalString(context.Arguments, "executionId"),
                 CorrelationId = ResolveOptionalString(context.Arguments, "correlationId"),
-                AgentId = ResolveOptionalString(context.Arguments, "agentId"),
+                AgentId = string.IsNullOrWhiteSpace(context.AgentId) ? requestedAgentId : context.AgentId,
                 MaxResults = ResolveMaxResults(context.Arguments)
             };
 

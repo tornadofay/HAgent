@@ -23,6 +23,7 @@ namespace HAgent.Models
             RootPath = AppContext.BaseDirectory;
             DatabaseName = string.Empty;
             ServerName = string.Empty;
+            Port = 0;
             UserName = string.Empty;
             PasswordSecretId = string.Empty;
         }
@@ -32,6 +33,7 @@ namespace HAgent.Models
         public string RootPath { get; set; }
         public string DatabaseName { get; set; }
         public string ServerName { get; set; }
+        public int Port { get; set; }
         public string UserName { get; set; }
         public string PasswordSecretId { get; set; }
 
@@ -40,6 +42,13 @@ namespace HAgent.Models
             if (!string.IsNullOrWhiteSpace(DatabaseName))
                 return SanitizeDatabaseName(DatabaseName);
             return BuildDatabaseName(ApplicationName);
+        }
+
+        public int GetEffectivePort()
+        {
+            if (Port > 0)
+                return Port;
+            return StorageType == HAgentStorageType.MySql ? 3306 : 1433;
         }
 
         public string GetEffectiveRootPath()
@@ -62,6 +71,8 @@ namespace HAgent.Models
 
             if (string.IsNullOrWhiteSpace(ServerName))
                 throw new ArgumentException("Server name is required for database storage.", nameof(ServerName));
+            if (GetEffectivePort() < 1 || GetEffectivePort() > 65535)
+                throw new ArgumentOutOfRangeException(nameof(Port), "Database port must be between 1 and 65535.");
             if (string.IsNullOrWhiteSpace(GetEffectiveDatabaseName()))
                 throw new ArgumentException("Database name is required for database storage.", nameof(DatabaseName));
         }

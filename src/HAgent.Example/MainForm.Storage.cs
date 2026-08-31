@@ -67,6 +67,7 @@ namespace HAgent.Example
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = SqlServerHAgentStorageBootstrapper.BuildConnectionString(
                         options.ServerName,
+                        options.GetEffectivePort(),
                         options.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
@@ -80,6 +81,7 @@ namespace HAgent.Example
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = MySqlHAgentStorageBootstrapper.BuildConnectionString(
                         options.ServerName,
+                        options.GetEffectivePort(),
                         options.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
@@ -106,6 +108,7 @@ namespace HAgent.Example
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = SqlServerHAgentStorageBootstrapper.BuildConnectionString(
                         options.ServerName,
+                        options.GetEffectivePort(),
                         options.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
@@ -120,6 +123,7 @@ namespace HAgent.Example
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = MySqlHAgentStorageBootstrapper.BuildConnectionString(
                         options.ServerName,
+                        options.GetEffectivePort(),
                         options.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
@@ -147,6 +151,7 @@ namespace HAgent.Example
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = SqlServerHAgentStorageBootstrapper.BuildConnectionString(
                         options.ServerName,
+                        options.GetEffectivePort(),
                         options.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
@@ -161,6 +166,7 @@ namespace HAgent.Example
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = MySqlHAgentStorageBootstrapper.BuildConnectionString(
                         options.ServerName,
+                        options.GetEffectivePort(),
                         options.UserName,
                         password,
                         options.GetEffectiveDatabaseName());

@@ -73,6 +73,7 @@ namespace HAgent.Example
 
             AddFeatureTabs();
             AddInternalInventoryTab();
+            AddInternalMemoryTab();
             Shown += async delegate
             {
                 try

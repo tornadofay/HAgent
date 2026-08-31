@@ -30,7 +30,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] SQL Server schema upgrades are ordered and advance only after a migration succeeds.
 - [x] MySQL schema upgrades are ordered and advance only after a migration succeeds.
 - [ ] Wire all remaining internal repositories to the selected storage backend.
-- [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
+- [x] HAgent internal storage connection testing APIs and WinForms UI.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles

@@ -44,12 +44,16 @@ namespace HAgent.Example
             }
         }
 
-        private async Task<string> LoadDatabasePasswordAsync(HAgentStorageOptions options, CancellationToken cancellationToken)
+        private async Task<string> LoadDatabasePasswordAsync(HAgentStorageOptions options, HAgentStorageType storageType, CancellationToken cancellationToken)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            if (string.IsNullOrWhiteSpace(options.PasswordSecretId)) return string.Empty;
+            if (storageType == HAgentStorageType.File) return string.Empty;
+
+            var profile = options.GetDatabaseProfile(storageType);
+            if (profile == null || string.IsNullOrWhiteSpace(profile.PasswordSecretId)) return string.Empty;
+
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            return await secrets.GetAsync(options.PasswordSecretId, cancellationToken).ConfigureAwait(false);
+            return await secrets.GetAsync(profile.PasswordSecretId, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task<IAiStore> CreateConfiguredAiStoreAsync(CancellationToken cancellationToken = default(CancellationToken))
@@ -62,13 +66,14 @@ namespace HAgent.Example
 
                 case HAgentStorageType.SqlServer:
                 {
-                    var password = await LoadDatabasePasswordAsync(options, cancellationToken).ConfigureAwait(false);
+                    var profile = options.GetDatabaseProfile(HAgentStorageType.SqlServer);
+                    var password = await LoadDatabasePasswordAsync(options, HAgentStorageType.SqlServer, cancellationToken).ConfigureAwait(false);
                     var bootstrapper = new SqlServerHAgentStorageBootstrapper();
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = SqlServerHAgentStorageBootstrapper.BuildConnectionString(
-                        options.ServerName,
-                        options.GetEffectivePort(),
-                        options.UserName,
+                        profile.ServerName,
+                        profile.GetEffectivePort(HAgentStorageType.SqlServer),
+                        profile.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
                     return new SqlServerAiStore(connectionString);
@@ -76,13 +81,14 @@ namespace HAgent.Example
 
                 case HAgentStorageType.MySql:
                 {
-                    var password = await LoadDatabasePasswordAsync(options, cancellationToken).ConfigureAwait(false);
+                    var profile = options.GetDatabaseProfile(HAgentStorageType.MySql);
+                    var password = await LoadDatabasePasswordAsync(options, HAgentStorageType.MySql, cancellationToken).ConfigureAwait(false);
                     var bootstrapper = new MySqlHAgentStorageBootstrapper();
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = MySqlHAgentStorageBootstrapper.BuildConnectionString(
-                        options.ServerName,
-                        options.GetEffectivePort(),
-                        options.UserName,
+                        profile.ServerName,
+                        profile.GetEffectivePort(HAgentStorageType.MySql),
+                        profile.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
                     return new MySqlAiStore(connectionString);
@@ -103,13 +109,14 @@ namespace HAgent.Example
 
                 case HAgentStorageType.SqlServer:
                 {
-                    var password = await LoadDatabasePasswordAsync(options, cancellationToken).ConfigureAwait(false);
+                    var profile = options.GetDatabaseProfile(HAgentStorageType.SqlServer);
+                    var password = await LoadDatabasePasswordAsync(options, HAgentStorageType.SqlServer, cancellationToken).ConfigureAwait(false);
                     var bootstrapper = new SqlServerHAgentStorageBootstrapper();
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = SqlServerHAgentStorageBootstrapper.BuildConnectionString(
-                        options.ServerName,
-                        options.GetEffectivePort(),
-                        options.UserName,
+                        profile.ServerName,
+                        profile.GetEffectivePort(HAgentStorageType.SqlServer),
+                        profile.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
                     await SqlServerToolStore.EnsureSchemaAsync(connectionString, cancellationToken).ConfigureAwait(false);
@@ -118,13 +125,14 @@ namespace HAgent.Example
 
                 case HAgentStorageType.MySql:
                 {
-                    var password = await LoadDatabasePasswordAsync(options, cancellationToken).ConfigureAwait(false);
+                    var profile = options.GetDatabaseProfile(HAgentStorageType.MySql);
+                    var password = await LoadDatabasePasswordAsync(options, HAgentStorageType.MySql, cancellationToken).ConfigureAwait(false);
                     var bootstrapper = new MySqlHAgentStorageBootstrapper();
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = MySqlHAgentStorageBootstrapper.BuildConnectionString(
-                        options.ServerName,
-                        options.GetEffectivePort(),
-                        options.UserName,
+                        profile.ServerName,
+                        profile.GetEffectivePort(HAgentStorageType.MySql),
+                        profile.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
                     await MySqlToolStore.EnsureSchemaAsync(connectionString, cancellationToken).ConfigureAwait(false);
@@ -146,13 +154,14 @@ namespace HAgent.Example
 
                 case HAgentStorageType.SqlServer:
                 {
-                    var password = await LoadDatabasePasswordAsync(options, cancellationToken).ConfigureAwait(false);
+                    var profile = options.GetDatabaseProfile(HAgentStorageType.SqlServer);
+                    var password = await LoadDatabasePasswordAsync(options, HAgentStorageType.SqlServer, cancellationToken).ConfigureAwait(false);
                     var bootstrapper = new SqlServerHAgentStorageBootstrapper();
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = SqlServerHAgentStorageBootstrapper.BuildConnectionString(
-                        options.ServerName,
-                        options.GetEffectivePort(),
-                        options.UserName,
+                        profile.ServerName,
+                        profile.GetEffectivePort(HAgentStorageType.SqlServer),
+                        profile.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
                     await SqlServerMemoryStore.EnsureSchemaAsync(connectionString, cancellationToken).ConfigureAwait(false);
@@ -161,13 +170,14 @@ namespace HAgent.Example
 
                 case HAgentStorageType.MySql:
                 {
-                    var password = await LoadDatabasePasswordAsync(options, cancellationToken).ConfigureAwait(false);
+                    var profile = options.GetDatabaseProfile(HAgentStorageType.MySql);
+                    var password = await LoadDatabasePasswordAsync(options, HAgentStorageType.MySql, cancellationToken).ConfigureAwait(false);
                     var bootstrapper = new MySqlHAgentStorageBootstrapper();
                     await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
                     var connectionString = MySqlHAgentStorageBootstrapper.BuildConnectionString(
-                        options.ServerName,
-                        options.GetEffectivePort(),
-                        options.UserName,
+                        profile.ServerName,
+                        profile.GetEffectivePort(HAgentStorageType.MySql),
+                        profile.UserName,
                         password,
                         options.GetEffectiveDatabaseName());
                     await MySqlMemoryStore.EnsureSchemaAsync(connectionString, cancellationToken).ConfigureAwait(false);

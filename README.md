@@ -110,12 +110,12 @@ Meaningful capabilities should have runnable Example verification using public A
 ## Documentation
 
 - `docs/architecture/` — stable architecture and boundaries.
-- `docs/plan/` — current implementation state and completed history.
-- `docs/roadmap/` — future phases and dependency order.
+- `docs/plan/` — master direction, current state, and active implementation.
+- `docs/roadmap/` — ordered implementation path, including completed foundations and future phases.
 - `docs/storage.md` — storage-specific details.
 - `AGENTS.md` — engineering invariants.
 
-Root `plan.md` and `roadmap.md` are generated from the modular source documents.
+Root `plan.md` and `roadmap.md` are generated views from the modular source documents.
 
 ## Supported targets
 

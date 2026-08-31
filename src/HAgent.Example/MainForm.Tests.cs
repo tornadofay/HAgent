@@ -23,6 +23,7 @@ namespace HAgent.Example
 
             var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
+            var auditStore = await CreateConfiguredExecutionAuditStoreAsync().ConfigureAwait(true);
             var providers = await store.GetProvidersAsync();
 
             var providerIds = new List<string>();
@@ -44,7 +45,7 @@ namespace HAgent.Example
                 throw new InvalidOperationException("No model is configured for agent '" + agent.Name + "' or provider '" + provider.Name + "'.");
 
             return new ClientSelection(
-                new HAgentClient(store, secrets, new[] { new OpenAICompatibleProviderAdapter() }),
+                new HAgentClient(store, secrets, new[] { new OpenAICompatibleProviderAdapter() }, null, null, null, null, null, auditStore),
                 agent,
                 provider,
                 model);

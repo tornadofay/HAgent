@@ -73,6 +73,8 @@ The Example startup path does not terminate when the configured HAgent storage b
 
 The Example's Configuration action also has a recovery path that opens the Storage settings directly when the active backend cannot be opened. It therefore never requires a successful database connection merely to repair database settings.
 
+The database bootstrappers consume the selected SQL Server/MySQL profile directly. They no longer read the legacy top-level connection fields during database creation or schema initialization, so a persisted per-backend profile cannot be saved successfully and then fail on restart merely because legacy fields are empty.
+
 ### Storage foundation
 
 `HAgent.Core` provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, database port, non-secret connection metadata, and independent database profiles. Database passwords remain outside this ordinary configuration model.

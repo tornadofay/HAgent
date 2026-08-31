@@ -36,12 +36,7 @@ namespace HAgent.Storage.MySql
             using (var connection = new MySqlConnection(databaseConnection))
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-                using (var command = new MySqlCommand(GetSchemaSql(), connection))
-                {
-                    await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-                }
-
+                await EnsureBaseSchemaAsync(connection, cancellationToken).ConfigureAwait(false);
                 await ApplyMigrationsAsync(connection, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -78,9 +73,38 @@ namespace HAgent.Storage.MySql
             }
         }
 
+        private static async Task EnsureBaseSchemaAsync(MySqlConnection connection, CancellationToken cancellationToken)
+        {
+            var statements = new[]
+            {
+                "CREATE TABLE IF NOT EXISTS HAgentSchemaInfo (SchemaName varchar(128) NOT NULL, SchemaVersion int NOT NULL, UpdatedAt datetime(0) NOT NULL, PRIMARY KEY (SchemaName));",
+                "CREATE TABLE IF NOT EXISTS HAgentProviders (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Kind varchar(100) NOT NULL, BaseUrl varchar(1000) NOT NULL, DefaultModel varchar(200) NULL, DefaultSystemPrompt longtext NULL, SecretId varchar(200) NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));",
+                "CREATE TABLE IF NOT EXISTS HAgentAgents (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, ProviderId varchar(128) NULL, Model varchar(200) NULL, SystemPrompt longtext NULL, UseProviderSystemPrompt boolean NOT NULL DEFAULT TRUE, Temperature double NULL, MaxOutputTokens int NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));",
+                "CREATE TABLE IF NOT EXISTS HAgentTools (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Category varchar(100) NULL, Description longtext NULL, InputSchemaJson longtext NULL, Type int NOT NULL DEFAULT 1, Enabled boolean NOT NULL DEFAULT TRUE, IsBuiltIn boolean NOT NULL DEFAULT FALSE, PRIMARY KEY (Id));",
+                "CREATE TABLE IF NOT EXISTS HAgentMemoryEntries (Id varchar(128) NOT NULL, Scope varchar(50) NOT NULL, Kind varchar(50) NOT NULL, OwnerId varchar(128) NOT NULL, TaskId varchar(128) NULL, Content longtext NOT NULL, MetadataJson longtext NULL, CreatedAt datetime(6) NOT NULL, OccurredAt datetime(6) NOT NULL, PRIMARY KEY (Id));",
+                "CREATE TABLE IF NOT EXISTS HAgentConversations (SessionId varchar(128) NOT NULL, AgentId varchar(128) NOT NULL, CreatedAt datetime(6) NOT NULL, UpdatedAt datetime(6) NOT NULL, MessagesJson longtext NOT NULL, PRIMARY KEY (SessionId));",
+                "CREATE TABLE IF NOT EXISTS HAgentSkills (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Description longtext NULL, DefinitionJson longtext NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));",
+                "CREATE TABLE IF NOT EXISTS HAgentWikiDocuments (Id varchar(128) NOT NULL, Title varchar(500) NOT NULL, Content longtext NOT NULL, Source varchar(1000) NULL, Version varchar(64) NULL, CreatedAt datetime(6) NOT NULL, UpdatedAt datetime(6) NOT NULL, PRIMARY KEY (Id));",
+                "CREATE TABLE IF NOT EXISTS HAgentWikiChunks (Id varchar(128) NOT NULL, DocumentId varchar(128) NOT NULL, ChunkIndex int NOT NULL, Content longtext NOT NULL, MetadataJson longtext NULL, PRIMARY KEY (Id), CONSTRAINT FK_HAgentWikiChunks_Document FOREIGN KEY (DocumentId) REFERENCES HAgentWikiDocuments(Id));"
+            };
+
+            foreach (var sql in statements)
+                await ExecuteNonQueryAsync(connection, sql, cancellationToken).ConfigureAwait(false);
+
+            const string schemaVersionSql = @"
+INSERT INTO HAgentSchemaInfo (SchemaName, SchemaVersion, UpdatedAt)
+SELECT 'core', 1, UTC_TIMESTAMP()
+WHERE NOT EXISTS (SELECT 1 FROM HAgentSchemaInfo WHERE SchemaName = 'core');";
+
+            await ExecuteNonQueryAsync(connection, schemaVersionSql, cancellationToken).ConfigureAwait(false);
+        }
+
         private static async Task ApplyMigrationsAsync(MySqlConnection connection, CancellationToken cancellationToken)
         {
             var version = await GetSchemaVersionAsync(connection, cancellationToken).ConfigureAwait(false);
+            if (version > CurrentSchemaVersion)
+                throw new InvalidOperationException("Unsupported HAgent MySQL schema version: " + version + ".");
+
             while (version < CurrentSchemaVersion)
             {
                 switch (version)
@@ -147,8 +171,11 @@ WHERE TABLE_SCHEMA = DATABASE()
             if (hasType > 0 || hasLegacyType == 0)
                 return;
 
-            const string migrateSql = @"
-ALTER TABLE HAgentTools ADD COLUMN Type int NOT NULL DEFAULT 1;
+            await ExecuteNonQueryAsync(connection,
+                "ALTER TABLE HAgentTools ADD COLUMN Type int NOT NULL DEFAULT 1;",
+                cancellationToken).ConfigureAwait(false);
+
+            await ExecuteNonQueryAsync(connection, @"
 UPDATE HAgentTools
 SET Type = CASE LOWER(COALESCE(ToolType, ''))
     WHEN 'built-in' THEN 0
@@ -160,57 +187,68 @@ SET Type = CASE LOWER(COALESCE(ToolType, ''))
     WHEN 'mysql' THEN 5
     WHEN 'extension' THEN 6
     ELSE 1
-END;
-ALTER TABLE HAgentTools DROP COLUMN ToolType;";
+END;", cancellationToken).ConfigureAwait(false);
 
-            using (var command = new MySqlCommand(migrateSql, connection))
-            {
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
+            await ExecuteNonQueryAsync(connection,
+                "ALTER TABLE HAgentTools DROP COLUMN ToolType;",
+                cancellationToken).ConfigureAwait(false);
         }
 
         private static async Task MigrateV2ToV3Async(MySqlConnection connection, CancellationToken cancellationToken)
         {
+            await CreateIndexIfMissingAsync(
+                connection,
+                "HAgentMemoryEntries",
+                "IX_HAgentMemoryEntries_OwnerScopeOccurred",
+                "CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON HAgentMemoryEntries(OwnerId, Scope, OccurredAt, CreatedAt);",
+                cancellationToken).ConfigureAwait(false);
+
+            await CreateIndexIfMissingAsync(
+                connection,
+                "HAgentMemoryEntries",
+                "IX_HAgentMemoryEntries_TaskOccurred",
+                "CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON HAgentMemoryEntries(TaskId, OccurredAt, CreatedAt);",
+                cancellationToken).ConfigureAwait(false);
+
+            await CreateIndexIfMissingAsync(
+                connection,
+                "HAgentConversations",
+                "IX_HAgentConversations_UpdatedAt",
+                "CREATE INDEX IX_HAgentConversations_UpdatedAt ON HAgentConversations(UpdatedAt);",
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        private static async Task CreateIndexIfMissingAsync(
+            MySqlConnection connection,
+            string tableName,
+            string indexName,
+            string createSql,
+            CancellationToken cancellationToken)
+        {
             const string sql = @"
-SET @idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'HAgentMemoryEntries' AND INDEX_NAME = 'IX_HAgentMemoryEntries_OwnerScopeOccurred');
-SET @sql = IF(@idx = 0, 'CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON HAgentMemoryEntries(OwnerId, Scope, OccurredAt, CreatedAt)', 'SELECT 1');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+SELECT COUNT(*)
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = @TableName
+  AND INDEX_NAME = @IndexName;";
 
-SET @idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'HAgentMemoryEntries' AND INDEX_NAME = 'IX_HAgentMemoryEntries_TaskOccurred');
-SET @sql = IF(@idx = 0, 'CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON HAgentMemoryEntries(TaskId, OccurredAt, CreatedAt)', 'SELECT 1');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+            using (var command = new MySqlCommand(sql, connection))
+            {
+                command.Parameters.AddWithValue("@TableName", tableName);
+                command.Parameters.AddWithValue("@IndexName", indexName);
+                var exists = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) > 0;
+                if (exists) return;
+            }
 
-SET @idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'HAgentConversations' AND INDEX_NAME = 'IX_HAgentConversations_UpdatedAt');
-SET @sql = IF(@idx = 0, 'CREATE INDEX IX_HAgentConversations_UpdatedAt ON HAgentConversations(UpdatedAt)', 'SELECT 1');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;";
+            await ExecuteNonQueryAsync(connection, createSql, cancellationToken).ConfigureAwait(false);
+        }
 
+        private static async Task ExecuteNonQueryAsync(MySqlConnection connection, string sql, CancellationToken cancellationToken)
+        {
             using (var command = new MySqlCommand(sql, connection))
             {
                 await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
-        }
-
-        private static string GetSchemaSql()
-        {
-            var sql = new StringBuilder();
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentSchemaInfo (SchemaName varchar(128) NOT NULL, SchemaVersion int NOT NULL, UpdatedAt datetime(0) NOT NULL, PRIMARY KEY (SchemaName));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentProviders (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Kind varchar(100) NOT NULL, BaseUrl varchar(1000) NOT NULL, DefaultModel varchar(200) NULL, DefaultSystemPrompt longtext NULL, SecretId varchar(200) NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentAgents (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, ProviderId varchar(128) NULL, Model varchar(200) NULL, SystemPrompt longtext NULL, UseProviderSystemPrompt boolean NOT NULL DEFAULT TRUE, Temperature double NULL, MaxOutputTokens int NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentTools (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Category varchar(100) NULL, Description longtext NULL, InputSchemaJson longtext NULL, Type int NOT NULL DEFAULT 1, Enabled boolean NOT NULL DEFAULT TRUE, IsBuiltIn boolean NOT NULL DEFAULT FALSE, PRIMARY KEY (Id));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentMemoryEntries (Id varchar(128) NOT NULL, Scope varchar(50) NOT NULL, Kind varchar(50) NOT NULL, OwnerId varchar(128) NOT NULL, TaskId varchar(128) NULL, Content longtext NOT NULL, MetadataJson longtext NULL, CreatedAt datetime(6) NOT NULL, OccurredAt datetime(6) NOT NULL, PRIMARY KEY (Id));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentConversations (SessionId varchar(128) NOT NULL, AgentId varchar(128) NOT NULL, CreatedAt datetime(6) NOT NULL, UpdatedAt datetime(6) NOT NULL, MessagesJson longtext NOT NULL, PRIMARY KEY (SessionId));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentSkills (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Description longtext NULL, DefinitionJson longtext NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentWikiDocuments (Id varchar(128) NOT NULL, Title varchar(500) NOT NULL, Content longtext NOT NULL, Source varchar(1000) NULL, Version varchar(64) NULL, CreatedAt datetime(6) NOT NULL, UpdatedAt datetime(6) NOT NULL, PRIMARY KEY (Id));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentWikiChunks (Id varchar(128) NOT NULL, DocumentId varchar(128) NOT NULL, ChunkIndex int NOT NULL, Content longtext NOT NULL, MetadataJson longtext NULL, PRIMARY KEY (Id), CONSTRAINT FK_HAgentWikiChunks_Document FOREIGN KEY (DocumentId) REFERENCES HAgentWikiDocuments(Id));");
-            sql.AppendLine("IF NOT EXISTS (SELECT 1 FROM HAgentSchemaInfo WHERE SchemaName=N'core')");
-            sql.AppendLine("INSERT INTO HAgentSchemaInfo (SchemaName, SchemaVersion, UpdatedAt) VALUES ('core', 1, UTC_TIMESTAMP());");
-            return sql.ToString();
         }
 
         private static string EscapeIdentifier(string value)

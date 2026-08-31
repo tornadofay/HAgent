@@ -9,8 +9,8 @@ Turn the verified data-discovery and structured-query contracts into safe real a
 2. [x] Authoritative schema/field allow-list independent of model requests.
 3. [x] Separate permissions for discovery, projection/query, export, and write operations.
 4. [x] Host authorization callback contract.
-5. [ ] Query/result limits, cancellation, timeout, and resource budgets.
-6. [ ] Restricted SQL Server read adapter using generated parameterized commands only.
+5. [x] Query/result limits, cancellation, timeout, and resource budgets.
+6. [x] Restricted SQL Server read adapter using generated parameterized commands only.
 7. [ ] Restricted MySQL read adapter using generated parameterized commands only.
 8. [ ] Database audit/correlation metadata.
 9. [ ] Read-only database tools before database writes.
@@ -18,7 +18,7 @@ Turn the verified data-discovery and structured-query contracts into safe real a
 
 ## Live Example
 
-The SQL integration Example will provide runtime-only connection fields:
+The SQL integration Example provides runtime-only connection fields:
 
 ```text
 Server Name
@@ -27,7 +27,9 @@ Password
 Database
 ```
 
-It will verify connection, authorization, schema/field allow-listing, structured queries, bounded results, cancellation/timeout, and rejection of unauthorized operations. Connection values must never become persistent agent/tool configuration or normal logs.
+It targets an explicitly disposable/read-only `dbo.HAgentExampleCustomers` table and verifies connection, authorization, schema/field allow-listing, structured queries, bounded results, cancellation/timeout, and rejection of unauthorized operations. Connection values must never become persistent agent/tool configuration or normal logs.
+
+The SQL Server adapter generates only restricted structured `SELECT` statements. Projected, filtered, and sorted identifiers come from validated schema/table identifiers; scalar filter and paging values are parameters. No raw SQL request surface or database writes are exposed.
 
 ## Boundaries
 

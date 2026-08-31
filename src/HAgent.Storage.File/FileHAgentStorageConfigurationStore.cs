@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Models;
@@ -13,7 +14,7 @@ namespace HAgent.Storage.File
     public sealed class FileHAgentStorageConfigurationStore
     {
         private readonly string _path;
-        private static readonly JsonSerializerOptions Options = new JsonSerializerOptions { WriteIndented = true };
+        private static readonly JsonSerializerOptions Options = CreateOptions();
 
         public FileHAgentStorageConfigurationStore(string path)
         {
@@ -53,7 +54,23 @@ namespace HAgent.Storage.File
             System.IO.File.WriteAllText(tempPath, JsonSerializer.Serialize(options, Options));
             if (System.IO.File.Exists(_path)) System.IO.File.Replace(tempPath, _path, _path + ".bak", true);
             else System.IO.File.Move(tempPath, _path);
+
+            var savedJson = System.IO.File.ReadAllText(_path);
+            var savedOptions = JsonSerializer.Deserialize<HAgentStorageOptions>(savedJson, Options);
+            if (savedOptions == null || savedOptions.StorageType != options.StorageType)
+                throw new InvalidDataException("HAgent storage configuration was not persisted with the selected storage backend.");
+
             return Task.CompletedTask;
+        }
+
+        private static JsonSerializerOptions CreateOptions()
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            options.Converters.Add(new JsonStringEnumConverter());
+            return options;
         }
     }
 }

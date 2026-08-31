@@ -20,6 +20,18 @@ namespace HAgent.WinForms.UI
         private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
         private readonly ReflectionApplicationObjectDiscovery _discovery = new ReflectionApplicationObjectDiscovery();
 
+        /// <summary>
+        /// Attaches a live application-owned object for bounded structural discovery.
+        /// <para>
+        /// The object instance is required because HAgent inspects the live object at runtime;
+        /// HAgent does not know the application's concrete type and does not reconstruct it from metadata.
+        /// </para>
+        /// <paramref name="maxDepth"/> limits recursive traversal. The attached root object is depth 0;
+        /// child objects and collection items are inspected only while the remaining depth is greater than 0.
+        /// A value of 0 inspects only the root object's direct properties and does not recursively inspect child objects.
+        /// <paramref name="maxCollectionItems"/> limits how many non-scalar items are inspected from each collection.
+        /// These bounds keep CPU, memory, and output size predictable for large or cyclic application object graphs.
+        /// </summary>
         public void Attach(string id, object instance, int maxDepth = 2, int maxCollectionItems = 20)
         {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Object ID is required.", nameof(id));

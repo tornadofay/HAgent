@@ -35,8 +35,6 @@ namespace HAgent.Example
                 ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88),
                 ButtonDownForeColor = Color.White,
                 ButtonDownBorderColor = Color.FromArgb(104, 79, 176),
-                ButtonDownForeColor = Color.White,
-                ButtonDownBorderColor = Color.FromArgb(104, 79, 176),
                 Margin = new Padding(0, 0, 10, 0)
             };
         }
@@ -135,3 +133,201 @@ namespace HAgent.Example
             {
                 options = await LoadStorageOptionsAsync().ConfigureAwait(true);
                 var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+                var agents = await store.GetAgentsAsync().ConfigureAwait(true);
+
+                _agents.Clear();
+                _agents.AddRange(agents);
+
+                _agentSelector.BeginUpdate();
+                try
+                {
+                    _agentSelector.Items.Clear();
+                    foreach (var agent in _agents)
+                        _agentSelector.Items.Add(new AgentItem(agent));
+
+                    if (_agentSelector.Items.Count > 0)
+                        _agentSelector.SelectedIndex = 0;
+                }
+                finally
+                {
+                    _agentSelector.EndUpdate();
+                }
+
+                _globalStatus.Text = "Ready — HAgent storage: " + options.StorageType;
+                _globalStatus.ForeColor = Muted;
+            }
+            catch (Exception ex)
+            {
+                _agents.Clear();
+                _agentSelector.BeginUpdate();
+                try
+                {
+                    _agentSelector.Items.Clear();
+                }
+                finally
+                {
+                    _agentSelector.EndUpdate();
+                }
+
+                _globalStatus.Text = "HAgent storage unavailable — open Configuration to repair it.";
+                _globalStatus.ForeColor = Error;
+
+                var details = options == null
+                    ? "The HAgent storage configuration could not be loaded or validated."
+                    : BuildStorageDiagnostic(options);
+
+                Write("STORAGE UNAVAILABLE", details + Environment.NewLine +
+                                          "Exception:" + Environment.NewLine +
+                                          ex);
+            }
+        }
+
+        private static string BuildStorageDiagnostic(HAgentStorageOptions options)
+        {
+            if (options == null)
+                return "No HAgent storage configuration is available.";
+
+            switch (options.StorageType)
+            {
+                case HAgentStorageType.File:
+                    return "Backend: File" + Environment.NewLine +
+                           "Root: " + options.GetEffectiveRootPath();
+
+                case HAgentStorageType.SqlServer:
+                case HAgentStorageType.MySql:
+                {
+                    var profile = options.GetDatabaseProfile(options.StorageType);
+                    return "Backend: " + options.StorageType + Environment.NewLine +
+                           "Server: " + (profile == null ? "<missing>" : (string.IsNullOrWhiteSpace(profile.ServerName) ? "<missing>" : profile.ServerName)) + Environment.NewLine +
+                           "Port: " + (profile == null ? "<missing>" : profile.GetEffectivePort(options.StorageType).ToString()) + Environment.NewLine +
+                           "User: " + (profile == null || string.IsNullOrWhiteSpace(profile.UserName) ? "<missing>" : profile.UserName) + Environment.NewLine +
+                           "Database: " + options.GetEffectiveDatabaseName() + Environment.NewLine +
+                           "Password secret: " + (profile == null || string.IsNullOrWhiteSpace(profile.PasswordSecretId) ? "<missing>" : profile.PasswordSecretId);
+                }
+
+                default:
+                    return "Backend: " + options.StorageType;
+            }
+        }
+
+        private async void OpenConfiguration()
+        {
+            try
+            {
+                var runtimeOptions = await LoadStorageOptionsAsync().ConfigureAwait(true);
+                var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+                var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
+                var toolStore = await CreateConfiguredToolStoreAsync().ConfigureAwait(true);
+
+                AISettings.ShowMainAISettingsForm(
+                    store,
+                    secrets,
+                    this,
+                    new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() },
+                    toolStore);
+
+                var updatedOptions = await LoadStorageOptionsAsync().ConfigureAwait(true);
+                if (HasRuntimeStorageChanges(runtimeOptions, updatedOptions))
+                {
+                    _globalStatus.Text = "Applying storage settings...";
+                    _globalStatus.ForeColor = Accent;
+                    Write("STORAGE CHANGED", "Storage settings were saved. Rebuilding HAgent runtime storage without restarting the application.");
+
+                    await RefreshExampleAgentsAsync().ConfigureAwait(true);
+                    return;
+                }
+
+                await RefreshExampleAgentsAsync().ConfigureAwait(true);
+            }
+            catch (Exception ex)
+            {
+                Write("STORAGE CONFIGURATION", "The configured HAgent storage backend could not be opened." + Environment.NewLine +
+                                                   ex.Message + Environment.NewLine +
+                                                   "Opening the Storage settings directly so the backend can be repaired without requiring a database connection.");
+                ShowStorageException(ex);
+                OpenStorageSettingsDirectly();
+            }
+        }
+
+        private void ShowStorageException(Exception exception)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((Action)(() => ShowStorageException(exception)));
+                return;
+            }
+
+            HMessage.ShowException(this,
+                "The configured HAgent storage backend could not be opened. The Storage settings will be opened so you can repair the connection.",
+                "HAgent Storage",
+                exception);
+        }
+
+        private static bool HasRuntimeStorageChanges(HAgentStorageOptions before, HAgentStorageOptions after)
+        {
+            if (before == null || after == null) return before != after;
+            if (before.StorageType != after.StorageType) return true;
+            if (!string.Equals(before.ApplicationName, after.ApplicationName, StringComparison.Ordinal)) return true;
+
+            if (after.StorageType == HAgentStorageType.File)
+                return !string.Equals(before.RootPath, after.RootPath, StringComparison.Ordinal);
+
+            return !ProfilesEqual(before.GetDatabaseProfile(after.StorageType), after.GetDatabaseProfile(after.StorageType));
+        }
+
+        private static bool ProfilesEqual(HAgentDatabaseStorageOptions left, HAgentDatabaseStorageOptions right)
+        {
+            if (left == null || right == null) return left == right;
+            return string.Equals(left.ServerName, right.ServerName, StringComparison.Ordinal)
+                && left.Port == right.Port
+                && string.Equals(left.UserName, right.UserName, StringComparison.Ordinal)
+                && string.Equals(left.PasswordSecretId, right.PasswordSecretId, StringComparison.Ordinal);
+        }
+
+        private void OpenStorageSettingsDirectly()
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((Action)OpenStorageSettingsDirectly);
+                return;
+            }
+
+            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
+            using (var form = new HAgent.WinForms.Forms.HAgentStorageSettingsForm(AppContext.BaseDirectory, System.Diagnostics.Process.GetCurrentProcess().ProcessName, secrets))
+            {
+                form.ShowDialog(this);
+            }
+        }
+
+        private sealed class AgentItem
+        {
+            public AgentItem(AiAgent agent)
+            {
+                Agent = agent;
+            }
+
+            public AiAgent Agent { get; private set; }
+
+            public override string ToString()
+            {
+                return Agent.Enabled ? Agent.Name : Agent.Name + " (Disabled)";
+            }
+        }
+
+        private sealed class ClientSelection
+        {
+            public ClientSelection(HAgent.Runtime.HAgentClient client, AiAgent agent, AiProvider provider, string model)
+            {
+                Client = client;
+                Agent = agent;
+                Provider = provider;
+                Model = model;
+            }
+
+            public HAgent.Runtime.HAgentClient Client { get; private set; }
+            public AiAgent Agent { get; private set; }
+            public AiProvider Provider { get; private set; }
+            public string Model { get; private set; }
+        }
+    }
+}

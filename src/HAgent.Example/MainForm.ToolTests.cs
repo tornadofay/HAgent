@@ -29,9 +29,15 @@ namespace HAgent.Example
             };
 
             var invocationCount = 0;
+            var observedContextCorrelationId = string.Empty;
+            var observedContextToolId = string.Empty;
+            var observedContextToolCallId = string.Empty;
             var tool = new DelegateAgentTool(definition, context =>
             {
                 invocationCount++;
+                observedContextCorrelationId = context.CorrelationId;
+                observedContextToolId = context.ToolId;
+                observedContextToolCallId = context.ToolCallId;
                 object value;
                 context.Arguments.TryGetValue("value", out value);
                 return Task.FromResult(ToolExecutionResult.Success(Convert.ToString(value) ?? string.Empty));
@@ -57,6 +63,21 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Tool did not receive or return the expected argument.");
             if (invocationCount != 1)
                 throw new InvalidOperationException("Tool handler invocation count was unexpected after valid execution.");
+            if (string.IsNullOrWhiteSpace(result.CorrelationId))
+                throw new InvalidOperationException("Successful tool execution did not produce a correlation ID.");
+            if (!string.Equals(result.AgentId, "example-agent", StringComparison.Ordinal))
+                throw new InvalidOperationException("Tool execution result did not retain the agent identity.");
+            if (!string.Equals(result.ToolId, toolId, StringComparison.Ordinal))
+                throw new InvalidOperationException("Tool execution result did not retain the tool identity.");
+            if (!string.Equals(result.ToolCallId, "call-example-42", StringComparison.Ordinal))
+                throw new InvalidOperationException("Tool execution result did not retain the tool call identity.");
+            if (!string.Equals(observedContextCorrelationId, result.CorrelationId, StringComparison.Ordinal))
+                throw new InvalidOperationException("Tool execution context and result correlation IDs do not match.");
+            if (!string.Equals(observedContextToolId, toolId, StringComparison.Ordinal) ||
+                !string.Equals(observedContextToolCallId, "call-example-42", StringComparison.Ordinal))
+                throw new InvalidOperationException("Tool execution context did not receive the expected tool metadata.");
+            if (!result.CompletedAt.HasValue || !result.Duration.HasValue || result.Duration.Value < TimeSpan.Zero)
+                throw new InvalidOperationException("Successful tool execution did not produce valid completion timing metadata.");
 
             var invalidType = await client.ExecuteToolAsync(
                 "example-agent",
@@ -65,6 +86,11 @@ namespace HAgent.Example
                 new Dictionary<string, object> { { "value", 42 } });
             if (invalidType.Succeeded || invocationCount != 1 || invalidType.Error.IndexOf("expected a string", StringComparison.OrdinalIgnoreCase) < 0)
                 throw new InvalidOperationException("Invalid argument type was not rejected before the handler executed.");
+            if (string.IsNullOrWhiteSpace(invalidType.CorrelationId) ||
+                string.Equals(invalidType.CorrelationId, result.CorrelationId, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Rejected tool execution did not receive a distinct correlation ID.");
+            if (!invalidType.CompletedAt.HasValue || !invalidType.Duration.HasValue || invalidType.Duration.Value < TimeSpan.Zero)
+                throw new InvalidOperationException("Rejected tool execution did not produce valid completion timing metadata.");
 
             var missingRequired = await client.ExecuteToolAsync(
                 "example-agent",
@@ -97,9 +123,12 @@ namespace HAgent.Example
                 "Tool: " + definition.Name + Environment.NewLine +
                 "Tool ID: " + toolId + Environment.NewLine +
                 "Tool call ID: call-example-42" + Environment.NewLine +
+                "Correlation ID: " + result.CorrelationId + Environment.NewLine +
                 "Argument value: " + valueText + Environment.NewLine +
                 "Result: " + result.Output + Environment.NewLine +
                 "Schema validation: valid, wrong type, missing required, and extra argument cases verified." + Environment.NewLine +
+                "Execution metadata: agent, tool, tool-call, correlation, started/completed timestamps, and duration verified." + Environment.NewLine +
+                "Rejected execution metadata: distinct correlation and completion timing verified." + Environment.NewLine +
                 "Handler invocations: " + invocationCount + Environment.NewLine +
                 "Definition count: " + definitions.Count + Environment.NewLine +
                 "Cleanup: tool unregistered successfully.");

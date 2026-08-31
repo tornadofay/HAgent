@@ -21,8 +21,7 @@ namespace HAgent.Example
             if (!agent.Enabled)
                 throw new InvalidOperationException("The selected agent is disabled. Enable it in Configuration first.");
 
-            var configurationPath = Path.Combine(_basePath, "configuration", "settings.json");
-            var store = new FileAiStore(configurationPath);
+            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var providers = await store.GetProvidersAsync();
 
@@ -179,12 +178,11 @@ namespace HAgent.Example
 
         private async Task ReadConfigurationAsync(string unused)
         {
-            var configurationPath = Path.Combine(_basePath, "configuration", "settings.json");
-            var store = new FileAiStore(configurationPath);
+            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var providers = await store.GetProvidersAsync();
             var agents = await store.GetAgentsAsync();
 
-            Write("CONFIGURATION", "Settings: " + configurationPath + Environment.NewLine +
+            Write("CONFIGURATION", "Settings: " + StorageConfigurationPath + Environment.NewLine +
                                   "Providers: " + providers.Count + Environment.NewLine +
                                   string.Join(Environment.NewLine, providers.Select(p => "  - " + p.Name + " [" + p.Kind + "] model=" + p.DefaultModel)) + Environment.NewLine +
                                   "Agents: " + agents.Count + Environment.NewLine +

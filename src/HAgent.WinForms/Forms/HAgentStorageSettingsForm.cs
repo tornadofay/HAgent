@@ -13,7 +13,8 @@ namespace HAgent.WinForms.Forms
 {
     public sealed class HAgentStorageSettingsForm : HAgentForm
     {
-        private const string DatabasePasswordSecretId = "hagent.storage.database.password";
+        private const string DatabasePasswordSecretId = "hagent-storage-database-password";
+        private const string LegacyDatabasePasswordSecretId = "hagent.storage.database.password";
 
         private readonly FileHAgentStorageConfigurationStore _store;
         private readonly ISecretStore _secrets;
@@ -196,11 +197,19 @@ namespace HAgent.WinForms.Forms
             _password.Clear();
             UpdateVisibility();
             UpdateResolvedDatabase();
-            if (!string.IsNullOrWhiteSpace(options.PasswordSecretId))
+
+            if (string.Equals(options.PasswordSecretId, DatabasePasswordSecretId, StringComparison.Ordinal))
             {
-                var existing = await _secrets.GetAsync(options.PasswordSecretId);
-                _status.Text = string.IsNullOrWhiteSpace(existing) ? "No database password secret is configured." : "Database password is stored separately in the secret store.";
+                var existing = await _secrets.GetAsync(DatabasePasswordSecretId);
+                _status.Text = string.IsNullOrWhiteSpace(existing)
+                    ? "No database password secret is configured."
+                    : "Database password is stored separately in the secret store.";
                 _status.ForeColor = Muted;
+            }
+            else if (string.Equals(options.PasswordSecretId, LegacyDatabasePasswordSecretId, StringComparison.Ordinal))
+            {
+                _status.Text = "A previous storage setting used an invalid secret ID. Enter the password again and save to migrate it.";
+                _status.ForeColor = Color.FromArgb(185, 28, 28);
             }
         }
 
@@ -221,6 +230,14 @@ namespace HAgent.WinForms.Forms
                         : string.Empty
                 };
                 options.Validate();
+
+                if (options.StorageType != HAgentStorageType.File && string.IsNullOrEmpty(_password.Text))
+                {
+                    var existing = await _secrets.GetAsync(DatabasePasswordSecretId);
+                    if (string.IsNullOrEmpty(existing))
+                        throw new ArgumentException("Enter the database password before saving database storage settings.", nameof(_password));
+                }
+
                 await _store.SaveAsync(options);
 
                 if (options.StorageType != HAgentStorageType.File && !string.IsNullOrEmpty(_password.Text))

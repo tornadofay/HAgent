@@ -3,6 +3,8 @@
 > This file is generated from smaller source documents. Do not edit it directly.
 > Source directory: `docs/plan`.
 
+## Project
+
 HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for simple chat or embedded into a host application, simulation, game, or other environment.
 
 ## Supported targets
@@ -18,37 +20,45 @@ HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
-## Verified platform foundations
+## Verified implementation
 
-- Provider/agent configuration and routing.
-- Execution lifecycle, timeout, cancellation, retries, and diagnostics.
-- Memory, persistent sessions, context budgeting, automatic/episodic/task memory.
-- Capability discovery and response normalization.
-- Streaming contracts and live streaming.
-- Tool definitions, registry, schema validation, provider tool transport, bounded tool loops, persistence, and per-agent assignment.
-- WinForms UI Context with Form/UserControl attachment.
-- Semantic control and bound/native data-source discovery.
-- CurrencyManager/current-item/source relationships.
-- Convention-based custom control adapters.
-- Bounded live application-object discovery.
-- Provider-neutral structured data projection/query contracts.
+The repository currently contains verified foundations for:
 
-## Development rule
+- provider/agent configuration and routing;
+- execution lifecycle, timeout, cancellation, retries, diagnostics, and failure reporting;
+- memory, persistent sessions, context budgeting, automatic/episodic/task memory;
+- capability discovery and response normalization;
+- streaming contracts and live streaming;
+- tool definitions, registry, schema validation, provider transport, bounded tool loops, persistence, and per-agent assignment;
+- WinForms UI Context with Form/UserControl attachment;
+- semantic control and bound/native data-source discovery;
+- CurrencyManager/current-item/source relationships;
+- control-to-source relationship discovery;
+- convention-based custom control adaptation;
+- bounded application-object discovery;
+- provider-neutral structured data projection/query contracts;
+- `HAgent.Example` verification for the completed 0.7 UI/data capabilities.
 
-A capability is complete only when implementation exists, the relevant `HAgent.Example` verification passes locally, and project documentation reflects the result.
+## Active implementation
 
-Implement one focused slice at a time. Do not claim local build/test success unless it was actually performed.
+The active implementation plan is the current file `docs/plan/20-active.md`. It must contain only the work being implemented now.
+
+## Verification rule
+
+A capability becomes complete only after its implementation exists, its matching `HAgent.Example` verification passes locally, and the project documentation reflects the result.
+
+Do not claim local build/test success unless it was actually performed.
 
 ## Documentation ownership
 
 - `README.md` — public introduction and quick start.
-- `AGENTS.md` — engineering invariants and non-negotiable rules.
-- `docs/architecture/` — stable architectural design.
-- `docs/plan/` — current implementation state and completed ledger.
-- `docs/roadmap/` — future phases and ordering.
-- `docs/storage.md` — persistence/storage-specific design.
+- `AGENTS.md` — non-negotiable engineering and repository rules.
+- `docs/architecture/` — stable architectural design and boundaries.
+- `docs/plan/` — master direction, current state, and active implementation only.
+- `docs/roadmap/` — ordered path from completed foundations to the long-term target.
+- `docs/storage.md` — persistence/backend details.
 
-Root `plan.md` and `roadmap.md` are generated from the corresponding source directories.
+The root `plan.md` and `roadmap.md` are generated from their source directories. They are views, not independent sources of truth.
 
 ## Purpose
 
@@ -246,79 +256,6 @@ host
 ```
 
 without replacing HAgent or introducing application-specific types into `HAgent.Core`.
-
-Only completed work belongs here. Future work is not listed as planned items.
-
-## 0.1 Foundation
-
-- Provider/agent configuration models.
-- OpenAI-compatible provider foundation.
-- File, SQL Server, and MySQL persistence foundations.
-- Protected local secrets.
-- Provider/agent/tool management UI.
-- HAgent.Example integration host.
-
-## 0.2 Runtime
-
-- Stable execution IDs and lifecycle state.
-- Provider routing and fallback candidates.
-- Retries, timeout, and cancellation.
-- Provider error classification and actionable failures.
-- Execution snapshots.
-- System-prompt resolution.
-
-## 0.3 Memory + Context
-
-- Persistent JSONL memory.
-- Explicit remember/recall/forget.
-- Agent/task/event/fact/preference memory records.
-- Persistent conversations and sessions.
-- Context budgets and tokenizer-free estimation.
-- Conservative automatic memory.
-- Lightweight relevance ranking.
-- Episodic memory with provenance.
-
-## 0.4 Capabilities + Response Normalization
-
-- Tri-state provider/model capabilities with evidence.
-- Capability caching.
-- Normalized text, reasoning, structured output, tool calls, usage, and provider metadata.
-- Reasoning separation and diagnostic `<think>` handling.
-- Provider error advice.
-- Streaming contract, OpenAI-compatible SSE, cancellation, and live streaming verification.
-
-## 0.5 Tool Foundation
-
-- BuiltIn, Application, Declarative, UI, SqlServer, and MySql tool types.
-- Definition/handler separation.
-- Tool registry and application handlers.
-- JSON Schema validation.
-- Provider tool-definition transport.
-- Bounded multi-turn tool loop.
-- Tool-definition persistence.
-- Agent `ToolIds` assignment.
-- Live Groq tool-loop verification.
-
-## 0.7 UI Context + Data Discovery
-
-- Form and arbitrary WinForms control-tree/UserControl attachment.
-- Stable logical root identity.
-- UI-thread-safe read-only inspection and control reads.
-- Native/bound `DataGridView` data extraction without mandatory `DataTable` normalization.
-- Standard semantic control discovery.
-- Data-source discovery for DataTable, DataView, BindingSource, IList, arrays, and compatible collections.
-- CurrencyManager/current-item/position/count metadata.
-- Control-to-source relationship discovery.
-- Convention-based custom control adapters.
-- External `IHyperControl`-style adaptation without assembly dependency.
-- Live application-object attachment and bounded structural discovery.
-- `maxDepth` and `maxCollectionItems` resource bounds.
-- Provider-neutral structured data projection/query contracts.
-- Verified HAgent.Example coverage for the complete 0.7 slice.
-
-## Verification rule
-
-A completed milestone is based on actual local verification, not merely code existence.
 
 Only the current implementation milestone belongs here. Completed work is recorded in `10-completed.md`; future work belongs under `docs/roadmap/`.
 

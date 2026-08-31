@@ -12,7 +12,7 @@ namespace HAgent.Storage.MySql
     /// </summary>
     public sealed class MySqlHAgentStorageBootstrapper
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
 
         public async Task EnsureCreatedAsync(
             HAgentStorageOptions options,
@@ -30,10 +30,15 @@ namespace HAgent.Storage.MySql
 
             var databaseConnection = BuildConnectionString(options.ServerName, options.GetEffectivePort(), options.UserName, password, databaseName);
             using (var connection = new MySqlConnection(databaseConnection))
-            using (var command = new MySqlCommand(GetSchemaSql(), connection))
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+                using (var command = new MySqlCommand(GetSchemaSql(), connection))
+                {
+                    await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                await MigrateToolTypeColumnAsync(connection, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -69,13 +74,58 @@ namespace HAgent.Storage.MySql
             }
         }
 
+        private static async Task MigrateToolTypeColumnAsync(MySqlConnection connection, CancellationToken cancellationToken)
+        {
+            const string columnSql = @"
+SELECT
+    SUM(CASE WHEN COLUMN_NAME = 'Type' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN COLUMN_NAME = 'ToolType' THEN 1 ELSE 0 END)
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'HAgentTools';";
+
+            int hasType;
+            int hasLegacyType;
+            using (var command = new MySqlCommand(columnSql, connection))
+            using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) return;
+                hasType = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+                hasLegacyType = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+            }
+
+            if (hasType > 0 || hasLegacyType == 0)
+                return;
+
+            const string migrateSql = @"
+ALTER TABLE HAgentTools ADD COLUMN Type int NOT NULL DEFAULT 1;
+UPDATE HAgentTools
+SET Type = CASE LOWER(COALESCE(ToolType, ''))
+    WHEN 'built-in' THEN 0
+    WHEN 'builtin' THEN 0
+    WHEN 'application' THEN 1
+    WHEN 'declarative' THEN 2
+    WHEN 'ui' THEN 3
+    WHEN 'sqlserver' THEN 4
+    WHEN 'mysql' THEN 5
+    WHEN 'extension' THEN 6
+    ELSE 1
+END;
+ALTER TABLE HAgentTools DROP COLUMN ToolType;";
+
+            using (var command = new MySqlCommand(migrateSql, connection))
+            {
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         private static string GetSchemaSql()
         {
             var sql = new StringBuilder();
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentSchemaInfo (SchemaName varchar(128) NOT NULL, SchemaVersion int NOT NULL, UpdatedAt datetime(0) NOT NULL, PRIMARY KEY (SchemaName));");
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentProviders (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Kind varchar(100) NOT NULL, BaseUrl varchar(1000) NOT NULL, DefaultModel varchar(200) NULL, DefaultSystemPrompt longtext NULL, SecretId varchar(200) NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));");
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentAgents (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, ProviderId varchar(128) NULL, Model varchar(200) NULL, SystemPrompt longtext NULL, UseProviderSystemPrompt boolean NOT NULL DEFAULT TRUE, Temperature double NULL, MaxOutputTokens int NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));");
-            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentTools (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Category varchar(100) NULL, Description longtext NULL, InputSchemaJson longtext NULL, ToolType varchar(100) NULL, Enabled boolean NOT NULL DEFAULT TRUE, IsBuiltIn boolean NOT NULL DEFAULT FALSE, PRIMARY KEY (Id));");
+            sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentTools (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Category varchar(100) NULL, Description longtext NULL, InputSchemaJson longtext NULL, Type int NOT NULL DEFAULT 1, Enabled boolean NOT NULL DEFAULT TRUE, IsBuiltIn boolean NOT NULL DEFAULT FALSE, PRIMARY KEY (Id));");
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentMemoryEntries (Id varchar(128) NOT NULL, Scope varchar(50) NOT NULL, Kind varchar(50) NOT NULL, OwnerId varchar(128) NOT NULL, TaskId varchar(128) NULL, Content longtext NOT NULL, MetadataJson longtext NULL, CreatedAt datetime(6) NOT NULL, OccurredAt datetime(6) NOT NULL, PRIMARY KEY (Id));");
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentConversations (SessionId varchar(128) NOT NULL, AgentId varchar(128) NOT NULL, CreatedAt datetime(6) NOT NULL, UpdatedAt datetime(6) NOT NULL, MessagesJson longtext NOT NULL, PRIMARY KEY (SessionId));");
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentSkills (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Description longtext NULL, DefinitionJson longtext NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));");

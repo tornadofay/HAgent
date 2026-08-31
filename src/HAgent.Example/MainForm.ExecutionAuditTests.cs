@@ -15,12 +15,12 @@ namespace HAgent.Example
             AddApiTab(
                 "Execution Audit",
                 "Run audit test",
-                "Executes one agent request, projects the terminal execution into a secret-safe audit record, persists it using the selected HAgent storage backend, and reads it back through the trusted internal audit tool.",
+                "Executes one agent request, verifies the runtime automatically persisted a secret-safe audit record using the selected HAgent storage backend, and reads it back through the trusted internal audit tool.",
                 "The reopened audit record should match the execution/correlation identity and terminal lifecycle metadata without containing prompts, responses, credentials, or raw exceptions.",
                 "Reply with the word AUDIT-OK and nothing else.",
                 TestExecutionAuditAsync,
                 "Audit boundary",
-                "Audit persistence stores metadata only. It is not a transcript store and does not persist provider secrets or model payloads.");
+                "Audit persistence is automatic when an execution audit store is configured. Audit failures must never change the AI execution result.");
         }
 
         private async Task TestExecutionAuditAsync(string message)
@@ -75,8 +75,6 @@ namespace HAgent.Example
             }
 
             var auditStore = await CreateConfiguredExecutionAuditStoreAsync(CancellationToken.None).ConfigureAwait(true);
-            await auditStore.AppendAsync(record, CancellationToken.None).ConfigureAwait(true);
-
             var auditTool = new HAgentInternalExecutionAuditTool(auditStore);
             var internalRead = await auditTool.ExecuteAsync(new ToolExecutionContext
             {
@@ -94,9 +92,9 @@ namespace HAgent.Example
             if (!internalRead.Succeeded)
                 throw new InvalidOperationException("Internal execution audit tool failed: " + internalRead.Error);
             if (internalRead.Output.IndexOf("Execution | " + record.ExecutionId, StringComparison.Ordinal) < 0)
-                throw new InvalidOperationException("Internal execution audit tool did not return the persisted execution.");
+                throw new InvalidOperationException("Automatic audit persistence did not return the executed execution.");
             if (internalRead.Output.IndexOf("Correlation | " + record.CorrelationId, StringComparison.Ordinal) < 0)
-                throw new InvalidOperationException("Internal execution audit tool did not return the persisted correlation ID.");
+                throw new InvalidOperationException("Automatic audit persistence did not return the execution correlation ID.");
 
             var wrongAgent = await auditTool.ExecuteAsync(new ToolExecutionContext
             {
@@ -154,6 +152,7 @@ namespace HAgent.Example
                 "Model: " + record.Model + Environment.NewLine +
                 "State: " + record.State + Environment.NewLine +
                 "Audit projection: payload-free and secret-safe." + Environment.NewLine +
+                "Automatic audit persistence: verified." + Environment.NewLine +
                 "Round-trip search: succeeded." + Environment.NewLine +
                 "Cross-agent audit access: rejected." + Environment.NewLine +
                 "maxResults=51: rejected.");

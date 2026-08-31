@@ -72,6 +72,7 @@ namespace HAgent.Example
             GetActionsPanel().Controls.Add(_clearOutputButton);
 
             AddFeatureTabs();
+            AddInternalInventoryTab();
             Shown += async delegate
             {
                 try

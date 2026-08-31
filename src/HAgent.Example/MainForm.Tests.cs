@@ -92,7 +92,7 @@ namespace HAgent.Example
             var firstConversationStore = new FileConversationStore(conversationPath);
             try
             {
-                var firstStore = new FileAiStore(Path.Combine(_basePath, "configuration", "settings.json"));
+                var firstStore = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
                 var firstSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
                 var firstClient = new HAgentClient(
                     firstStore,
@@ -115,7 +115,7 @@ namespace HAgent.Example
             var secondConversationStore = new FileConversationStore(conversationPath);
             try
             {
-                var secondStore = new FileAiStore(Path.Combine(_basePath, "configuration", "settings.json"));
+                var secondStore = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
                 var secondSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
                 var secondClient = new HAgentClient(
                     secondStore,
@@ -138,6 +138,8 @@ namespace HAgent.Example
                                           "Provider: " + selection.Provider.Name + Environment.NewLine +
                                           "Model: " + selection.Model + Environment.NewLine +
                                           "Persistence test succeeded." + Environment.NewLine +
+                                          "Conversation store: FileConversationStore" + Environment.NewLine +
+                                          "AI store backend: selected HAgent storage backend" + Environment.NewLine +
                                           "Messages retained after reopening: " + reopenedRead.Messages.Count + Environment.NewLine +
                                           "Original transcript:" + Environment.NewLine + originalTranscript + Environment.NewLine +
                                           "Reopened transcript:" + Environment.NewLine +

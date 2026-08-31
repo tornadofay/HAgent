@@ -64,6 +64,14 @@ Initial internal schema areas include providers, agents, tools, memory entries, 
 
 Conversation snapshots are persisted through `IConversationStore`. File storage keeps one JSON file per session; SQL Server and MySQL store the serialized message list in the HAgent-owned `HAgentConversations` table. Session identity and agent identity remain part of the persisted snapshot.
 
+## Connection testing
+
+`SqlServerHAgentStorageBootstrapper.TestConnectionAsync` and `MySqlHAgentStorageBootstrapper.TestConnectionAsync` provide non-destructive endpoint and credential validation. They open a connection without selecting an HAgent database and do not create databases, create tables, run migrations, or modify persisted HAgent data.
+
+The WinForms AI Settings navigation exposes this capability as **Storage Test**. It loads the saved selected backend profile, retrieves the password only for the connection attempt, and reports success or the underlying connection failure without exposing the password.
+
+A connection test succeeds only when the database server accepts the supplied credentials. Successful connectivity does not imply that the HAgent database exists or that the account has permission to create it; those responsibilities remain with the separate storage bootstrap operation.
+
 ## Live backend switching
 
 Storage configuration changes that affect the active backend can be applied without restarting the host when the host supports live storage rebinding. HAgent does not mutate an existing store while it is in use. Instead, the host creates a new configured store set and routes subsequent work to it.

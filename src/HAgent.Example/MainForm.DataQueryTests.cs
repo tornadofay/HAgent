@@ -136,9 +136,14 @@ namespace HAgent.Example
                     MaximumResultRows = 1,
                     Timeout = TimeSpan.FromSeconds(2)
                 });
+            var cancellationRequest = new DataQueryRequest
+            {
+                Fields = new[] { "Id" },
+                Take = 1
+            };
             using (var cancellation = new CancellationTokenSource())
             {
-                var pending = cancellationSource.QueryAsync(request, cancellation.Token);
+                var pending = cancellationSource.QueryAsync(cancellationRequest, cancellation.Token);
                 cancellation.CancelAfter(10);
                 try
                 {

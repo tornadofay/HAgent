@@ -51,7 +51,9 @@ The verified foundation includes:
 - WinForms UI Context and control adapters;
 - semantic and bound/native data-source discovery;
 - application-object discovery with bounded inspection;
-- provider-neutral structured data projection/query contracts.
+- provider-neutral structured data projection/query contracts;
+- host-owned data permissions, request-specific authorization, and bounded query execution;
+- a restricted SQL Server `IDataQuerySource` that generates structured parameterized reads only.
 
 ## WinForms Context
 
@@ -80,7 +82,7 @@ Tool definitions are separate from executable handlers. Handlers remain runtime-
 
 The model is a requester, not an authority.
 
-Permissions, authorization, approvals, limits, cancellation, and host-side validation remain outside model instructions. Database access is planned through restricted structured queries, not arbitrary SQL.
+Permissions, authorization, approvals, limits, cancellation, and host-side validation remain outside model instructions. Structured database access uses authoritative schemas, separate operation permissions, request-specific host authorization, bounded execution, and generated parameterized SQL. Raw SQL is not part of the model-facing query contract.
 
 ## HWorld
 
@@ -96,12 +98,23 @@ The minimum HWorld integration point is the asynchronous runtime-agent boundary:
 
 Meaningful capabilities should have runnable Example verification using public APIs and a reproducible C# snippet.
 
+The Example's **SQL Server Data Query** tab accepts runtime-only connection fields:
+
+```text
+Server Name
+User Name
+Password
+Database
+```
+
+It targets a disposable/read-only `dbo.HAgentExampleCustomers` table and does not persist or log those connection values.
+
 ## Project structure
 
 - `HAgent.Core` — provider-neutral models, runtime, context, memory, tools, and future coordination.
 - `HAgent.Providers.OpenAICompatible` — OpenAI-compatible provider transport and capabilities.
 - `HAgent.Storage.File` — file configuration, protected secrets, memory, conversations, and tool definitions.
-- `HAgent.Storage.SqlServer` — SQL Server persistence foundation and future restricted data tools.
+- `HAgent.Storage.SqlServer` — SQL Server persistence foundation and restricted structured data-query adapter.
 - `HAgent.Storage.MySql` — MySQL persistence foundation and future restricted data tools.
 - `HAgent.WinForms` — management UI and WinForms UI Context/control adapters.
 - `HAgent.Example` — manual verification host.

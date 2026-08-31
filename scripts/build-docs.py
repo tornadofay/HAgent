@@ -18,8 +18,10 @@ def build(source_dir: Path, output: Path, title: str) -> None:
 
     for part in parts:
         text = part.read_text(encoding="utf-8").strip()
-        if text.startswith("# "):
-            text = text.split("\n", 1)[1].lstrip() if "\n" in text else ""
+        lines = text.splitlines()
+        if lines and lines[0].startswith("# "):
+            lines[0] = "## " + lines[0][2:]
+            text = "\n".join(lines)
         if text:
             sections.append(text)
             sections.append("")

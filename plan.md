@@ -381,6 +381,8 @@ The database bootstrappers consume the selected SQL Server/MySQL profile directl
 
 Tool execution context and results carry execution-local correlation metadata: correlation ID, agent ID, tool ID, model tool-call ID, start/completion timestamps, and derived duration. Validation, disabled-tool, and missing-tool failures use the same metadata shape so callers can correlate rejected attempts as well as successful executions. This is runtime metadata only; persistent audit storage remains a separate capability.
 
+Agent executions now also receive an immutable `CorrelationId` at execution creation. This ID is distinct from provider-attempt and tool-call IDs and serves as the stable runtime-level correlation anchor for later audit and telemetry. The Example runtime verification requires this correlation ID and verifies execution timing remains monotonic.
+
 ### Internal inventory read tool
 
 `HAgentInternalInventoryTool` is the first HAgent-owned read-tool foundation. It reads only through `IAiStore` and `IToolStore`, returns provider/agent/tool inventory metadata without secrets, supports caller cancellation, and bounds each category to a default of 50 and a hard maximum of 100 items. It has no write operation and does not expose raw connection data, passwords, executable handlers, or arbitrary host application records.

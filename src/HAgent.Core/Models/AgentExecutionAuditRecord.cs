@@ -7,20 +7,20 @@ namespace HAgent.Models
     /// </summary>
     public sealed class AgentExecutionAuditRecord
     {
-        public string ExecutionId { get; internal set; }
-        public string CorrelationId { get; internal set; }
-        public string AgentId { get; internal set; }
-        public string AgentName { get; internal set; }
-        public string Model { get; internal set; }
-        public string LastProviderId { get; internal set; }
-        public string LastProviderName { get; internal set; }
-        public Runtime.AgentExecutionState State { get; internal set; }
-        public AgentExecutionFailureKind FailureKind { get; internal set; }
-        public ProviderErrorKind ProviderErrorKind { get; internal set; }
-        public DateTimeOffset CreatedAt { get; internal set; }
-        public DateTimeOffset? StartedAt { get; internal set; }
-        public DateTimeOffset? CompletedAt { get; internal set; }
-        public TimeSpan? Duration { get; internal set; }
+        public string ExecutionId { get; set; }
+        public string CorrelationId { get; set; }
+        public string AgentId { get; set; }
+        public string AgentName { get; set; }
+        public string Model { get; set; }
+        public string LastProviderId { get; set; }
+        public string LastProviderName { get; set; }
+        public Runtime.AgentExecutionState State { get; set; }
+        public AgentExecutionFailureKind FailureKind { get; set; }
+        public ProviderErrorKind ProviderErrorKind { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset? StartedAt { get; set; }
+        public DateTimeOffset? CompletedAt { get; set; }
+        public TimeSpan? Duration { get; set; }
 
         public static AgentExecutionAuditRecord FromExecution(AgentExecution execution)
         {

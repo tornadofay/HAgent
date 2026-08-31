@@ -1,5 +1,7 @@
 # Current project state
 
+## Project
+
 HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for simple chat or embedded into a host application, simulation, game, or other environment.
 
 ## Supported targets
@@ -15,34 +17,42 @@ HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
-## Verified platform foundations
+## Verified implementation
 
-- Provider/agent configuration and routing.
-- Execution lifecycle, timeout, cancellation, retries, and diagnostics.
-- Memory, persistent sessions, context budgeting, automatic/episodic/task memory.
-- Capability discovery and response normalization.
-- Streaming contracts and live streaming.
-- Tool definitions, registry, schema validation, provider tool transport, bounded tool loops, persistence, and per-agent assignment.
-- WinForms UI Context with Form/UserControl attachment.
-- Semantic control and bound/native data-source discovery.
-- CurrencyManager/current-item/source relationships.
-- Convention-based custom control adapters.
-- Bounded live application-object discovery.
-- Provider-neutral structured data projection/query contracts.
+The repository currently contains verified foundations for:
 
-## Development rule
+- provider/agent configuration and routing;
+- execution lifecycle, timeout, cancellation, retries, diagnostics, and failure reporting;
+- memory, persistent sessions, context budgeting, automatic/episodic/task memory;
+- capability discovery and response normalization;
+- streaming contracts and live streaming;
+- tool definitions, registry, schema validation, provider transport, bounded tool loops, persistence, and per-agent assignment;
+- WinForms UI Context with Form/UserControl attachment;
+- semantic control and bound/native data-source discovery;
+- CurrencyManager/current-item/source relationships;
+- control-to-source relationship discovery;
+- convention-based custom control adaptation;
+- bounded application-object discovery;
+- provider-neutral structured data projection/query contracts;
+- `HAgent.Example` verification for the completed 0.7 UI/data capabilities.
 
-A capability is complete only when implementation exists, the relevant `HAgent.Example` verification passes locally, and project documentation reflects the result.
+## Active implementation
 
-Implement one focused slice at a time. Do not claim local build/test success unless it was actually performed.
+The active implementation plan is the current file `docs/plan/20-active.md`. It must contain only the work being implemented now.
+
+## Verification rule
+
+A capability becomes complete only after its implementation exists, its matching `HAgent.Example` verification passes locally, and the project documentation reflects the result.
+
+Do not claim local build/test success unless it was actually performed.
 
 ## Documentation ownership
 
 - `README.md` — public introduction and quick start.
-- `AGENTS.md` — engineering invariants and non-negotiable rules.
-- `docs/architecture/` — stable architectural design.
-- `docs/plan/` — current implementation state and completed ledger.
-- `docs/roadmap/` — future phases and ordering.
-- `docs/storage.md` — persistence/storage-specific design.
+- `AGENTS.md` — non-negotiable engineering and repository rules.
+- `docs/architecture/` — stable architectural design and boundaries.
+- `docs/plan/` — master direction, current state, and active implementation only.
+- `docs/roadmap/` — ordered path from completed foundations to the long-term target.
+- `docs/storage.md` — persistence/backend details.
 
-Root `plan.md` and `roadmap.md` are generated from the corresponding source directories.
+The root `plan.md` and `roadmap.md` are generated from their source directories. They are views, not independent sources of truth.

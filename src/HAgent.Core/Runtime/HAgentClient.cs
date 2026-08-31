@@ -53,10 +53,21 @@ namespace HAgent.Runtime
         public Task<AIResponse> SendAsync(string agentId, string message, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Message is required.", nameof(message));
-            return SendAsync(agentId, new List<AIMessage> { new AIMessage("user", message) }, cancellationToken);
+            return SendAsync(agentId, new List<AIMessage> { new AIMessage("user", message) }, null, cancellationToken);
         }
 
-        public async Task<AIResponse> SendAsync(string agentId, IReadOnlyList<AIMessage> messages, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<AIResponse> SendAsync(string agentId, string message, AgentExecutionOptions options, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Message is required.", nameof(message));
+            return SendAsync(agentId, new List<AIMessage> { new AIMessage("user", message) }, options, cancellationToken);
+        }
+
+        public Task<AIResponse> SendAsync(string agentId, IReadOnlyList<AIMessage> messages, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return SendAsync(agentId, messages, null, cancellationToken);
+        }
+
+        public async Task<AIResponse> SendAsync(string agentId, IReadOnlyList<AIMessage> messages, AgentExecutionOptions options, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrWhiteSpace(agentId)) throw new ArgumentException("Agent id is required.", nameof(agentId));
             if (messages == null || messages.Count == 0) throw new ArgumentException("At least one message is required.", nameof(messages));
@@ -65,6 +76,8 @@ namespace HAgent.Runtime
             var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
             if (agent == null) throw new InvalidOperationException("Agent was not found: " + agentId);
             if (!agent.Enabled) throw new InvalidOperationException("Agent is disabled: " + agent.Name);
+
+            options = options ?? new AgentExecutionOptions();
 
             var providers = await _store.GetProvidersAsync(cancellationToken).ConfigureAwait(false);
             var providerIds = new List<string>();
@@ -93,7 +106,7 @@ namespace HAgent.Runtime
                         continue;
                     }
 
-                    return await adapter.SendAsync(provider, agent, apiKey, BuildSystemPrompt(provider, agent), contextMessages, cancellationToken).ConfigureAwait(false);
+                    return await adapter.SendAsync(provider, agent, apiKey, BuildSystemPrompt(provider, agent, options.SystemPromptLayers), contextMessages, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
@@ -146,7 +159,7 @@ namespace HAgent.Runtime
 
         private AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore, IReadOnlyList<AIMessage> initialMessages)
         {
-            return new AgentSession(agentId, sessionId, (messages, token) => SendAsync(agentId, messages, token), conversationStore, initialMessages, null, _memory, _memoryPolicy);
+            return new AgentSession(agentId, sessionId, (messages, token) => SendAsync(agentId, messages, null, token), conversationStore, initialMessages, null, _memory, _memoryPolicy);
         }
 
         public AgentSession CreateSession(string agentId) { return CreateSession(agentId, Guid.NewGuid().ToString("N"), null, null); }
@@ -217,13 +230,19 @@ namespace HAgent.Runtime
 
         private void EnsureMemoryStore() { if (_memory == null) throw new InvalidOperationException("No memory store is configured for this HAgentClient."); }
 
-        private static string BuildSystemPrompt(AiProvider provider, AiAgent agent)
+        private static string BuildSystemPrompt(AiProvider provider, AiAgent agent, IEnumerable<SystemPromptLayer> executionLayers)
         {
-            var providerPrompt = agent.UseProviderSystemPrompt ? provider.DefaultSystemPrompt : string.Empty;
-            var agentPrompt = agent.SystemPrompt;
-            if (string.IsNullOrWhiteSpace(providerPrompt)) return agentPrompt ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(agentPrompt)) return providerPrompt;
-            return providerPrompt.Trim() + Environment.NewLine + Environment.NewLine + agentPrompt.Trim();
+            var layers = new List<SystemPromptLayer>();
+            if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))
+                layers.Add(new SystemPromptLayer("provider", "Provider", provider.DefaultSystemPrompt, 100));
+
+            if (!string.IsNullOrWhiteSpace(agent.SystemPrompt))
+                layers.Add(new SystemPromptLayer("agent", "Agent", agent.SystemPrompt, 200));
+
+            if (executionLayers != null)
+                layers.AddRange(executionLayers);
+
+            return SystemPromptComposer.Compose(layers);
         }
     }
 }

@@ -55,6 +55,14 @@ Initial internal schema areas include providers, agents, tools, memory entries, 
 
 Conversation snapshots are persisted through `IConversationStore`. File storage keeps one JSON file per session; SQL Server and MySQL store the serialized message list in the HAgent-owned `HAgentConversations` table. Session identity and agent identity remain part of the persisted snapshot.
 
+## Live backend switching
+
+Storage configuration changes that affect the active backend can be applied without restarting the host when the host supports live storage rebinding. HAgent does not mutate an existing store while it is in use. Instead, the host creates a new configured store set and routes subsequent work to it.
+
+In-flight operations continue using the store/client snapshots with which they started. New operations use the newly selected backend. This preserves the runtime snapshot invariant while allowing File, SQL Server, and MySQL to be selected during one process lifetime.
+
+The WinForms Example closes any configuration surface that still owns stores for the previous backend, rebuilds the configured HAgent stores, reloads the agent list, and continues on the new backend. An unavailable new backend does not terminate the host; the configuration repair path remains available.
+
 ## Runtime state
 
 Runtime agent instances, workspaces, and other live collaboration state are not configuration by default. A host may keep them in memory or persist them when recovery, collaboration, audit, or multi-process visibility requires it.

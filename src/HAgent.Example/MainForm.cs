@@ -20,9 +20,11 @@ namespace HAgent.Example
         private static readonly Color Accent = Color.FromArgb(116, 76, 210);
         private static readonly Color Error = Color.FromArgb(185, 28, 28);
 
-        private readonly string _basePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "HAgent");
+        private readonly string _basePath = new HAgentStorageOptions
+        {
+            ApplicationName = "HAgent.Example",
+            RootPath = AppContext.BaseDirectory
+        }.GetEffectiveRootPath();
 
         private readonly HButton _configurationButton;
         private readonly HButton _clearOutputButton;

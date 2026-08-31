@@ -17,12 +17,21 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Application-specific File storage layout.
 - [x] SQL Server HAgent database creation and schema bootstrap foundation.
 - [x] MySQL HAgent database creation and schema bootstrap foundation.
+- [x] Example agent/provider/prompt loading follows the selected internal storage backend.
 - [ ] Wire all internal repositories to the selected storage backend.
 - [ ] Versioned schema migrations beyond the initial bootstrap version.
 - [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
-### Current slice: HAgent-owned storage foundation
+### Current slice: configured storage backend resolution
+
+The Example now resolves its `IAiStore` and tool-definition store from `HAgentStorageOptions` rather than hardcoding the File backend. File, SQL Server, and MySQL are therefore distinct runtime storage choices.
+
+The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, and client creation. This prevents the UI from displaying one backend's agents while runtime execution uses another backend.
+
+SQL Server and MySQL resolution bootstraps the HAgent-owned database before creating the corresponding internal repositories. No host application database is used by this resolution path.
+
+### Storage foundation
 
 `HAgent.Core` now provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, and non-secret connection metadata. Database passwords remain outside this ordinary configuration model.
 

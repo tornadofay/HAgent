@@ -1,210 +1,85 @@
-# AGENTS.md
+# HAgent engineering rules
 
-This repository is designed to be worked on by both human developers and coding agents.
+This repository is designed to be worked on by human developers and coding agents.
 
-## Architecture rules
+## Architecture invariants
 
 1. Keep `HAgent.Core` dependency-light and provider-neutral.
-2. Do not put WinForms types in Core.
-3. Do not put SQL/MySQL implementation details in Core.
-4. Provider-specific HTTP logic belongs in provider adapter assemblies.
-5. Secrets must use `ISecretStore`; never add an API-key property to persistent normal configuration objects.
-6. A provider defines connection concerns and optional shared defaults. An agent profile defines reusable behavior/configuration.
-7. Avoid hidden configuration precedence. Any inheritance should be represented explicitly in the model and UI.
-8. Public APIs should support cancellation tokens and remain async for network/database operations.
-9. Preserve .NET Framework 4.8.1 compatibility for projects that currently target it.
-10. Do not introduce a framework-sized dependency for a feature that can be implemented in a small adapter.
-11. Runtime execution must operate from an execution snapshot so mutable/deleted configuration cannot invalidate active work.
-12. Provider routing must be provider-neutral and must never assume OpenAI semantics in Core.
-13. Memory must work without a local GPU and must not require a large resident RAM footprint. Embeddings/vector search are optional adapters, never core requirements.
-14. Capabilities are discovered/declared explicitly. Never assume a discovered model supports chat, tools, vision, structured output, reasoning, embeddings, or streaming merely because the provider returned its model ID.
-15. Capability claims should preserve provenance/evidence when practical: support state, source, confidence, observation time, and an optional explanatory note. A capability value without evidence must remain distinguishable from a provider-verified capability.
-16. Tool execution is a host capability boundary. Models may request registered tools, but they never receive arbitrary reflection, process, file, database, control-tree, or memory access.
-17. Guardrails, permissions, approval, budgets, and cancellation must be enforced outside the model's own instructions. A prompt saying “you are not allowed to do X” is not a security boundary.
-18. Provider responses must have a provider-neutral representation that can carry text, structured output, tool calls/results, reasoning metadata when explicitly exposed, usage, and raw provider metadata without forcing every provider to implement every field.
-19. Streaming is optional. Core contracts must support providers that stream and providers that do not.
-20. Observability must be possible without logging secrets or full sensitive payloads by default. Diagnostics should use correlation IDs and configurable redaction.
-21. Agent profile is separate from runtime agent instance. Do not create incompatible agent classes merely for global/form/session/task use. Prefer explicit scope/binding concepts.
-22. WinForms integration belongs in `HAgent.WinForms`, not Core. It should expose a host bridge that can attach AI capabilities to a `Form` or control tree without making `HAgentClient` depend on WinForms.
-23. The WinForms integration feature is called **UI Context / Control Adapters**, not generic “form serialization.” Serialization is one operation produced by an adapter; reading and changing controls are explicit capabilities/tools.
-24. UI adapters must understand common WinForms controls and data sources without requiring callers to manually convert them: `DataGridView`, `DataTable`, `BindingSource`, `CurrencyManager`, common list sources, `TextBox`, `ComboBox`, `Button`, `CheckBox`, `RadioButton`, `DateTimePicker`, `NumericUpDown`, `ListBox`, `TreeView`, and custom/user controls where an explicit adapter is available.
-25. UI context must expose stable semantic identities and safe summaries, not raw object graphs. DataGridView access should prefer data-source extraction (`DataTable`, `BindingSource`, `IList`, etc.) before falling back to visible rows.
-26. The WinForms host bridge must support an attached/flyout UI, but attaching an agent to a form must not automatically grant write/execute permission. Read, write, invoke, and data-export capabilities are separately controllable.
-27. Cross-form memory must use memory ownership/scope and provenance. A form identifier may be metadata; it is not a substitute for a user/session/application security boundary.
-28. Active runtime work must survive configuration edits/deletions safely. UI attachment removal, agent deletion, or form closure must have explicit behavior and must never silently invalidate running work.
-29. `HAgent.Example` is the manual verification surface for every meaningful completed capability, including provider capability discovery, response normalization, tool execution, UI context, permissions, approvals, and agent collaboration.
-30. The initial tool taxonomy is explicit: `BuiltIn`, `Application`, `Declarative`, `UI`, `SqlServer`, and `MySql`. `Extension` tools are deferred to a future extensibility milestone and must not be introduced into the initial runtime path.
-31. Tool configuration defines the public contract and binding metadata; it must never interpret arbitrary configuration text as executable code. Executable behavior comes from a trusted built-in handler, application-registered handler, or dedicated restricted subsystem.
-32. A shared workspace is a communication context, not an instruction to broadcast every message. Routing must explicitly select recipients.
-33. A default workspace recipient may handle unaddressed user messages. Direct addressing and agent-to-agent delegation must target a specific runtime participant.
-34. Manager/coordinator and specialist are roles over the same generic runtime agent model, not separate hard-coded agent types.
-35. Dynamically created contextual agents must be able to originate from reusable configured profiles without becoming persistent configuration records by default.
-36. Runtime agent persistence, when enabled, must distinguish host instance, user/session, workspace, profile ID, and runtime instance ID so multiple processes/users can safely share a database.
-37. HWorld is an external consumer target. HAgent must remain independent of HWorld and provide generic asynchronous multi-agent execution, memory isolation, structured tools, external scheduling, and stale-result protection without importing HWorld types.
+2. Never put WinForms types in Core.
+3. Never put SQL Server/MySQL implementation details in Core.
+4. Provider-specific transport belongs in provider adapter assemblies.
+5. Secrets belong to `ISecretStore`; never add secrets to ordinary persistent provider/agent/tool models.
+6. A provider describes connection/transport concerns. An agent profile describes reusable behavior/configuration.
+7. Keep agent profile identity separate from runtime agent instance identity.
+8. Runtime scope is a binding concept, not a separate agent class.
+9. Public network/database APIs must support cancellation and remain async.
+10. Preserve .NET Framework 4.8.1 compatibility where currently targeted.
+11. Avoid framework-sized dependencies when a focused adapter is sufficient.
+12. Active execution must use snapshots so configuration edits/deletion cannot corrupt running work.
+13. Core provider routing must not assume OpenAI-specific semantics.
+14. Memory must remain viable without GPU, vector database, or a large resident RAM index.
+15. Capability support must be explicit and may be `Supported`, `Unsupported`, or `Unknown`, with evidence/provenance where practical.
+16. Tool execution is a host capability boundary. Models may request only registered tools; they never receive arbitrary reflection, process, file, database, control-tree, or memory access.
+17. Permissions, authorization, approval, budgets, and cancellation are enforcement mechanisms, not prompt instructions.
+18. Provider responses must remain provider-neutral while preserving structured output, tool calls/results, reasoning metadata when explicitly exposed, usage, and raw metadata as appropriate.
+19. Streaming is optional; providers that do not stream must remain supported by Core contracts.
+20. Observability must avoid secrets and sensitive payloads by default and use correlation IDs with configurable redaction.
+21. Tool definitions and executable handlers are separate. Executable handlers are never serialized.
+22. Initial tool taxonomy is `BuiltIn`, `Application`, `Declarative`, `UI`, `SqlServer`, and `MySql`. Extension tools are deferred.
 
-## Documentation is part of project state
+## Context rules
 
-`README.md`, `roadmap.md`, `plan.md`, and `AGENTS.md` are maintained project artifacts, not disposable documentation.
+23. WinForms integration belongs in `HAgent.WinForms`, not Core.
+24. The public WinForms concept is **UI Context / Control Adapters**, not generic form serialization.
+25. UI adapters should prefer native/bound data sources and bounded projections over scraping visible control state.
+26. `DataTable` is optional, not the mandatory data representation.
+27. Application-owned objects may be attached as live runtime context and inspected through bounded, non-executable discovery.
+28. Discovery describes evidence; it never grants authorization or invents business meaning.
+29. Explicit developer semantics/authorization may override or enrich automatic discovery.
 
-Whenever a meaningful feature, architecture, compatibility target, UI convention, milestone, or public API changes:
+## Multi-agent rules
 
-- update `plan.md` so the implementation state remains accurate;
-- update `roadmap.md` when the long-term ordering/scope changes;
-- update `README.md` when user-facing capabilities, usage, architecture, or supported targets change;
-- update `AGENTS.md` when repository engineering rules or non-negotiable conventions change.
+30. A workspace is a communication context, not an instruction to broadcast every message.
+31. Unaddressed user messages go only to the configured workspace default recipient.
+32. Direct user messages and agent delegation target explicit runtime participants.
+33. Visible agent-to-agent dialogue is a real workspace message stream when the host enables it.
+34. Coordinator and specialist are roles over the same generic runtime agent model.
+35. Specialists may represent a whole domain, table, subsystem, or capability; they are not inherently tied to one record.
+36. Dynamically created runtime agents come from reusable profiles and do not become permanent configuration entries by default.
+37. Runtime retirement is explicit or follows host shutdown/lifecycle policy; closing a source form does not automatically retire an instance unless the host chooses that policy.
+38. Runtime persistence, when enabled, must distinguish host instance, user/session, workspace, profile ID, and runtime instance ID.
+39. Private memory belongs to runtime ownership; shared memory requires explicit scope and authorization.
 
-Never mark a feature complete in documentation unless the repository actually contains the implementation. Keep deferred/partial work explicitly marked as such.
+## External consumers
 
-## UI rules
+40. HWorld is a supported external consumer target, not a dependency of HAgent.
+41. HAgent must not contain HWorld types, physics, rendering, simulation time, world state, or world-specific actions.
+42. External hosts remain authoritative for their state and side effects. HAgent supplies generic agent execution, context, tools, memory integrations, coordination, and telemetry.
 
-The WinForms UI is designer-free by design, except for application-provided shared controls/helpers that are intentionally maintained separately.
+## WinForms UI conventions
 
-Use:
+43. Do not use `System.Windows.Forms.MessageBox` directly in `HAgent.WinForms`.
+44. Use `HMessage.ShowDelete`, `ShowQuestion`, `ShowInformation`, `ShowError`, and `ShowException` for dialogs.
+45. Use the shared HAgent `Header` for HAgent form chrome.
+46. Use `HButton` for HAgent action buttons.
+47. Preserve existing UI/layout work unless a task explicitly requests UI changes.
 
-- clear hierarchy
-- short field labels
-- one-sentence descriptions beside important fields
-- obvious primary actions
-- disabled/empty states that explain what the user should do next
-- consistent spacing
-- DPI-aware sizing
-- keyboard-friendly focus order
-- the shared `HAgent.WinForms.Helpers.Header` for HAgent form chrome
-- the shared `HAgent.WinForms.Helpers.HMessage` API for user-facing dialogs
-- the shared `HAgent.WinForms.Helpers.Button.HButton` for application buttons
+## Example and testing rules
 
-### HMessage is mandatory for HAgent dialogs
+48. `HAgent.Example` is the manual developer/verification host; it is not `HAgent.Tests`.
+49. Every meaningful completed capability requires a matching Example verification using public APIs.
+50. Keep Example code split across focused partial files/components.
+51. Example snippets must be reproducible and explain required setup or shared setup.
+52. Do not claim build/test success unless it was actually executed.
+53. Network-provider automated tests must use fakes/local test infrastructure rather than a real vendor.
 
-Do not use `System.Windows.Forms.MessageBox` directly anywhere in HAgent.WinForms.
+## Documentation rules
 
-Use:
-
-- `HMessage.ShowDelete(...)` for delete confirmations
-- `HMessage.ShowQuestion(...)` for confirmations/questions
-- `HMessage.ShowInformation(...)` for informational messages
-- `HMessage.ShowError(...)` for user-facing errors
-- `HMessage.ShowException(...)` when an exception should be presented with technical details
-
-Keep destructive-operation confirmation at the UI boundary and enforce important data-integrity rules again in Core/storage.
-
-### Header
-
-Do not recreate another custom title bar for HAgent forms. Use `Header` through `HAgentForm`.
-
-The HAgent `Header` is intentionally self-contained and must not depend on the larger `HLibraries` application framework. It should contain only window-header responsibilities: title/subtitle rendering, optional icon, dragging, and optional close/minimize/help actions.
-
-### HButton
-
-Use `HButton` for all HAgent action buttons. Do not introduce another button wrapper or fall back to the standard WinForms `Button` for application actions.
-
-Keep the HAgent button palette aligned with the current AI visual identity: deep indigo/violet primary states, brighter violet hover/focus states, restrained red for destructive actions, and white text with sufficient contrast.
-
-Avoid:
-
-- giant property grids
-- unexplained icons
-- nested modal dialogs for routine navigation
-- hidden provider/agent relationships
-- putting secret values into ListView/DataGridView text
-- copying unrelated application-framework dependencies into HAgent
-
-## Manual example host
-
-`HAgent.Example` is the manual integration and feature-verification application. It is not a replacement for `HAgent.Tests`.
-
-The example host should:
-
-- provide an obvious Configuration entry point
-- exercise every meaningful completed feature with a small runnable example
-- use the real public APIs, not internal test-only shortcuts
-- remain usable as a developer smoke-test application as the runtime evolves
-- avoid depending on external services unless the example explicitly says so
-
-The Example form is intentionally split by responsibility as the test suite grows:
-
-- `Program.cs` — application entry point only.
-- `MainForm.cs` — form fields, constructor, main shell/layout, and global controls.
-- `MainForm.Tabs.cs` — feature-tab construction and per-tab presentation.
-- `MainForm.Context.cs` — agent selection, provider/agent prompt context, and context refresh.
-- `MainForm.Tests.cs` — manual feature execution against the public HAgent APIs.
-- `MainForm.Ui.cs` — shared Example UI helpers, execution wrapper, output handling, and small view models.
-
-Do not grow `MainForm.cs` into a monolithic test harness. New feature examples should normally be added to the appropriate partial file or a new focused Example component when a feature becomes large enough to justify one.
-
-When a new capability becomes complete, add a corresponding example to `HAgent.Example` before considering the developer experience complete.
-
-## Provider adapter contract
-
-Implement `IAiProviderAdapter`.
-
-The adapter must:
-
-- expose a stable `Kind` string
-- accept provider and agent configuration
-- receive the already-resolved secret
-- support cancellation
-- return `AIResponse`
-- avoid mutating the stored provider or agent objects
-
-## Storage contract
-
-Implement `IAiStore` for persisted providers and agents.
-
-If a backend needs secrets, prefer composing it with `ISecretStore` rather than storing raw secrets in the normal configuration table.
-
-Provider deletion must not silently delete dependent agents. Data-integrity restrictions must be enforced by the storage implementation, not only by the UI.
-
-## Runtime contract
-
-Runtime responsibilities include:
-
-- execution lifecycle/state
-- provider routing/fallback
-- capability selection/compatibility
-- cancellation and timeout boundaries
-- execution snapshots
-- memory/context integration
-- tool execution integration
-- guardrails/permissions/approval boundaries
-- budgets and loop limits
-- structured failure reporting
-- correlation/observability hooks
-- concurrent runtime agent instances and explicit workspace routing
-
-The runtime must not hide cancellation, timeout, or tool failures as ordinary provider fallbacks.
-
-## WinForms host bridge contract
-
-The WinForms host bridge must remain outside Core and may expose concepts such as:
-
-```text
-Attach(Form)
-Detach()
-InspectControl(...)
-ReadControl(...)
-WriteControl(...)
-InvokeControl(...)
-ReadData(...)
-ShowAssistant(...)
-```
-
-Exact names may change, but the separation must remain: **UI context/introspection** describes what exists; **tools/capabilities** define what may be done.
-
-The bridge should support form-bound AI assistants and cross-form memory without forcing every attached form to share one global conversation. Form, session, task, and application relationships should be explicit.
-
-## Compatibility
-
-Build all target frameworks before declaring a change complete. The repository may be edited on machines that have only Visual Studio or only the .NET CLI, so avoid relying on machine-local generated files.
-
-The CI matrix should eventually cover:
-
-- .NET Framework 4.8.1
-- .NET 9
-
-.NET 10 is a future upgrade target, not a current build target.
-
-## Testing
-
-Test domain behavior independently from WinForms. Network-provider tests should use a fake `HttpMessageHandler` or local test server; do not make automated tests call a real AI vendor.
-
-For this development workflow, do not claim local build/test success unless it was actually executed. The developer machine is the authoritative VS 2022 build/test environment when local tool access is unavailable.
+54. `README.md` is the public introduction and quick start.
+55. `docs/architecture/` is the authoritative stable architecture description.
+56. `docs/plan/` is implementation state: current milestone and completed ledger only.
+57. `docs/roadmap/` is future work and ordering only.
+58. `docs/storage.md` contains storage-specific details.
+59. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them.
+60. When implementation changes architecture or milestone state, update the authoritative source document in the same change.
+61. Never maintain the same architectural decision independently in multiple documents.

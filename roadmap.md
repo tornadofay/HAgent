@@ -172,6 +172,8 @@ Provide bounded structured data contracts and establish HAgent-owned persistence
 9. [x] Versioned schema migrations beyond the initial bootstrap version.
 10. [ ] Read-only HAgent internal data tools, audit/correlation metadata, and live Example verification before any internal writes beyond repository persistence.
 
+The first read-tool foundation is now present as `HAgentInternalInventoryTool`: bounded provider/agent/tool inventory metadata with cancellation and secret exclusion. The complete read-tool suite, persistent audit layer, and live Example verification remain open work under this step.
+
 ## Internal database naming
 
 The default HAgent database name is derived from the host application name using `<application-name>-ai`, for example `nap-ai` or `hworld-ai`. The host can override the database name explicitly.

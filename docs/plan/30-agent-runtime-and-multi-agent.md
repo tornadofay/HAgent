@@ -2,9 +2,9 @@
 
 ## Goal
 
-HAgent is a general-purpose agent runtime for applications that need to connect one or more LLM-backed agents to an application, simulation, game, or other host environment. A host may use HAgent for simple one-agent chat or for many concurrent agents with different roles, models, tools, memories, and lifetimes.
+HAgent is a general-purpose agent runtime for applications that need to connect one or more LLM-backed agents to an application, simulation, game, or other host environment. A host may use HAgent for simple one-agent chat or for many concurrent agents with different roles, models, tools, memories, contexts, and lifetimes.
 
-The configuration model and the runtime model must remain separate:
+The configuration model and runtime model must remain separate:
 
 ```text
 Agent profile / definition
@@ -20,7 +20,7 @@ A host must be able to create many runtime instances from one default/configured
 
 ### Problem
 
-The current `AiAgent` model represents persistent agent configuration well, but the long-term platform needs a separate runtime identity for agents that exist because a form, task, world actor, user session, or other host object currently exists.
+The current `AiAgent` model represents persistent agent configuration well, but the long-term platform needs a separate runtime identity for agents that exist because a form, workspace, task, world actor, user session, or other host context currently exists.
 
 ### Required capabilities
 
@@ -41,6 +41,16 @@ The current `AiAgent` model represents persistent agent configuration well, but 
 - [ ] Support multiple runtime instances executing concurrently.
 - [ ] Support cancellation, timeout, stale-result rejection, and independent latency per instance.
 
+### Lifetime rule
+
+A runtime agent instance does not automatically retire merely because a related form/workspace is no longer active. The host decides its lifecycle. An instance normally remains a workspace participant until one of these occurs:
+
+- the host explicitly retires it;
+- the host application/process closes;
+- a higher-level lifecycle policy explicitly expires it.
+
+Automatic context creation and explicit retirement are separate operations.
+
 ### Design rule
 
 Do not create different agent classes for Manager, Specialist, Global, Form, or Session. These are roles/scopes/bindings over the same generic runtime agent abstraction.
@@ -49,102 +59,103 @@ Do not create different agent classes for Manager, Specialist, Global, Form, or 
 
 ### Problem
 
-A normal conversation assumes one assistant. HAgent must also support a shared workspace in which a human user and multiple agents participate while only the intended recipient receives an LLM request.
+A normal conversation assumes one assistant. HAgent must also support a shared workspace in which a human user and multiple agents participate while requests are routed only to the intended recipient.
 
 ### Terminology
 
 - **Workspace**: a shared communication context containing participants, messages, routing policy, and optional persistence.
 - **Agent participant**: a runtime agent instance attached to a workspace.
+- **Coordinator**: the participant designated by workspace policy as the default recipient for unaddressed user messages. HAgent must not hard-code a business role named “manager”.
+- **Specialist**: a participant assigned a narrower responsibility, context, or capability by the host.
 - **Default recipient**: the participant that receives an unaddressed user message.
 - **Direct addressing**: a message explicitly addressed to one participant.
 - **Delegation**: an agent sends an addressed instruction to another agent.
-- **Broadcast**: an explicit host-approved operation that sends one event/message to multiple participants. It is never the default routing behavior.
+- **Broadcast**: an explicit host-approved operation that sends a message/event to multiple participants. It is never the default routing behavior.
 
-### Example behavior
+### Visible collaboration rule
+
+Agent-to-agent work is part of the workspace conversation when the host enables it. The user should be able to see the coordinator delegate to a specialist, the specialist respond, and the coordinator continue the work. These are real workspace messages with sender/recipient metadata; they are not hidden internal calls that appear only as a final answer.
+
+Example:
 
 ```text
-User: "Show me unpaid invoices"
+User: What invoices are overdue?
         ↓
-Default recipient = Manager
+Coordinator
+        ↓ visible workspace message
+Invoice Specialist: Review the authorized invoice data and identify overdue invoices.
+        ↓ visible workspace response
+Invoice Specialist: I found 8 overdue invoices totaling ...
         ↓
-Manager reasons and may delegate
+Coordinator
         ↓
-Manager -> Invoice Specialist
-        ↓
-Invoice Specialist -> Manager
-        ↓
-Manager -> User
+User: There are 8 overdue invoices ...
 ```
 
-If the user explicitly addresses the Invoice Specialist, that specialist receives the request instead of the Manager.
+Only the addressed recipient starts an LLM request for that message. Other participants observe the message through the workspace history according to workspace visibility policy; they do not independently execute a model request unless explicitly addressed or invoked by policy.
 
-An unaddressed message must not be sent to every participant merely because they share a workspace.
+If the user explicitly addresses a specialist, that specialist receives the user request. The coordinator does not automatically execute another LLM request for the same message.
 
 ### Required capabilities
 
 - [ ] Shared workspace abstraction independent of WinForms.
-- [ ] Participant registration/removal.
+- [ ] Participant registration/removal/retirement.
 - [ ] Default-recipient policy.
 - [ ] Direct agent addressing.
 - [ ] Host-configurable address syntax; `@name`/`@id` is one possible presentation, not a Core requirement.
 - [ ] Agent-to-agent addressed messages.
 - [ ] User-to-agent addressed messages.
+- [ ] Visible agent-to-agent conversation events.
 - [ ] Optional explicit broadcast capability.
 - [ ] Message correlation IDs and conversation ordering.
 - [ ] Per-message sender/recipient/causation metadata.
 - [ ] Protection against routing loops and accidental recursive delegation.
 - [ ] Workspace budgets for turns, hops, agent invocations, tokens, and time.
+- [ ] Visibility policy so hosts can choose which internal messages are shown to the user.
 
-## 0.9 Manager / Specialist role model
+## 0.9 Coordinator / Specialist role model
 
-### Manager agent
+### Coordinator
 
-The host may designate one runtime participant as the default manager/coordinator for a workspace. HAgent should not hard-code the word "manager" into the runtime API.
+The host may designate one runtime participant as the default coordinator for a workspace. The coordinator receives unaddressed user requests, understands available specialists, delegates explicitly, combines results, and answers the user. HAgent should not hard-code business-specific coordinator behavior.
 
-The configured role should express responsibilities such as:
-
-- receive unaddressed user requests;
-- understand available specialists;
-- delegate work explicitly;
-- combine specialist results;
-- answer the user;
-- coordinate multi-step work.
-
-### Specialist agent
+### Specialist
 
 A specialist is another runtime participant with its own profile, system prompt, tools, context, and memory policy.
 
-A specialist may be created dynamically from a host-defined default specialist profile when a relevant form/context/task appears.
+A specialist may represent an entire application domain, table, subsystem, world capability, or other host-defined responsibility. For example, an “Invoice Specialist” can understand and operate over the authorized invoice data source as a whole; it is not inherently tied to one invoice record.
 
-The specialist must not receive every workspace message automatically. It becomes active when directly addressed or explicitly invoked by the coordination policy.
+A specialist should be able to inspect the context made available to it and give its honest assessment of what it knows, what it inferred, what remains unknown, and what it is not authorized to access. It must not be forced to claim certainty merely because its profile names a domain.
+
+The specialist does not receive every workspace message automatically. It becomes active when directly addressed or explicitly invoked by the coordination policy.
 
 ## 0.9 Dynamic contextual agents
 
 ### Goal
 
-Hosts should be able to create a specialist automatically when a runtime context appears, without adding permanent agent definitions for every form or object.
+Hosts should be able to create a specialist automatically when a runtime context appears, without adding permanent agent definitions for every form, table, object, or instance.
 
 Example:
 
 ```text
-Configured profile:
+Configured default profile:
     Invoice Specialist
 
-User opens Invoice window
+User opens Invoice/Purchases area
         ↓
-Host creates runtime agent instance
+Host creates a runtime specialist instance
         ↓
-Instance receives:
+Instance receives according to policy:
     UI context
     data-source context
-    application object context
-    allowed tools
+    application-object context
+    authorized tools
     specialist system prompt
         ↓
-Instance becomes a workspace participant
+Instance joins the workspace
 ```
 
-The runtime instance may disappear when its host context closes, unless the host explicitly persists its runtime state.
+The instance normally remains active after the form/window that caused its creation closes if the host has chosen to keep it in the workspace. The host explicitly retires it when appropriate, or the application shutdown policy retires all live instances.
 
 ### Required capabilities
 
@@ -152,7 +163,8 @@ The runtime instance may disappear when its host context closes, unless the host
 - [ ] Apply host-generated system/context information at runtime without mutating the stored profile.
 - [ ] Attach UI/application/data/task context according to explicit permissions.
 - [ ] Associate the instance with its source context ID.
-- [ ] Retire the instance when the host context closes.
+- [ ] Keep the instance alive independently from the source form when the host policy requires it.
+- [ ] Explicitly retire an instance.
 - [ ] Optionally persist runtime state when the host requires restart/recovery.
 
 ## 0.9 Memory isolation and ownership
@@ -162,14 +174,16 @@ Every runtime agent instance must be able to use a distinct memory ownership ide
 Example:
 
 ```text
-Invoice profile
-    ├── Invoice agent instance #184
+Invoice Specialist profile
+    ├── runtime instance A
     │     └── private memory
-    ├── Invoice agent instance #219
+    ├── runtime instance B
     │     └── private memory
-    └── Invoice agent instance #305
+    └── runtime instance C
           └── private memory
 ```
+
+Because a specialist may represent a whole data domain rather than one record, its private memory can contain durable observations about the domain, schema, workflow, and previous work according to the host's policy. Record-specific memories require an additional context/ownership boundary when necessary.
 
 Memory sharing must be explicit through workspace/application/group scopes. One agent must not read another agent's private memory merely because both use the same profile.
 
@@ -245,12 +259,13 @@ At minimum cover:
 - independent memories;
 - workspace routing with one default recipient;
 - direct user-to-specialist routing;
-- manager-to-specialist delegation;
-- specialist-to-manager response routing;
+- visible coordinator-to-specialist delegation and specialist-to-coordinator response;
+- only intended recipients executing model requests;
 - routing-loop protection;
 - cancellation/stale-result protection;
-- runtime-instance retirement;
-- optional persistence isolation for multiple host/user instances.
+- explicit runtime-instance retirement;
+- instance persistence isolation for multiple host/user instances;
+- specialist inspection of a whole domain/data source without assuming a single record identity.
 
 ## Non-goals
 

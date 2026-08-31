@@ -65,7 +65,7 @@ The SQL Server and MySQL bootstrappers use `HAgentSchemaInfo` as the schema-vers
 
 SQL Server is currently at schema version 2. Its v1-to-v2 migration adds idempotent indexes supporting bounded memory and conversation retrieval.
 
-MySQL is currently at schema version 3. Its v1-to-v2 migration preserves the earlier `HAgentTools.ToolType` compatibility upgrade, and its v2-to-v3 migration adds idempotent indexes supporting bounded memory and conversation retrieval. MySQL bootstrap and migrations execute statements separately so MariaDB deployments do not depend on multi-statement command execution.
+MySQL is currently at schema version 3. Its v1-to-v2 migration preserves the legacy `HAgentTools.ToolType` compatibility upgrade, and its v2-to-v3 migration adds idempotent indexes supporting bounded memory and conversation retrieval. MySQL bootstrap and migrations execute statements separately so MariaDB deployments do not depend on multi-statement command execution.
 
 Unknown future schema versions are rejected rather than silently downgraded or skipped. Migrations operate only on HAgent-owned objects.
 
@@ -90,6 +90,10 @@ The Example startup path does not terminate when the configured HAgent storage b
 The Example's Configuration action also has a recovery path that opens the Storage settings directly when the active backend cannot be opened. It therefore never requires a successful database connection merely to repair database settings.
 
 The database bootstrappers consume the selected SQL Server/MySQL profile directly. They no longer read the legacy top-level connection fields during database creation or schema initialization.
+
+### Tool execution correlation metadata
+
+Tool execution context and results carry execution-local correlation metadata: correlation ID, agent ID, tool ID, model tool-call ID, start/completion timestamps, and derived duration. Validation, disabled-tool, and missing-tool failures use the same metadata shape so callers can correlate rejected attempts as well as successful executions. This is runtime metadata only; persistent audit storage remains a separate capability.
 
 ### Storage foundation
 

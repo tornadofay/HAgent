@@ -33,7 +33,10 @@ namespace HAgent.Storage.File
             try
             {
                 var json = System.IO.File.ReadAllText(_path);
-                return Task.FromResult(JsonSerializer.Deserialize<HAgentStorageOptions>(json, Options));
+                var options = JsonSerializer.Deserialize<HAgentStorageOptions>(json, Options);
+                if (options != null)
+                    MigrateLegacySelectedProfile(options);
+                return Task.FromResult(options);
             }
             catch (JsonException ex)
             {
@@ -60,7 +63,42 @@ namespace HAgent.Storage.File
             if (savedOptions == null || savedOptions.StorageType != options.StorageType)
                 throw new InvalidDataException("HAgent storage configuration was not persisted with the selected storage backend.");
 
+            if (options.StorageType != HAgentStorageType.File)
+            {
+                var expected = options.GetDatabaseProfile(options.StorageType);
+                var actual = savedOptions.GetDatabaseProfile(savedOptions.StorageType);
+                if (!ProfilesEqual(expected, actual))
+                    throw new InvalidDataException("HAgent database connection profile was not persisted correctly for the selected storage backend.");
+            }
+
             return Task.CompletedTask;
+        }
+
+        private static void MigrateLegacySelectedProfile(HAgentStorageOptions options)
+        {
+            if (options == null || options.StorageType == HAgentStorageType.File)
+                return;
+
+            var profile = options.GetDatabaseProfile(options.StorageType);
+            if (profile == null || !string.IsNullOrWhiteSpace(profile.ServerName))
+                return;
+
+            if (string.IsNullOrWhiteSpace(options.ServerName))
+                return;
+
+            profile.ServerName = options.ServerName;
+            profile.Port = options.Port;
+            profile.UserName = options.UserName ?? string.Empty;
+            profile.PasswordSecretId = options.PasswordSecretId ?? string.Empty;
+        }
+
+        private static bool ProfilesEqual(HAgentDatabaseStorageOptions left, HAgentDatabaseStorageOptions right)
+        {
+            if (left == null || right == null) return left == right;
+            return string.Equals(left.ServerName, right.ServerName, StringComparison.Ordinal)
+                && left.Port == right.Port
+                && string.Equals(left.UserName, right.UserName, StringComparison.Ordinal)
+                && string.Equals(left.PasswordSecretId, right.PasswordSecretId, StringComparison.Ordinal);
         }
 
         private static JsonSerializerOptions CreateOptions()

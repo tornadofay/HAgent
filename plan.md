@@ -348,7 +348,7 @@ The SQL Server and MySQL bootstrappers use `HAgentSchemaInfo` as the schema-vers
 
 SQL Server is currently at schema version 2. Its v1-to-v2 migration adds idempotent indexes supporting bounded memory and conversation retrieval.
 
-MySQL is currently at schema version 3. Its v1-to-v2 migration preserves the earlier `HAgentTools.ToolType` compatibility upgrade, and its v2-to-v3 migration adds idempotent indexes supporting bounded memory and conversation retrieval.
+MySQL is currently at schema version 3. Its v1-to-v2 migration preserves the earlier `HAgentTools.ToolType` compatibility upgrade, and its v2-to-v3 migration adds idempotent indexes supporting bounded memory and conversation retrieval. MySQL bootstrap and migrations execute statements separately so MariaDB deployments do not depend on multi-statement command execution.
 
 Unknown future schema versions are rejected rather than silently downgraded or skipped. Migrations operate only on HAgent-owned objects.
 

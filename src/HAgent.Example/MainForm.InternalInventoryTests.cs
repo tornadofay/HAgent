@@ -10,6 +10,19 @@ namespace HAgent.Example
 {
     internal sealed partial class MainForm
     {
+        private void AddInternalInventoryTab()
+        {
+            AddApiTab(
+                "Internal Inventory",
+                "Run inventory test",
+                "Reads bounded non-secret metadata from the HAgent-owned provider, agent, and tool repositories using the currently selected storage backend.",
+                "The test should identify the selected backend, return no more than one item per category, expose no credential/secret metadata, and perform no writes.",
+                "maxItems = 1",
+                TestInternalInventoryAsync,
+                "Internal storage boundary",
+                "This tool can inspect HAgent-owned data only. It does not expose provider secrets, database credentials, executable handlers, or host application data.");
+        }
+
         private async Task TestInternalInventoryAsync(string input)
         {
             var options = await LoadStorageOptionsAsync(CancellationToken.None).ConfigureAwait(false);

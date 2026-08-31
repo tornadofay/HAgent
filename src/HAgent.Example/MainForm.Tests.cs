@@ -85,11 +85,10 @@ namespace HAgent.Example
         {
             var selection = await CreateClientAndAgentAsync();
             var request = RequireInput(firstMessage);
-            var conversationPath = Path.Combine(_basePath, "conversations");
             var sessionId = "example-" + Guid.NewGuid().ToString("N");
-
+            var firstConversationStore = await CreateConfiguredConversationStoreAsync().ConfigureAwait(true);
             string originalTranscript;
-            var firstConversationStore = new FileConversationStore(conversationPath);
+
             try
             {
                 var firstStore = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
@@ -109,10 +108,11 @@ namespace HAgent.Example
             }
             finally
             {
-                firstConversationStore.Dispose();
+                var disposable = firstConversationStore as IDisposable;
+                if (disposable != null) disposable.Dispose();
             }
 
-            var secondConversationStore = new FileConversationStore(conversationPath);
+            var secondConversationStore = await CreateConfiguredConversationStoreAsync().ConfigureAwait(true);
             try
             {
                 var secondStore = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
@@ -132,14 +132,21 @@ namespace HAgent.Example
                 if (!retained)
                     throw new InvalidOperationException("The reopened session did not retain the original user message.");
 
+                var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
+                var conversationStoreType = secondConversationStore.GetType().Name;
+                var storageDescription = options.StorageType.ToString();
+                var persistenceLocation = options.StorageType == HAgentStorageType.File
+                    ? Path.Combine(options.GetEffectiveRootPath(), "conversations", sessionId + ".json")
+                    : "HAgentConversations in " + options.GetEffectiveDatabaseName();
+
                 Write("PERSISTENT SESSION", "Session ID: " + sessionId + Environment.NewLine +
-                                          "File: " + Path.Combine(conversationPath, sessionId + ".json") + Environment.NewLine +
+                                          "Storage backend: " + storageDescription + Environment.NewLine +
+                                          "Conversation store: " + conversationStoreType + Environment.NewLine +
+                                          "Persistence location: " + persistenceLocation + Environment.NewLine +
                                           "Agent: " + selection.Agent.Name + Environment.NewLine +
                                           "Provider: " + selection.Provider.Name + Environment.NewLine +
                                           "Model: " + selection.Model + Environment.NewLine +
                                           "Persistence test succeeded." + Environment.NewLine +
-                                          "Conversation store: FileConversationStore" + Environment.NewLine +
-                                          "AI store backend: selected HAgent storage backend" + Environment.NewLine +
                                           "Messages retained after reopening: " + reopenedRead.Messages.Count + Environment.NewLine +
                                           "Original transcript:" + Environment.NewLine + originalTranscript + Environment.NewLine +
                                           "Reopened transcript:" + Environment.NewLine +
@@ -149,7 +156,8 @@ namespace HAgent.Example
             }
             finally
             {
-                secondConversationStore.Dispose();
+                var disposable = secondConversationStore as IDisposable;
+                if (disposable != null) disposable.Dispose();
             }
         }
 

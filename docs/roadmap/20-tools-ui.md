@@ -4,13 +4,11 @@
 
 Tool definitions, validation, persistence, per-agent assignment, provider tool transport, deterministic tool loops, and live Groq tool calling are implemented.
 
-Remaining tool work:
+Remaining tool hardening:
 
 - [ ] Per-session temporary tools.
 - [ ] Built-in tool handlers.
 - [ ] Declarative execution engine.
-- [ ] SQL Server tool execution layer.
-- [ ] MySQL tool execution layer.
 - [ ] Tool aliases/versioning.
 - [ ] Tool timeout/cancellation/progress.
 - [ ] Tool audit/history and budgets.
@@ -28,86 +26,91 @@ The permission model is a shared authorization concept, not just a WinForms chec
 - [ ] Budgets and observability.
 - [ ] Sensitive-data redaction.
 
-The first WinForms policy UI persists the currently supported coarse permissions with safe defaults. Database-specific permissions and approval workflows remain separate work.
+The first WinForms policy UI persists coarse permissions with safe defaults. Database-specific permissions and approval workflows remain separate work.
 
-## 0.7 UI Context + Automation
+## 0.7 WinForms UI Context + Data Discovery — COMPLETE
 
 The public concept is **UI Context / Control Adapters**. “Form serialization” is only one possible implementation technique inside a broader system.
 
-### Two development modes
+Completed capabilities include:
 
-1. **Explicit domain abstraction** — the developer can expose typed application concepts such as Customer, Contact, Invoice, or a custom view-model/tool. This is the preferred option for high-control and sensitive applications.
-2. **Automatic UI/data discovery** — HAgent can inspect controls, bindings, and data sources when explicitly enabled by policy. Automatic discovery is convenience, never authority.
+- Form and arbitrary control-tree/UserControl attachment with stable root identity.
+- Read-only inspection and bounded control/data reads.
+- Semantic control discovery.
+- Bound/native data-source discovery for `DataTable`, `DataView`, `BindingSource`, `IList`, arrays, and compatible collections.
+- CurrencyManager/current-item/position/count relationship metadata.
+- Control-to-source relationship discovery based on actual bindings.
+- Convention-based application control adapters, including external `IHyperControl`-style controls.
+- Live application-object attachment and bounded structural discovery.
+- `maxDepth` and `maxCollectionItems` limits.
+- Provider-neutral structured data-query contract: fields, scalar filters, sorting, and bounded paging without SQL or executable expressions.
+- Local `HAgent.Example` verification of the complete 0.7 slice.
 
-### Implemented foundation
+## 0.8 Data Access + Authorization
 
-- [x] `IUiContext` / `WinFormsUiContext`.
-- [x] Stable WinForms control lookup.
-- [x] Same-thread lifecycle-safe inspection even before a native form handle exists.
-- [x] UI-thread-safe cross-thread reads when a handle exists.
-- [x] `UiControlSnapshot`.
-- [x] `ui.inspect`.
-- [x] `ui.read_control`.
-- [x] `ui.read_data`.
-- [x] Bound/native `DataGridView` source preference.
-- [x] Bounded extraction and lazy adaptation.
-- [x] `DataTable` explicitly optional, not the architectural default.
-- [x] Coarse `UiAutomationPermissions` with safe defaults.
-- [x] Read-only UI tools enforce the policy.
-- [x] Explicit permission-aware `HAgentHost.Attach(...)` overload.
+This is the next major platform milestone. The goal is to convert the verified discovery/query contracts into safe, real application and database data access.
 
-### Automatic application understanding
+### Application data
 
-- [x] UI Context can attach to a Form or an arbitrary WinForms control tree such as a UserControl with an explicit stable root ID.
-- [x] Semantic and data-source discovery can traverse an attached control-tree root without requiring a Form.
-- [x] UserControl attachment, stable root identity, nested read access, semantic discovery, and bound data-source discovery verified locally in `HAgent.Example`.
-- [x] `BindingSource` data reads use the native bound list without intermediate `DataTable` normalization.
-- [x] Data-source descriptors expose observable BindingSource/CurrencyManager relationship metadata including source kind, underlying source type, list type, binding path, currency-manager type, position, and count.
-- [x] Native `IList` sources expose CurrencyManager position, count, item type, current-item type, and field metadata without copying the current item into the descriptor.
-- [x] UI data relationship discovery reports actual control/source relationships and controls sharing the same native source without inferring domain meaning.
-- [x] UI data-source discovery tools operate from `RootControl`, so UserControl attachments do not require a Form root.
-- [ ] Semantic control labels and logical IDs beyond raw control names.
-- [ ] Lightweight semantic projections without unnecessary copying.
-- [ ] Optional application-defined semantic adapters for Customer/Invoice/etc.
-- [ ] Restricted data-query abstraction that can target application data, SQL Server, or MySQL without exposing arbitrary SQL by default.
-- [ ] Cross-form context and memory under explicit scope/policy.
+- [ ] Application-owned data adapter implementing `IDataQuerySource`.
+- [ ] Schema/field allow-list independent of model requests.
+- [ ] Query authorization by source/table/field/operation.
+- [ ] Projection, query, export, and write permissions separated.
+- [ ] Query limits, cancellation, timeout, and resource budgets.
 
-### Permission design
+### SQL Server / MySQL
 
-Automatic UI/data behavior should be configurable at a coarse level first:
+- [ ] Restricted SQL Server query adapter using generated parameterized commands only.
+- [ ] Restricted MySQL query adapter using generated parameterized commands only.
+- [ ] Schema discovery restricted to explicitly authorized databases/schemas.
+- [ ] No arbitrary SQL tool.
+- [ ] Read-only database operations before write operations.
+- [ ] Database operation audit metadata and correlation IDs.
+
+### Live Example verification
+
+When the SQL adapter is ready, `HAgent.Example` should expose temporary connection fields for an explicitly disposable/read-only test database:
 
 ```text
-Automatic discovery
-Read controls
-Read data
-Write controls
-Invoke controls
+Server Name
+User Name
+Password
+Database
 ```
 
-Hosts may disable automatic behavior entirely and provide their own abstractions and authorization logic.
+These are runtime test inputs only. They must not be persisted as agent/tool configuration or written to normal Example output/logging. The Example should verify connection, schema allow-listing, structured query execution, bounded results, cancellation/timeout, and rejection of unauthorized fields/operations.
 
-Database permissions are separate from UI permissions. The presence of provenance, a form attachment, or an agent instruction never grants authorization.
+### Authorization and safety
 
-### UI automation
+- [ ] Host authorization callbacks.
+- [ ] Explicit approval lifecycle for sensitive database operations.
+- [ ] Sensitive-field redaction policies.
+- [ ] No authorization inferred from UI binding, object provenance, table metadata, or model instructions.
 
-- [x] Permissions configuration page in AI Settings.
-- [x] Persist permission policy through the public settings path.
-- [x] Form/UserControl attachment and stable logical identity.
-- [ ] Floating HAgent assistant/flyout.
+## 0.9 UI Automation + Agent Scope + Chat
+
+UI write/invoke behavior should begin only after the 0.8 authorization foundation is established.
+
 - [ ] `ui.write_control`.
-- [ ] `ui.move_control`.
-- [ ] `ui.resize_control`.
 - [ ] `ui.invoke` / approved click.
-- [ ] Enable/disable operations.
+- [ ] Move/resize/enable/disable operations.
 - [ ] Batch operations.
 - [ ] Dry-run/preview.
 - [ ] Human approval.
 - [ ] Per-control permissions.
-- [ ] Undo/rollback hooks where host controls support them.
+- [ ] Undo/rollback hooks where hosts support them.
+- [ ] Agent profile separated from runtime binding/lifetime.
+- [ ] Application/global, form, session, task, and ephemeral scopes.
+- [ ] User ↔ agent chat with global/form agent selector.
+- [ ] Persistent conversations and conversation switching/search.
+- [ ] Streaming UI and tool activity visualization.
+- [ ] Reasoning visibility policy.
+- [ ] Cancel/stop and simultaneous conversations.
+- [ ] Cross-form memory governed by explicit scope and authorization policy.
 
-### Cross-platform direction
+## Cross-platform UI direction
 
-The boundary should remain provider-neutral so the same concepts can later be implemented by adapters for:
+The same UI-context concepts should later be available through adapters for:
 
 - HControl/BaseForm and custom controls.
 - GDI-rendered objects and scenes.
@@ -115,28 +118,21 @@ The boundary should remain provider-neutral so the same concepts can later be im
 - Unity components/scenes.
 - Other interactive application surfaces.
 
-These platform implementations belong outside `HAgent.Core`.
+These platform implementations remain outside `HAgent.Core`.
 
-### Data representation rule
+## Data representation rule
 
 Always use the lightest representation that preserves the required information. Prefer bound/native sources, lazy adapters, projections, paging, and streaming. Avoid unnecessary copying/materialization. `DataTable` is valid when naturally present or actually useful, but it is never the mandatory representation.
 
 ## Example developer experience
 
-Every Example feature should provide:
+Every meaningful Example feature should provide:
 
-- editable input/message;
+- editable input/message when the capability has meaningful user input;
 - expected behavior and explanation;
 - copyable C# reproduction snippet beside the input;
 - global agent selection where an agent is involved;
-- a global output area when the result can be shared across examples;
-- a self-contained setup snippet or a clearly identified shared setup section so a new developer can reproduce the example without guessing what `ai`, stores, providers, or adapters represent.
+- a global output area when the result can be shared;
+- a self-contained setup snippet or clearly identified shared setup section.
 
-## Future
-
-- [ ] Chat between user and selected agent.
-- [ ] Agent-to-agent messaging board.
-- [ ] Agent collaboration and handoffs.
-- [ ] Tasks/workflows/background execution.
-- [ ] Additional provider adapters.
-- [ ] Extension/DLL ecosystem.
+SQL connection fields are a future live-integration Example feature, not part of the provider-neutral Core contract.

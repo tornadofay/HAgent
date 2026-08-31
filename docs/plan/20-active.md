@@ -54,6 +54,8 @@ Database storage exposes an explicit TCP port with protocol defaults of 1433 for
 
 The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI/output, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected and the application restarted.
 
+The Example's Configuration action also has a recovery path that opens the Storage settings directly when the active backend cannot be opened. It therefore never requires a successful database connection merely to repair database settings.
+
 ### Storage foundation
 
 `HAgent.Core` provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, database port, and non-secret connection metadata. Database passwords remain outside this ordinary configuration model.

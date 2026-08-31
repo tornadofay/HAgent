@@ -154,51 +154,55 @@ Implemented and locally verified:
 
 These phases establish the base on which the remaining roadmap is built. The next work is not another UI discovery feature; it is safe real data access followed by the runtime-agent model required for multi-agent hosts and HWorld.
 
-## Phase 0.8 — Data Access + Authorization
+## Phase 0.8 — Data Access + Authorization + Internal Storage
 
 ## Goal
-Turn the verified data-discovery and structured-query contracts into safe real application/database access.
+Provide bounded structured data contracts and establish HAgent-owned persistence across File, SQL Server, and MySQL backends without ever using HAgent storage as access to a host application's business database.
 
 ## Steps
 
-1. [x] Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
-2. [x] Authoritative schema/field allow-list independent of model requests.
-3. [x] Separate permissions for discovery, projection/query, export, and write operations.
-4. [x] Host authorization callback contract.
-5. [x] Query/result limits, cancellation, timeout, and resource budgets.
-6. [x] Restricted SQL Server read adapter using generated parameterized commands only.
-7. [ ] Restricted MySQL read adapter using generated parameterized commands only.
-8. [ ] Database audit/correlation metadata.
-9. [ ] Read-only database tools before database writes.
-10. [ ] Live `HAgent.Example` integration against a disposable/read-only test database.
+1. [x] Application-owned structured-query contract and authoritative field schema.
+2. [x] Separate data-operation permissions and request-specific host authorization contracts.
+3. [x] Query/result limits, cancellation, timeout, and resource budgets.
+4. [x] HAgent internal storage backend configuration for File, SQL Server, and MySQL.
+5. [x] Application-specific File storage layout.
+6. [x] SQL Server HAgent database creation and initial schema bootstrap.
+7. [x] MySQL HAgent database creation and initial schema bootstrap.
+8. [ ] Wire providers, agents, tools, memory, conversations, skills, wiki/content, and runtime repositories to the selected backend.
+9. [ ] Versioned schema migrations beyond the initial bootstrap version.
+10. [ ] Read-only HAgent internal data tools, audit/correlation metadata, and live Example verification before any internal writes beyond repository persistence.
+
+## Internal database naming
+
+The default HAgent database name is derived from the host application name using `<application-name>-ai`, for example `nap-ai` or `hworld-ai`. The host can override the database name explicitly.
+
+## File backend
+
+File storage is application-specific and rooted beneath the host executable directory in `HAgentData`, with dedicated areas for configuration, providers, agents, tools, skills, memory, conversations, wiki, runtime, cache, and logs.
+
+## Database backends
+
+SQL Server and MySQL storage providers receive server name and username as persisted configuration metadata and a password through the secret/runtime boundary. They connect to the server, create the HAgent-owned database if it does not exist, and initialize only HAgent-owned tables. Schema version metadata supports deterministic future migrations.
+
+The initial internal database schema contains provider, agent, tool, memory, conversation, skill, wiki document/chunk, and schema metadata tables. It must never inspect, alter, or query unrelated host application tables.
 
 ## Live Example
 
-The SQL integration Example provides runtime-only connection fields:
+The Example storage verification will exercise File, SQL Server, and MySQL initialization where the corresponding backend is configured. It will verify database creation when absent, idempotent initialization when present, schema version reporting, persistence through the HAgent repositories, and strict separation from host application data.
 
-```text
-Server Name
-User Name
-Password
-Database
-```
-
-It targets an explicitly disposable/read-only `dbo.HAgentExampleCustomers` table and verifies connection, authorization, schema/field allow-listing, structured queries, bounded results, cancellation/timeout, and rejection of unauthorized operations. Connection values must never become persistent agent/tool configuration or normal logs.
-
-The SQL Server adapter generates only restricted structured `SELECT` statements. Projected, filtered, and sorted identifiers come from validated schema/table identifiers; scalar filter and paging values are parameters. No raw SQL request surface or database writes are exposed.
+Connection values must never become persisted agent/tool configuration or normal logs.
 
 ## Boundaries
 
-- No raw SQL tool.
-- No arbitrary SQL fragments in the structured query contract.
-- No implicit access to every table or field.
-- UI discovery, `TableInfo`-style metadata, provenance, or model instructions do not grant authorization.
-- Data-operation permission policy and request-specific host authorization are separate controls.
-- Database passwords remain in the secret/connection boundary.
+- No raw SQL from model input.
+- No implicit access to the host application's business database.
+- HAgent storage providers are internal persistence providers, not host database adapters.
+- Database passwords remain in the secret/runtime boundary.
+- UI discovery, object provenance, and model instructions do not grant database authorization.
 
 ## Exit criterion
 
-A host can authorize and execute a bounded structured read against its application or database source through the public HAgent abstractions, and the Example verifies both successful access and denied access cases.
+A host can select an HAgent-owned storage backend, initialize or upgrade it deterministically, and use HAgent repositories against it without HAgent gaining access to the host application's business database.
 
 ## Phase 0.9 — Runtime Agent Instances
 

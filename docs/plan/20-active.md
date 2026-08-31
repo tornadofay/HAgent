@@ -18,6 +18,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] SQL Server HAgent database creation and schema bootstrap foundation.
 - [x] MySQL HAgent database creation and schema bootstrap foundation.
 - [x] Example agent/provider/prompt loading follows the selected internal storage backend.
+- [x] Storage changes that affect the active runtime are identified as restart-required.
 - [ ] Wire all internal repositories to the selected storage backend.
 - [ ] Versioned schema migrations beyond the initial bootstrap version.
 - [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
@@ -30,6 +31,8 @@ The Example now resolves its `IAiStore` and tool-definition store from `HAgentSt
 The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, and client creation. This prevents the UI from displaying one backend's agents while runtime execution uses another backend.
 
 SQL Server and MySQL resolution bootstraps the HAgent-owned database before creating the corresponding internal repositories. No host application database is used by this resolution path.
+
+Storage settings that change the backend, application identity/path, database target, server, username, or related connection identity are persisted as configuration for the next process lifetime. The Storage UI informs the user that an application restart is required after such a change so the running HAgent instance does not silently mix storage backends.
 
 ### Storage foundation
 

@@ -37,7 +37,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Agent execution correlation ID and audit-safe execution projection foundation.
 - [x] Bounded persistent execution audit store for File, SQL Server, and MySQL.
 - [x] Bounded HAgent internal execution-audit read-tool foundation with agent isolation.
-- [ ] Wire automatic terminal execution auditing and retention policy into the runtime.
+- [x] Automatic terminal execution auditing with bounded retention.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles
@@ -106,9 +106,11 @@ Agent executions now also receive an immutable `CorrelationId` at execution crea
 
 `AgentExecutionAuditRecord` provides a secret-safe, payload-free projection of execution metadata for observability and audit persistence. It contains execution/correlation IDs, agent identity, model, selected provider identity, lifecycle timing, state, and classified failure metadata while excluding prompts, message contents, response text, secret values/IDs, raw connection strings, and raw exceptions.
 
-`IExecutionAuditStore` persists these audit records through File, SQL Server, and MySQL implementations. Reads are explicitly bounded and can target execution ID, correlation ID, or agent ID. The relational implementations use the HAgent-owned `HAgentExecutionAudits` table; the File implementation uses an HAgent-owned audit JSONL file. Audit persistence remains explicit and does not automatically capture execution payloads.
+`IExecutionAuditStore` persists these audit records through File, SQL Server, and MySQL implementations. Reads are explicitly bounded and can target execution ID, correlation ID, or agent ID. The relational implementations use the HAgent-owned `HAgentExecutionAudits` table; the File implementation uses an HAgent-owned audit JSONL file. Audit persistence remains explicit at the Core boundary and does not automatically capture payloads.
 
 `HAgentInternalExecutionAuditTool` exposes persisted audit metadata as a trusted read-only capability. Requests are bounded to 50 records, require an execution/correlation/agent target, and cannot use a model-supplied agent ID to redirect a request away from the requesting agent when an execution identity is present.
+
+`DefaultAgentRuntime` accepts an optional execution-audit store. When configured, it automatically persists one payload-free audit record at terminal success, failure, timeout, or cancellation. Audit persistence is non-fatal and uses independent retention cleanup; a failed audit write never changes the primary execution outcome. Automatic retention keeps the newest 5,000 records and removes older audit metadata only.
 
 ### Internal inventory read tool
 

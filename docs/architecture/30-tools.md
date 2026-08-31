@@ -31,6 +31,14 @@ Each tool execution carries execution-local correlation metadata. The execution 
 
 Correlation metadata is execution state, not permission. It does not authorize a tool, expand its arguments, or grant access to host resources. Persistent audit storage is a separate capability and is not implied by these runtime fields.
 
+## HAgent internal read tools
+
+HAgent may expose selected HAgent-owned repositories through trusted built-in read tools. The first foundation is `HAgentInternalInventoryTool`, which reports a bounded inventory of providers, agents, and persisted tool definitions.
+
+The inventory tool accepts an optional `maxItems` argument. The default is 50 and the hard maximum is 100 items per category. It propagates caller cancellation and returns only non-secret metadata such as IDs, names, relationships, enabled state, and tool type. Provider secrets, passwords, raw connection strings, arbitrary storage records, and executable handlers are not returned.
+
+An internal read tool remains a trusted capability boundary. Registering it is an explicit host/runtime decision; the tool does not grant the model authority to inspect unrelated host application data or bypass other HAgent permissions.
+
 ## Tool loops
 
 Provider tool calls may be processed through a bounded multi-turn loop. Loop limits, cancellation, timeouts, and failures remain runtime concerns.

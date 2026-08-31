@@ -77,7 +77,5 @@ Execution is asynchronous, cancellable, bounded, and correlated. External schedu
 - [Context and application understanding](architecture/20-context.md)
 - [Tools](architecture/30-tools.md)
 - [Security and authorization](architecture/40-security.md)
-- [Storage](architecture/50-storage.md)
+- [Storage](storage.md)
 - [HWorld integration](architecture/60-hworld.md)
-
-For persistence-specific table/backend details, see [`docs/storage.md`](storage.md).

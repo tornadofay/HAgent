@@ -71,11 +71,11 @@ caller context snapshot
 
 Execution is asynchronous, cancellable, bounded, and correlated. External schedulers do not need to block while a provider responds.
 
-## Detailed documents
+## Architecture references
 
-- [Runtime and agents](architecture/10-runtime.md)
-- [Context and application understanding](architecture/20-context.md)
-- [Tools](architecture/30-tools.md)
-- [Security and authorization](architecture/40-security.md)
-- [Storage](storage.md)
-- [HWorld integration](architecture/60-hworld.md)
+- `docs/architecture/10-runtime.md` — provider-neutral execution and runtime-agent architecture.
+- `docs/architecture/20-context.md` — UI, data, application-object, and host context.
+- `docs/architecture/30-tools.md` — structured tool definitions and host-owned execution.
+- `docs/architecture/40-security.md` — authorization, permissions, approval, budgets, and guardrails.
+- `docs/storage.md` — persistence backends, secrets, and stored versus runtime state.
+- `docs/architecture/60-hworld.md` — HWorld integration boundary.

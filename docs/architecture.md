@@ -1,118 +1,83 @@
 # HAgent architecture
 
-`HAgent` is a general-purpose agent runtime. It connects LLM/provider execution and reusable agent capabilities to a host application, game, simulation, or simple chat experience.
+HAgent is a general-purpose, provider-neutral agent runtime for .NET applications. A host may use it for simple chat, business software, games, simulations, or other environments.
 
-The architecture has five stable concerns:
+## System model
 
 ```text
-Host Application
+Host application
       |
-      v
-Context  <---->  Runtime Agents  <---->  Workspace
-   |                    |                   |
- UI / Data / App     Execution           Messages
- External context      Memory            Routing
-      |                    |                   |
-      +--------------------+-------------------+
-                           |
-                         Tools
-                           |
-                     Providers / LLMs
+      +--> Context -----------------------+
+      |      UI / Data / Application     |
+      |                                   v
+      +--> Runtime agents ----------> Workspace
+      |        |                          |
+      |        v                          v
+      |     Providers                  Messages
+      |     Memory                     Routing
+      |     Tools
+      |
+      +--> Host-side authorization and side effects
 ```
 
-## Core boundaries
+## Stable boundaries
 
-- `HAgent.Core` owns provider-neutral models, runtime execution, memory/context abstractions, tools, workspaces, and authorization contracts.
-- Provider adapters own provider-specific transport and capability discovery.
-- Storage assemblies own persistence.
-- `HAgent.WinForms` owns WinForms UI Context and control/data adapters.
-- Host applications own their business/domain types and real-world side effects.
-- HWorld is an external consumer. HAgent never references HWorld.
+`HAgent.Core` owns provider-neutral runtime models, execution, memory/context abstractions, tools, and future workspace/coordination primitives.
 
-## Agent profile vs runtime instance
+Provider assemblies own transport and provider-specific behavior. Storage assemblies own persistence. `HAgent.WinForms` owns WinForms UI Context/control/data adapters. Host applications own business/domain types and authoritative side effects.
 
-A persisted agent profile is reusable configuration:
+HWorld is an external consumer, not a HAgent dependency.
+
+## Core concepts
+
+### Agent Profile
+
+Reusable persistent configuration: provider/model preferences, system prompt, generation settings, and tool references.
+
+### Runtime Agent Instance
+
+One live agent identity created from a profile. It has its own runtime ID, scope, context bindings, memory ownership, and execution lifecycle. Many runtime instances may come from one profile.
+
+### Context
+
+Host-supplied information that tells an agent what it is allowed to know. Context may come from UI, data sources, application objects, tasks, or external environments.
+
+### Tool
+
+A structured capability request. Definitions describe the contract; trusted handlers perform execution. Tool handlers are never serialized.
+
+### Workspace
+
+An optional shared communication context containing users and agent participants. Messages have explicit senders and recipients. An unaddressed user message goes only to the workspace default recipient.
+
+### Memory
+
+Memory belongs to explicit ownership/scope. Private runtime-agent memory and shared workspace/application memory are separate concepts.
+
+### Authorization
+
+Discovery is not authority. Permissions, authorization, approval, budgets, and host-side validation determine what operations may actually occur.
+
+## Execution flow
 
 ```text
-Agent Profile
-    provider/model
-    system prompt
-    tools
-    defaults
+caller context snapshot
+        -> runtime agent instance
+        -> provider/model execution
+        -> normalized response / tool request
+        -> trusted tool handler or host-side result
+        -> caller
 ```
 
-A runtime agent instance is one live identity created from a profile:
+Execution is asynchronous, cancellable, bounded, and correlated. External schedulers do not need to block while a provider responds.
 
-```text
-Runtime Agent Instance
-    instance ID
-    profile ID
-    scope
-    memory owner
-    execution state
-    host/context bindings
-```
-
-Many runtime instances may come from one profile. Runtime instances are not permanent configuration entries by default.
-
-## Context
-
-HAgent accepts context supplied by the host. The host decides what the agent is allowed to know.
-
-Supported context patterns include:
-
-- UI Context / control adapters.
-- Data-source and structured query context.
-- Live application-object context with bounded inspection.
-- Caller-created observation/context snapshots.
-- Future platform-specific adapters.
-
-Discovery is descriptive. Authorization is separate.
-
-## Tools
-
-Tool definitions describe what an agent may request. Trusted runtime handlers decide what the host actually executes.
-
-Tool categories currently defined are BuiltIn, Application, Declarative, UI, SqlServer, and MySql. Extension tools are deferred.
-
-Executables are never persisted as tool configuration.
-
-## Workspace and communication
-
-A workspace is optional. It allows several participants to share one conversation/context while keeping model execution targeted.
-
-```text
-User -> default recipient
-User -> explicit recipient
-Agent -> explicit recipient
-```
-
-Messages are not automatically broadcast. Visible agent-to-agent dialogue is a workspace feature; only the addressed participant starts an LLM execution for that message unless an explicit policy says otherwise.
-
-## Memory
-
-Memory ownership follows runtime identity rather than profile identity when isolated agent state is required. Shared memory must be explicitly scoped and authorized.
-
-## Security rule
-
-The model is never the security boundary. Permissions, authorization callbacks, approvals, limits, and host-side validation remain outside system-prompt instructions.
-
-## External consumers
-
-The same HAgent runtime can serve:
-
-- simple one-agent chat;
-- business applications with coordinator and contextual specialists;
-- games and simulations;
-- HWorld actors.
-
-The host controls domain truth and side effects. HAgent supplies generic cognition/runtime capabilities.
-
-## Detailed architecture
+## Detailed documents
 
 - [Runtime and agents](architecture/10-runtime.md)
 - [Context and application understanding](architecture/20-context.md)
 - [Tools](architecture/30-tools.md)
 - [Security and authorization](architecture/40-security.md)
-- [Storage](../storage.md)
+- [Storage](architecture/50-storage.md)
 - [HWorld integration](architecture/60-hworld.md)
+
+For persistence-specific table/backend details, see [`docs/storage.md`](storage.md).

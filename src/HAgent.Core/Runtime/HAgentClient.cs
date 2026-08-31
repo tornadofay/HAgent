@@ -21,21 +21,24 @@ namespace HAgent.Runtime
         private readonly AiModelCapabilityCache _capabilityCache = new AiModelCapabilityCache();
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
-            : this(store, secrets, adapters, null, null, null, null, null) { }
+            : this(store, secrets, adapters, null, null, null, null, null, null) { }
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router)
-            : this(store, secrets, adapters, router, null, null, null, null) { }
+            : this(store, secrets, adapters, router, null, null, null, null, null) { }
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory)
-            : this(store, secrets, adapters, router, memory, null, null, null) { }
+            : this(store, secrets, adapters, router, memory, null, null, null, null) { }
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations)
-            : this(store, secrets, adapters, router, memory, conversations, null, null) { }
+            : this(store, secrets, adapters, router, memory, conversations, null, null, null) { }
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions)
-            : this(store, secrets, adapters, router, memory, conversations, contextOptions, null) { }
+            : this(store, secrets, adapters, router, memory, conversations, contextOptions, null, null) { }
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions, IConversationMemoryPolicy memoryPolicy)
+            : this(store, secrets, adapters, router, memory, conversations, contextOptions, memoryPolicy, null) { }
+
+        public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions, IConversationMemoryPolicy memoryPolicy, IExecutionAuditStore auditStore)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -44,7 +47,7 @@ namespace HAgent.Runtime
             _conversations = conversations;
             _contextBuilder = new ConversationContextBuilder(contextOptions);
             _memoryPolicy = memoryPolicy ?? (_memory == null ? null : new ExplicitConversationMemoryPolicy());
-            _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router);
+            _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router, null, auditStore);
         }
 
         public ConversationContextOptions ContextOptions { get { return _contextBuilder.Options; } }

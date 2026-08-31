@@ -27,6 +27,7 @@ namespace HAgent.WinForms.Forms
         private readonly TextBox _password = new TextBox();
         private readonly Label _resolvedDatabase = new Label();
         private readonly Label _status = new Label();
+        private HAgentStorageOptions _loadedOptions;
 
         private static readonly Color Surface = Color.FromArgb(248, 248, 252);
         private static readonly Color Text = Color.FromArgb(68, 62, 88);
@@ -184,10 +185,12 @@ namespace HAgent.WinForms.Forms
             var options = await _store.LoadAsync();
             if (options == null)
             {
+                _loadedOptions = null;
                 UpdateResolvedDatabase();
                 return;
             }
 
+            _loadedOptions = options;
             _storageType.SelectedItem = options.StorageType;
             _applicationName.Text = options.ApplicationName;
             _rootPath.Text = string.IsNullOrWhiteSpace(options.RootPath) ? AppContext.BaseDirectory : options.RootPath;
@@ -238,16 +241,27 @@ namespace HAgent.WinForms.Forms
                         throw new ArgumentException("Enter the database password before saving database storage settings.", nameof(_password));
                 }
 
+                var restartRequired = HasRestartRelevantChanges(options);
+
                 await _store.SaveAsync(options);
 
                 if (options.StorageType != HAgentStorageType.File && !string.IsNullOrEmpty(_password.Text))
                     await _secrets.SetAsync(DatabasePasswordSecretId, _password.Text);
 
+                _loadedOptions = options;
                 _password.Clear();
                 _status.Text = options.StorageType == HAgentStorageType.File
                     ? "Settings saved."
                     : "Settings saved. Database password is stored separately in the secret store.";
                 _status.ForeColor = Accent;
+
+                if (restartRequired)
+                {
+                    HMessage.ShowInformation(
+                        this,
+                        "The storage configuration has changed. Restart the application for the new storage backend or connection settings to take effect.",
+                        "HAgent Storage");
+                }
             }
             catch (Exception ex)
             {
@@ -255,6 +269,20 @@ namespace HAgent.WinForms.Forms
                 _status.ForeColor = Color.FromArgb(185, 28, 28);
                 HMessage.ShowException(this, "The HAgent storage settings could not be saved.", "HAgent Storage", ex);
             }
+        }
+
+        private bool HasRestartRelevantChanges(HAgentStorageOptions options)
+        {
+            if (_loadedOptions == null)
+                return false;
+
+            return _loadedOptions.StorageType != options.StorageType
+                || !string.Equals(_loadedOptions.ApplicationName, options.ApplicationName, StringComparison.Ordinal)
+                || !string.Equals(_loadedOptions.RootPath, options.RootPath, StringComparison.Ordinal)
+                || !string.Equals(_loadedOptions.DatabaseName, options.DatabaseName, StringComparison.Ordinal)
+                || !string.Equals(_loadedOptions.ServerName, options.ServerName, StringComparison.Ordinal)
+                || !string.Equals(_loadedOptions.UserName, options.UserName, StringComparison.Ordinal)
+                || !string.Equals(_loadedOptions.PasswordSecretId, options.PasswordSecretId, StringComparison.Ordinal);
         }
 
         private void UpdateVisibility()

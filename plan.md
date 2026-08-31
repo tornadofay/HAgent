@@ -153,7 +153,8 @@ A feature is marked complete only after its implementation exists and matching `
 - [x] `GetValue()` is integrated into `ReadControlAsync`; `SetValue(object)` is available at adapter level but remains outside the public UI write-tool surface until permission/approval work is complete.
 - [x] `HAgentApplicationContext` allows live application-owned objects to be attached by stable ID without serializing the object instance.
 - [x] `ReflectionApplicationObjectDiscovery` inspects bounded public property structure, scalar values, collection shape, and nested objects without executing arbitrary methods.
-- [ ] Local Example verification of the external-control adapter and application-object context.
+- [x] `HAgentApplicationContext.Attach` documents and enforces `maxDepth` and `maxCollectionItems` bounds for predictable resource usage.
+- [x] Custom-control adapter and application-object context Examples verified locally.
 - [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
 - [ ] Cross-form discovery/memory requires explicit scope and policy.
 - [x] The UI boundary remains outside `HAgent.Core`, allowing future HControl/BaseForm, GDI, DirectX, and Unity-style adapters.
@@ -169,7 +170,7 @@ A feature is marked complete only after its implementation exists and matching `
 - [x] Every current Example tab has a copyable C# reproduction snippet beside its input.
 - [ ] Every public-API snippet should become self-contained or link to a clearly identified shared setup snippet.
 - [ ] Keep snippets synchronized whenever a public API used by an example changes.
-- [x] Custom-control adapter and application-object context Examples are present; local verification remains pending.
+- [x] Custom-control adapter and application-object context Examples are present and verified.
 - [ ] Maintain focused partial test files instead of returning to one monolithic `MainForm` implementation.
 
 ## Documentation workflow

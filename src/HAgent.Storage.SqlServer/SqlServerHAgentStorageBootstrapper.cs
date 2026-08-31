@@ -65,12 +65,19 @@ namespace HAgent.Storage.SqlServer
 
         private static async Task EnsureDatabaseAsync(string serverConnection, string databaseName, CancellationToken cancellationToken)
         {
+            const string sql = @"
+IF DB_ID(@databaseName) IS NULL
+BEGIN
+    DECLARE @createDatabaseSql nvarchar(776);
+    SET @createDatabaseSql = N'CREATE DATABASE ' + QUOTENAME(@databaseName);
+    EXEC sys.sp_executesql @createDatabaseSql;
+END;";
+
             using (var connection = new SqlConnection(serverConnection))
-            using (var command = new SqlCommand(
-                "IF DB_ID(@databaseName) IS NULL EXEC('CREATE DATABASE ' + QUOTENAME(@databaseName));",
-                connection))
+            using (var command = new SqlCommand(sql, connection))
             {
                 command.Parameters.AddWithValue("@databaseName", databaseName);
+                command.CommandTimeout = 60;
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
                 await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }

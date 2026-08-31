@@ -101,7 +101,7 @@ namespace HAgent.Runtime
                                 var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
                                     ? string.Empty
                                     : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
-                                var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent);
+                                var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent, options.SystemPromptLayers);
                                 lastProviderName = provider.Name;
                                 lastModel = string.IsNullOrWhiteSpace(snapshot.Agent.Model) ? provider.DefaultModel : snapshot.Agent.Model;
 
@@ -224,14 +224,19 @@ namespace HAgent.Runtime
             return TimeSpan.FromMilliseconds(milliseconds);
         }
 
-        private static string BuildSystemPrompt(AiProvider provider, AiAgent agent)
+        private static string BuildSystemPrompt(AiProvider provider, AiAgent agent, IEnumerable<SystemPromptLayer> executionLayers)
         {
-            var providerPrompt = agent.UseProviderSystemPrompt ? provider.DefaultSystemPrompt : string.Empty;
-            var agentPrompt = agent.SystemPrompt;
+            var layers = new List<SystemPromptLayer>();
+            if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))
+                layers.Add(new SystemPromptLayer("provider", "Provider", provider.DefaultSystemPrompt, 100));
 
-            if (string.IsNullOrWhiteSpace(providerPrompt)) return agentPrompt ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(agentPrompt)) return providerPrompt;
-            return providerPrompt.Trim() + Environment.NewLine + Environment.NewLine + agentPrompt.Trim();
+            if (!string.IsNullOrWhiteSpace(agent.SystemPrompt))
+                layers.Add(new SystemPromptLayer("agent", "Agent", agent.SystemPrompt, 200));
+
+            if (executionLayers != null)
+                layers.AddRange(executionLayers);
+
+            return SystemPromptComposer.Compose(layers);
         }
 
         private void Notify(AgentExecution execution)

@@ -106,11 +106,13 @@ namespace HAgent.WinForms
                     return;
 
                 var button = CreateNavigationButton("Storage");
-                button.Click += delegate
+                button.Click += async delegate
                 {
                     using (var storageForm = new HAgentStorageSettingsForm(AppContext.BaseDirectory, Process.GetCurrentProcess().ProcessName, secrets))
                     {
                         storageForm.ShowDialog(form);
+                        if (storageForm.RuntimeStorageChanged && !form.IsDisposed)
+                            form.Close();
                     }
                 };
                 InsertBeforeAbout(nav, button);

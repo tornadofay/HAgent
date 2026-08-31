@@ -34,7 +34,7 @@ namespace HAgent.Models
 
         public System.Collections.Generic.IReadOnlyCollection<string> Fields
         {
-            get { return _fields.Values; }
+            get { return new System.Collections.Generic.List<string>(_fields.Values).AsReadOnly(); }
         }
 
         public bool Contains(string field)

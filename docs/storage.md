@@ -71,7 +71,7 @@ Conversation snapshots are persisted through `IConversationStore`. File storage 
 
 `DefaultAgentRuntime` accepts an optional audit store. When configured, every terminal execution result—success, failure, timeout, or cancellation—is projected and appended automatically. Audit persistence is non-fatal: an audit-store failure never changes the primary execution outcome and terminal audit persistence does not use the caller cancellation token.
 
-Automatic retention keeps the newest 5,000 terminal execution audit records per configured audit store. Older audit metadata is removed after successful append. Trimming does not affect provider, agent, memory, conversation, or host-application data.
+`ExecutionAuditOptions` makes automatic capture and retention explicit. Capture remains enabled by default when an audit store is supplied, with a default retention limit of 5,000 records and a configurable maximum of 1,000,000 records. Older audit metadata is removed after successful append. Trimming does not affect provider, agent, memory, conversation, or host-application data.
 
 ## Connection testing
 

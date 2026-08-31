@@ -23,6 +23,7 @@ namespace HAgent.WinForms.Forms
         private readonly TextBox _rootPath = new TextBox();
         private readonly TextBox _databaseName = new TextBox();
         private readonly TextBox _serverName = new TextBox();
+        private readonly TextBox _port = new TextBox();
         private readonly TextBox _userName = new TextBox();
         private readonly TextBox _password = new TextBox();
         private readonly Label _resolvedDatabase = new Label();
@@ -35,7 +36,7 @@ namespace HAgent.WinForms.Forms
         private static readonly Color Accent = Color.FromArgb(116, 76, 210);
 
         public HAgentStorageSettingsForm(string basePath, string applicationName, ISecretStore secrets)
-            : base("HAgent Storage", "HAgent-owned providers, agents, memory, tools, skills, wiki, and runtime storage", new Size(900, 640), new Size(760, 520))
+            : base("HAgent Storage", "HAgent-owned providers, agents, memory, tools, skills, wiki, and runtime storage", new Size(900, 690), new Size(760, 560))
         {
             if (secrets == null) throw new ArgumentNullException(nameof(secrets));
 
@@ -49,6 +50,7 @@ namespace HAgent.WinForms.Forms
             _rootPath.Text = AppContext.BaseDirectory;
             _storageType.SelectedItem = HAgentStorageType.File;
             UpdateVisibility();
+            UpdateDefaultPort(false);
             Shown += async delegate { await LoadAsync(); };
         }
 
@@ -59,18 +61,23 @@ namespace HAgent.WinForms.Forms
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 9,
+                RowCount = 10,
                 BackColor = Surface,
                 Padding = new Padding(0)
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 190));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            for (var i = 0; i < 8; i++) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            for (var i = 0; i < 9; i++) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             _storageType.DropDownStyle = ComboBoxStyle.DropDownList;
             _storageType.Items.AddRange(new object[] { HAgentStorageType.File, HAgentStorageType.SqlServer, HAgentStorageType.MySql });
-            _storageType.SelectedIndexChanged += delegate { UpdateVisibility(); UpdateResolvedDatabase(); };
+            _storageType.SelectedIndexChanged += delegate
+            {
+                UpdateVisibility();
+                UpdateResolvedDatabase();
+                UpdateDefaultPort(true);
+            };
             AddRow(layout, 0, "Storage type", _storageType);
 
             ConfigureText(_applicationName);
@@ -87,18 +94,25 @@ namespace HAgent.WinForms.Forms
             ConfigureText(_serverName);
             AddRow(layout, 4, "Server name", _serverName);
 
+            ConfigureText(_port);
+            _port.KeyPress += delegate(object sender, KeyPressEventArgs e)
+            {
+                if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar)) e.Handled = true;
+            };
+            AddRow(layout, 5, "Port", _port);
+
             ConfigureText(_userName);
-            AddRow(layout, 5, "User name", _userName);
+            AddRow(layout, 6, "User name", _userName);
 
             ConfigureText(_password);
             _password.UseSystemPasswordChar = true;
-            AddRow(layout, 6, "Password", _password);
+            AddRow(layout, 7, "Password", _password);
 
             _resolvedDatabase.Dock = DockStyle.Fill;
             _resolvedDatabase.ForeColor = Accent;
             _resolvedDatabase.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
             _resolvedDatabase.TextAlign = ContentAlignment.MiddleLeft;
-            AddRow(layout, 7, "Effective database", _resolvedDatabase);
+            AddRow(layout, 8, "Effective database", _resolvedDatabase);
 
             var actions = new FlowLayoutPanel
             {
@@ -126,7 +140,7 @@ namespace HAgent.WinForms.Forms
             _status.ForeColor = Muted;
             _status.Margin = new Padding(12, 11, 0, 0);
             actions.Controls.Add(_status);
-            layout.Controls.Add(actions, 1, 8);
+            layout.Controls.Add(actions, 1, 9);
 
             BodyPanel.Controls.Add(layout);
         }
@@ -187,6 +201,7 @@ namespace HAgent.WinForms.Forms
             {
                 _loadedOptions = null;
                 UpdateResolvedDatabase();
+                UpdateDefaultPort(false);
                 return;
             }
 
@@ -196,10 +211,12 @@ namespace HAgent.WinForms.Forms
             _rootPath.Text = string.IsNullOrWhiteSpace(options.RootPath) ? AppContext.BaseDirectory : options.RootPath;
             _databaseName.Text = options.DatabaseName ?? string.Empty;
             _serverName.Text = options.ServerName ?? string.Empty;
+            _port.Text = options.Port > 0 ? options.Port.ToString() : string.Empty;
             _userName.Text = options.UserName ?? string.Empty;
             _password.Clear();
             UpdateVisibility();
             UpdateResolvedDatabase();
+            UpdateDefaultPort(false);
 
             if (string.Equals(options.PasswordSecretId, DatabasePasswordSecretId, StringComparison.Ordinal))
             {
@@ -220,15 +237,21 @@ namespace HAgent.WinForms.Forms
         {
             try
             {
+                int port = 0;
+                if (!string.IsNullOrWhiteSpace(_port.Text) && (!int.TryParse(_port.Text, out port) || port < 1 || port > 65535))
+                    throw new ArgumentOutOfRangeException(nameof(_port), "Database port must be between 1 and 65535.");
+
+                var selectedType = (HAgentStorageType)_storageType.SelectedItem;
                 var options = new HAgentStorageOptions
                 {
-                    StorageType = (HAgentStorageType)_storageType.SelectedItem,
+                    StorageType = selectedType,
                     ApplicationName = _applicationName.Text.Trim(),
                     RootPath = _rootPath.Text.Trim(),
                     DatabaseName = _databaseName.Text.Trim(),
                     ServerName = _serverName.Text.Trim(),
+                    Port = selectedType == HAgentStorageType.File ? 0 : port,
                     UserName = _userName.Text.Trim(),
-                    PasswordSecretId = _storageType.SelectedItem is HAgentStorageType selectedType && selectedType != HAgentStorageType.File
+                    PasswordSecretId = selectedType != HAgentStorageType.File
                         ? DatabasePasswordSecretId
                         : string.Empty
                 };
@@ -281,6 +304,7 @@ namespace HAgent.WinForms.Forms
                 || !string.Equals(_loadedOptions.RootPath, options.RootPath, StringComparison.Ordinal)
                 || !string.Equals(_loadedOptions.DatabaseName, options.DatabaseName, StringComparison.Ordinal)
                 || !string.Equals(_loadedOptions.ServerName, options.ServerName, StringComparison.Ordinal)
+                || _loadedOptions.Port != options.Port
                 || !string.Equals(_loadedOptions.UserName, options.UserName, StringComparison.Ordinal)
                 || !string.Equals(_loadedOptions.PasswordSecretId, options.PasswordSecretId, StringComparison.Ordinal);
         }
@@ -290,9 +314,24 @@ namespace HAgent.WinForms.Forms
             var isFile = _storageType.SelectedItem is HAgentStorageType type && type == HAgentStorageType.File;
             _rootPath.Enabled = isFile;
             _serverName.Enabled = !isFile;
+            _port.Enabled = !isFile;
             _userName.Enabled = !isFile;
             _password.Enabled = !isFile;
             _databaseName.Enabled = !isFile;
+        }
+
+        private void UpdateDefaultPort(bool overwriteCurrent)
+        {
+            if (!(_storageType.SelectedItem is HAgentStorageType type) || type == HAgentStorageType.File)
+            {
+                if (overwriteCurrent) _port.Clear();
+                _port.Enabled = false;
+                return;
+            }
+
+            _port.Enabled = true;
+            if (overwriteCurrent || string.IsNullOrWhiteSpace(_port.Text))
+                _port.Text = (type == HAgentStorageType.MySql ? 3306 : 1433).ToString();
         }
 
         private void UpdateResolvedDatabase()

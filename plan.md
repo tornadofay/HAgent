@@ -322,6 +322,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Bounded HAgent internal execution-audit read-tool foundation with agent isolation.
 - [x] Automatic terminal execution auditing with bounded retention.
 - [x] Configurable execution audit capture and retention policy defaults.
+- [ ] Deterministic Example verification for automatic audit persistence on failure, timeout, and caller cancellation.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles
@@ -390,7 +391,7 @@ Agent executions now also receive an immutable `CorrelationId` at execution crea
 
 `AgentExecutionAuditRecord` provides a secret-safe, payload-free projection of execution metadata for observability and audit persistence. It contains execution/correlation IDs, agent identity, model, selected provider identity, lifecycle timing, state, and classified failure metadata while excluding prompts, message contents, response text, secret values/IDs, raw connection strings, and raw exceptions.
 
-`IExecutionAuditStore` persists these audit records through File, SQL Server, and MySQL implementations. Reads are explicitly bounded and can target execution ID, correlation ID, or agent ID. The relational implementations use the HAgent-owned `HAgentExecutionAudits` table; the File implementation uses an HAgent-owned audit JSONL file. Audit persistence remains explicit at the Core boundary and does not automatically capture payloads.
+`IExecutionAuditStore` persists these audit records through File, SQL Server, and MySQL implementations. Reads are explicitly bounded and can target an execution ID, correlation ID, or agent ID. The relational implementations use the HAgent-owned `HAgentExecutionAudits` table; the File implementation uses an HAgent-owned audit JSONL file. Audit persistence remains explicit at the Core boundary and does not automatically capture payloads.
 
 `HAgentInternalExecutionAuditTool` exposes persisted audit metadata as a trusted read-only capability. Requests are bounded to 50 records, require an execution/correlation/agent target, and cannot use a model-supplied agent ID to redirect a request away from the requesting agent when an execution identity is present.
 

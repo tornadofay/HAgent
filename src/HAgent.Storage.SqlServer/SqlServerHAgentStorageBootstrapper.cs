@@ -12,7 +12,7 @@ namespace HAgent.Storage.SqlServer
     /// </summary>
     public sealed class SqlServerHAgentStorageBootstrapper
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
 
         public async Task EnsureCreatedAsync(
             HAgentStorageOptions options,
@@ -34,11 +34,15 @@ namespace HAgent.Storage.SqlServer
 
             var databaseConnection = BuildConnectionString(profile.ServerName, port, profile.UserName, password, databaseName);
             using (var connection = new SqlConnection(databaseConnection))
-            using (var command = new SqlCommand(GetSchemaSql(), connection))
             {
-                command.CommandTimeout = 60;
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                using (var command = new SqlCommand(GetSchemaSql(), connection))
+                {
+                    command.CommandTimeout = 60;
+                    await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                await ApplyMigrationsAsync(connection, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -108,9 +112,72 @@ END;";
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentSkills', N'U') IS NULL CREATE TABLE dbo.HAgentSkills (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentSkills PRIMARY KEY, Name nvarchar(200) NOT NULL, Description nvarchar(max) NULL, DefinitionJson nvarchar(max) NULL, Enabled bit NOT NULL CONSTRAINT DF_HAgentSkills_Enabled DEFAULT(1));");
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentWikiDocuments', N'U') IS NULL CREATE TABLE dbo.HAgentWikiDocuments (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentWikiDocuments PRIMARY KEY, Title nvarchar(500) NOT NULL, Content nvarchar(max) NOT NULL, Source nvarchar(1000) NULL, Version nvarchar(64) NULL, CreatedAt datetimeoffset NOT NULL, UpdatedAt datetimeoffset NOT NULL);");
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentWikiChunks', N'U') IS NULL CREATE TABLE dbo.HAgentWikiChunks (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentWikiChunks PRIMARY KEY, DocumentId nvarchar(128) NOT NULL, ChunkIndex int NOT NULL, Content nvarchar(max) NOT NULL, MetadataJson nvarchar(max) NULL, CONSTRAINT FK_HAgentWikiChunks_Document FOREIGN KEY (DocumentId) REFERENCES dbo.HAgentWikiDocuments(Id));");
-            sql.AppendLine("IF NOT EXISTS (SELECT 1 FROM dbo.HAgentSchemaInfo WHERE SchemaName=N'core') INSERT INTO dbo.HAgentSchemaInfo (SchemaName, SchemaVersion) VALUES (N'core', " + CurrentSchemaVersion + ");");
-            sql.AppendLine("ELSE UPDATE dbo.HAgentSchemaInfo SET SchemaVersion=" + CurrentSchemaVersion + ", UpdatedAt=SYSUTCDATETIME() WHERE SchemaName=N'core';");
+            sql.AppendLine("IF NOT EXISTS (SELECT 1 FROM dbo.HAgentSchemaInfo WHERE SchemaName=N'core') INSERT INTO dbo.HAgentSchemaInfo (SchemaName, SchemaVersion) VALUES (N'core', 1);");
             return sql.ToString();
+        }
+
+        private static async Task ApplyMigrationsAsync(SqlConnection connection, CancellationToken cancellationToken)
+        {
+            var version = await GetSchemaVersionAsync(connection, cancellationToken).ConfigureAwait(false);
+            while (version < CurrentSchemaVersion)
+            {
+                switch (version)
+                {
+                    case 1:
+                        await MigrateV1ToV2Async(connection, cancellationToken).ConfigureAwait(false);
+                        version = 2;
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unsupported HAgent SQL Server schema version: " + version + ".");
+                }
+
+                await SetSchemaVersionAsync(connection, version, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task<int> GetSchemaVersionAsync(SqlConnection connection, CancellationToken cancellationToken)
+        {
+            const string sql = "SELECT SchemaVersion FROM dbo.HAgentSchemaInfo WHERE SchemaName=N'core';";
+            using (var command = new SqlCommand(sql, connection))
+            {
+                var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                if (value == null || value == DBNull.Value)
+                    throw new InvalidOperationException("The HAgent SQL Server schema version record is missing.");
+                return Convert.ToInt32(value);
+            }
+        }
+
+        private static async Task SetSchemaVersionAsync(SqlConnection connection, int version, CancellationToken cancellationToken)
+        {
+            const string sql = "UPDATE dbo.HAgentSchemaInfo SET SchemaVersion=@Version, UpdatedAt=SYSUTCDATETIME() WHERE SchemaName=N'core';";
+            using (var command = new SqlCommand(sql, connection))
+            {
+                command.Parameters.AddWithValue("@Version", version);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task MigrateV1ToV2Async(SqlConnection connection, CancellationToken cancellationToken)
+        {
+            const string sql = @"
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentMemoryEntries_OwnerScopeOccurred' AND object_id=OBJECT_ID(N'dbo.HAgentMemoryEntries'))
+BEGIN
+    CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON dbo.HAgentMemoryEntries(OwnerId, Scope, OccurredAt DESC, CreatedAt DESC);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentMemoryEntries_TaskOccurred' AND object_id=OBJECT_ID(N'dbo.HAgentMemoryEntries'))
+BEGIN
+    CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON dbo.HAgentMemoryEntries(TaskId, OccurredAt DESC, CreatedAt DESC);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentConversations_UpdatedAt' AND object_id=OBJECT_ID(N'dbo.HAgentConversations'))
+BEGIN
+    CREATE INDEX IX_HAgentConversations_UpdatedAt ON dbo.HAgentConversations(UpdatedAt DESC);
+END;";
+
+            using (var command = new SqlCommand(sql, connection))
+            {
+                command.CommandTimeout = 60;
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 }

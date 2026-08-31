@@ -307,10 +307,6 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] SQL Server internal memory store and Example routing for the selected backend.
 - [x] MySQL internal memory store and Example routing for the selected backend.
 - [x] Task/event memory Example test uses the selected internal memory backend for File, SQL Server, and MySQL.
-- [x] Independent SQL Server/MySQL connection profiles with separate protected password secrets.
-- [x] Derived HAgent database name only; database name is not editable in Storage UI.
-- [x] Selected database profile is treated as authoritative by runtime storage resolution.
-- [x] Persisted database profiles are validated after serialization/reload, and legacy shared settings migrate into the active profile when needed.
 - [ ] Wire all remaining internal repositories to the selected storage backend.
 - [ ] Versioned schema migrations beyond the initial bootstrap version.
 - [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
@@ -324,11 +320,9 @@ Database passwords use backend-specific secret IDs. Password values are never di
 
 The editable database-name field was removed. HAgent always derives its internal database name from the host application identity using the `<application>-ai` naming rule; database names are not user-selectable in the Storage UI.
 
-Legacy shared connection settings remain available only for compatibility with older storage.json files. They are migrated into the active backend profile when that profile has not yet been configured; runtime resolution does not use the legacy fields as a source of truth.
+Legacy shared connection settings remain readable only as a compatibility migration path into the appropriate database profile.
 
-The settings UI persists a valid database profile when the user switches away from that backend, including a newly entered password. An incomplete database profile does not block switching; it remains unconfigured until valid connection details are supplied and saved.
-
-Database settings persistence now includes a serialize/reload verification. Saving fails rather than reporting success if the selected backend or its server, port, username, or secret identity does not survive persistence.
+The settings UI persists a valid database profile when the user switches away from that backend, including a newly entered password. This makes switching between File, SQL Server, and MySQL durable rather than relying on transient form state. An incomplete database profile does not block switching; it remains unconfigured until valid connection details are supplied and saved.
 
 ### Current slice: internal memory backend parity
 
@@ -350,9 +344,9 @@ The storage configuration file persists the backend as an explicit enum name (`F
 
 SQL Server and MySQL resolution bootstraps the HAgent-owned database before creating the corresponding internal repositories. No host application database is used by this resolution path.
 
-Runtime storage resolution uses only the selected backend profile's server, port, username, and password secret. It no longer falls back to the legacy shared connection properties after the profile model has been established.
+Storage settings that change the backend, application identity/path, database target, server, port, username, or related connection identity are persisted as configuration for the next process lifetime. The Storage UI informs the user that an application restart is required after such a change so the running HAgent instance does not silently mix storage backends.
 
-Storage settings that change the backend, application identity/path, server, port, username, or related connection identity are persisted as configuration for the next process lifetime. The Storage UI informs the user that an application restart is required after such a change so the running HAgent instance does not silently mix storage backends.
+The Example preserves the currently active runtime when the Configuration window closes after a restart-required storage change. It does not immediately rebuild stores, reload agents, or refresh the UI against the new backend in the same process; the new backend becomes active only after application restart.
 
 Database storage exposes an explicit TCP port with protocol defaults of 1433 for SQL Server and 3306 for MySQL. The selected port is persisted and used by both provider-specific connection builders.
 

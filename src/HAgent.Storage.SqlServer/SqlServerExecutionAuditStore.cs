@@ -17,6 +17,40 @@ namespace HAgent.Storage.SqlServer
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         }
 
+        public static async Task EnsureSchemaAsync(string connectionString, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            const string sql = @"
+IF OBJECT_ID(N'dbo.HAgentExecutionAudits', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.HAgentExecutionAudits (
+        ExecutionId nvarchar(128) NOT NULL CONSTRAINT PK_HAgentExecutionAudits PRIMARY KEY,
+        CorrelationId nvarchar(128) NOT NULL,
+        AgentId nvarchar(128) NOT NULL,
+        AgentName nvarchar(200) NOT NULL,
+        Model nvarchar(200) NOT NULL,
+        LastProviderId nvarchar(128) NOT NULL,
+        LastProviderName nvarchar(200) NOT NULL,
+        State nvarchar(50) NOT NULL,
+        FailureKind nvarchar(100) NOT NULL,
+        ProviderErrorKind nvarchar(100) NOT NULL,
+        CreatedAt datetimeoffset NOT NULL,
+        StartedAt datetimeoffset NULL,
+        CompletedAt datetimeoffset NULL,
+        DurationMs float NULL
+    );
+    CREATE INDEX IX_HAgentExecutionAudits_CorrelationId ON dbo.HAgentExecutionAudits(CorrelationId);
+    CREATE INDEX IX_HAgentExecutionAudits_AgentCreated ON dbo.HAgentExecutionAudits(AgentId, CreatedAt DESC);
+END;";
+
+            using (var connection = new SqlConnection(connectionString))
+            using (var command = new SqlCommand(sql, connection))
+            {
+                command.CommandTimeout = 60;
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         public async Task AppendAsync(AgentExecutionAuditRecord record, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (record == null) throw new ArgumentNullException(nameof(record));

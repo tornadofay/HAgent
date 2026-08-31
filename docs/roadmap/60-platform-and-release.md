@@ -1,24 +1,27 @@
-# Later — Platform and release
+# Later — Platform, Extensibility + Release
+
+These capabilities follow the core runtime, data, and collaboration milestones. They should not block the primary host-integration path.
 
 ## Provider ecosystem
 
-- [ ] Additional provider adapters.
-- [ ] Multimodal and embedding adapters where justified.
-- [ ] Provider contract harness.
+- [ ] Additional provider adapters such as Azure OpenAI, Anthropic, Google/Gemini, Ollama, LM Studio, and custom HTTP providers where justified.
+- [ ] Multimodal and embedding adapters.
+- [ ] Provider capability/contract harness.
 
 ## Extensibility
 
-- [ ] Provider/tool/UI-adapter/storage extension model.
+- [ ] Provider, tool, UI-adapter, and storage extension model.
 - [ ] Extension validation and failure isolation.
-- [ ] External secret stores/rotation.
+- [ ] External secret stores and secret rotation.
+- [ ] Optional MCP/vector integrations where they fit the lightweight architecture.
 
 ## Developer platform
 
-- [ ] Optional DI integrations.
-- [ ] Optional interoperability integrations.
-- [ ] Diagnostics/trace viewer.
-- [ ] Complete Example coverage for meaningful public capabilities.
+- [ ] Optional DI/interoperability integrations.
 - [ ] Simulation/test mode for external consumers such as HWorld.
+- [ ] Diagnostics/trace viewer.
+- [ ] Complete Example coverage for meaningful public APIs.
+- [ ] SDK guidance for provider, tool, UI-context, and host integrations.
 
 ## Release hardening
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -30,7 +31,6 @@ namespace HAgent.Example
             var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var auditStore = await CreateConfiguredExecutionAuditStoreAsync().ConfigureAwait(true);
-            var agents = await store.GetAgentsAsync().ConfigureAwait(true);
             var providers = await store.GetProvidersAsync().ConfigureAwait(true);
             var agent = GetSelectedAgent();
             if (agent == null)
@@ -40,7 +40,6 @@ namespace HAgent.Example
             if (provider == null)
                 throw new InvalidOperationException("The selected agent's primary provider could not be found.");
 
-            var terminalExecutions = new List<AgentExecution>();
             var modes = new[]
             {
                 LocalAuditAdapterMode.Failure,
@@ -114,7 +113,6 @@ namespace HAgent.Example
                 if (terminal == null)
                     throw new InvalidOperationException("The local " + mode + " execution did not produce a terminal execution event.");
 
-                terminalExecutions.Add(terminal);
                 var expectedFailure = mode == LocalAuditAdapterMode.Failure
                     ? AgentExecutionFailureKind.Unknown
                     : mode == LocalAuditAdapterMode.Timeout

@@ -56,8 +56,8 @@ The MySQL bootstrap executes schema statements and migrations as separate comman
 
 Current relational schema versions are:
 
-- SQL Server: version `3`; v1→v2 adds idempotent indexes for bounded memory and conversation retrieval, and v2→v3 adds the execution-audit table and indexes.
-- MySQL: version `4`; v1→v2 preserves the legacy `HAgentTools.ToolType` compatibility migration, v2→v3 adds idempotent indexes for bounded memory and conversation retrieval, and v3→v4 adds the execution-audit table and indexes.
+- SQL Server: version `3`; v1→v2 adds idempotent indexes for bounded memory and conversation retrieval, and v2→v3 adds execution-audit persistence.
+- MySQL: version `4`; v1→v2 preserves the legacy `HAgentTools.ToolType` compatibility migration, v2→v3 adds idempotent indexes for bounded memory and conversation retrieval, and v3→v4 adds execution-audit persistence.
 
 All migrations operate only on HAgent-owned tables and indexes.
 
@@ -65,7 +65,13 @@ Initial internal schema areas include providers, agents, tools, memory entries, 
 
 Conversation snapshots are persisted through `IConversationStore`. File storage keeps one JSON file per session; SQL Server and MySQL store the serialized message list in the HAgent-owned `HAgentConversations` table. Session identity and agent identity remain part of the persisted snapshot.
 
-Execution audit metadata is persisted through `IExecutionAuditStore`. File storage keeps secret-safe terminal execution records in `audit/executions.jsonl`; SQL Server and MySQL store the same metadata in `HAgentExecutionAudits`. Audit records contain correlation/lifecycle/identity metadata only and never store prompts, response payloads, provider secrets, connection strings, or raw exceptions.
+## Execution audit persistence
+
+`IExecutionAuditStore` persists secret-safe `AgentExecutionAuditRecord` metadata only. The File backend stores records under `HAgentData/audit/executions.jsonl`; SQL Server and MySQL use the HAgent-owned `HAgentExecutionAudits` table.
+
+`DefaultAgentRuntime` accepts an optional audit store. When configured, every terminal execution result—success, failure, timeout, or cancellation—is projected and appended automatically. Audit persistence is non-fatal: an audit-store failure never changes the primary execution outcome and terminal audit persistence does not use the caller cancellation token.
+
+Automatic retention keeps the newest 5,000 terminal execution audit records per configured audit store. Older audit metadata is removed after successful append. Trimming does not affect provider, agent, memory, conversation, or host-application data.
 
 ## Connection testing
 
@@ -94,8 +100,6 @@ When persisted, runtime records must distinguish the host instance, user/session
 `AgentExecutionAuditRecord` is the provider-neutral, payload-free projection used for persistent execution audit metadata. Its correlation ID is distinct from execution ID and tool-call IDs and provides a stable runtime anchor across a terminal execution.
 
 `IExecutionAuditStore` is intentionally append/search oriented. Search is bounded and may target an execution ID, correlation ID, or agent ID. `HAgentInternalExecutionAuditTool` is the corresponding trusted read-only tool and constrains reads to the requesting agent identity when that identity is present.
-
-Automatic terminal audit capture and configurable retention are separate runtime concerns and are not implicit consequences of configuring a store. Until automatic capture is enabled, hosts can persist an explicitly created `AgentExecutionAuditRecord` through the store.
 
 ## Secrets
 

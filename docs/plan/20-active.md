@@ -26,6 +26,14 @@ Turn the verified structured-query contracts into safe application and database 
 
 The implementation is committed, but local build/Example verification has not been run. These two roadmap slices remain pending until that verification passes locally.
 
+### Current slice: data-operation permissions
+
+`HAgent.Core` now provides `DataAccessPermissions` with separate `Discovery`, `ProjectionQuery`, `Export`, and `Write` controls. The structured query source must enforce `ProjectionQuery` before executing a query. The policy does not authorize a specific runtime identity or context; host authorization remains a separate 0.8 slice.
+
+`HAgent.Example` also verifies that a source with `ProjectionQuery` disabled rejects the request with `UnauthorizedAccessException` before data execution.
+
+The implementation is committed, but local build/Example verification has not been run.
+
 ### Live Example
 
 When the SQL Server adapter is ready, `HAgent.Example` will provide runtime-only test fields:

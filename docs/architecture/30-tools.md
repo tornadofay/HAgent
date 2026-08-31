@@ -35,6 +35,8 @@ Correlation metadata is execution state, not permission. It does not authorize a
 
 HAgent may expose selected HAgent-owned repositories through trusted built-in read tools. The first foundation is `HAgentInternalInventoryTool`, which reports a bounded inventory of providers, agents, and persisted tool definitions.
 
+`HAgentInternalMemoryTool` provides bounded read-only inspection of HAgent-owned memory for one explicit `scope` and `ownerId`. Optional `kind`, `taskId`, and text filters narrow the existing `IMemoryStore.SearchAsync` contract. Results are limited to 20 by default and 50 maximum, cancellation is propagated, memory content is bounded, and sensitive metadata keys such as passwords, API keys, secrets, credentials, tokens, and connection strings are redacted.
+
 The inventory tool accepts an optional `maxItems` argument. The default is 50 and the hard maximum is 100 items per category. It propagates caller cancellation and returns only non-secret metadata such as IDs, names, relationships, enabled state, and tool type. Provider secrets, passwords, raw connection strings, arbitrary storage records, and executable handlers are not returned.
 
 An internal read tool remains a trusted capability boundary. Registering it is an explicit host/runtime decision; the tool does not grant the model authority to inspect unrelated host application data or bypass other HAgent permissions.

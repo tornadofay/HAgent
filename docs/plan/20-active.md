@@ -38,6 +38,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Bounded persistent execution audit store for File, SQL Server, and MySQL.
 - [x] Bounded HAgent internal execution-audit read-tool foundation with agent isolation.
 - [x] Automatic terminal execution auditing with bounded retention.
+- [x] Configurable execution audit capture and retention policy defaults.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles
@@ -110,7 +111,7 @@ Agent executions now also receive an immutable `CorrelationId` at execution crea
 
 `HAgentInternalExecutionAuditTool` exposes persisted audit metadata as a trusted read-only capability. Requests are bounded to 50 records, require an execution/correlation/agent target, and cannot use a model-supplied agent ID to redirect a request away from the requesting agent when an execution identity is present.
 
-`DefaultAgentRuntime` accepts an optional execution-audit store. When configured, it automatically persists one payload-free audit record at terminal success, failure, timeout, or cancellation. Audit persistence is non-fatal and uses independent retention cleanup; a failed audit write never changes the primary execution outcome. Automatic retention keeps the newest 5,000 records and removes older audit metadata only.
+`DefaultAgentRuntime` accepts an optional execution-audit store. When configured, it automatically persists one payload-free audit record at terminal success, failure, timeout, or cancellation. Audit persistence is non-fatal and uses independent retention cleanup; a failed audit write never changes the primary execution outcome. `ExecutionAuditOptions` controls whether automatic capture is enabled and the retention limit. The default retention is 5,000 records and the supported maximum is 1,000,000 records.
 
 ### Internal inventory read tool
 

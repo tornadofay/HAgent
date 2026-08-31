@@ -74,6 +74,7 @@ namespace HAgent.Example
             AddFeatureTabs();
             AddInternalInventoryTab();
             AddInternalMemoryTab();
+            AddAuditLifecycleTab();
             Shown += async delegate
             {
                 try

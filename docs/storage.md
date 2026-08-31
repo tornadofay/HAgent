@@ -51,6 +51,8 @@ SQL Server and MySQL providers receive server credentials at runtime, connect to
 
 Database schema changes are versioned through `HAgentSchemaInfo`. Bootstrap establishes the base HAgent-owned objects and a baseline schema version, then reads the persisted version and applies ordered provider-specific migrations until the current version is reached. A schema version is advanced only after its migration succeeds. Unknown future versions are rejected rather than silently skipped.
 
+The MySQL bootstrap executes schema statements and migrations as separate commands rather than depending on multi-statement execution. This keeps the bootstrap compatible with MariaDB deployments as well as MySQL Connector implementations.
+
 Current relational schema versions are:
 
 - SQL Server: version `2`; v1→v2 adds idempotent indexes for bounded memory and conversation retrieval.

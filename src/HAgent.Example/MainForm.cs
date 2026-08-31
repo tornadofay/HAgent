@@ -71,7 +71,7 @@ namespace HAgent.Example
             GetActionsPanel().Controls.Add(_clearOutputButton);
 
             AddFeatureTabs();
-            Shown += async delegate { await RefreshAgentsAsync(); };
+            Shown += async delegate { await RefreshExampleAgentsAsync(); };
             FormClosed += delegate
             {
                 if (_streamingCts != null)

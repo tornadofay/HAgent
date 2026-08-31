@@ -33,6 +33,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] HAgent internal storage connection testing APIs and WinForms UI.
 - [x] Bounded HAgent internal inventory read-tool foundation for providers, agents, and persisted tool definitions.
 - [x] Bounded HAgent internal memory read-tool foundation with explicit scope/owner filtering and sensitive metadata redaction.
+- [x] Bounded HAgent internal conversation read-tool foundation with explicit session targeting and agent-identity isolation.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles
@@ -108,6 +109,10 @@ The `HAgent.Example` application exposes an `Internal Inventory` verification ta
 `HAgentInternalMemoryTool` provides read-only bounded inspection of HAgent-owned memory for one explicit scope and owner. Optional kind, task, and text filters narrow the existing `IMemoryStore.SearchAsync` contract. Results are limited to 20 by default and 50 maximum, memory content is bounded, cancellation is propagated, and sensitive metadata keys are redacted.
 
 The `HAgent.Example` application exposes an `Internal Memory` verification tab. The manual check creates temporary memory only as test setup, reads one explicit owner/scope, verifies another owner's entry is excluded, verifies sensitive metadata redaction, rejects an excessive result bound, and cleans up the temporary entries directly through the memory store.
+
+### Internal conversation read tool
+
+`HAgentInternalConversationTool` provides read-only bounded inspection of one HAgent-owned conversation identified by an explicit session ID. It uses `IConversationStore.LoadAsync` only, does not enumerate sessions, limits returned messages to 20 by default and 50 maximum, bounds each message content to 4000 characters, propagates cancellation, and rejects access when the stored conversation agent identity differs from the requesting agent identity. The Example Persistent Session verification uses this tool after reopening the persisted conversation and verifies that the stored message can be read through the trusted tool with the message bound applied.
 
 ### Storage foundation
 

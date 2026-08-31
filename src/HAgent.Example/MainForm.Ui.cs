@@ -172,7 +172,7 @@ namespace HAgent.Example
         private void OpenStorageSettingsDirectly()
         {
             var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
-            using (var form = new HAgentStorageSettingsForm(AppContext.BaseDirectory, Process.GetCurrentProcess().ProcessName, secrets))
+            using (var form = new HAgent.WinForms.Forms.HAgentStorageSettingsForm(AppContext.BaseDirectory, System.Diagnostics.Process.GetCurrentProcess().ProcessName, secrets))
             {
                 form.ShowDialog(this);
             }

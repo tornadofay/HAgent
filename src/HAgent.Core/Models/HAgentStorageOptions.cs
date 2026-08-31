@@ -44,6 +44,11 @@ namespace HAgent.Models
             StorageType = HAgentStorageType.File;
             ApplicationName = string.Empty;
             RootPath = AppContext.BaseDirectory;
+            DatabaseName = string.Empty;
+            ServerName = string.Empty;
+            Port = 0;
+            UserName = string.Empty;
+            PasswordSecretId = string.Empty;
             SqlServer = new HAgentDatabaseStorageOptions();
             MySql = new HAgentDatabaseStorageOptions();
         }
@@ -51,6 +56,14 @@ namespace HAgent.Models
         public HAgentStorageType StorageType { get; set; }
         public string ApplicationName { get; set; }
         public string RootPath { get; set; }
+
+        // Legacy shared database settings retained only so older storage.json files can still be read.
+        // Runtime resolution must use the backend-specific profile properties below.
+        public string DatabaseName { get; set; }
+        public string ServerName { get; set; }
+        public int Port { get; set; }
+        public string UserName { get; set; }
+        public string PasswordSecretId { get; set; }
 
         public HAgentDatabaseStorageOptions SqlServer { get; set; }
         public HAgentDatabaseStorageOptions MySql { get; set; }
@@ -111,19 +124,6 @@ namespace HAgent.Models
         public static string BuildDatabaseName(string applicationName)
         {
             return SanitizeDatabaseName(applicationName) + "-ai";
-        }
-
-        internal void MigrateLegacyProfileIfNeeded(HAgentStorageType storageType, HAgentDatabaseStorageOptions profile, string legacyServerName, int legacyPort, string legacyUserName, string legacyPasswordSecretId)
-        {
-            if (profile == null || !string.IsNullOrWhiteSpace(profile.ServerName))
-                return;
-            if (string.IsNullOrWhiteSpace(legacyServerName))
-                return;
-
-            profile.ServerName = legacyServerName;
-            profile.Port = legacyPort;
-            profile.UserName = legacyUserName ?? string.Empty;
-            profile.PasswordSecretId = legacyPasswordSecretId ?? string.Empty;
         }
 
         private static string SanitizeDatabaseName(string value)

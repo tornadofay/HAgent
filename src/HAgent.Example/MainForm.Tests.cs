@@ -203,8 +203,19 @@ namespace HAgent.Example
             if (execution.StartedAt.HasValue && execution.CompletedAt.HasValue && execution.CompletedAt.Value < execution.StartedAt.Value)
                 throw new InvalidOperationException("Agent execution completion time precedes its start time.");
 
+            var audit = AgentExecutionAuditRecord.FromExecution(execution);
+            if (!string.Equals(audit.ExecutionId, execution.Id, StringComparison.Ordinal))
+                throw new InvalidOperationException("Audit projection did not preserve execution ID.");
+            if (!string.Equals(audit.CorrelationId, execution.CorrelationId, StringComparison.Ordinal))
+                throw new InvalidOperationException("Audit projection did not preserve execution correlation ID.");
+            if (!string.Equals(audit.AgentId, execution.Snapshot.Agent.Id, StringComparison.Ordinal))
+                throw new InvalidOperationException("Audit projection did not preserve agent identity.");
+            if (audit.StartedAt.HasValue && audit.CompletedAt.HasValue && audit.CompletedAt.Value < audit.StartedAt.Value)
+                throw new InvalidOperationException("Audit projection contains invalid lifecycle timing.");
+
             Write("RUNTIME", "Execution: " + execution.Id + Environment.NewLine +
                              "Correlation: " + execution.CorrelationId + Environment.NewLine +
+                             "Audit projection: verified" + Environment.NewLine +
                              "State: " + execution.State + Environment.NewLine +
                              "Failure: " + execution.FailureKind + Environment.NewLine +
                              "Provider error: " + execution.ProviderErrorKind + Environment.NewLine +

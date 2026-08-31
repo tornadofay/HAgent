@@ -4,7 +4,7 @@
 
 HAgent provides the infrastructure needed to connect applications to LLMs without forcing a specific application architecture. It supports simple chat today and is being extended for business applications, games, simulations, and multi-agent environments.
 
-> Status: **0.8 Data Access + Authorization — active**
+> Status: **0.8 Data Access + Authorization + Internal Storage — active**
 >
 > Targets: **.NET Framework 4.8.1 and .NET 9**.
 
@@ -36,7 +36,7 @@ var response = await ai.SendAsync(
 Console.WriteLine(response.Text);
 ```
 
-See the architecture and plan documents for runtime, memory, tools, context, authorization, and multi-agent design.
+See the architecture and plan documents for runtime, memory, tools, context, authorization, storage, and multi-agent design.
 
 ## Current capabilities
 
@@ -52,8 +52,23 @@ The verified foundation includes:
 - semantic and bound/native data-source discovery;
 - application-object discovery with bounded inspection;
 - provider-neutral structured data projection/query contracts;
-- host-owned data permissions, request-specific authorization, and bounded query execution;
-- a restricted SQL Server `IDataQuerySource` that generates structured parameterized reads only.
+- HAgent-owned storage configuration for File, SQL Server, and MySQL backends;
+- application-specific File storage layout;
+- HAgent-owned SQL Server/MySQL database bootstrap foundations with schema-version metadata.
+
+## HAgent storage
+
+HAgent persists its own internal data separately from the host application's business database.
+
+Supported storage backends are:
+
+- **File** — application-specific files beneath the host executable in `HAgentData`;
+- **SQL Server** — a dedicated HAgent-owned database, normally named `<application-name>-ai`;
+- **MySQL** — a dedicated HAgent-owned database, normally named `<application-name>-ai`.
+
+HAgent storage is for providers, agents, tools, memory, conversations, skills, wiki/content, runtime metadata, and other HAgent-owned records. A storage backend must never be treated as permission to inspect or modify the host application's business database.
+
+Database passwords are kept outside ordinary configuration through the secret boundary.
 
 ## WinForms Context
 
@@ -73,8 +88,8 @@ Initial tool categories are:
 | Application | Host application capabilities |
 | Declarative | Restricted configuration-driven capabilities |
 | UI | WinForms capabilities |
-| SqlServer | Restricted SQL Server capabilities |
-| MySql | Restricted MySQL capabilities |
+| SqlServer | HAgent SQL Server capabilities |
+| MySql | HAgent MySQL capabilities |
 
 Tool definitions are separate from executable handlers. Handlers remain runtime-owned and are never serialized.
 
@@ -82,7 +97,7 @@ Tool definitions are separate from executable handlers. Handlers remain runtime-
 
 The model is a requester, not an authority.
 
-Permissions, authorization, approvals, limits, cancellation, and host-side validation remain outside model instructions. Structured database access uses authoritative schemas, separate operation permissions, request-specific host authorization, bounded execution, and generated parameterized SQL. Raw SQL is not part of the model-facing query contract.
+Permissions, authorization, approvals, limits, cancellation, and host-side validation remain outside model instructions. HAgent database storage is dedicated to HAgent's own persistence and does not provide implicit access to host application tables. Structured data contracts are not raw SQL access.
 
 ## HWorld
 
@@ -98,24 +113,13 @@ The minimum HWorld integration point is the asynchronous runtime-agent boundary:
 
 Meaningful capabilities should have runnable Example verification using public APIs and a reproducible C# snippet.
 
-The Example's **SQL Server Data Query** tab accepts runtime-only connection fields:
-
-```text
-Server Name
-User Name
-Password
-Database
-```
-
-It targets a disposable/read-only `dbo.HAgentExampleCustomers` table and does not persist or log those connection values.
-
 ## Project structure
 
 - `HAgent.Core` — provider-neutral models, runtime, context, memory, tools, and future coordination.
 - `HAgent.Providers.OpenAICompatible` — OpenAI-compatible provider transport and capabilities.
 - `HAgent.Storage.File` — file configuration, protected secrets, memory, conversations, and tool definitions.
-- `HAgent.Storage.SqlServer` — SQL Server persistence foundation and restricted structured data-query adapter.
-- `HAgent.Storage.MySql` — MySQL persistence foundation and future restricted data tools.
+- `HAgent.Storage.SqlServer` — HAgent-owned SQL Server persistence and schema bootstrap.
+- `HAgent.Storage.MySql` — HAgent-owned MySQL persistence and schema bootstrap.
 - `HAgent.WinForms` — management UI and WinForms UI Context/control adapters.
 - `HAgent.Example` — manual verification host.
 - `HAgent.Tests` — automated tests.

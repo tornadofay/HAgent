@@ -41,6 +41,23 @@ namespace HAgent.Storage.MySql
             }
         }
 
+        /// <summary>
+        /// Verifies that MySQL/MariaDB accepts the supplied endpoint and credentials without creating a database or changing schema.
+        /// </summary>
+        public static async Task TestConnectionAsync(
+            string serverName,
+            int port,
+            string userName,
+            string password,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var connectionString = BuildConnectionString(serverName, port, userName, password, null);
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         public static string BuildConnectionString(string serverName, string userName, string password, string databaseName)
         {
             return BuildConnectionString(serverName, 3306, userName, password, databaseName);
@@ -196,34 +213,12 @@ END;", cancellationToken).ConfigureAwait(false);
 
         private static async Task MigrateV2ToV3Async(MySqlConnection connection, CancellationToken cancellationToken)
         {
-            await CreateIndexIfMissingAsync(
-                connection,
-                "HAgentMemoryEntries",
-                "IX_HAgentMemoryEntries_OwnerScopeOccurred",
-                "CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON HAgentMemoryEntries(OwnerId, Scope, OccurredAt, CreatedAt);",
-                cancellationToken).ConfigureAwait(false);
-
-            await CreateIndexIfMissingAsync(
-                connection,
-                "HAgentMemoryEntries",
-                "IX_HAgentMemoryEntries_TaskOccurred",
-                "CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON HAgentMemoryEntries(TaskId, OccurredAt, CreatedAt);",
-                cancellationToken).ConfigureAwait(false);
-
-            await CreateIndexIfMissingAsync(
-                connection,
-                "HAgentConversations",
-                "IX_HAgentConversations_UpdatedAt",
-                "CREATE INDEX IX_HAgentConversations_UpdatedAt ON HAgentConversations(UpdatedAt);",
-                cancellationToken).ConfigureAwait(false);
+            await CreateIndexIfMissingAsync(connection, "HAgentMemoryEntries", "IX_HAgentMemoryEntries_OwnerScopeOccurred", "CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON HAgentMemoryEntries(OwnerId, Scope, OccurredAt, CreatedAt);", cancellationToken).ConfigureAwait(false);
+            await CreateIndexIfMissingAsync(connection, "HAgentMemoryEntries", "IX_HAgentMemoryEntries_TaskOccurred", "CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON HAgentMemoryEntries(TaskId, OccurredAt, CreatedAt);", cancellationToken).ConfigureAwait(false);
+            await CreateIndexIfMissingAsync(connection, "HAgentConversations", "IX_HAgentConversations_UpdatedAt", "CREATE INDEX IX_HAgentConversations_UpdatedAt ON HAgentConversations(UpdatedAt);", cancellationToken).ConfigureAwait(false);
         }
 
-        private static async Task CreateIndexIfMissingAsync(
-            MySqlConnection connection,
-            string tableName,
-            string indexName,
-            string createSql,
-            CancellationToken cancellationToken)
+        private static async Task CreateIndexIfMissingAsync(MySqlConnection connection, string tableName, string indexName, string createSql, CancellationToken cancellationToken)
         {
             const string sql = @"
 SELECT COUNT(*)

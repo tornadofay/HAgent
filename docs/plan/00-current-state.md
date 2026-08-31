@@ -1,26 +1,48 @@
-# HAgent Development Plan
+# Current project state
 
-This directory is the authoritative implementation ledger. The root `plan.md` is generated from these files.
+HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for simple chat or embedded into a host application, simulation, game, or other environment.
 
-## Current state
+## Supported targets
 
-- Target frameworks: `.NET Framework 4.8.1` and `.NET 9`.
-- `HAgent.Example` is the manual integration/verification host.
-- User-facing WinForms uses the project's `Header`, `HMessage`, and `HButton` helpers.
-- Core remains provider-neutral and lightweight.
-- Base memory does not require GPU, vector database, or a large resident model.
-- Initial tool categories: BuiltIn, Application, Declarative, UI, SqlServer, MySql.
-- Extension tools are deferred.
+- .NET Framework 4.8.1
+- .NET 9 where supported
+- No GPU requirement
+- Low-memory operation is a design constraint
 
-## Working rule
+## Current milestone
 
-A feature is marked complete only after its implementation exists and matching `HAgent.Example` verification has passed locally.
+**0.8 Data Access + Authorization — active**
 
-## Development workflow
+0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
-1. Implement one focused slice.
-2. Add or update an Example test for that slice.
-3. User builds and tests locally.
-4. Record the actual result here.
-5. Only then mark the slice complete.
-6. Keep root `plan.md` and `roadmap.md` generated from these smaller source files.
+## Verified platform foundations
+
+- Provider/agent configuration and routing.
+- Execution lifecycle, timeout, cancellation, retries, and diagnostics.
+- Memory, persistent sessions, context budgeting, automatic/episodic/task memory.
+- Capability discovery and response normalization.
+- Streaming contracts and live streaming.
+- Tool definitions, registry, schema validation, provider tool transport, bounded tool loops, persistence, and per-agent assignment.
+- WinForms UI Context with Form/UserControl attachment.
+- Semantic control and bound/native data-source discovery.
+- CurrencyManager/current-item/source relationships.
+- Convention-based custom control adapters.
+- Bounded live application-object discovery.
+- Provider-neutral structured data projection/query contracts.
+
+## Development rule
+
+A capability is complete only when implementation exists, the relevant `HAgent.Example` verification passes locally, and project documentation reflects the result.
+
+Implement one focused slice at a time. Do not claim local build/test success unless it was actually performed.
+
+## Documentation ownership
+
+- `README.md` — public introduction and quick start.
+- `AGENTS.md` — engineering invariants and non-negotiable rules.
+- `docs/architecture/` — stable architectural design.
+- `docs/plan/` — current implementation state and completed ledger.
+- `docs/roadmap/` — future phases and ordering.
+- `docs/storage.md` — persistence/storage-specific design.
+
+Root `plan.md` and `roadmap.md` are generated from the corresponding source directories.

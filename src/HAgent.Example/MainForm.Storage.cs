@@ -155,7 +155,18 @@ namespace HAgent.Example
                 }
 
                 case HAgentStorageType.MySql:
-                    throw new NotSupportedException("MySQL internal memory storage has not been enabled yet.");
+                {
+                    var password = await LoadDatabasePasswordAsync(options, cancellationToken).ConfigureAwait(false);
+                    var bootstrapper = new MySqlHAgentStorageBootstrapper();
+                    await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
+                    var connectionString = MySqlHAgentStorageBootstrapper.BuildConnectionString(
+                        options.ServerName,
+                        options.UserName,
+                        password,
+                        options.GetEffectiveDatabaseName());
+                    await MySqlMemoryStore.EnsureSchemaAsync(connectionString, cancellationToken).ConfigureAwait(false);
+                    return new MySqlMemoryStore(connectionString);
+                }
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(options.StorageType), "Unsupported HAgent storage type.");

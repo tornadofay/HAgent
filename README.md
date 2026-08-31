@@ -1,10 +1,10 @@
 # HAgent
 
-**Lightweight, provider-neutral AI agent runtime for .NET desktop applications.**
+**Lightweight, provider-neutral AI agent runtime for .NET applications.**
 
-HAgent is designed for applications that need more than a single AI API call: multiple providers, agents, sessions, persistent memory, tools, controlled WinForms automation, collaboration, and long-running work without forcing a heavyweight AI framework into every deployment.
+HAgent is designed to make connecting applications to LLMs easier without forcing the application into one AI architecture. It can be used for ordinary chat, business applications, games, simulations, or other software that needs one or many independent agents.
 
-> Status: **0.7 — WinForms UI Context + Data Discovery complete; 0.8 Data Access + Authorization next**
+> Status: **0.8 planning — 0.7 WinForms UI Context + Data Discovery complete; 0.8 Data Access + Authorization next**
 >
 > Current development targets: **.NET Framework 4.8.1 and .NET 9**.
 
@@ -17,12 +17,26 @@ Provider
  ├─ default model
  └─ optional shared system prompt
 
-Agent
+Agent profile
  ├─ provider preferences
  ├─ model override
  ├─ system prompt
  ├─ generation settings
  └─ tool references
+
+Runtime agent instance
+ ├─ unique runtime identity
+ ├─ profile reference
+ ├─ scope / host context
+ ├─ independent memory ownership
+ └─ independent execution lifecycle
+
+Workspace
+ ├─ user participants
+ ├─ agent participants
+ ├─ default recipient
+ ├─ direct addressing
+ └─ optional agent-to-agent coordination
 
 Runtime
  ├─ routing
@@ -58,11 +72,13 @@ Data Access
  ├─ explicit field projection
  ├─ structured filters/sorts
  ├─ bounded paging
- ├─ application-owned data adapters
+ ├─ application-owned adapters
  └─ future restricted SQL Server/MySQL adapters
 ```
 
-## Basic API
+## General-purpose usage
+
+A host may use only a single agent:
 
 ```csharp
 var response = await ai.SendAsync(
@@ -72,39 +88,29 @@ var response = await ai.SendAsync(
 Console.WriteLine(response.Text);
 ```
 
-Persistent sessions:
+Or it may create multiple runtime agent instances from reusable configured profiles. Runtime instances are intended for live application contexts and do not automatically become permanent configuration records.
 
-```csharp
-var session = ai.CreateSession("assistant", "conversation-42");
-await session.SendAsync("Remember that our project code name is HAgent.");
+## Shared workspaces
 
-var reopened = await ai.OpenSessionAsync("assistant", "conversation-42");
-var history = await reopened.ReadAsync();
+A future HAgent workspace can contain a user and multiple agent participants. The workspace does not broadcast each user message to every agent.
+
+```text
+User message without an explicit target
+        ↓
+workspace default recipient
+
+User message with an explicit target
+        ↓
+that agent only
+
+Manager/coordinator
+        ↓
+explicit delegation
+        ↓
+specialist agent
 ```
 
-Explicit memory:
-
-```csharp
-await ai.RememberAsync(
-    "assistant",
-    "The customer's preferred language is Arabic.");
-
-var memories = await ai.RecallAsync("assistant", "preferred language");
-```
-
-Controlled execution:
-
-```csharp
-var execution = await ai.ExecuteAsync(
-    "assistant",
-    "Perform this task.",
-    new AgentExecutionOptions
-    {
-        Timeout = TimeSpan.FromSeconds(60),
-        MaxProviderAttempts = 3,
-        MaxRetriesPerProvider = 1
-    });
-```
+Addressing syntax is a presentation concern; the Core model represents sender, recipient, correlation, causation, and routing policy explicitly.
 
 ## Capabilities and response normalization
 
@@ -150,19 +156,6 @@ Initial tool types:
 | SQL Server tool | Restricted SQL Server layer |
 | MySQL tool | Restricted MySQL layer |
 
-Extension tools are deliberately deferred to a future extensibility milestone.
-
-The tool foundation includes:
-
-- `AiTool` + explicit `AiToolType`.
-- `IAgentTool` and `IToolRegistry`.
-- `InMemoryToolRegistry` and `DelegateAgentTool`.
-- Tool definition persistence through File/SQL Server/MySQL stores.
-- Per-agent tool assignment through `AiAgent.ToolIds`.
-- Dependency-free JSON Schema validation before handlers run.
-- Provider-neutral tool-call transport and bounded multi-turn execution.
-- Live OpenAI-compatible/Groq tool-loop verification.
-
 Executable handlers are runtime-owned and are never persisted as configuration data.
 
 ## Memory and low-resource design
@@ -182,63 +175,33 @@ Vector/semantic memory is optional.
 
 “Form serialization” is not the public subsystem name. HAgent supports both explicit domain abstractions and automatic UI/data discovery.
 
-Explicit mode lets a host expose concepts such as:
-
-```text
-Customer
- ├─ Name
- ├─ Contact
- └─ Invoices
-```
-
-Automatic mode can inspect a live form or an attached control tree, including a `UserControl`, its controls, bindings, data sources, shared-source relationships, custom-control metadata, and bounded application-object context when the host enables the relevant permission policy.
-
-A `UserControl` or other control-tree root can be attached explicitly with a stable logical ID:
-
-```csharp
-var host = HAgentHost.Attach(
-    panel,
-    rootId: "CustomerPanel",
-    registry: registry,
-    registerUiTools: true,
-    permissions: new UiAutomationPermissions
-    {
-        AutomaticDiscovery = true,
-        ReadControls = true,
-        ReadData = true
-    });
-```
-
-`IUiContext.RootControl` exposes the actual attached WinForms root, `RootForm` remains available for Form attachments, and `RootId` identifies the attachment independently of the concrete WinForms type.
-
-Current read-only tools include:
-
-```text
-ui.inspect
-ui.read_control
-ui.read_data
-ui.discover
-ui.discover_data_sources
-```
-
-The permission policy distinguishes automatic discovery, control reads, data reads, writes, and invocation. Safe defaults do not grant write/invoke access.
-
-For `DataGridView`, HAgent prefers bound/native data sources and adapts lazily. `DataTable` is optional and must not be the architecture default when another lighter representation is better.
+Automatic mode can inspect a live form or attached control tree, including a `UserControl`, controls, bindings, data sources, shared-source relationships, custom-control metadata, and bounded application-object context when the host enables the relevant permission policy.
 
 The UI layer also provides a provider-neutral structured data-query contract with explicit fields, scalar filters, sorting, and bounded paging. The contract contains no SQL, arbitrary expressions, or executable callbacks. Real database execution remains a later restricted adapter layer.
 
-The same abstraction boundary is intended to support future HControl/BaseForm adapters and other interactive surfaces such as GDI, DirectX, or Unity without making those platforms dependencies of `HAgent.Core`.
+The same boundary is intended to support future HControl/BaseForm adapters and other interactive surfaces such as GDI, DirectX, or Unity without making those platforms dependencies of `HAgent.Core`.
+
+## HWorld compatibility
+
+HWorld is a planned external consumer of HAgent. HWorld owns world state, physics, simulation time, perception, action validation, rendering, and world scheduling. HAgent supplies generic cognition infrastructure such as model/provider execution, tools, memory/context integration, asynchronous execution, and agent coordination.
+
+HAgent must not depend on HWorld or contain HWorld-specific types, actions, physics, rendering, or simulation time. The HWorld integration belongs in HWorld at its external cognition/decision boundary.
+
+The HAgent roadmap therefore treats HWorld as a concrete compatibility target for:
+
+- multiple concurrent agent runtime instances;
+- independent profiles, models, and memories;
+- asynchronous external scheduling;
+- immutable caller-provided observations;
+- cancellation, timeouts, correlation, and stale-result protection;
+- structured tools/actions with host-side validation;
+- compact context and usage telemetry.
 
 ## Example application
 
 `HAgent.Example` is the manual integration/verification host and is separate from `HAgent.Tests`.
 
-Every Example tab is intended to show:
-
-- editable input/message;
-- expected behavior and notes;
-- a copyable C# reproduction snippet beside the input;
-- global agent selection where applicable.
+Every Example feature is intended to show editable input where relevant, expected behavior, and a copyable C# reproduction snippet beside the test.
 
 The Example form is split into focused partial files so it can continue growing without becoming a monolithic test harness.
 

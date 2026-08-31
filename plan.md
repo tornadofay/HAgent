@@ -314,6 +314,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] MySQL schema upgrades are ordered and advance only after a migration succeeds.
 - [ ] Wire all remaining internal repositories to the selected storage backend.
 - [x] HAgent internal storage connection testing APIs and WinForms UI.
+- [x] Bounded HAgent internal inventory read-tool foundation for providers, agents, and persisted tool definitions.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles
@@ -377,6 +378,10 @@ The database bootstrappers consume the selected SQL Server/MySQL profile directl
 ### Tool execution correlation metadata
 
 Tool execution context and results carry execution-local correlation metadata: correlation ID, agent ID, tool ID, model tool-call ID, start/completion timestamps, and derived duration. Validation, disabled-tool, and missing-tool failures use the same metadata shape so callers can correlate rejected attempts as well as successful executions. This is runtime metadata only; persistent audit storage remains a separate capability.
+
+### Internal inventory read tool
+
+`HAgentInternalInventoryTool` is the first HAgent-owned read-tool foundation. It reads only through `IAiStore` and `IToolStore`, returns provider/agent/tool inventory metadata without secrets, supports caller cancellation, and bounds each category to a default of 50 and a hard maximum of 100 items. It has no write operation and does not expose raw connection data, passwords, executable handlers, or arbitrary host application records.
 
 ### Storage foundation
 

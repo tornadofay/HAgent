@@ -133,6 +133,27 @@ namespace HAgent.Example
                 if (!retained)
                     throw new InvalidOperationException("The reopened session did not retain the original user message.");
 
+                var internalConversationTool = new HAgentInternalConversationTool(secondConversationStore);
+                var internalRead = await internalConversationTool.ExecuteAsync(new ToolExecutionContext
+                {
+                    AgentId = selection.Agent.Id,
+                    ToolCallId = "persistent-session-conversation-read-42",
+                    CorrelationId = Guid.NewGuid().ToString("N"),
+                    Arguments = new Dictionary<string, object>
+                    {
+                        { "sessionId", sessionId },
+                        { "maxMessages", 1 }
+                    },
+                    CancellationToken = CancellationToken.None
+                }).ConfigureAwait(false);
+
+                if (!internalRead.Succeeded)
+                    throw new InvalidOperationException("The internal conversation read tool failed: " + internalRead.Error);
+                if (internalRead.Output.IndexOf("Content | " + request.Trim(), StringComparison.Ordinal) < 0)
+                    throw new InvalidOperationException("The internal conversation read tool did not return the persisted user message.");
+                if (internalRead.Output.IndexOf("Additional messages omitted by maxMessages.", StringComparison.Ordinal) < 0)
+                    throw new InvalidOperationException("The internal conversation read tool did not enforce maxMessages.");
+
                 var conversationStoreType = secondConversationStore.GetType().Name;
                 var persistenceLocation = options.StorageType == HAgentStorageType.File
                     ? Path.Combine(options.GetEffectiveRootPath(), "conversations", sessionId + ".json")
@@ -147,6 +168,8 @@ namespace HAgent.Example
                                           "Model: " + selection.Model + Environment.NewLine +
                                           "Persistence test succeeded." + Environment.NewLine +
                                           "Messages retained after reopening: " + reopenedRead.Messages.Count + Environment.NewLine +
+                                          "Internal conversation read: succeeded." + Environment.NewLine +
+                                          "Internal conversation message bound: maxMessages=1." + Environment.NewLine +
                                           "Original transcript:" + Environment.NewLine + originalTranscript + Environment.NewLine +
                                           "Reopened transcript:" + Environment.NewLine +
                                           string.Join(Environment.NewLine, reopenedRead.Messages.Select(x => "  " + x.Role + ": " + x.Content)));

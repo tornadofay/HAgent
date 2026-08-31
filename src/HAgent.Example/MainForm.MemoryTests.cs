@@ -16,7 +16,7 @@ namespace HAgent.Example
         private async Task TestAutomaticMemoryAsync(string message)
         {
             var input = RequireInput(message);
-            var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var memoryPath = Path.Combine(_basePath, "memory", "example-automatic-memory-" + Guid.NewGuid().ToString("N") + ".jsonl");
             var memory = new FileMemoryStore(memoryPath);
@@ -100,7 +100,7 @@ namespace HAgent.Example
 
             var memoryPath = Path.Combine(_basePath, "memory", "example-episodic-" + Guid.NewGuid().ToString("N") + ".jsonl");
             var memory = new FileMemoryStore(memoryPath);
-            var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
 
             try

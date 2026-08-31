@@ -9,7 +9,7 @@ This repository is designed to be worked on by both human developers and coding 
 3. Do not put SQL/MySQL implementation details in Core.
 4. Provider-specific HTTP logic belongs in provider adapter assemblies.
 5. Secrets must use `ISecretStore`; never add an API-key property to persistent normal configuration objects.
-6. A provider defines connection concerns and optional shared defaults. An agent defines behavior.
+6. A provider defines connection concerns and optional shared defaults. An agent profile defines reusable behavior/configuration.
 7. Avoid hidden configuration precedence. Any inheritance should be represented explicitly in the model and UI.
 8. Public APIs should support cancellation tokens and remain async for network/database operations.
 9. Preserve .NET Framework 4.8.1 compatibility for projects that currently target it.
@@ -24,7 +24,7 @@ This repository is designed to be worked on by both human developers and coding 
 18. Provider responses must have a provider-neutral representation that can carry text, structured output, tool calls/results, reasoning metadata when explicitly exposed, usage, and raw provider metadata without forcing every provider to implement every field.
 19. Streaming is optional. Core contracts must support providers that stream and providers that do not.
 20. Observability must be possible without logging secrets or full sensitive payloads by default. Diagnostics should use correlation IDs and configurable redaction.
-21. Agent lifetime/scope is separate from agent profile. Do not create incompatible “agent types” merely for global/form/session/task use. Prefer explicit scope/binding concepts such as application, form, session, task, or ephemeral.
+21. Agent profile is separate from runtime agent instance. Do not create incompatible agent classes merely for global/form/session/task use. Prefer explicit scope/binding concepts.
 22. WinForms integration belongs in `HAgent.WinForms`, not Core. It should expose a host bridge that can attach AI capabilities to a `Form` or control tree without making `HAgentClient` depend on WinForms.
 23. The WinForms integration feature is called **UI Context / Control Adapters**, not generic “form serialization.” Serialization is one operation produced by an adapter; reading and changing controls are explicit capabilities/tools.
 24. UI adapters must understand common WinForms controls and data sources without requiring callers to manually convert them: `DataGridView`, `DataTable`, `BindingSource`, `CurrencyManager`, common list sources, `TextBox`, `ComboBox`, `Button`, `CheckBox`, `RadioButton`, `DateTimePicker`, `NumericUpDown`, `ListBox`, `TreeView`, and custom/user controls where an explicit adapter is available.
@@ -35,6 +35,12 @@ This repository is designed to be worked on by both human developers and coding 
 29. `HAgent.Example` is the manual verification surface for every meaningful completed capability, including provider capability discovery, response normalization, tool execution, UI context, permissions, approvals, and agent collaboration.
 30. The initial tool taxonomy is explicit: `BuiltIn`, `Application`, `Declarative`, `UI`, `SqlServer`, and `MySql`. `Extension` tools are deferred to a future extensibility milestone and must not be introduced into the initial runtime path.
 31. Tool configuration defines the public contract and binding metadata; it must never interpret arbitrary configuration text as executable code. Executable behavior comes from a trusted built-in handler, application-registered handler, or dedicated restricted subsystem.
+32. A shared workspace is a communication context, not an instruction to broadcast every message. Routing must explicitly select recipients.
+33. A default workspace recipient may handle unaddressed user messages. Direct addressing and agent-to-agent delegation must target a specific runtime participant.
+34. Manager/coordinator and specialist are roles over the same generic runtime agent model, not separate hard-coded agent types.
+35. Dynamically created contextual agents must be able to originate from reusable configured profiles without becoming persistent configuration records by default.
+36. Runtime agent persistence, when enabled, must distinguish host instance, user/session, workspace, profile ID, and runtime instance ID so multiple processes/users can safely share a database.
+37. HWorld is an external consumer target. HAgent must remain independent of HWorld and provide generic asynchronous multi-agent execution, memory isolation, structured tools, external scheduling, and stale-result protection without importing HWorld types.
 
 ## Documentation is part of project state
 
@@ -163,12 +169,13 @@ Runtime responsibilities include:
 - budgets and loop limits
 - structured failure reporting
 - correlation/observability hooks
+- concurrent runtime agent instances and explicit workspace routing
 
 The runtime must not hide cancellation, timeout, or tool failures as ordinary provider fallbacks.
 
 ## WinForms host bridge contract
 
-The future WinForms host bridge must remain outside Core and should expose concepts such as:
+The WinForms host bridge must remain outside Core and may expose concepts such as:
 
 ```text
 Attach(Form)

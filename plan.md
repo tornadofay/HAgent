@@ -310,12 +310,13 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Standalone memory persistence Example test uses the selected internal memory backend for File, SQL Server, and MySQL.
 - [x] Conversation persistence repositories exist for File, SQL Server, and MySQL.
 - [x] Persistent-session Example test verifies the selected conversation backend and concrete persistence location.
+- [x] SQL Server schema upgrades are ordered and advance only after a migration succeeds.
+- [x] MySQL schema upgrades are ordered and advance only after a migration succeeds.
 - [ ] Wire all remaining internal repositories to the selected storage backend.
-- [ ] Versioned schema migrations beyond the initial bootstrap version.
 - [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
-### Current slice: independent database connection profiles
+### Independent database connection profiles
 
 HAgent stores independent SQL Server and MySQL connection profiles so changing the selected backend does not overwrite or erase the other backend's server, port, username, or secret identity. Switching the Storage type swaps the visible profile in the settings UI.
 
@@ -325,21 +326,31 @@ The editable database-name field was removed. HAgent always derives its internal
 
 Legacy shared connection settings remain readable only as a compatibility migration path into the appropriate database profile.
 
-The settings UI persists a valid database profile when the user switches away from that backend, including a newly entered password. This makes switching between File, SQL Server, and MySQL durable rather than relying on transient form state. An incomplete database profile does not block switching; it remains unconfigured until valid connection details are supplied and saved.
+The settings UI persists a valid database profile when the user switches away from that backend, including a newly entered password. An incomplete database profile does not block switching; it remains unconfigured until valid connection details are supplied and saved.
 
 A saved database profile is treated as durable only after the configuration file has been written successfully and reloaded from disk. The selected SQL Server/MySQL profile remains the authoritative runtime source for server, port, username, and secret identity; legacy shared fields are not used for new runtime resolution.
 
-### Current slice: internal memory backend parity
+### Internal memory backend parity
 
 `HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` implement `IMemoryStore` against the HAgent-owned `HAgentMemoryEntries` table. Entries retain scope, kind, owner, task, content, metadata, and timestamps. Core filtering and bounded result counts are performed by each relational provider, while the existing provider-independent memory scoring behavior is preserved after retrieval.
 
 The Example automatic-memory, episodic-memory, task/event-memory, and standalone memory persistence verification paths obtain their memory store from the selected HAgent storage backend. The task/event and standalone memory tests report the validated configured backend and persistence location, making File/SQL Server/MySQL routing visible during manual verification.
 
-### Current slice: conversation storage parity
+### Conversation storage parity
 
 `IConversationStore` is implemented by the File, SQL Server, and MySQL storage providers. File sessions remain one JSON file per session; SQL Server and MySQL persist serialized message lists in the HAgent-owned `HAgentConversations` table while preserving session ID, agent ID, and timestamps.
 
 The Example persistent-session verification path obtains its conversation store from the selected HAgent storage backend. It reports the selected backend, concrete conversation-store implementation, and backend-specific persistence location, then verifies save, reopen, message retention, and deletion.
+
+### Versioned schema migrations
+
+The SQL Server and MySQL bootstrappers use `HAgentSchemaInfo` as the schema-version boundary. Bootstrap creates the base HAgent-owned tables, establishes a baseline schema version, reads the persisted version, applies ordered migrations until the provider's current version is reached, and advances the version only after each migration succeeds.
+
+SQL Server is currently at schema version 2. Its v1-to-v2 migration adds idempotent indexes supporting bounded memory and conversation retrieval.
+
+MySQL is currently at schema version 3. Its v1-to-v2 migration preserves the earlier `HAgentTools.ToolType` compatibility upgrade, and its v2-to-v3 migration adds idempotent indexes supporting bounded memory and conversation retrieval.
+
+Unknown future schema versions are rejected rather than silently downgraded or skipped. Migrations operate only on HAgent-owned objects.
 
 ### Configured storage backend resolution
 
@@ -347,23 +358,21 @@ The Example resolves its `IAiStore`, tool-definition store, memory store, and co
 
 The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, client creation, automatic memory, episodic memory, task/event memory, standalone memory persistence, and persistent conversation storage. This prevents the UI from displaying one backend's agents while runtime execution or persistence uses another backend.
 
-The Example persistent-session verification also uses the selected HAgent AI store for both client instances so an agent loaded from SQL Server or MySQL is not looked up again in the legacy File store.
-
 The storage configuration file persists the backend as an explicit enum name (`File`, `SqlServer`, or `MySql`) rather than an opaque numeric value. Saving immediately re-reads the configuration and rejects the save if the selected backend was not persisted correctly.
 
 SQL Server and MySQL resolution bootstraps the HAgent-owned database before creating the corresponding internal repositories. No host application database is used by this resolution path.
 
-Storage settings that change the backend, application identity/path, server, port, username, or related connection identity are persisted immediately. When a change affects the active backend, a host supporting live rebinding recreates the configured HAgent stores and refreshes subsequent work without restarting the application.
+Storage settings are persisted immediately. When a host supports live rebinding, a successful active-backend change recreates the configured HAgent stores and refreshes subsequent work without restarting the application.
 
-Live storage rebinding never mutates a store underneath in-flight work. Existing operations retain the stores/clients captured when they started; newly created operations resolve against the newly selected backend. The Example closes configuration surfaces that own the previous backend before rebuilding its active store path.
+Live storage rebinding never mutates a store underneath in-flight work. Existing operations retain the stores/clients captured when they started; newly created operations resolve against the newly selected backend. Configuration surfaces owning the previous backend are closed before the new store path is rebuilt.
 
 Database storage exposes an explicit TCP port with protocol defaults of 1433 for SQL Server and 3306 for MySQL. The selected port is persisted and used by both provider-specific connection builders.
 
-The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected. The Example startup output also reports the non-secret backend target and full exception details so a persisted-profile or connection failure can be diagnosed without exposing the password.
+The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected. Startup diagnostics report the non-secret backend target and full exception details without exposing the password.
 
 The Example's Configuration action also has a recovery path that opens the Storage settings directly when the active backend cannot be opened. It therefore never requires a successful database connection merely to repair database settings.
 
-The database bootstrappers consume the selected SQL Server/MySQL profile directly. They no longer read the legacy top-level connection fields during database creation or schema initialization, so a persisted per-backend profile cannot be saved successfully and then fail merely because legacy fields are empty.
+The database bootstrappers consume the selected SQL Server/MySQL profile directly. They no longer read the legacy top-level connection fields during database creation or schema initialization.
 
 ### Storage foundation
 
@@ -371,13 +380,13 @@ The database bootstrappers consume the selected SQL Server/MySQL profile directl
 
 `HAgent.Storage.File` provides an application-specific `HAgentData` directory layout for configuration, providers, agents, tools, skills, memory, conversations, wiki, runtime state, cache, and logs.
 
-`HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` provide HAgent-owned database bootstrappers. They connect to the configured server and port, create the derived HAgent database when absent, then create only HAgent-owned tables and a schema-version record. The initial schema covers providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, and future migration metadata.
+`HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` provide HAgent-owned database bootstrappers. They connect to the configured server and port, create the derived HAgent database when absent, then create only HAgent-owned tables and schema metadata. The current schema includes providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, and migration metadata.
 
 The previously implemented SQL Server `IDataQuerySource` path against arbitrary host tables was removed because it violated the internal-storage boundary. The provider-neutral structured-query contract remains independent and must not be interpreted as permission to use a host application's business database.
 
 ### Live verification
 
-The manual Example must verify the selected internal storage backend. For File storage it should verify the application-specific directory structure and internal repositories. For SQL Server/MySQL it should verify connection, database creation when absent, schema initialization, idempotent re-open, persistence through the configured repositories, and safe refusal to operate against unrelated host application tables. Storage backend switching should also be verified live by switching File ↔ SQL Server ↔ MySQL without restarting, including failure recovery when the newly selected backend cannot be opened.
+The manual Example must verify the selected internal storage backend. For File storage it should verify the application-specific directory structure and internal repositories. For SQL Server/MySQL it should verify connection, database creation when absent, schema initialization, idempotent re-open, ordered schema migration from older HAgent versions, persistence through the configured repositories, and safe refusal to operate against unrelated host application tables. Storage backend switching should also be verified live by switching File ↔ SQL Server ↔ MySQL without restarting, including failure recovery when the newly selected backend cannot be opened.
 
 Database credentials must never become persisted agent/tool configuration or normal logs.
 

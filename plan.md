@@ -263,7 +263,7 @@ without replacing HAgent or introducing application-specific types into `HAgent.
 
 ## Active implementation plan
 
-Only the current implementation milestone belongs here. Completed work is recorded in `10-completed.md`; future work belongs under `docs/roadmap/`.
+Only the current implementation milestone belongs here. Completed implementation history is recorded in the ordered roadmap under `docs/roadmap/`; future work does not belong here.
 
 ## 0.8 Data Access + Authorization
 

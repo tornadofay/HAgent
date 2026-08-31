@@ -1,5 +1,6 @@
 using HAgent.Models;
 using HAgent.WinForms.Controls;
+using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
 using System;
 using System.Collections.Generic;
@@ -71,7 +72,27 @@ namespace HAgent.Example
             GetActionsPanel().Controls.Add(_clearOutputButton);
 
             AddFeatureTabs();
-            Shown += async delegate { await RefreshExampleAgentsAsync(); };
+            Shown += async delegate
+            {
+                try
+                {
+                    await RefreshExampleAgentsAsync();
+                }
+                catch (Exception ex)
+                {
+                    _globalStatus.Text = "Storage unavailable";
+                    _globalStatus.ForeColor = Error;
+                    Write("STORAGE", "HAgent could not open the configured internal storage backend." + Environment.NewLine +
+                                      "Open Configuration → Storage to review the settings, then restart if the backend is changed." + Environment.NewLine +
+                                      "Detail: " + ex.Message);
+                    HMessage.ShowException(
+                        this,
+                        "HAgent could not open the configured internal storage backend. Review Configuration → Storage and restart the application after changing storage settings.",
+                        "HAgent Storage",
+                        ex);
+                    SetButtonsEnabled(true);
+                }
+            };
             FormClosed += delegate
             {
                 if (_streamingCts != null)

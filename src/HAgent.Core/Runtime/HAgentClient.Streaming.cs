@@ -79,7 +79,7 @@ namespace HAgent.Runtime
                         provider,
                         agent,
                         apiKey,
-                        BuildSystemPrompt(provider, agent),
+                        BuildSystemPrompt(provider, agent, null),
                         contextMessages,
                         progress,
                         cancellationToken).ConfigureAwait(false);

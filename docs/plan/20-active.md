@@ -34,7 +34,8 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Bounded HAgent internal inventory read-tool foundation for providers, agents, and persisted tool definitions.
 - [x] Bounded HAgent internal memory read-tool foundation with explicit scope/owner filtering and sensitive metadata redaction.
 - [x] Bounded HAgent internal conversation read-tool foundation with explicit session targeting and agent-identity isolation.
-- [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
+- [x] Agent execution correlation ID and audit-safe execution projection foundation.
+- [ ] Read-only HAgent internal data tools and persistent audit/result storage before any writes.
 
 ### Independent database connection profiles
 
@@ -99,6 +100,8 @@ The database bootstrappers consume the selected SQL Server/MySQL profile directl
 Tool execution context and results carry execution-local correlation metadata: correlation ID, agent ID, tool ID, model tool-call ID, start/completion timestamps, and derived duration. Validation, disabled-tool, and missing-tool failures use the same metadata shape so callers can correlate rejected attempts as well as successful executions. This is runtime metadata only; persistent audit storage remains a separate capability.
 
 Agent executions now also receive an immutable `CorrelationId` at execution creation. This ID is distinct from provider-attempt and tool-call IDs and serves as the stable runtime-level correlation anchor for later audit and telemetry. The Example runtime verification requires this correlation ID and verifies execution timing remains monotonic.
+
+`AgentExecutionAuditRecord` provides a secret-safe, payload-free projection of execution metadata for future observability/audit persistence. It contains execution/correlation IDs, agent identity, model, selected provider identity, lifecycle timing, state, and classified failure metadata while excluding prompts, message contents, response text, secret values/IDs, raw connection strings, and raw exceptions. It is a snapshot, not a persistence store.
 
 ### Internal inventory read tool
 

@@ -37,6 +37,8 @@ HAgent may expose selected HAgent-owned repositories through trusted built-in re
 
 `HAgentInternalMemoryTool` provides bounded read-only inspection of HAgent-owned memory for one explicit `scope` and `ownerId`. Optional `kind`, `taskId`, and text filters narrow the existing `IMemoryStore.SearchAsync` contract. Results are limited to 20 by default and 50 maximum, cancellation is propagated, memory content is bounded, and sensitive metadata keys such as passwords, API keys, secrets, credentials, tokens, and connection strings are redacted.
 
+`HAgentInternalConversationTool` provides bounded read-only inspection of one HAgent-owned conversation identified by an explicit session ID. It requires a session ID, limits returned messages to 20 by default and 50 maximum, bounds message content to 4000 characters, propagates cancellation, and does not enumerate sessions because `IConversationStore` exposes only explicit session loading. When a requesting agent identity is present, a conversation whose stored agent identity differs is not returned.
+
 The inventory tool accepts an optional `maxItems` argument. The default is 50 and the hard maximum is 100 items per category. It propagates caller cancellation and returns only non-secret metadata such as IDs, names, relationships, enabled state, and tool type. Provider secrets, passwords, raw connection strings, arbitrary storage records, and executable handlers are not returned.
 
 An internal read tool remains a trusted capability boundary. Registering it is an explicit host/runtime decision; the tool does not grant the model authority to inspect unrelated host application data or bypass other HAgent permissions.

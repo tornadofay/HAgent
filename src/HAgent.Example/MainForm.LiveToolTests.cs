@@ -20,7 +20,7 @@ namespace HAgent.Example
             if (selected == null)
                 throw new InvalidOperationException("Select an agent first.");
 
-            var sourceStore = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+            var sourceStore = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var sourceSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var providers = await sourceStore.GetProvidersAsync();
             var providerIds = new List<string>();

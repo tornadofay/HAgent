@@ -12,6 +12,7 @@ namespace HAgent.Example
     {
         private async Task TestDataQueryContractAsync(string unused)
         {
+            var schema = new DataQuerySchema(new[] { "Id", "Name", "Amount" });
             var source = new InMemoryDataQuerySource(new[]
             {
                 Row(1, "Alice", 120),
@@ -19,7 +20,7 @@ namespace HAgent.Example
                 Row(3, "Carol", 90),
                 Row(4, "David", 150),
                 Row(5, "Eve", 60)
-            });
+            }, schema);
 
             var request = new DataQueryRequest
             {
@@ -46,6 +47,20 @@ namespace HAgent.Example
             if (result.Rows[0].Count != 3 || result.Rows[0].ContainsKey("Secret"))
                 throw new InvalidOperationException("Structured data query did not enforce the explicit field projection.");
 
+            var unauthorizedFieldRequest = new DataQueryRequest
+            {
+                Fields = new[] { "Id", "Secret" },
+                Take = 1
+            };
+            try
+            {
+                await source.QueryAsync(unauthorizedFieldRequest, CancellationToken.None);
+                throw new InvalidOperationException("Application-owned data source accepted a field outside its authoritative schema.");
+            }
+            catch (ArgumentException)
+            {
+            }
+
             var duplicateFields = new DataQueryRequest
             {
                 Fields = new[] { "Id", "id" },
@@ -69,6 +84,7 @@ namespace HAgent.Example
                 "Returned: " + result.Returned + Environment.NewLine +
                 "Has more: " + result.HasMore + Environment.NewLine +
                 "First rows: " + Convert.ToString(result.Rows[0]["Name"]) + ", " + Convert.ToString(result.Rows[1]["Name"]) + Environment.NewLine +
+                "Authoritative schema rejected the non-approved Secret field." + Environment.NewLine +
                 "No SQL or executable expression accepted by the query contract.");
         }
 
@@ -86,16 +102,21 @@ namespace HAgent.Example
         private sealed class InMemoryDataQuerySource : IDataQuerySource
         {
             private readonly IReadOnlyList<IReadOnlyDictionary<string, object>> _rows;
+            private readonly DataQuerySchema _schema;
 
-            public InMemoryDataQuerySource(IEnumerable<IReadOnlyDictionary<string, object>> rows)
+            public InMemoryDataQuerySource(
+                IEnumerable<IReadOnlyDictionary<string, object>> rows,
+                DataQuerySchema schema)
             {
+                if (rows == null) throw new ArgumentNullException(nameof(rows));
+                _schema = schema ?? throw new ArgumentNullException(nameof(schema));
                 _rows = rows.ToList().AsReadOnly();
             }
 
             public Task<DataQueryResult> QueryAsync(DataQueryRequest request, CancellationToken cancellationToken = default(CancellationToken))
             {
                 if (request == null) throw new ArgumentNullException(nameof(request));
-                request.Validate();
+                _schema.ValidateRequest(request);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var filtered = _rows.Where(row => MatchesFilters(row, request.Filters)).ToList();

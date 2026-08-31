@@ -16,6 +16,8 @@ Sensitive operations may require explicit host or human approval. Approval is a 
 
 ## Data access
 
+Structured data access uses a host-owned `DataQuerySchema` as an authoritative field allow-list independent of model requests. A `DataQueryRequest` is validated against that schema before the source performs filtering, sorting, or projection. Schema membership describes which fields the source intentionally exposes; it does not replace later operation permissions or host authorization.
+
 Database access must use an allow-listed schema and structured query model. Credentials use the secret subsystem and must not be persisted as ordinary agent/tool configuration.
 
 ## Isolation

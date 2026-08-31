@@ -9,14 +9,22 @@ Turn the verified structured-query contracts into safe application and database 
 
 ### Current slices
 
-- [ ] Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
-- [ ] Authoritative schema/field allow-list independent of model requests.
+- [x] Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
+- [x] Authoritative schema/field allow-list independent of model requests.
 - [ ] Data permissions separated into discovery, projection/query, export, and write operations.
 - [ ] Host authorization callback contract.
 - [ ] Query limits, cancellation, timeout, and resource budgets.
 - [ ] Restricted SQL Server adapter using generated parameterized commands only.
 - [ ] Restricted MySQL adapter using generated parameterized commands only.
 - [ ] Read-only database tools and result/audit metadata before database writes.
+
+### Current slice: application-owned structured reads
+
+`HAgent.Core` now provides `DataQuerySchema`, a host-owned authoritative field allow-list. An application-owned `IDataQuerySource` must validate each request against its schema before evaluating filters, sorting, or projection. Schema membership is intentionally narrower than full authorization; later 0.8 slices add operation permissions and host authorization.
+
+`HAgent.Example` uses an in-memory application-owned `IDataQuerySource` with an explicit `Id`, `Name`, and `Amount` schema and verifies that an existing but non-approved `Secret` field is rejected before execution.
+
+Local build/Example verification is pending and is required before these two slices are treated as fully verified.
 
 ### Live Example
 

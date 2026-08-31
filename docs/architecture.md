@@ -1,136 +1,118 @@
-# Architecture
+# HAgent architecture
 
-HAgent separates provider transport, agent behavior, memory, tools, UI context, and host-owned side effects so applications can opt into only the capabilities they need.
+`HAgent` is a general-purpose agent runtime. It connects LLM/provider execution and reusable agent capabilities to a host application, game, simulation, or simple chat experience.
 
-```text
-                         +----------------------+
-                         |   HAgent.WinForms    |
-                         | configuration + UI   |
-                         | context / adapters   |
-                         +----------+-----------+
-                                    |
-                                    v
-+----------------+       +----------------------+       +---------------------------+
-| Storage        |------>|      HAgent.Core     |<------| Provider Adapters         |
-| File           |       | models + abstractions|       | OpenAI-compatible / future|
-| SQL Server     |       | runtime + sessions   |       +---------------------------+
-| MySQL          |------>| memory + context     |
-+----------------+       | tools + agent loop   |
-                         +----------+-----------+
-                                    |
-                                    v
-                              Host application
-                                    |
-                    +---------------+----------------+
-                    |                                |
-             Explicit domain                 Automatic UI/data
-             abstractions                    discovery + tools
-             Customer/Invoice                when policy permits
-```
-
-## Runtime flow
-
-1. Application selects an agent.
-2. Core resolves that agent and its provider candidates.
-3. Core checks known provider/model capabilities and routing constraints.
-4. The adapter performs provider-specific transport.
-5. Core normalizes the provider result into the stable `AIResponse` contract.
-6. Optional tools can execute through the registry and return tool observations for subsequent model turns.
-
-## Tool architecture
-
-A persisted tool definition is not executable code.
+The architecture has five stable concerns:
 
 ```text
-Tool Definition
-    name
-    description
-    input schema
-    type
-    enabled
-       |
-       v
-Tool Registry
-       |
-       +---- executable handler supplied by host/HAgent
+Host Application
+      |
+      v
+Context  <---->  Runtime Agents  <---->  Workspace
+   |                    |                   |
+ UI / Data / App     Execution           Messages
+ External context      Memory            Routing
+      |                    |                   |
+      +--------------------+-------------------+
+                           |
+                         Tools
+                           |
+                     Providers / LLMs
 ```
 
-Initial tool types are BuiltIn, Application, Declarative, UI, SqlServer, and MySql. Extension/DLL tools are deferred.
+## Core boundaries
 
-Tool arguments are validated before execution. Tool handlers remain application-owned runtime capabilities; executable delegates are never serialized into configuration files or databases.
+- `HAgent.Core` owns provider-neutral models, runtime execution, memory/context abstractions, tools, workspaces, and authorization contracts.
+- Provider adapters own provider-specific transport and capability discovery.
+- Storage assemblies own persistence.
+- `HAgent.WinForms` owns WinForms UI Context and control/data adapters.
+- Host applications own their business/domain types and real-world side effects.
+- HWorld is an external consumer. HAgent never references HWorld.
 
-## UI Context architecture
+## Agent profile vs runtime instance
 
-“Form serialization” is treated as one possible implementation technique, not the public subsystem name.
-
-Two modes are intentional:
-
-### Explicit domain abstraction
-
-The host can expose a semantic object or custom adapter:
+A persisted agent profile is reusable configuration:
 
 ```text
-Customer
- ├─ Name
- ├─ Contact
- └─ Invoices
+Agent Profile
+    provider/model
+    system prompt
+    tools
+    defaults
 ```
 
-This gives the developer maximum control and is the preferred path for sensitive or highly specialized applications.
-
-### Automatic UI/data discovery
-
-The host can attach a live UI context:
-
-```csharp
-var host = HAgentHost.Attach(form, registry, true, permissions);
-```
-
-The context can discover controls and bound data and expose read-only tools such as `ui.inspect`, `ui.read_control`, and `ui.read_data` when permission policy allows them.
-
-Automatic discovery is convenience, not authority. Attaching a form never grants write or invoke access by itself.
-
-## UI permissions
-
-The coarse policy is:
+A runtime agent instance is one live identity created from a profile:
 
 ```text
-Automatic discovery
-Read controls
-Read data
-Write controls
-Invoke controls
+Runtime Agent Instance
+    instance ID
+    profile ID
+    scope
+    memory owner
+    execution state
+    host/context bindings
 ```
 
-Safe defaults are automatic discovery off, read access on, and write/invoke off.
+Many runtime instances may come from one profile. Runtime instances are not permanent configuration entries by default.
 
-Applications can disable automatic behavior and supply their own authorization/semantic abstraction. Future SQL Server/MySQL query permissions remain separate from UI permissions.
+## Context
 
-## Data representation rule
+HAgent accepts context supplied by the host. The host decides what the agent is allowed to know.
 
-Use the lightest representation that preserves the information required by the operation. Prefer bound/native data sources, adapt lazily, and avoid unnecessary materialization. For `DataGridView`, a usable bound source is preferred over scraping visible cells. `DataTable` is optional, not the architectural default.
+Supported context patterns include:
 
-This same abstraction boundary is intended to allow future adapters for custom HControl/BaseForm components and other interactive surfaces such as GDI, DirectX, or Unity without moving those platform concerns into `HAgent.Core`.
+- UI Context / control adapters.
+- Data-source and structured query context.
+- Live application-object context with bounded inspection.
+- Caller-created observation/context snapshots.
+- Future platform-specific adapters.
 
-## Example host
+Discovery is descriptive. Authorization is separate.
 
-`HAgent.Example` is the manual integration/verification host. Each example exposes:
+## Tools
 
-- editable input/message;
-- expected behavior and notes;
-- a copyable C# reproduction snippet;
-- global agent selection where the example needs an agent.
+Tool definitions describe what an agent may request. Trusted runtime handlers decide what the host actually executes.
 
-The Example application is split into focused partial files so new demonstrations do not recreate the original monolithic form problem.
+Tool categories currently defined are BuiltIn, Application, Declarative, UI, SqlServer, and MySql. Extension tools are deferred.
 
-## Prompt model
+Executables are never persisted as tool configuration.
 
-The effective system instruction is intentionally simple:
+## Workspace and communication
+
+A workspace is optional. It allows several participants to share one conversation/context while keeping model execution targeted.
 
 ```text
-Provider shared instruction
-
-Agent instruction
+User -> default recipient
+User -> explicit recipient
+Agent -> explicit recipient
 ```
 
-The agent may opt out of using the provider shared instruction. This avoids deep inheritance chains that are difficult for users to understand.
+Messages are not automatically broadcast. Visible agent-to-agent dialogue is a workspace feature; only the addressed participant starts an LLM execution for that message unless an explicit policy says otherwise.
+
+## Memory
+
+Memory ownership follows runtime identity rather than profile identity when isolated agent state is required. Shared memory must be explicitly scoped and authorized.
+
+## Security rule
+
+The model is never the security boundary. Permissions, authorization callbacks, approvals, limits, and host-side validation remain outside system-prompt instructions.
+
+## External consumers
+
+The same HAgent runtime can serve:
+
+- simple one-agent chat;
+- business applications with coordinator and contextual specialists;
+- games and simulations;
+- HWorld actors.
+
+The host controls domain truth and side effects. HAgent supplies generic cognition/runtime capabilities.
+
+## Detailed architecture
+
+- [Runtime and agents](architecture/10-runtime.md)
+- [Context and application understanding](architecture/20-context.md)
+- [Tools](architecture/30-tools.md)
+- [Security and authorization](architecture/40-security.md)
+- [Storage](../storage.md)
+- [HWorld integration](architecture/60-hworld.md)

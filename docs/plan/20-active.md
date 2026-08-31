@@ -18,7 +18,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] SQL Server HAgent database creation and schema bootstrap foundation.
 - [x] MySQL HAgent database creation and schema bootstrap foundation.
 - [x] Example agent/provider/prompt loading follows the selected internal storage backend.
-- [x] Storage changes that affect the active runtime are identified as restart-required.
+- [x] Storage changes that affect the active runtime can be applied live when the host supports storage rebinding.
 - [x] Persistent-session Example test uses the selected HAgent AI storage backend instead of hardcoding File storage for agent lookup.
 - [x] Storage backend persistence uses explicit enum names and verifies the saved backend immediately.
 - [x] SQL Server internal memory store and Example routing for the selected backend.
@@ -70,17 +70,17 @@ The storage configuration file persists the backend as an explicit enum name (`F
 
 SQL Server and MySQL resolution bootstraps the HAgent-owned database before creating the corresponding internal repositories. No host application database is used by this resolution path.
 
-Storage settings that change the backend, application identity/path, database target, server, port, username, or related connection identity are persisted as configuration for the next process lifetime. The Storage UI informs the user that an application restart is required after such a change so the running HAgent instance does not silently mix storage backends.
+Storage settings that change the backend, application identity/path, server, port, username, or related connection identity are persisted immediately. When a change affects the active backend, a host supporting live rebinding recreates the configured HAgent stores and refreshes subsequent work without restarting the application.
 
-The Example preserves the currently active runtime when the Configuration window closes after a restart-required storage change. It does not immediately rebuild stores, reload agents, or refresh the UI against the new backend in the same process; the new backend becomes active only after application restart.
+Live storage rebinding never mutates a store underneath in-flight work. Existing operations retain the stores/clients captured when they started; newly created operations resolve against the newly selected backend. The Example closes configuration surfaces that own the previous backend before rebuilding its active store path.
 
 Database storage exposes an explicit TCP port with protocol defaults of 1433 for SQL Server and 3306 for MySQL. The selected port is persisted and used by both provider-specific connection builders.
 
-The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected and the application restarted. The Example startup output also reports the non-secret backend target and full exception details so a persisted-profile or connection failure can be diagnosed without exposing the password.
+The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected. The Example startup output also reports the non-secret backend target and full exception details so a persisted-profile or connection failure can be diagnosed without exposing the password.
 
 The Example's Configuration action also has a recovery path that opens the Storage settings directly when the active backend cannot be opened. It therefore never requires a successful database connection merely to repair database settings.
 
-The database bootstrappers consume the selected SQL Server/MySQL profile directly. They no longer read the legacy top-level connection fields during database creation or schema initialization, so a persisted per-backend profile cannot be saved successfully and then fail on restart merely because legacy fields are empty.
+The database bootstrappers consume the selected SQL Server/MySQL profile directly. They no longer read the legacy top-level connection fields during database creation or schema initialization, so a persisted per-backend profile cannot be saved successfully and then fail merely because legacy fields are empty.
 
 ### Storage foundation
 
@@ -94,7 +94,7 @@ The previously implemented SQL Server `IDataQuerySource` path against arbitrary 
 
 ### Live verification
 
-The manual Example must verify the selected internal storage backend. For File storage it should verify the application-specific directory structure and internal repositories. For SQL Server/MySQL it should verify connection, database creation when absent, schema initialization, idempotent re-open, persistence through the configured repositories, and safe refusal to operate against unrelated host application tables.
+The manual Example must verify the selected internal storage backend. For File storage it should verify the application-specific directory structure and internal repositories. For SQL Server/MySQL it should verify connection, database creation when absent, schema initialization, idempotent re-open, persistence through the configured repositories, and safe refusal to operate against unrelated host application tables. Storage backend switching should also be verified live by switching File ↔ SQL Server ↔ MySQL without restarting, including failure recovery when the newly selected backend cannot be opened.
 
 Database credentials must never become persisted agent/tool configuration or normal logs.
 
@@ -108,4 +108,4 @@ Database credentials must never become persisted agent/tool configuration or nor
 
 ## Definition of done
 
-0.8 is complete only after HAgent internal persistence is selectable and operational across the supported storage backends, schema upgrades are deterministic, and the Example verifies that HAgent storage remains isolated from host application data.
+0.8 is complete only after HAgent internal persistence is selectable and operational across the supported storage backends, schema upgrades are deterministic, live storage rebinding is safe, and the Example verifies that HAgent storage remains isolated from host application data.

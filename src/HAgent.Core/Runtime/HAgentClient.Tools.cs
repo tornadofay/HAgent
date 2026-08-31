@@ -53,11 +53,14 @@ namespace HAgent.Runtime
             if (string.IsNullOrWhiteSpace(toolId))
                 throw new ArgumentException("Tool id is required.", nameof(toolId));
 
+            var correlationId = Guid.NewGuid().ToString("N");
+            var startedAt = DateTimeOffset.UtcNow;
+
             IAgentTool tool;
             if (!_toolRegistry.TryGet(toolId, out tool))
-                throw new InvalidOperationException("Tool was not found: " + toolId);
+                return CreateFailure("Tool was not found: " + toolId, correlationId, agentId, toolId, toolCallId, startedAt);
             if (!tool.Definition.Enabled)
-                return ToolExecutionResult.Failure("Tool is disabled: " + tool.Definition.Name);
+                return CreateFailure("Tool is disabled: " + tool.Definition.Name, correlationId, agentId, toolId, toolCallId, startedAt);
 
             var source = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (arguments != null)
@@ -68,17 +71,64 @@ namespace HAgent.Runtime
 
             var validation = ToolSchemaValidator.Validate(tool.Definition, source);
             if (!validation.IsValid)
-                return ToolExecutionResult.Failure("Tool arguments failed schema validation: " + string.Join(" ", validation.Errors.Select(x => "[" + x + "]")));
+            {
+                return CreateFailure(
+                    "Tool arguments failed schema validation: " + string.Join(" ", validation.Errors.Select(x => "[" + x + "]")),
+                    correlationId,
+                    agentId,
+                    toolId,
+                    toolCallId,
+                    startedAt);
+            }
 
             var context = new ToolExecutionContext
             {
+                CorrelationId = correlationId,
                 AgentId = agentId,
+                ToolId = toolId,
                 ToolCallId = toolCallId ?? string.Empty,
                 Arguments = validation.Arguments,
                 CancellationToken = cancellationToken
             };
 
-            return await tool.ExecuteAsync(context).ConfigureAwait(false);
+            ToolExecutionResult result;
+            try
+            {
+                result = await tool.ExecuteAsync(context).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                result = ToolExecutionResult.Failure(ex.Message);
+            }
+
+            if (result == null)
+                result = ToolExecutionResult.Failure("Tool returned no execution result.");
+
+            result.CorrelationId = correlationId;
+            result.AgentId = agentId;
+            result.ToolId = toolId;
+            result.ToolCallId = toolCallId ?? string.Empty;
+            result.StartedAt = startedAt;
+            result.CompletedAt = DateTimeOffset.UtcNow;
+            return result;
+        }
+
+        private static ToolExecutionResult CreateFailure(
+            string error,
+            string correlationId,
+            string agentId,
+            string toolId,
+            string toolCallId,
+            DateTimeOffset startedAt)
+        {
+            var result = ToolExecutionResult.Failure(error);
+            result.CorrelationId = correlationId;
+            result.AgentId = agentId;
+            result.ToolId = toolId;
+            result.ToolCallId = toolCallId ?? string.Empty;
+            result.StartedAt = startedAt;
+            result.CompletedAt = DateTimeOffset.UtcNow;
+            return result;
         }
     }
 }

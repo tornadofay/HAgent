@@ -15,19 +15,22 @@ namespace HAgent.Runtime
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
         private readonly IProviderRouter _router;
         private readonly IProviderErrorClassifier _errorClassifier;
+        private readonly IExecutionAuditStore _auditStore;
 
         public DefaultAgentRuntime(
             IAiStore store,
             ISecretStore secrets,
             IEnumerable<IAiProviderAdapter> adapters,
             IProviderRouter router = null,
-            IProviderErrorClassifier errorClassifier = null)
+            IProviderErrorClassifier errorClassifier = null,
+            IExecutionAuditStore auditStore = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters))).ToList().AsReadOnly();
             _router = router ?? new DefaultProviderRouter();
             _errorClassifier = errorClassifier ?? new DefaultProviderErrorClassifier();
+            _auditStore = auditStore;
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
@@ -118,6 +121,7 @@ namespace HAgent.Runtime
                                 execution.ProviderErrorKind = ProviderErrorKind.Unknown;
                                 execution.CompletedAt = DateTimeOffset.UtcNow;
                                 Notify(execution);
+                                await PersistAuditAsync(execution).ConfigureAwait(false);
                                 return execution;
                             }
                             catch (Exception ex)
@@ -180,6 +184,7 @@ namespace HAgent.Runtime
                         ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
                         : new TimeoutException("Agent execution exceeded its configured timeout.");
                     Notify(execution);
+                    await PersistAuditAsync(execution).ConfigureAwait(false);
                     throw;
                 }
                 catch (Exception ex)
@@ -190,8 +195,24 @@ namespace HAgent.Runtime
                         execution.FailureKind = AgentExecutionFailureKind.Unknown;
                     execution.Error = ex;
                     Notify(execution);
+                    await PersistAuditAsync(execution).ConfigureAwait(false);
                     throw;
                 }
+            }
+        }
+
+        private async Task PersistAuditAsync(AgentExecution execution)
+        {
+            if (_auditStore == null) return;
+            try
+            {
+                await _auditStore.AppendAsync(
+                    AgentExecutionAuditRecord.FromExecution(execution),
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Audit persistence must not change the execution outcome.
             }
         }
 

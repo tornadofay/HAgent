@@ -46,6 +46,23 @@ namespace HAgent.Storage.SqlServer
             }
         }
 
+        /// <summary>
+        /// Verifies that SQL Server accepts the supplied endpoint and credentials without creating a database or changing schema.
+        /// </summary>
+        public static async Task TestConnectionAsync(
+            string serverName,
+            int port,
+            string userName,
+            string password,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var connectionString = BuildConnectionString(serverName, port, userName, password, null);
+            using (var connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         public static string BuildConnectionString(string serverName, string userName, string password, string databaseName)
         {
             return BuildConnectionString(serverName, 1433, userName, password, databaseName);
@@ -119,6 +136,9 @@ END;";
         private static async Task ApplyMigrationsAsync(SqlConnection connection, CancellationToken cancellationToken)
         {
             var version = await GetSchemaVersionAsync(connection, cancellationToken).ConfigureAwait(false);
+            if (version > CurrentSchemaVersion)
+                throw new InvalidOperationException("Unsupported HAgent SQL Server schema version: " + version + ".");
+
             while (version < CurrentSchemaVersion)
             {
                 switch (version)

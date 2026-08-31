@@ -6,8 +6,6 @@ using HAgent.Models;
 using HAgent.WinForms;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
-using HAgent.Storage.File;
-using System.IO;
 using System.Linq;
 
 namespace HAgent.Example
@@ -120,8 +118,8 @@ namespace HAgent.Example
         private async void OpenConfiguration()
         {
             var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            var toolStore = CreateConfiguredToolStore(secrets);
+            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
+            var toolStore = await CreateConfiguredToolStoreAsync().ConfigureAwait(true);
 
             AISettings.ShowMainAISettingsForm(
                 store,

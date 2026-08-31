@@ -10,6 +10,7 @@ namespace HAgent.Runtime
 {
     public sealed class DefaultAgentRuntime : IAgentRuntime
     {
+        private const int AuditRetentionLimit = 5000;
         private readonly IAiStore _store;
         private readonly ISecretStore _secrets;
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
@@ -209,6 +210,7 @@ namespace HAgent.Runtime
                 await _auditStore.AppendAsync(
                     AgentExecutionAuditRecord.FromExecution(execution),
                     CancellationToken.None).ConfigureAwait(false);
+                await _auditStore.TrimAsync(AuditRetentionLimit, CancellationToken.None).ConfigureAwait(false);
             }
             catch
             {

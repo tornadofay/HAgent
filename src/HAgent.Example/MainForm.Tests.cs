@@ -85,6 +85,7 @@ namespace HAgent.Example
         {
             var selection = await CreateClientAndAgentAsync();
             var request = RequireInput(firstMessage);
+            var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
             var sessionId = "example-" + Guid.NewGuid().ToString("N");
             var firstConversationStore = await CreateConfiguredConversationStoreAsync().ConfigureAwait(true);
             string originalTranscript;
@@ -132,15 +133,13 @@ namespace HAgent.Example
                 if (!retained)
                     throw new InvalidOperationException("The reopened session did not retain the original user message.");
 
-                var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
                 var conversationStoreType = secondConversationStore.GetType().Name;
-                var storageDescription = options.StorageType.ToString();
                 var persistenceLocation = options.StorageType == HAgentStorageType.File
                     ? Path.Combine(options.GetEffectiveRootPath(), "conversations", sessionId + ".json")
                     : "HAgentConversations in " + options.GetEffectiveDatabaseName();
 
                 Write("PERSISTENT SESSION", "Session ID: " + sessionId + Environment.NewLine +
-                                          "Storage backend: " + storageDescription + Environment.NewLine +
+                                          "Storage backend: " + options.StorageType + Environment.NewLine +
                                           "Conversation store: " + conversationStoreType + Environment.NewLine +
                                           "Persistence location: " + persistenceLocation + Environment.NewLine +
                                           "Agent: " + selection.Agent.Name + Environment.NewLine +
@@ -203,10 +202,10 @@ namespace HAgent.Example
 
         private async Task TestMemoryAsync(string message)
         {
-            var memoryPath = Path.Combine(_basePath, "memory", "example-memory.jsonl");
             var originalInput = RequireInput(message);
             var storedContent = ExtractMemorySearchText(originalInput);
-            var firstStore = new FileMemoryStore(memoryPath);
+            var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
+            var firstStore = await CreateConfiguredMemoryStoreAsync().ConfigureAwait(true);
             string memoryId;
 
             try
@@ -229,10 +228,11 @@ namespace HAgent.Example
             }
             finally
             {
-                firstStore.Dispose();
+                var disposable = firstStore as IDisposable;
+                if (disposable != null) disposable.Dispose();
             }
 
-            var secondStore = new FileMemoryStore(memoryPath);
+            var secondStore = await CreateConfiguredMemoryStoreAsync().ConfigureAwait(true);
             try
             {
                 var recalled = await secondStore.SearchAsync(new MemoryQuery
@@ -248,7 +248,12 @@ namespace HAgent.Example
                     throw new InvalidOperationException("The second memory-store instance could not recall the persisted entry.");
 
                 await secondStore.RemoveAsync(found.Id, CancellationToken.None);
-                Write("MEMORY", "Store path: " + memoryPath + Environment.NewLine +
+                var persistenceLocation = options.StorageType == HAgentStorageType.File
+                    ? Path.Combine(options.GetEffectiveRootPath(), "memory", "memory.jsonl")
+                    : "HAgentMemoryEntries in " + options.GetEffectiveDatabaseName();
+
+                Write("MEMORY", "Storage backend: " + options.StorageType + Environment.NewLine +
+                              "Persistence location: " + persistenceLocation + Environment.NewLine +
                               "Persistence test succeeded." + Environment.NewLine +
                               "Memory ID: " + found.Id + Environment.NewLine +
                               "Content: " + found.Content + Environment.NewLine +
@@ -257,7 +262,8 @@ namespace HAgent.Example
             }
             finally
             {
-                secondStore.Dispose();
+                var disposable = secondStore as IDisposable;
+                if (disposable != null) disposable.Dispose();
             }
         }
 

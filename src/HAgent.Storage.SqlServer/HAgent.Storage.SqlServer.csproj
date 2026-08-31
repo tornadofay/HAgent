@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\HAgent.Core\HAgent.Core.csproj" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.6" />
+    <PackageReference Include="System.Text.Json" Version="10.0.11" />
   </ItemGroup>
 </Project>

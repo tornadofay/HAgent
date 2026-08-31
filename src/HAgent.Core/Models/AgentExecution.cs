@@ -8,6 +8,7 @@ namespace HAgent.Models
         internal AgentExecution(AgentExecutionSnapshot snapshot, IReadOnlyList<AIMessage> messages)
         {
             Id = Guid.NewGuid().ToString("N");
+            CorrelationId = Guid.NewGuid().ToString("N");
             Snapshot = snapshot;
             Messages = messages;
             State = Runtime.AgentExecutionState.Created;
@@ -17,6 +18,7 @@ namespace HAgent.Models
         }
 
         public string Id { get; private set; }
+        public string CorrelationId { get; private set; }
         public AgentExecutionSnapshot Snapshot { get; private set; }
         public IReadOnlyList<AIMessage> Messages { get; internal set; }
         public AIResponse Response { get; internal set; }

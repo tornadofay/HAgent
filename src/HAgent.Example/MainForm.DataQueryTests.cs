@@ -13,10 +13,7 @@ namespace HAgent.Example
         private async Task TestDataQueryContractAsync(string unused)
         {
             var schema = new DataQuerySchema(new[] { "Id", "Name", "Amount" });
-            var permissions = new DataAccessPermissions
-            {
-                ProjectionQuery = true
-            };
+            var authorizer = new ExampleDataAccessAuthorizer();
             var source = new InMemoryDataQuerySource(new[]
             {
                 Row(1, "Alice", 120),
@@ -24,7 +21,7 @@ namespace HAgent.Example
                 Row(3, "Carol", 90),
                 Row(4, "David", 150),
                 Row(5, "Eve", 60)
-            }, schema, permissions);
+            }, schema, authorizer, "orders", "example-agent");
 
             var request = new DataQueryRequest
             {
@@ -65,23 +62,6 @@ namespace HAgent.Example
             {
             }
 
-            var deniedSource = new InMemoryDataQuerySource(
-                new[] { Row(1, "Alice", 120) },
-                schema,
-                new DataAccessPermissions());
-            try
-            {
-                await deniedSource.QueryAsync(new DataQueryRequest
-                {
-                    Fields = new[] { "Id", "Name" },
-                    Take = 1
-                }, CancellationToken.None);
-                throw new InvalidOperationException("Application-owned data source executed a query without projection/query permission.");
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-
             var duplicateFields = new DataQueryRequest
             {
                 Fields = new[] { "Id", "id" },
@@ -96,6 +76,27 @@ namespace HAgent.Example
             {
             }
 
+            var deniedAuthorizer = new ExampleDataAccessAuthorizer(false);
+            var deniedSource = new InMemoryDataQuerySource(new[]
+            {
+                Row(1, "Alice", 120)
+            }, schema, deniedAuthorizer, "orders", "example-agent");
+            try
+            {
+                await deniedSource.QueryAsync(request, CancellationToken.None);
+                throw new InvalidOperationException("Data source executed a query after host authorization denied the operation.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+
+            var observed = authorizer.LastRequest;
+            if (observed == null || observed.Operation != DataAccessOperation.ProjectionQuery ||
+                !string.Equals(observed.SourceId, "orders", StringComparison.Ordinal) ||
+                !string.Equals(observed.RuntimeIdentity, "example-agent", StringComparison.Ordinal) ||
+                !object.ReferenceEquals(observed.Query, request))
+                throw new InvalidOperationException("Host authorization callback did not receive the runtime identity, source, operation, and query context.");
+
             Write("DATA QUERY CONTRACT",
                 "Contract test succeeded." + Environment.NewLine +
                 "Fields: Id, Name, Amount" + Environment.NewLine +
@@ -107,6 +108,7 @@ namespace HAgent.Example
                 "First rows: " + Convert.ToString(result.Rows[0]["Name"]) + ", " + Convert.ToString(result.Rows[1]["Name"]) + Environment.NewLine +
                 "Authoritative schema rejected the non-approved Secret field." + Environment.NewLine +
                 "Projection/query permission accepted the authorized source and rejected the denied source." + Environment.NewLine +
+                "Host authorization callback received operation, source, runtime identity, and query context." + Environment.NewLine +
                 "No SQL or executable expression accepted by the query contract.");
         }
 
@@ -121,28 +123,66 @@ namespace HAgent.Example
             };
         }
 
+        private sealed class ExampleDataAccessAuthorizer : IDataAccessAuthorizer
+        {
+            private readonly bool _allow;
+
+            public ExampleDataAccessAuthorizer(bool allow = true)
+            {
+                _allow = allow;
+            }
+
+            public DataAuthorizationRequest LastRequest { get; private set; }
+
+            public Task<bool> AuthorizeAsync(DataAuthorizationRequest request, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                if (request == null) throw new ArgumentNullException(nameof(request));
+                cancellationToken.ThrowIfCancellationRequested();
+                LastRequest = request;
+                return Task.FromResult(_allow);
+            }
+        }
+
         private sealed class InMemoryDataQuerySource : IDataQuerySource
         {
             private readonly IReadOnlyList<IReadOnlyDictionary<string, object>> _rows;
             private readonly DataQuerySchema _schema;
-            private readonly DataAccessPermissions _permissions;
+            private readonly IDataAccessAuthorizer _authorizer;
+            private readonly string _sourceId;
+            private readonly string _runtimeIdentity;
 
             public InMemoryDataQuerySource(
                 IEnumerable<IReadOnlyDictionary<string, object>> rows,
                 DataQuerySchema schema,
-                DataAccessPermissions permissions)
+                IDataAccessAuthorizer authorizer,
+                string sourceId,
+                string runtimeIdentity)
             {
                 if (rows == null) throw new ArgumentNullException(nameof(rows));
                 _schema = schema ?? throw new ArgumentNullException(nameof(schema));
-                _permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
+                _authorizer = authorizer ?? throw new ArgumentNullException(nameof(authorizer));
+                if (string.IsNullOrWhiteSpace(sourceId)) throw new ArgumentException("Source ID is required.", nameof(sourceId));
+                if (string.IsNullOrWhiteSpace(runtimeIdentity)) throw new ArgumentException("Runtime identity is required.", nameof(runtimeIdentity));
+                _sourceId = sourceId;
+                _runtimeIdentity = runtimeIdentity;
                 _rows = rows.ToList().AsReadOnly();
             }
 
-            public Task<DataQueryResult> QueryAsync(DataQueryRequest request, CancellationToken cancellationToken = default(CancellationToken))
+            public async Task<DataQueryResult> QueryAsync(DataQueryRequest request, CancellationToken cancellationToken = default(CancellationToken))
             {
                 if (request == null) throw new ArgumentNullException(nameof(request));
-                _permissions.DemandProjectionQuery();
                 _schema.ValidateRequest(request);
+
+                var authorized = await _authorizer.AuthorizeAsync(new DataAuthorizationRequest
+                {
+                    Operation = DataAccessOperation.ProjectionQuery,
+                    SourceId = _sourceId,
+                    RuntimeIdentity = _runtimeIdentity,
+                    Query = request
+                }, cancellationToken).ConfigureAwait(false);
+                if (!authorized)
+                    throw new UnauthorizedAccessException("The host authorization callback denied the structured data projection/query operation.");
+
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var filtered = _rows.Where(row => MatchesFilters(row, request.Filters)).ToList();
@@ -163,13 +203,13 @@ namespace HAgent.Example
                     return (IReadOnlyDictionary<string, object>)result;
                 }).ToList();
 
-                return Task.FromResult(new DataQueryResult
+                return new DataQueryResult
                 {
                     Rows = projected.AsReadOnly(),
                     Skipped = skipped,
                     Returned = projected.Count,
                     HasMore = skipped + projected.Count < filtered.Count
-                });
+                };
             }
 
             private static bool MatchesFilters(IReadOnlyDictionary<string, object> row, IReadOnlyList<DataFilterCondition> filters)

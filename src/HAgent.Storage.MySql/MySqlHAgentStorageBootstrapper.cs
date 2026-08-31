@@ -12,7 +12,7 @@ namespace HAgent.Storage.MySql
     /// </summary>
     public sealed class MySqlHAgentStorageBootstrapper
     {
-        public const int CurrentSchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
 
         public async Task EnsureCreatedAsync(
             HAgentStorageOptions options,
@@ -134,6 +134,10 @@ WHERE NOT EXISTS (SELECT 1 FROM HAgentSchemaInfo WHERE SchemaName = 'core');";
                         await MigrateV2ToV3Async(connection, cancellationToken).ConfigureAwait(false);
                         version = 3;
                         break;
+                    case 3:
+                        await MigrateV3ToV4Async(connection, cancellationToken).ConfigureAwait(false);
+                        version = 4;
+                        break;
                     default:
                         throw new InvalidOperationException("Unsupported HAgent MySQL schema version: " + version + ".");
                 }
@@ -216,6 +220,31 @@ END;", cancellationToken).ConfigureAwait(false);
             await CreateIndexIfMissingAsync(connection, "HAgentMemoryEntries", "IX_HAgentMemoryEntries_OwnerScopeOccurred", "CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON HAgentMemoryEntries(OwnerId, Scope, OccurredAt, CreatedAt);", cancellationToken).ConfigureAwait(false);
             await CreateIndexIfMissingAsync(connection, "HAgentMemoryEntries", "IX_HAgentMemoryEntries_TaskOccurred", "CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON HAgentMemoryEntries(TaskId, OccurredAt, CreatedAt);", cancellationToken).ConfigureAwait(false);
             await CreateIndexIfMissingAsync(connection, "HAgentConversations", "IX_HAgentConversations_UpdatedAt", "CREATE INDEX IX_HAgentConversations_UpdatedAt ON HAgentConversations(UpdatedAt);", cancellationToken).ConfigureAwait(false);
+        }
+
+        private static async Task MigrateV3ToV4Async(MySqlConnection connection, CancellationToken cancellationToken)
+        {
+            await ExecuteNonQueryAsync(connection, @"
+CREATE TABLE IF NOT EXISTS HAgentExecutionAudits (
+    ExecutionId varchar(128) NOT NULL,
+    CorrelationId varchar(128) NOT NULL,
+    AgentId varchar(128) NOT NULL,
+    AgentName varchar(200) NOT NULL,
+    Model varchar(200) NOT NULL,
+    LastProviderId varchar(128) NOT NULL,
+    LastProviderName varchar(200) NOT NULL,
+    State varchar(50) NOT NULL,
+    FailureKind varchar(100) NOT NULL,
+    ProviderErrorKind varchar(100) NOT NULL,
+    CreatedAt datetime(6) NOT NULL,
+    StartedAt datetime(6) NULL,
+    CompletedAt datetime(6) NULL,
+    DurationMs double NULL,
+    PRIMARY KEY (ExecutionId)
+);", cancellationToken).ConfigureAwait(false);
+
+            await CreateIndexIfMissingAsync(connection, "HAgentExecutionAudits", "IX_HAgentExecutionAudits_CorrelationId", "CREATE INDEX IX_HAgentExecutionAudits_CorrelationId ON HAgentExecutionAudits(CorrelationId);", cancellationToken).ConfigureAwait(false);
+            await CreateIndexIfMissingAsync(connection, "HAgentExecutionAudits", "IX_HAgentExecutionAudits_AgentCreated", "CREATE INDEX IX_HAgentExecutionAudits_AgentCreated ON HAgentExecutionAudits(AgentId, CreatedAt);", cancellationToken).ConfigureAwait(false);
         }
 
         private static async Task CreateIndexIfMissingAsync(MySqlConnection connection, string tableName, string indexName, string createSql, CancellationToken cancellationToken)

@@ -322,7 +322,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Bounded HAgent internal execution-audit read-tool foundation with agent isolation.
 - [x] Automatic terminal execution auditing with bounded retention.
 - [x] Configurable execution audit capture and retention policy defaults.
-- [ ] Deterministic Example verification for automatic audit persistence on failure, timeout, and caller cancellation.
+- [x] Deterministic Example verification for automatic audit persistence on failure, timeout, and caller cancellation.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles

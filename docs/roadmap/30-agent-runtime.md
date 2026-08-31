@@ -1,24 +1,30 @@
-# Phase 0.9 — Agent Runtime Instances
+# Phase 0.9 — Runtime Agent Instances
 
 ## Goal
-Separate reusable agent profiles from live runtime agent identities so one configured profile can produce many independent agents concurrently.
+Make live agents first-class runtime objects separate from reusable agent profiles.
 
-## Sequence
+## Steps
 
-- [ ] Runtime agent instance model with stable instance ID and profile ID.
-- [ ] Explicit scope: Application, Workspace, Context/Form, Session, Task, Ephemeral.
-- [ ] Runtime-specific context and provider/model overrides.
-- [ ] Runtime-instance memory ownership.
-- [ ] Independent concurrent execution.
-- [ ] External scheduling, cancellation, timeout, and stale-result protection.
-- [ ] Explicit retirement and shutdown behavior.
-- [ ] Optional persistence for recovery/collaboration.
-- [ ] HWorld adapter verification.
+1. Introduce a provider-neutral runtime agent instance with its own stable instance ID and profile reference.
+2. Define explicit runtime scopes: Application, Workspace, Context/Form, Session, Task, and Ephemeral.
+3. Allow runtime-specific context and provider/model overrides without mutating stored profiles.
+4. Give each runtime instance an independent memory owner.
+5. Support multiple runtime instances executing concurrently.
+6. Expose asynchronous scheduling, cancellation, timeout, correlation, and stale-result protection.
+7. Define explicit active/retired/shutdown lifecycle behavior.
+8. Keep dynamically created agents out of persistent configuration by default.
+9. Add optional runtime-state persistence for recovery, collaboration, or multi-process deployments.
+10. Verify the runtime contract with deterministic Example coverage.
+11. Add the first HWorld adapter verification at this boundary.
 
-## Boundaries
+## Runtime rule
 
-Agent roles are configuration/binding concepts, not separate agent classes. Dynamically created specialists are not permanent configuration records by default.
+One configured profile can produce many live instances. Roles such as coordinator and specialist are host policy over the same runtime model, not separate agent classes.
+
+## HWorld gate
+
+HWorld can begin consuming HAgent when the runtime exposes independent agent instances, asynchronous execution, caller-supplied observation/context, structured tool requests, cancellation/timeout, and stale-result protection. HWorld remains responsible for world state and action validation.
 
 ## Exit criterion
 
-A host can create multiple independent runtime agents from configured profiles, execute them concurrently with isolated identity/context/memory, and safely retire or persist them according to host policy.
+A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, memory, or execution-state collisions.

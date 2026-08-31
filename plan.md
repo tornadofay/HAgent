@@ -292,30 +292,22 @@ Turn the verified structured-query contracts into safe application and database 
 
 ### Current slices
 
-- [ ] Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
-- [ ] Authoritative schema/field allow-list independent of model requests.
-- [ ] Data permissions separated into discovery, projection/query, export, and write operations.
-- [ ] Host authorization callback contract.
+- [x] Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
+- [x] Authoritative schema/field allow-list independent of model requests.
+- [x] Data permissions separated into discovery, projection/query, export, and write operations.
+- [x] Host authorization callback contract.
 - [ ] Query limits, cancellation, timeout, and resource budgets.
 - [ ] Restricted SQL Server adapter using generated parameterized commands only.
 - [ ] Restricted MySQL adapter using generated parameterized commands only.
 - [ ] Read-only database tools and result/audit metadata before database writes.
 
-### Current slice: application-owned structured reads
+### Current slice: host authorization callback
 
-`HAgent.Core` now provides `DataQuerySchema`, a host-owned authoritative field allow-list. The Example application-owned `IDataQuerySource` validates each request against its schema before evaluating filters, sorting, or projection. Schema membership is intentionally narrower than full authorization; later 0.8 slices add operation permissions and host authorization.
+`HAgent.Core` now provides `IDataAccessAuthorizer`, a runtime-owned host callback for request-specific data authorization. `DataAuthorizationRequest` carries the operation class, source identity, runtime identity/context, and relevant structured query while keeping authorization information separate from `DataQueryRequest` intent.
 
-`HAgent.Example` uses an in-memory application-owned `IDataQuerySource` with an explicit `Id`, `Name`, and `Amount` schema and verifies that an existing but non-approved `Secret` field is rejected before execution.
+The application-owned Example query source enforces its `ProjectionQuery` permission first and then requires a positive host authorization decision before executing the query. The Example verifies both an authorized and a denied runtime request and confirms that the callback receives the concrete operation, source, runtime identity, and query context.
 
-The implementation is committed, but local build/Example verification has not been run. These two roadmap slices remain pending until that verification passes locally.
-
-### Current slice: data-operation permissions
-
-`HAgent.Core` now provides `DataAccessPermissions` with separate `Discovery`, `ProjectionQuery`, `Export`, and `Write` controls. The structured query source must enforce `ProjectionQuery` before executing a query. The policy does not authorize a specific runtime identity or context; host authorization remains a separate 0.8 slice.
-
-`HAgent.Example` also verifies that a source with `ProjectionQuery` disabled rejects the request with `UnauthorizedAccessException` before data execution.
-
-The implementation is committed, but local build/Example verification has not been run.
+The implementation is committed, but local build/Example verification has not been run. The authorization slice remains pending until that verification passes locally.
 
 ### Live Example
 

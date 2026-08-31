@@ -13,6 +13,7 @@
     <ProjectReference Include="..\HAgent.Core\HAgent.Core.csproj" />
     <ProjectReference Include="..\HAgent.Providers.OpenAICompatible\HAgent.Providers.OpenAICompatible.csproj" />
     <ProjectReference Include="..\HAgent.Storage.File\HAgent.Storage.File.csproj" />
+    <ProjectReference Include="..\HAgent.Storage.SqlServer\HAgent.Storage.SqlServer.csproj" />
     <ProjectReference Include="..\HAgent.WinForms\HAgent.WinForms.csproj" />
   </ItemGroup>
 </Project>

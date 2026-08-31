@@ -318,7 +318,10 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Bounded HAgent internal memory read-tool foundation with explicit scope/owner filtering and sensitive metadata redaction.
 - [x] Bounded HAgent internal conversation read-tool foundation with explicit session targeting and agent-identity isolation.
 - [x] Agent execution correlation ID and audit-safe execution projection foundation.
-- [ ] Read-only HAgent internal data tools and persistent audit/result storage before any writes.
+- [x] Bounded persistent execution audit store for File, SQL Server, and MySQL.
+- [x] Bounded HAgent internal execution-audit read-tool foundation with agent isolation.
+- [ ] Wire automatic terminal execution auditing and retention policy into the runtime.
+- [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles
 
@@ -350,17 +353,17 @@ The Example persistent-session verification path obtains its conversation store 
 
 The SQL Server and MySQL bootstrappers use `HAgentSchemaInfo` as the schema-version boundary. Bootstrap creates the base HAgent-owned tables, establishes a baseline schema version, reads the persisted version, applies ordered migrations until the provider's current version is reached, and advances the version only after each migration succeeds.
 
-SQL Server is currently at schema version 2. Its v1-to-v2 migration adds idempotent indexes supporting bounded memory and conversation retrieval.
+SQL Server is currently at schema version 3. Its v1-to-v2 migration adds idempotent indexes supporting bounded memory and conversation retrieval. Its v2-to-v3 migration creates the execution-audit table and supporting indexes.
 
-MySQL is currently at schema version 3. Its v1-to-v2 migration preserves the legacy `HAgentTools.ToolType` compatibility upgrade, and its v2-to-v3 migration adds idempotent indexes supporting bounded memory and conversation retrieval. MySQL bootstrap and migrations execute statements separately so MariaDB deployments do not depend on multi-statement command execution.
+MySQL is currently at schema version 4. Its v1-to-v2 migration preserves the legacy `HAgentTools.ToolType` compatibility upgrade, its v2-to-v3 migration adds idempotent indexes supporting bounded memory and conversation retrieval, and its v3-to-v4 migration creates the execution-audit table and supporting indexes. MySQL bootstrap and migrations execute statements separately so MariaDB deployments do not depend on multi-statement command execution.
 
 Unknown future schema versions are rejected rather than silently downgraded or skipped. Migrations operate only on HAgent-owned objects.
 
 ### Configured storage backend resolution
 
-The Example resolves its `IAiStore`, tool-definition store, memory store, and conversation store from `HAgentStorageOptions` rather than hardcoding the File backend. File, SQL Server, and MySQL are distinct runtime storage choices.
+The Example resolves its `IAiStore`, tool-definition store, memory store, conversation store, and execution-audit store from `HAgentStorageOptions` rather than hardcoding the File backend. File, SQL Server, and MySQL are distinct runtime storage choices.
 
-The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, client creation, automatic memory, episodic memory, task/event memory, standalone memory persistence, and persistent conversation storage. This prevents the UI from displaying one backend's agents while runtime execution or persistence uses another backend.
+The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, client creation, automatic memory, episodic memory, task/event memory, standalone memory persistence, persistent conversation storage, and execution-audit persistence/inspection. This prevents the UI from displaying one backend's agents while runtime execution or persistence uses another backend.
 
 The storage configuration file persists the backend as an explicit enum name (`File`, `SqlServer`, or `MySql`) rather than an opaque numeric value. Saving immediately re-reads the configuration and rejects the save if the selected backend was not persisted correctly.
 
@@ -384,7 +387,11 @@ Tool execution context and results carry execution-local correlation metadata: c
 
 Agent executions now also receive an immutable `CorrelationId` at execution creation. This ID is distinct from provider-attempt and tool-call IDs and serves as the stable runtime-level correlation anchor for later audit and telemetry. The Example runtime verification requires this correlation ID and verifies execution timing remains monotonic.
 
-`AgentExecutionAuditRecord` provides a secret-safe, payload-free projection of execution metadata for future observability/audit persistence. It contains execution/correlation IDs, agent identity, model, selected provider identity, lifecycle timing, state, and classified failure metadata while excluding prompts, message contents, response text, secret values/IDs, raw connection strings, and raw exceptions. It is a snapshot, not a persistence store.
+`AgentExecutionAuditRecord` provides a secret-safe, payload-free projection of execution metadata for observability and audit persistence. It contains execution/correlation IDs, agent identity, model, selected provider identity, lifecycle timing, state, and classified failure metadata while excluding prompts, message contents, response text, secret values/IDs, raw connection strings, and raw exceptions.
+
+`IExecutionAuditStore` persists these audit records through File, SQL Server, and MySQL implementations. Reads are explicitly bounded and can target execution ID, correlation ID, or agent ID. The relational implementations use the HAgent-owned `HAgentExecutionAudits` table; the File implementation uses an HAgent-owned audit JSONL file. Audit persistence remains explicit and does not automatically capture execution payloads.
+
+`HAgentInternalExecutionAuditTool` exposes persisted audit metadata as a trusted read-only capability. Requests are bounded to 50 records, require an execution/correlation/agent target, and cannot use a model-supplied agent ID to redirect a request away from the requesting agent when an execution identity is present.
 
 ### Internal inventory read tool
 
@@ -406,15 +413,15 @@ The `HAgent.Example` application exposes an `Internal Memory` verification tab. 
 
 `HAgent.Core` provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, database port, non-secret connection metadata, and independent database profiles. Database passwords remain outside this ordinary configuration model.
 
-`HAgent.Storage.File` provides an application-specific `HAgentData` directory layout for configuration, providers, agents, tools, skills, memory, conversations, wiki, runtime state, cache, and logs.
+`HAgent.Storage.File` provides an application-specific `HAgentData` directory layout for configuration, providers, agents, tools, skills, memory, conversations, wiki, runtime state, cache, logs, and audit data.
 
-`HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` provide HAgent-owned database bootstrappers. They connect to the configured server and port, create the derived HAgent database when absent, then create only HAgent-owned tables and schema metadata. The current schema includes providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, and migration metadata.
+`HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` provide HAgent-owned database bootstrappers. They connect to the configured server and port, create the derived HAgent database when absent, then create only HAgent-owned tables and schema metadata. The current schema includes providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, execution audits, and migration metadata.
 
 The previously implemented SQL Server `IDataQuerySource` path against arbitrary host tables was removed because it violated the internal-storage boundary. The provider-neutral structured-query contract remains independent and must not be interpreted as permission to use a host application's business database.
 
 ### Live verification
 
-The manual Example must verify the selected internal storage backend. For File storage it should verify the application-specific directory structure and internal repositories. For SQL Server/MySQL it should verify connection, database creation when absent, schema initialization, idempotent re-open, ordered schema migration from older HAgent versions, persistence through the configured repositories, and safe refusal to operate against unrelated host application tables. Storage backend switching should also be verified live by switching File ↔ SQL Server ↔ MySQL without restarting, including failure recovery when the newly selected backend cannot be opened.
+The manual Example must verify the selected internal storage backend. For File storage it should verify the application-specific directory structure and internal repositories. For SQL Server/MySQL it should verify connection, database creation when absent, schema initialization, idempotent re-open, ordered schema migration from older HAgent versions, persistence through the configured repositories, execution-audit round trips, and safe refusal to operate against unrelated host application tables. Storage backend switching should also be verified live by switching File ↔ SQL Server ↔ MySQL without restarting, including failure recovery when the newly selected backend cannot be opened.
 
 Database credentials must never become persisted agent/tool configuration or normal logs.
 

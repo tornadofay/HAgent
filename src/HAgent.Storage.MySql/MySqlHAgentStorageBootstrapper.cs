@@ -20,15 +20,19 @@ namespace HAgent.Storage.MySql
             CancellationToken cancellationToken = default(CancellationToken))
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            options.Validate();
             if (options.StorageType != HAgentStorageType.MySql)
                 throw new ArgumentException("The storage options must use MySQL.", nameof(options));
 
+            var profile = options.GetDatabaseProfile(HAgentStorageType.MySql);
+            if (profile == null)
+                throw new ArgumentException("MySQL storage profile is required.", nameof(options));
+
             var databaseName = options.GetEffectiveDatabaseName();
-            var serverConnection = BuildConnectionString(options.ServerName, options.GetEffectivePort(), options.UserName, password, null);
+            var port = profile.GetEffectivePort(HAgentStorageType.MySql);
+            var serverConnection = BuildConnectionString(profile.ServerName, port, profile.UserName, password, null);
             await EnsureDatabaseAsync(serverConnection, databaseName, cancellationToken).ConfigureAwait(false);
 
-            var databaseConnection = BuildConnectionString(options.ServerName, options.GetEffectivePort(), options.UserName, password, databaseName);
+            var databaseConnection = BuildConnectionString(profile.ServerName, port, profile.UserName, password, databaseName);
             using (var connection = new MySqlConnection(databaseConnection))
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);

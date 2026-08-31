@@ -10,13 +10,13 @@ namespace HAgent.Runtime
 {
     public sealed class DefaultAgentRuntime : IAgentRuntime
     {
-        private const int AuditRetentionLimit = 5000;
         private readonly IAiStore _store;
         private readonly ISecretStore _secrets;
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
         private readonly IProviderRouter _router;
         private readonly IProviderErrorClassifier _errorClassifier;
         private readonly IExecutionAuditStore _auditStore;
+        private readonly ExecutionAuditOptions _auditOptions;
 
         public DefaultAgentRuntime(
             IAiStore store,
@@ -25,6 +25,18 @@ namespace HAgent.Runtime
             IProviderRouter router = null,
             IProviderErrorClassifier errorClassifier = null,
             IExecutionAuditStore auditStore = null)
+            : this(store, secrets, adapters, router, errorClassifier, auditStore, null)
+        {
+        }
+
+        public DefaultAgentRuntime(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IProviderRouter router,
+            IProviderErrorClassifier errorClassifier,
+            IExecutionAuditStore auditStore,
+            ExecutionAuditOptions auditOptions)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -32,6 +44,8 @@ namespace HAgent.Runtime
             _router = router ?? new DefaultProviderRouter();
             _errorClassifier = errorClassifier ?? new DefaultProviderErrorClassifier();
             _auditStore = auditStore;
+            _auditOptions = auditOptions ?? new ExecutionAuditOptions();
+            _auditOptions.Validate();
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
@@ -204,13 +218,13 @@ namespace HAgent.Runtime
 
         private async Task PersistAuditAsync(AgentExecution execution)
         {
-            if (_auditStore == null) return;
+            if (_auditStore == null || !_auditOptions.Enabled) return;
             try
             {
                 await _auditStore.AppendAsync(
                     AgentExecutionAuditRecord.FromExecution(execution),
                     CancellationToken.None).ConfigureAwait(false);
-                await _auditStore.TrimAsync(AuditRetentionLimit, CancellationToken.None).ConfigureAwait(false);
+                await _auditStore.TrimAsync(_auditOptions.GetEffectiveMaxRecords(), CancellationToken.None).ConfigureAwait(false);
             }
             catch
             {

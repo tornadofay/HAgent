@@ -194,9 +194,11 @@ namespace HAgent.Example
                 var updatedOptions = await LoadStorageOptionsAsync().ConfigureAwait(true);
                 if (HasRuntimeStorageChanges(runtimeOptions, updatedOptions))
                 {
-                    _globalStatus.Text = "Storage settings changed. Restart HAgent to apply the new storage configuration.";
+                    _globalStatus.Text = "Applying storage settings...";
                     _globalStatus.ForeColor = Accent;
-                    Write("STORAGE RESTART REQUIRED", "Storage settings were changed. The current runtime remains on the previous storage backend until the application is restarted.");
+                    Write("STORAGE CHANGED", "Storage settings were saved. Rebuilding HAgent runtime storage without restarting the application.");
+
+                    await RefreshExampleAgentsAsync().ConfigureAwait(true);
                     return;
                 }
 
@@ -219,12 +221,13 @@ namespace HAgent.Example
         private static bool HasRuntimeStorageChanges(HAgentStorageOptions before, HAgentStorageOptions after)
         {
             if (before == null || after == null) return before != after;
+            if (before.StorageType != after.StorageType) return true;
+            if (!string.Equals(before.ApplicationName, after.ApplicationName, StringComparison.Ordinal)) return true;
 
-            return before.StorageType != after.StorageType
-                || !string.Equals(before.ApplicationName, after.ApplicationName, StringComparison.Ordinal)
-                || !string.Equals(before.RootPath, after.RootPath, StringComparison.Ordinal)
-                || !ProfilesEqual(before.GetDatabaseProfile(HAgentStorageType.SqlServer), after.GetDatabaseProfile(HAgentStorageType.SqlServer))
-                || !ProfilesEqual(before.GetDatabaseProfile(HAgentStorageType.MySql), after.GetDatabaseProfile(HAgentStorageType.MySql));
+            if (after.StorageType == HAgentStorageType.File)
+                return !string.Equals(before.RootPath, after.RootPath, StringComparison.Ordinal);
+
+            return !ProfilesEqual(before.GetDatabaseProfile(after.StorageType), after.GetDatabaseProfile(after.StorageType));
         }
 
         private static bool ProfilesEqual(HAgentDatabaseStorageOptions left, HAgentDatabaseStorageOptions right)

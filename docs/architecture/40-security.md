@@ -22,7 +22,11 @@ Sensitive operations may require explicit host or human approval. Approval is a 
 
 Structured data access uses a host-owned `DataQuerySchema` as an authoritative field allow-list independent of model requests. A `DataQueryRequest` is validated against that schema before the source performs filtering, sorting, or projection. Schema membership describes which fields the source intentionally exposes; it does not replace operation permissions or host authorization.
 
-An application-owned source must enforce the relevant data permission and then obtain request-specific authorization before executing the operation. The current structured-query path requires `ProjectionQuery` and a positive `IDataAccessAuthorizer` decision. Export and write permissions are defined separately so they cannot be inferred from query access.
+An application-owned source must enforce the relevant data permission and then obtain request-specific authorization before executing the operation. The current structured-query path requires `ProjectionQuery` and a positive `IDataAccessAuthorizer` decision.
+
+Execution is additionally bounded by a host-owned `DataQueryExecutionPolicy`, which limits query shape and result rows and supplies a linked cancellation/timeout budget to authorization and source execution. A physical adapter remains responsible for honoring the supplied cancellation token and for applying equivalent limits to its own execution plan.
+
+Export and write permissions are defined separately so they cannot be inferred from query access.
 
 Database access must use an allow-listed schema and structured query model. Credentials use the secret subsystem and must not be persisted as ordinary agent/tool configuration.
 

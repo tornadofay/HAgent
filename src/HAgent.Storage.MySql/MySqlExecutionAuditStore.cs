@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS HAgentExecutionAudits (
     INDEX IX_HAgentExecutionAudits_CorrelationId (CorrelationId),
     INDEX IX_HAgentExecutionAudits_AgentCreated (AgentId, CreatedAt)
 );";
-
             using (var connection = new MySqlConnection(connectionString))
             using (var command = new MySqlCommand(sql, connection))
             {
@@ -52,12 +51,10 @@ CREATE TABLE IF NOT EXISTS HAgentExecutionAudits (
         {
             if (record == null) throw new ArgumentNullException(nameof(record));
             cancellationToken.ThrowIfCancellationRequested();
-
             const string sql = @"INSERT INTO HAgentExecutionAudits
 (ExecutionId, CorrelationId, AgentId, AgentName, Model, LastProviderId, LastProviderName, State, FailureKind, ProviderErrorKind, CreatedAt, StartedAt, CompletedAt, DurationMs)
 VALUES
 (@ExecutionId, @CorrelationId, @AgentId, @AgentName, @Model, @LastProviderId, @LastProviderName, @State, @FailureKind, @ProviderErrorKind, @CreatedAt, @StartedAt, @CompletedAt, @DurationMs);";
-
             using (var connection = new MySqlConnection(_connectionString))
             using (var command = new MySqlCommand(sql, connection))
             {
@@ -78,7 +75,6 @@ WHERE (@ExecutionId = '' OR ExecutionId = @ExecutionId)
   AND (@AgentId = '' OR AgentId = @AgentId)
 ORDER BY CreatedAt DESC
 LIMIT @MaxResults;";
-
             var result = new List<AgentExecutionAuditRecord>();
             using (var connection = new MySqlConnection(_connectionString))
             using (var command = new MySqlCommand(sql, connection))
@@ -90,11 +86,33 @@ LIMIT @MaxResults;";
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
                 using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                        result.Add(Read(reader));
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) result.Add(Read(reader));
                 }
             }
             return result.AsReadOnly();
+        }
+
+        public async Task TrimAsync(int maxRecords, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (maxRecords < 1) throw new ArgumentOutOfRangeException(nameof(maxRecords));
+            const string sql = @"DELETE FROM HAgentExecutionAudits
+WHERE ExecutionId NOT IN
+(
+    SELECT ExecutionId FROM
+    (
+        SELECT ExecutionId
+        FROM HAgentExecutionAudits
+        ORDER BY CreatedAt DESC
+        LIMIT @MaxRecords
+    ) AS retained
+);";
+            using (var connection = new MySqlConnection(_connectionString))
+            using (var command = new MySqlCommand(sql, connection))
+            {
+                command.Parameters.AddWithValue("@MaxRecords", maxRecords);
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
 
         private static void Bind(MySqlCommand command, AgentExecutionAuditRecord record)
@@ -123,7 +141,6 @@ LIMIT @MaxResults;";
             Enum.TryParse(reader.GetString(7), true, out state);
             Enum.TryParse(reader.GetString(8), true, out failure);
             Enum.TryParse(reader.GetString(9), true, out providerError);
-
             return new AgentExecutionAuditRecord
             {
                 ExecutionId = reader.GetString(0),

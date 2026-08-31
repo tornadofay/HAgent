@@ -3,7 +3,7 @@
 > This file is generated from smaller source documents. Do not edit it directly.
 > Source directory: `docs/plan`.
 
-## Project
+# Current project state
 
 HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for simple chat or embedded into a host application, simulation, game, or other environment.
 
@@ -41,7 +41,7 @@ The repository currently contains verified foundations for:
 
 ## Active implementation
 
-The active implementation plan is the current file `docs/plan/20-active.md`. It must contain only the work being implemented now.
+The active implementation plan is `docs/plan/20-active.md` and contains only the current milestone.
 
 ## Verification rule
 
@@ -55,10 +55,12 @@ Do not claim local build/test success unless it was actually performed.
 - `AGENTS.md` — non-negotiable engineering and repository rules.
 - `docs/architecture/` — stable architectural design and boundaries.
 - `docs/plan/` — master direction, current state, and active implementation only.
-- `docs/roadmap/` — ordered path from completed foundations to the long-term target.
+- `docs/roadmap/` — ordered implementation path, including completed phases and future work.
 - `docs/storage.md` — persistence/backend details.
 
-The root `plan.md` and `roadmap.md` are generated from their source directories. They are views, not independent sources of truth.
+The root `plan.md` and `roadmap.md` are generated views, not independent sources of truth.
+
+# HAgent Master Plan
 
 ## Purpose
 
@@ -119,7 +121,7 @@ The distinction between persistent profiles and runtime instances is fundamental
 
 ## Host context
 
-HAgent must support two complementary ways for hosts to describe their environment.
+HAgent supports two complementary ways for hosts to describe their environment.
 
 ### Explicit developer abstraction
 
@@ -127,15 +129,13 @@ The host can deliberately expose semantic concepts such as `Customer`, `Invoice`
 
 ### Automatic discovery/adaptation
 
-HAgent may inspect live host objects through adapters when the host enables the capability. The implementation can discover controls, bindings, native data sources, application objects, and other structural information without requiring HAgent to reference the host's concrete types.
+HAgent may inspect live host objects through adapters when the host enables the capability. It can discover controls, bindings, native data sources, application objects, and other structural information without requiring HAgent to reference the host's concrete types.
 
-Discovery is evidence about what exists. It is never authorization and it must not silently grant access to perform an operation.
+Discovery is evidence about what exists. It is never authorization and must not silently grant access to perform an operation.
 
 ## Multi-agent target
 
-Multiple runtime agents must be first-class rather than a collection of unrelated special cases.
-
-A common host pattern is:
+Multiple runtime agents are first-class. A common host pattern is:
 
 ```text
 Workspace
@@ -154,34 +154,25 @@ Specialists may represent an entire domain, table, subsystem, simulation capabil
 
 ## Memory target
 
-Memory ownership must be separable from the reusable agent profile. Two runtime instances created from the same profile must be able to maintain independent private memories.
+Memory ownership is separable from the reusable agent profile. Two runtime instances created from the same profile can maintain independent private memories.
 
 Shared workspace/application memory is a separate, explicitly governed scope.
 
-Memory should remain lightweight and work without a local GPU, embedding model, vector database, or large resident index.
+Memory remains lightweight and works without a local GPU, embedding model, vector database, or large resident index.
 
 ## Context target
 
-An agent should be able to receive a compact, bounded context snapshot containing only what the host has chosen to expose. Context sources may include:
-
-- UI state;
-- data-source structure and selected data;
-- application-owned objects;
-- task/event information;
-- external environment observations;
-- explicit developer-provided semantic abstractions.
+An agent can receive a compact, bounded context snapshot containing only what the host has chosen to expose. Context sources may include UI state, data-source structure and selected data, application-owned objects, task/event information, external observations, and explicit developer-provided semantic abstractions.
 
 The representation should prefer native, lazy, projected, paged, and bounded forms over unnecessary materialization.
 
 ## Tool target
 
-Tool definitions describe what a model may request. Trusted handlers define what the host actually executes.
+Tool definitions describe what a model may request. Trusted handlers define what the host actually executes. Executable handlers are runtime-owned and never serialized.
 
-Executable handlers are runtime-owned and never serialized.
+Permissions, authorization callbacks, approvals, budgets, and guardrails are enforced outside model instructions.
 
-Tool permissions, authorization callbacks, approvals, budgets, and guardrails must be enforced outside model instructions.
-
-The initial taxonomy remains:
+Initial tool taxonomy:
 
 ```text
 BuiltIn
@@ -192,35 +183,19 @@ SqlServer
 MySql
 ```
 
-Extension tooling is a later platform concern.
-
 ## Security target
 
-No model instruction is an authorization boundary.
+No model instruction is an authorization boundary. The architecture distinguishes, wherever meaningful, discovery, read, projection/query, export, write, invoke, and approval.
 
-The architecture must eventually distinguish, wherever meaningful:
-
-```text
-discovery
-read
-projection/query
-export
-write
-invoke
-approval
-```
-
-UI bindings, application-object metadata, provenance, and inferred semantics may help describe capabilities but must never by themselves authorize them.
-
-Database access must use restricted structured queries and parameterized execution. Raw model-generated SQL is outside the target design.
+Database access uses restricted structured queries and parameterized execution. Raw model-generated SQL is outside the target design.
 
 ## External-consumer target
 
-HAgent must remain independent of the applications that consume it.
+HAgent remains independent of its host applications.
 
-HWorld is a primary architectural consumer example. HWorld owns world state, simulation time, physics, perception, scheduling, rendering, and action validation. HAgent supplies generic agent/runtime capabilities. HAgent must not import HWorld types or rules.
+HWorld is a primary architectural consumer. HWorld owns world state, simulation time, physics, perception, scheduling, rendering, and action validation. HAgent supplies generic agent/runtime capabilities. HAgent must not import HWorld types or rules.
 
-The same principle applies to business applications and future adapters for HControl/BaseForm, GDI, DirectX, Unity, or other host surfaces.
+The same principle applies to business applications and future HControl/BaseForm, GDI, DirectX, Unity, or other host adapters.
 
 ## Development principles
 
@@ -230,19 +205,19 @@ The same principle applies to business applications and future adapters for HCon
 - Design for low RAM and no GPU assumption.
 - Keep runtime work cancellable, bounded, correlated, and safe against stale results.
 - Keep persistent configuration separate from live runtime state.
-- Add one coherent implementation slice at a time.
+- Implement one coherent slice at a time.
 - Verify completed capabilities through `HAgent.Example` before marking them complete.
 - Keep documentation synchronized with implementation state.
 
-## What success looks like
+## End-state integration
 
-A developer should be able to add HAgent to a host and start with a simple call:
+A developer should be able to start with:
 
 ```csharp
 await ai.SendAsync("assistant", "Hello");
 ```
 
-and later grow the same integration into:
+and grow the same integration into:
 
 ```text
 host
@@ -256,48 +231,3 @@ host
 ```
 
 without replacing HAgent or introducing application-specific types into `HAgent.Core`.
-
-Only the current implementation milestone belongs here. Completed work is recorded in `10-completed.md`; future work belongs under `docs/roadmap/`.
-
-## 0.8 Data Access + Authorization
-
-### Objective
-Turn the verified structured-query contracts into safe application and database access. No arbitrary SQL, unrestricted reflection, or implicit authorization.
-
-### Current slices
-
-- [ ] Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
-- [ ] Authoritative schema/field allow-list independent of model requests.
-- [ ] Data permissions separated into discovery, projection/query, export, and write operations.
-- [ ] Host authorization callback contract.
-- [ ] Query limits, cancellation, timeout, and resource budgets.
-- [ ] Restricted SQL Server adapter using generated parameterized commands only.
-- [ ] Restricted MySQL adapter using generated parameterized commands only.
-- [ ] Read-only database tools and result/audit metadata before database writes.
-
-### Live Example
-
-When the SQL Server adapter is ready, `HAgent.Example` will provide runtime-only test fields:
-
-```text
-Server Name
-User Name
-Password
-Database
-```
-
-The Example will target an explicitly disposable/read-only test database and verify connection, authorized schema/fields, structured queries, bounded results, cancellation/timeout, and unauthorized-operation rejection.
-
-Connection values must never become persisted agent/tool configuration or normal logs.
-
-### Non-goals
-
-- Raw SQL from model input.
-- SQL fragments embedded in `DataQueryRequest`.
-- Implicit permission to every table or column.
-- Treating UI binding, `TableInfo`, object provenance, or model instructions as authorization.
-- Persisting test database passwords as ordinary configuration.
-
-## Definition of done
-
-0.8 is complete only after the restricted application/database path is implemented and the matching `HAgent.Example` verification passes locally.

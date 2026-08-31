@@ -29,6 +29,16 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
+### Current slice: independent database connection profiles
+
+HAgent stores independent SQL Server and MySQL connection profiles so changing the selected backend does not overwrite or erase the other backend's server, port, username, or secret identity. Switching the Storage type swaps the visible profile in the settings UI.
+
+Database passwords use backend-specific secret IDs. Password values are never displayed in the settings UI and never stored in ordinary storage configuration.
+
+The editable database-name field was removed. HAgent always derives its internal database name from the host application identity using the `<application>-ai` naming rule; database names are not user-selectable in the Storage UI.
+
+Legacy shared connection settings remain readable only as a compatibility migration path into the appropriate database profile.
+
 ### Current slice: internal memory backend parity
 
 `HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` implement `IMemoryStore` against the HAgent-owned `HAgentMemoryEntries` table. Entries retain scope, kind, owner, task, content, metadata, and timestamps. Core filtering and bounded result counts are performed by each relational provider, while the existing provider-independent memory scoring behavior is preserved after retrieval.
@@ -59,7 +69,7 @@ The Example's Configuration action also has a recovery path that opens the Stora
 
 ### Storage foundation
 
-`HAgent.Core` provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, database port, and non-secret connection metadata. Database passwords remain outside this ordinary configuration model.
+`HAgent.Core` provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, database port, non-secret connection metadata, and independent database profiles. Database passwords remain outside this ordinary configuration model.
 
 `HAgent.Storage.File` provides an application-specific `HAgentData` directory layout for configuration, providers, agents, tools, skills, memory, conversations, wiki, runtime state, cache, and logs.
 

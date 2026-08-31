@@ -13,15 +13,16 @@ namespace HAgent.WinForms.Forms
 {
     public sealed class HAgentStorageSettingsForm : HAgentForm
     {
-        private const string DatabasePasswordSecretId = "hagent-storage-database-password";
+        private const string SqlServerPasswordSecretId = "hagent-storage-sqlserver-password";
+        private const string MySqlPasswordSecretId = "hagent-storage-mysql-password";
         private const string LegacyDatabasePasswordSecretId = "hagent.storage.database.password";
+        private const string LegacyCurrentDatabasePasswordSecretId = "hagent-storage-database-password";
 
         private readonly FileHAgentStorageConfigurationStore _store;
         private readonly ISecretStore _secrets;
         private readonly ComboBox _storageType = new ComboBox();
         private readonly TextBox _applicationName = new TextBox();
         private readonly TextBox _rootPath = new TextBox();
-        private readonly TextBox _databaseName = new TextBox();
         private readonly TextBox _serverName = new TextBox();
         private readonly TextBox _port = new TextBox();
         private readonly TextBox _userName = new TextBox();
@@ -29,6 +30,7 @@ namespace HAgent.WinForms.Forms
         private readonly Label _resolvedDatabase = new Label();
         private readonly Label _status = new Label();
         private HAgentStorageOptions _loadedOptions;
+        private bool _loadingProfile;
 
         private static readonly Color Surface = Color.FromArgb(248, 248, 252);
         private static readonly Color Text = Color.FromArgb(68, 62, 88);
@@ -61,58 +63,53 @@ namespace HAgent.WinForms.Forms
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 10,
+                RowCount = 9,
                 BackColor = Surface,
                 Padding = new Padding(0)
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 190));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            for (var i = 0; i < 9; i++) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            for (var i = 0; i < 8; i++) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             _storageType.DropDownStyle = ComboBoxStyle.DropDownList;
             _storageType.Items.AddRange(new object[] { HAgentStorageType.File, HAgentStorageType.SqlServer, HAgentStorageType.MySql });
             _storageType.SelectedIndexChanged += delegate
             {
-                UpdateVisibility();
-                UpdateResolvedDatabase();
-                UpdateDefaultPort(true);
+                if (_loadingProfile) return;
+                SaveCurrentProfileToMemory();
+                LoadSelectedProfileIntoControls();
             };
             AddRow(layout, 0, "Storage type", _storageType);
 
             ConfigureText(_applicationName);
-            _applicationName.TextChanged += delegate { UpdateResolvedDatabase(); };
             AddRow(layout, 1, "Host application name", _applicationName);
 
             ConfigureText(_rootPath);
             AddRow(layout, 2, "File root", _rootPath);
 
-            ConfigureText(_databaseName);
-            _databaseName.TextChanged += delegate { UpdateResolvedDatabase(); };
-            AddRow(layout, 3, "Database name", _databaseName);
-
             ConfigureText(_serverName);
-            AddRow(layout, 4, "Server name", _serverName);
+            AddRow(layout, 3, "Server name", _serverName);
 
             ConfigureText(_port);
             _port.KeyPress += delegate(object sender, KeyPressEventArgs e)
             {
                 if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar)) e.Handled = true;
             };
-            AddRow(layout, 5, "Port", _port);
+            AddRow(layout, 4, "Port", _port);
 
             ConfigureText(_userName);
-            AddRow(layout, 6, "User name", _userName);
+            AddRow(layout, 5, "User name", _userName);
 
             ConfigureText(_password);
             _password.UseSystemPasswordChar = true;
-            AddRow(layout, 7, "Password", _password);
+            AddRow(layout, 6, "Password", _password);
 
             _resolvedDatabase.Dock = DockStyle.Fill;
             _resolvedDatabase.ForeColor = Accent;
             _resolvedDatabase.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
             _resolvedDatabase.TextAlign = ContentAlignment.MiddleLeft;
-            AddRow(layout, 8, "Effective database", _resolvedDatabase);
+            AddRow(layout, 7, "HAgent database", _resolvedDatabase);
 
             var actions = new FlowLayoutPanel
             {
@@ -129,9 +126,10 @@ namespace HAgent.WinForms.Forms
             var clear = CreateButton("Clear password", 145);
             clear.Click += async delegate
             {
+                var secretId = GetPasswordSecretId((HAgentStorageType)_storageType.SelectedItem);
                 _password.Clear();
-                try { await _secrets.DeleteAsync(DatabasePasswordSecretId); } catch { }
-                _status.Text = "Database password secret cleared.";
+                try { await _secrets.DeleteAsync(secretId); } catch { }
+                _status.Text = "The selected database password secret was cleared.";
                 _status.ForeColor = Muted;
             };
             actions.Controls.Add(clear);
@@ -140,7 +138,7 @@ namespace HAgent.WinForms.Forms
             _status.ForeColor = Muted;
             _status.Margin = new Padding(12, 11, 0, 0);
             actions.Controls.Add(_status);
-            layout.Controls.Add(actions, 1, 9);
+            layout.Controls.Add(actions, 1, 8);
 
             BodyPanel.Controls.Add(layout);
         }
@@ -199,83 +197,161 @@ namespace HAgent.WinForms.Forms
             var options = await _store.LoadAsync();
             if (options == null)
             {
-                _loadedOptions = null;
-                UpdateResolvedDatabase();
-                UpdateDefaultPort(false);
-                return;
+                _loadedOptions = new HAgentStorageOptions
+                {
+                    StorageType = HAgentStorageType.File,
+                    ApplicationName = _applicationName.Text,
+                    RootPath = AppContext.BaseDirectory
+                };
+                options = _loadedOptions;
             }
 
             _loadedOptions = options;
-            _storageType.SelectedItem = options.StorageType;
-            _applicationName.Text = options.ApplicationName;
-            _rootPath.Text = string.IsNullOrWhiteSpace(options.RootPath) ? AppContext.BaseDirectory : options.RootPath;
-            _databaseName.Text = options.DatabaseName ?? string.Empty;
-            _serverName.Text = options.ServerName ?? string.Empty;
-            _port.Text = options.Port > 0 ? options.Port.ToString() : string.Empty;
-            _userName.Text = options.UserName ?? string.Empty;
-            _password.Clear();
-            UpdateVisibility();
-            UpdateResolvedDatabase();
-            UpdateDefaultPort(false);
+            _loadingProfile = true;
+            try
+            {
+                _storageType.SelectedItem = options.StorageType;
+                _applicationName.Text = options.ApplicationName;
+                _rootPath.Text = string.IsNullOrWhiteSpace(options.RootPath) ? AppContext.BaseDirectory : options.RootPath;
+            }
+            finally
+            {
+                _loadingProfile = false;
+            }
 
-            if (string.Equals(options.PasswordSecretId, DatabasePasswordSecretId, StringComparison.Ordinal))
+            LoadSelectedProfileIntoControls();
+            await Task.CompletedTask;
+        }
+
+        private void SaveCurrentProfileToMemory()
+        {
+            if (_loadedOptions == null) return;
+            var type = (HAgentStorageType)_storageType.SelectedItem;
+            if (type == HAgentStorageType.File) return;
+
+            var profile = _loadedOptions.GetDatabaseProfile(type);
+            profile.ServerName = _serverName.Text.Trim();
+            profile.Port = ParsePortOrZero();
+            profile.UserName = _userName.Text.Trim();
+            profile.PasswordSecretId = GetPasswordSecretId(type);
+            _loadedOptions.ApplicationName = _applicationName.Text.Trim();
+            _loadedOptions.RootPath = _rootPath.Text.Trim();
+        }
+
+        private void LoadSelectedProfileIntoControls()
+        {
+            if (_loadedOptions == null) return;
+
+            var type = (HAgentStorageType)_storageType.SelectedItem;
+            _loadingProfile = true;
+            try
             {
-                var existing = await _secrets.GetAsync(DatabasePasswordSecretId);
-                _status.Text = string.IsNullOrWhiteSpace(existing)
-                    ? "No database password secret is configured."
-                    : "Database password is stored separately in the secret store.";
-                _status.ForeColor = Muted;
+                _applicationName.Text = _loadedOptions.ApplicationName ?? string.Empty;
+                _rootPath.Text = string.IsNullOrWhiteSpace(_loadedOptions.RootPath) ? AppContext.BaseDirectory : _loadedOptions.RootPath;
+
+                if (type == HAgentStorageType.File)
+                {
+                    _serverName.Clear();
+                    _port.Clear();
+                    _userName.Clear();
+                    _password.Clear();
+                }
+                else
+                {
+                    var profile = _loadedOptions.GetDatabaseProfile(type);
+                    _serverName.Text = profile.ServerName ?? string.Empty;
+                    _port.Text = profile.GetEffectivePort(type).ToString();
+                    _userName.Text = profile.UserName ?? string.Empty;
+                    _password.Clear();
+                }
+
+                UpdateVisibility();
+                UpdateDefaultPort(false);
+                UpdateResolvedDatabase();
             }
-            else if (string.Equals(options.PasswordSecretId, LegacyDatabasePasswordSecretId, StringComparison.Ordinal))
+            finally
             {
-                _status.Text = "A previous storage setting used an invalid secret ID. Enter the password again and save to migrate it.";
-                _status.ForeColor = Color.FromArgb(185, 28, 28);
+                _loadingProfile = false;
             }
+        }
+
+        private int ParsePortOrZero()
+        {
+            int port;
+            if (string.IsNullOrWhiteSpace(_port.Text)) return 0;
+            if (!int.TryParse(_port.Text, out port) || port < 1 || port > 65535)
+                throw new ArgumentOutOfRangeException(nameof(_port), "Database port must be between 1 and 65535.");
+            return port;
+        }
+
+        private static string GetPasswordSecretId(HAgentStorageType type)
+        {
+            switch (type)
+            {
+                case HAgentStorageType.SqlServer: return SqlServerPasswordSecretId;
+                case HAgentStorageType.MySql: return MySqlPasswordSecretId;
+                default: return string.Empty;
+            }
+        }
+
+        private async System.Threading.Tasks.Task MigrateLegacyPasswordAsync(HAgentDatabaseStorageOptions profile, HAgentStorageType type)
+        {
+            if (profile == null || !string.IsNullOrWhiteSpace(profile.PasswordSecretId)) return;
+
+            var oldSecret = await _secrets.GetAsync(LegacyCurrentDatabasePasswordSecretId);
+            if (string.IsNullOrEmpty(oldSecret))
+                oldSecret = await _secrets.GetAsync(LegacyDatabasePasswordSecretId);
+            if (string.IsNullOrEmpty(oldSecret)) return;
+
+            var newId = GetPasswordSecretId(type);
+            await _secrets.SetAsync(newId, oldSecret);
+            profile.PasswordSecretId = newId;
         }
 
         private async System.Threading.Tasks.Task SaveAsync()
         {
             try
             {
-                int port = 0;
-                if (!string.IsNullOrWhiteSpace(_port.Text) && (!int.TryParse(_port.Text, out port) || port < 1 || port > 65535))
-                    throw new ArgumentOutOfRangeException(nameof(_port), "Database port must be between 1 and 65535.");
+                SaveCurrentProfileToMemory();
+                if (_loadedOptions == null)
+                    throw new InvalidOperationException("Storage settings have not been loaded.");
 
                 var selectedType = (HAgentStorageType)_storageType.SelectedItem;
-                var options = new HAgentStorageOptions
-                {
-                    StorageType = selectedType,
-                    ApplicationName = _applicationName.Text.Trim(),
-                    RootPath = _rootPath.Text.Trim(),
-                    DatabaseName = _databaseName.Text.Trim(),
-                    ServerName = _serverName.Text.Trim(),
-                    Port = selectedType == HAgentStorageType.File ? 0 : port,
-                    UserName = _userName.Text.Trim(),
-                    PasswordSecretId = selectedType != HAgentStorageType.File
-                        ? DatabasePasswordSecretId
-                        : string.Empty
-                };
-                options.Validate();
+                _loadedOptions.StorageType = selectedType;
+                _loadedOptions.ApplicationName = _applicationName.Text.Trim();
+                _loadedOptions.RootPath = _rootPath.Text.Trim();
+                _loadedOptions.DatabaseName = string.Empty;
+                _loadedOptions.ServerName = string.Empty;
+                _loadedOptions.Port = 0;
+                _loadedOptions.UserName = string.Empty;
+                _loadedOptions.PasswordSecretId = string.Empty;
 
-                if (options.StorageType != HAgentStorageType.File && string.IsNullOrEmpty(_password.Text))
+                if (selectedType != HAgentStorageType.File)
                 {
-                    var existing = await _secrets.GetAsync(DatabasePasswordSecretId);
-                    if (string.IsNullOrEmpty(existing))
-                        throw new ArgumentException("Enter the database password before saving database storage settings.", nameof(_password));
+                    var profile = _loadedOptions.GetDatabaseProfile(selectedType);
+                    profile.ServerName = _serverName.Text.Trim();
+                    profile.Port = ParsePortOrZero();
+                    profile.UserName = _userName.Text.Trim();
+                    profile.PasswordSecretId = GetPasswordSecretId(selectedType);
+                    await MigrateLegacyPasswordAsync(profile, selectedType);
+
+                    if (string.IsNullOrEmpty(_password.Text))
+                    {
+                        var existing = await _secrets.GetAsync(profile.PasswordSecretId);
+                        if (string.IsNullOrEmpty(existing))
+                            throw new ArgumentException("Enter the database password before saving database storage settings.", nameof(_password));
+                    }
                 }
 
-                var restartRequired = HasRestartRelevantChanges(options);
+                _loadedOptions.Validate();
+                var restartRequired = HasRestartRelevantChanges(_loadedOptions);
+                await _store.SaveAsync(_loadedOptions);
 
-                await _store.SaveAsync(options);
+                if (selectedType != HAgentStorageType.File && !string.IsNullOrEmpty(_password.Text))
+                    await _secrets.SetAsync(GetPasswordSecretId(selectedType), _password.Text);
 
-                if (options.StorageType != HAgentStorageType.File && !string.IsNullOrEmpty(_password.Text))
-                    await _secrets.SetAsync(DatabasePasswordSecretId, _password.Text);
-
-                _loadedOptions = options;
                 _password.Clear();
-                _status.Text = options.StorageType == HAgentStorageType.File
-                    ? "Settings saved."
-                    : "Settings saved. Database password is stored separately in the secret store.";
+                _status.Text = "Settings saved.";
                 _status.ForeColor = Accent;
 
                 if (restartRequired)
@@ -296,17 +372,9 @@ namespace HAgent.WinForms.Forms
 
         private bool HasRestartRelevantChanges(HAgentStorageOptions options)
         {
-            if (_loadedOptions == null)
-                return false;
+            if (_loadedOptions == null) return false;
 
-            return _loadedOptions.StorageType != options.StorageType
-                || !string.Equals(_loadedOptions.ApplicationName, options.ApplicationName, StringComparison.Ordinal)
-                || !string.Equals(_loadedOptions.RootPath, options.RootPath, StringComparison.Ordinal)
-                || !string.Equals(_loadedOptions.DatabaseName, options.DatabaseName, StringComparison.Ordinal)
-                || !string.Equals(_loadedOptions.ServerName, options.ServerName, StringComparison.Ordinal)
-                || _loadedOptions.Port != options.Port
-                || !string.Equals(_loadedOptions.UserName, options.UserName, StringComparison.Ordinal)
-                || !string.Equals(_loadedOptions.PasswordSecretId, options.PasswordSecretId, StringComparison.Ordinal);
+            return _loadedOptions.StorageType != options.StorageType;
         }
 
         private void UpdateVisibility()
@@ -317,7 +385,6 @@ namespace HAgent.WinForms.Forms
             _port.Enabled = !isFile;
             _userName.Enabled = !isFile;
             _password.Enabled = !isFile;
-            _databaseName.Enabled = !isFile;
         }
 
         private void UpdateDefaultPort(bool overwriteCurrent)
@@ -336,10 +403,7 @@ namespace HAgent.WinForms.Forms
 
         private void UpdateResolvedDatabase()
         {
-            var name = string.IsNullOrWhiteSpace(_databaseName.Text)
-                ? HAgentStorageOptions.BuildDatabaseName(_applicationName.Text)
-                : _databaseName.Text.Trim();
-            _resolvedDatabase.Text = name;
+            _resolvedDatabase.Text = HAgentStorageOptions.BuildDatabaseName(_applicationName.Text);
         }
     }
 }

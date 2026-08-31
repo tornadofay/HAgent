@@ -198,7 +198,13 @@ namespace HAgent.Example
                 },
                 CancellationToken.None);
 
+            if (string.IsNullOrWhiteSpace(execution.CorrelationId))
+                throw new InvalidOperationException("Agent execution did not receive a correlation ID.");
+            if (execution.StartedAt.HasValue && execution.CompletedAt.HasValue && execution.CompletedAt.Value < execution.StartedAt.Value)
+                throw new InvalidOperationException("Agent execution completion time precedes its start time.");
+
             Write("RUNTIME", "Execution: " + execution.Id + Environment.NewLine +
+                             "Correlation: " + execution.CorrelationId + Environment.NewLine +
                              "State: " + execution.State + Environment.NewLine +
                              "Failure: " + execution.FailureKind + Environment.NewLine +
                              "Provider error: " + execution.ProviderErrorKind + Environment.NewLine +

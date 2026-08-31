@@ -4,7 +4,7 @@
 
 HAgent is designed for applications that need more than a single AI API call: multiple providers, agents, sessions, persistent memory, tools, controlled WinForms automation, collaboration, and long-running work without forcing a heavyweight AI framework into every deployment.
 
-> Status: **0.5 — Tools and Agent Loop / active development**
+> Status: **0.7 — WinForms UI Context + Data Discovery complete; 0.8 Data Access + Authorization next**
 >
 > Current development targets: **.NET Framework 4.8.1 and .NET 9**.
 
@@ -53,6 +53,13 @@ WinForms Context
  ├─ stable form/control-tree identity
  ├─ safe read capabilities
  └─ future write/invoke automation
+
+Data Access
+ ├─ explicit field projection
+ ├─ structured filters/sorts
+ ├─ bounded paging
+ ├─ application-owned data adapters
+ └─ future restricted SQL Server/MySQL adapters
 ```
 
 ## Basic API
@@ -184,13 +191,7 @@ Customer
  └─ Invoices
 ```
 
-Automatic mode can inspect a live form or an attached control tree, including a `UserControl`, its controls, bindings, and data sources when the host enables the relevant permission policy.
-
-Form attachment remains available through the existing overload:
-
-```csharp
-var host = HAgentHost.Attach(form, registry, true, permissions);
-```
+Automatic mode can inspect a live form or an attached control tree, including a `UserControl`, its controls, bindings, data sources, shared-source relationships, custom-control metadata, and bounded application-object context when the host enables the relevant permission policy.
 
 A `UserControl` or other control-tree root can be attached explicitly with a stable logical ID:
 
@@ -223,6 +224,8 @@ ui.discover_data_sources
 The permission policy distinguishes automatic discovery, control reads, data reads, writes, and invocation. Safe defaults do not grant write/invoke access.
 
 For `DataGridView`, HAgent prefers bound/native data sources and adapts lazily. `DataTable` is optional and must not be the architecture default when another lighter representation is better.
+
+The UI layer also provides a provider-neutral structured data-query contract with explicit fields, scalar filters, sorting, and bounded paging. The contract contains no SQL, arbitrary expressions, or executable callbacks. Real database execution remains a later restricted adapter layer.
 
 The same abstraction boundary is intended to support future HControl/BaseForm adapters and other interactive surfaces such as GDI, DirectX, or Unity without making those platforms dependencies of `HAgent.Core`.
 

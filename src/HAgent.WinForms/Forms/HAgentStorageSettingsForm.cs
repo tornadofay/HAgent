@@ -31,6 +31,7 @@ namespace HAgent.WinForms.Forms
         private readonly Label _status = new Label();
         private HAgentStorageOptions _loadedOptions;
         private bool _loadingProfile;
+        private HAgentStorageType _lastSelectedStorageType = HAgentStorageType.File;
 
         private static readonly Color Surface = Color.FromArgb(248, 248, 252);
         private static readonly Color Text = Color.FromArgb(68, 62, 88);
@@ -76,11 +77,31 @@ namespace HAgent.WinForms.Forms
 
             _storageType.DropDownStyle = ComboBoxStyle.DropDownList;
             _storageType.Items.AddRange(new object[] { HAgentStorageType.File, HAgentStorageType.SqlServer, HAgentStorageType.MySql });
-            _storageType.SelectedIndexChanged += delegate
+            _storageType.SelectedIndexChanged += async delegate
             {
                 if (_loadingProfile) return;
-                SaveCurrentProfileToMemory();
-                LoadSelectedProfileIntoControls();
+
+                var previousType = _lastSelectedStorageType;
+                var nextType = (HAgentStorageType)_storageType.SelectedItem;
+
+                try
+                {
+                    CaptureProfileFromControls(previousType);
+                    await PersistProfileAsync(previousType);
+                    _lastSelectedStorageType = nextType;
+                    LoadSelectedProfileIntoControls();
+                }
+                catch (Exception ex)
+                {
+                    _loadingProfile = true;
+                    try { _storageType.SelectedItem = previousType; }
+                    finally { _loadingProfile = false; }
+                    _lastSelectedStorageType = previousType;
+                    LoadSelectedProfileIntoControls();
+                    _status.Text = "The storage profile could not be switched.";
+                    _status.ForeColor = Color.FromArgb(185, 28, 28);
+                    HMessage.ShowException(this, "The HAgent storage profile could not be switched.", "HAgent Storage", ex);
+                }
             };
             AddRow(layout, 0, "Storage type", _storageType);
 
@@ -215,6 +236,7 @@ namespace HAgent.WinForms.Forms
             try
             {
                 _storageType.SelectedItem = options.StorageType;
+                _lastSelectedStorageType = options.StorageType;
                 _applicationName.Text = options.ApplicationName ?? string.Empty;
                 _rootPath.Text = string.IsNullOrWhiteSpace(options.RootPath) ? AppContext.BaseDirectory : options.RootPath;
             }
@@ -238,12 +260,13 @@ namespace HAgent.WinForms.Forms
             }
         }
 
-        private void SaveCurrentProfileToMemory()
+        private void CaptureProfileFromControls(HAgentStorageType type)
         {
             if (_loadedOptions == null) return;
-            var type = (HAgentStorageType)_storageType.SelectedItem;
+
             _loadedOptions.ApplicationName = _applicationName.Text.Trim();
             _loadedOptions.RootPath = _rootPath.Text.Trim();
+
             if (type == HAgentStorageType.File) return;
 
             var profile = _loadedOptions.GetDatabaseProfile(type);
@@ -251,6 +274,39 @@ namespace HAgent.WinForms.Forms
             profile.Port = ParsePortOrZero();
             profile.UserName = _userName.Text.Trim();
             profile.PasswordSecretId = GetPasswordSecretId(type);
+        }
+
+        private async System.Threading.Tasks.Task PersistProfileAsync(HAgentStorageType type)
+        {
+            if (_loadedOptions == null) return;
+
+            if (type != HAgentStorageType.File)
+            {
+                var profile = _loadedOptions.GetDatabaseProfile(type);
+                if (!string.IsNullOrWhiteSpace(profile.ServerName))
+                {
+                    var password = _password.Text;
+                    if (!string.IsNullOrEmpty(password))
+                        await _secrets.SetAsync(GetPasswordSecretId(type), password);
+
+                    var originalStorageType = _loadedOptions.StorageType;
+                    _loadedOptions.StorageType = type;
+                    try
+                    {
+                        await _store.SaveAsync(_loadedOptions);
+                    }
+                    finally
+                    {
+                        _loadedOptions.StorageType = originalStorageType;
+                    }
+
+                    _password.Clear();
+                }
+            }
+            else
+            {
+                await _store.SaveAsync(_loadedOptions);
+            }
         }
 
         private void LoadSelectedProfileIntoControls()
@@ -278,7 +334,9 @@ namespace HAgent.WinForms.Forms
                     _port.Text = profile.GetEffectivePort(type).ToString();
                     _userName.Text = profile.UserName ?? string.Empty;
                     _password.Clear();
-                    _status.Text = "Saved connection profile loaded. Password is retained securely and is not displayed.";
+                    _status.Text = string.IsNullOrWhiteSpace(profile.ServerName)
+                        ? "No saved connection profile exists for this database type yet."
+                        : "Saved connection profile loaded. Password is retained securely and is not displayed.";
                     _status.ForeColor = Muted;
                 }
 
@@ -329,26 +387,19 @@ namespace HAgent.WinForms.Forms
         {
             try
             {
-                SaveCurrentProfileToMemory();
                 if (_loadedOptions == null)
                     throw new InvalidOperationException("Storage settings have not been loaded.");
 
+                var before = CloneForComparison(_loadedOptions);
                 var selectedType = (HAgentStorageType)_storageType.SelectedItem;
+                CaptureProfileFromControls(selectedType);
                 _loadedOptions.StorageType = selectedType;
                 _loadedOptions.ApplicationName = _applicationName.Text.Trim();
                 _loadedOptions.RootPath = _rootPath.Text.Trim();
-                _loadedOptions.DatabaseName = string.Empty;
-                _loadedOptions.ServerName = string.Empty;
-                _loadedOptions.Port = 0;
-                _loadedOptions.UserName = string.Empty;
-                _loadedOptions.PasswordSecretId = string.Empty;
 
                 if (selectedType != HAgentStorageType.File)
                 {
                     var profile = _loadedOptions.GetDatabaseProfile(selectedType);
-                    profile.ServerName = _serverName.Text.Trim();
-                    profile.Port = ParsePortOrZero();
-                    profile.UserName = _userName.Text.Trim();
                     profile.PasswordSecretId = GetPasswordSecretId(selectedType);
                     await MigrateLegacyPasswordAsync(profile, selectedType);
 
@@ -360,12 +411,12 @@ namespace HAgent.WinForms.Forms
                     }
                 }
 
-                var before = CloneForComparison(_loadedOptions);
                 await _store.SaveAsync(_loadedOptions);
 
                 if (selectedType != HAgentStorageType.File && !string.IsNullOrEmpty(_password.Text))
                     await _secrets.SetAsync(GetPasswordSecretId(selectedType), _password.Text);
 
+                _lastSelectedStorageType = selectedType;
                 _password.Clear();
                 _status.Text = "Settings saved. Each database type retains its own connection profile.";
                 _status.ForeColor = Accent;

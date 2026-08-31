@@ -41,6 +41,8 @@ Legacy shared connection settings remain readable only as a compatibility migrat
 
 The settings UI persists a valid database profile when the user switches away from that backend, including a newly entered password. This makes switching between File, SQL Server, and MySQL durable rather than relying on transient form state. An incomplete database profile does not block switching; it remains unconfigured until valid connection details are supplied and saved.
 
+A saved database profile is treated as durable only after the configuration file has been written successfully and reloaded from disk. The selected SQL Server/MySQL profile remains the authoritative runtime source for server, port, username, and secret identity; legacy shared fields are not used for new runtime resolution.
+
 ### Current slice: internal memory backend parity
 
 `HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` implement `IMemoryStore` against the HAgent-owned `HAgentMemoryEntries` table. Entries retain scope, kind, owner, task, content, metadata, and timestamps. Core filtering and bounded result counts are performed by each relational provider, while the existing provider-independent memory scoring behavior is preserved after retrieval.
@@ -67,7 +69,7 @@ The Example preserves the currently active runtime when the Configuration window
 
 Database storage exposes an explicit TCP port with protocol defaults of 1433 for SQL Server and 3306 for MySQL. The selected port is persisted and used by both provider-specific connection builders.
 
-The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected and the application restarted.
+The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected and the application restarted. The Example startup output also reports the non-secret backend target and full exception details so a persisted-profile or connection failure can be diagnosed without exposing the password.
 
 The Example's Configuration action also has a recovery path that opens the Storage settings directly when the active backend cannot be opened. It therefore never requires a successful database connection merely to repair database settings.
 

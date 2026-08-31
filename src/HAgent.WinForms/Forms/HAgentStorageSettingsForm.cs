@@ -59,6 +59,11 @@ namespace HAgent.WinForms.Forms
             Shown += async delegate { await LoadAsync(); };
         }
 
+        /// <summary>
+        /// Indicates that the active runtime backend or its connection target changed and the host should reload its runtime configuration.
+        /// </summary>
+        public bool RuntimeStorageChanged { get; private set; }
+
         private void BuildShell()
         {
             BodyPanel.Padding = new Padding(26);
@@ -418,16 +423,9 @@ namespace HAgent.WinForms.Forms
 
                 _lastSelectedStorageType = selectedType;
                 _password.Clear();
-                _status.Text = "Settings saved. Each database type retains its own connection profile.";
+                _status.Text = "Settings saved. Storage changes can now be applied without restarting the application.";
                 _status.ForeColor = Accent;
-
-                if (HasRestartRelevantChanges(before, _loadedOptions))
-                {
-                    HMessage.ShowInformation(
-                        this,
-                        "The storage configuration has changed. Restart the application for the new storage backend or connection settings to take effect.",
-                        "HAgent Storage");
-                }
+                RuntimeStorageChanged = HasActiveRuntimeChanges(before, _loadedOptions);
             }
             catch (Exception ex)
             {
@@ -467,14 +465,17 @@ namespace HAgent.WinForms.Forms
             };
         }
 
-        private static bool HasRestartRelevantChanges(HAgentStorageOptions before, HAgentStorageOptions after)
+        private static bool HasActiveRuntimeChanges(HAgentStorageOptions before, HAgentStorageOptions after)
         {
-            if (before == null || after == null) return false;
-            return before.StorageType != after.StorageType
-                || !string.Equals(before.ApplicationName, after.ApplicationName, StringComparison.Ordinal)
-                || !string.Equals(before.RootPath, after.RootPath, StringComparison.Ordinal)
-                || !ProfilesEqual(before.SqlServer, after.SqlServer)
-                || !ProfilesEqual(before.MySql, after.MySql);
+            if (before == null || after == null) return before != after;
+            if (before.StorageType != after.StorageType) return true;
+
+            if (!string.Equals(before.ApplicationName, after.ApplicationName, StringComparison.Ordinal)) return true;
+
+            if (after.StorageType == HAgentStorageType.File)
+                return !string.Equals(before.RootPath, after.RootPath, StringComparison.Ordinal);
+
+            return !ProfilesEqual(before.GetDatabaseProfile(after.StorageType), after.GetDatabaseProfile(after.StorageType));
         }
 
         private static bool ProfilesEqual(HAgentDatabaseStorageOptions left, HAgentDatabaseStorageOptions right)

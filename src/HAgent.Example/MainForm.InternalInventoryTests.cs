@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -12,6 +13,8 @@ namespace HAgent.Example
     {
         private void AddInternalInventoryTab()
         {
+            RenameRuntimeExecutionTab();
+
             AddApiTab(
                 "Internal Inventory",
                 "Run inventory test",
@@ -21,6 +24,13 @@ namespace HAgent.Example
                 TestInternalInventoryAsync,
                 "Internal storage boundary",
                 "This tool can inspect HAgent-owned data only. It does not expose provider secrets, database credentials, executable handlers, or host application data.");
+        }
+
+        private void RenameRuntimeExecutionTab()
+        {
+            var tab = _tabs.TabPages.Cast<TabPage>().FirstOrDefault(x => string.Equals(x.Text, "Runtime 0.2", StringComparison.Ordinal));
+            if (tab != null)
+                tab.Text = "Runtime Execution";
         }
 
         private async Task TestInternalInventoryAsync(string input)

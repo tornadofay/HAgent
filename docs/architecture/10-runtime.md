@@ -6,7 +6,11 @@
 
 ## Runtime instance
 
-A runtime instance is the live execution identity created from a profile. It keeps profile identity separate from runtime identity and may carry host/context bindings, memory ownership, scope, and execution state.
+A runtime instance is the live execution identity created from a reusable profile. `AgentRuntimeInstance` has its own stable `InstanceId`, keeps the source `ProfileId`, records its `AgentRuntimeScope`, and has an explicit active/retired lifecycle.
+
+Creating or retiring a runtime instance never mutates the reusable `AiAgent` profile and does not make the instance a persistent configured agent by default.
+
+Runtime-instance identity is intentionally separate from `AgentExecution.Id` and `AgentExecution.CorrelationId`. An instance may own many executions over its lifetime, while each execution retains its own immutable execution identity and correlation anchor.
 
 Runtime instances must support:
 
@@ -17,11 +21,20 @@ Runtime instances must support:
 - explicit retirement;
 - optional persistence for recovery/collaboration.
 
-A runtime instance is not automatically persisted as a configured agent.
-
 ## Scope
 
-Scope describes where a runtime instance belongs. Planned scopes include Application, Workspace, Context/Form, Session, Task, and Ephemeral. Scope must not be encoded as different agent classes.
+`AgentRuntimeScope` describes where a runtime instance belongs. The current provider-neutral scope vocabulary is:
+
+```text
+Application
+Workspace
+ContextForm
+Session
+Task
+Ephemeral
+```
+
+Scope is metadata and lifecycle context; it must not be encoded as different agent classes.
 
 ## System-prompt composition
 
@@ -52,6 +65,8 @@ Prompt composition is not an authorization boundary. Permissions, authorization 
 The host supplies a request/context snapshot. Runtime resolves the profile/provider, creates an execution snapshot, composes the applicable system-prompt layers, invokes the provider, normalizes the result, and reports lifecycle/usage metadata.
 
 The host may schedule executions independently of application or simulation timing.
+
+`AgentExecution.CorrelationId` is an execution-level identifier. It is not a runtime-instance identifier and remains unique per execution.
 
 ## Sessions
 

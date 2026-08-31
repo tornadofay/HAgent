@@ -23,6 +23,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Storage backend persistence uses explicit enum names and verifies the saved backend immediately.
 - [x] SQL Server internal memory store and Example routing for the selected backend.
 - [x] MySQL internal memory store and Example routing for the selected backend.
+- [x] Task/event memory Example test uses the selected internal memory backend for File, SQL Server, and MySQL.
 - [ ] Wire all remaining internal repositories to the selected storage backend.
 - [ ] Versioned schema migrations beyond the initial bootstrap version.
 - [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
@@ -32,15 +33,15 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 
 `HAgent.Storage.SqlServer` and `HAgent.Storage.MySql` implement `IMemoryStore` against the HAgent-owned `HAgentMemoryEntries` table. Entries retain scope, kind, owner, task, content, metadata, and timestamps. Core filtering and bounded result counts are performed by each relational provider, while the existing provider-independent memory scoring behavior is preserved after retrieval.
 
-The Example automatic-memory and episodic-memory verification paths obtain their memory store from the selected HAgent storage backend. Their File cleanup behavior was removed so verification cannot delete the real configured File memory store.
+The Example automatic-memory, episodic-memory, and task/event-memory verification paths obtain their memory store from the selected HAgent storage backend. The task/event test also reports the validated configured backend in its result, making File/SQL Server/MySQL routing visible during manual verification.
 
-The older standalone `[MEMORY]` and `[TASK / EVENT MEMORY]` Example tabs still contain historical File-only verification paths and have not yet been migrated to the configured memory resolver. They must not be used as proof of SQL Server/MySQL memory backend selection until that cleanup slice is complete.
+The older standalone `[MEMORY]` Example tab still contains a historical File-only persistence path and has not yet been migrated to the configured memory resolver. It must not be used as proof of SQL Server/MySQL memory backend selection until that cleanup slice is complete.
 
 ### Configured storage backend resolution
 
 The Example resolves its `IAiStore`, tool-definition store, and memory store from `HAgentStorageOptions` rather than hardcoding the File backend. File, SQL Server, and MySQL are distinct runtime storage choices.
 
-The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, client creation, automatic memory, and episodic memory. This prevents the UI from displaying one backend's agents while runtime execution uses another backend.
+The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, client creation, automatic memory, episodic memory, and task/event memory. This prevents the UI from displaying one backend's agents while runtime execution uses another backend.
 
 The Example persistent-session verification also uses the selected HAgent AI store for both client instances so an agent loaded from SQL Server or MySQL is not looked up again in the legacy File store. The conversation persistence portion of that test remains explicitly File-based until conversation repositories are wired to all configured storage backends.
 
@@ -52,7 +53,7 @@ Storage settings that change the backend, application identity/path, database ta
 
 Database storage exposes an explicit TCP port with protocol defaults of 1433 for SQL Server and 3306 for MySQL. The selected port is persisted and used by both provider-specific connection builders.
 
-The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI/output, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected and the application restarted.
+The Example startup path does not terminate when the configured HAgent storage backend cannot be opened. It keeps the configuration surface available, reports the backend-unavailable state in the UI, and exposes the underlying exception through the HAgent message helper so storage settings can be corrected and the application restarted.
 
 The Example's Configuration action also has a recovery path that opens the Storage settings directly when the active backend cannot be opened. It therefore never requires a successful database connection merely to repair database settings.
 

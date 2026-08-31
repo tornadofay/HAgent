@@ -51,13 +51,19 @@ The Example automatic-memory, episodic-memory, and task/event-memory verificatio
 
 The older standalone `[MEMORY]` Example tab still contains a historical File-only persistence path and has not yet been migrated to the configured memory resolver. It must not be used as proof of SQL Server/MySQL memory backend selection until that cleanup slice is complete.
 
+### Current slice: conversation storage parity
+
+`IConversationStore` is now implemented by the File, SQL Server, and MySQL storage providers. File sessions remain one JSON file per session; SQL Server and MySQL persist serialized message lists in the HAgent-owned `HAgentConversations` table while preserving session ID, agent ID, and timestamps.
+
+The Example persistent-session verification path now obtains its conversation store from the selected HAgent storage backend. It reports the selected backend, concrete conversation-store implementation, and backend-specific persistence location. The test therefore verifies session reopen/delete behavior against File, SQL Server, and MySQL rather than using a File conversation store as a hidden test dependency.
+
 ### Configured storage backend resolution
 
-The Example resolves its `IAiStore`, tool-definition store, and memory store from `HAgentStorageOptions` rather than hardcoding the File backend. File, SQL Server, and MySQL are distinct runtime storage choices.
+The Example resolves its `IAiStore`, tool-definition store, memory store, and conversation store from `HAgentStorageOptions` rather than hardcoding the File backend. File, SQL Server, and MySQL are distinct runtime storage choices.
 
-The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, client creation, automatic memory, episodic memory, and task/event memory. This prevents the UI from displaying one backend's agents while runtime execution uses another backend.
+The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, client creation, automatic memory, episodic memory, task/event memory, and persistent conversation storage. This prevents the UI from displaying one backend's agents while runtime execution or session persistence uses another backend.
 
-The Example persistent-session verification also uses the selected HAgent AI store for both client instances so an agent loaded from SQL Server or MySQL is not looked up again in the legacy File store. The conversation persistence portion of that test remains explicitly File-based until conversation repositories are wired to all configured storage backends.
+The Example persistent-session verification also uses the selected HAgent AI store for both client instances so an agent loaded from SQL Server or MySQL is not looked up again in the legacy File store.
 
 The storage configuration file persists the backend as an explicit enum name (`File`, `SqlServer`, or `MySql`) rather than an opaque numeric value. Saving immediately re-reads the configuration and rejects the save if the selected backend was not persisted correctly.
 

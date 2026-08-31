@@ -12,7 +12,7 @@ namespace HAgent.Storage.MySql
     /// </summary>
     public sealed class MySqlHAgentStorageBootstrapper
     {
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
 
         public async Task EnsureCreatedAsync(
             HAgentStorageOptions options,
@@ -42,7 +42,7 @@ namespace HAgent.Storage.MySql
                     await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 }
 
-                await MigrateToolTypeColumnAsync(connection, cancellationToken).ConfigureAwait(false);
+                await ApplyMigrationsAsync(connection, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -78,7 +78,52 @@ namespace HAgent.Storage.MySql
             }
         }
 
-        private static async Task MigrateToolTypeColumnAsync(MySqlConnection connection, CancellationToken cancellationToken)
+        private static async Task ApplyMigrationsAsync(MySqlConnection connection, CancellationToken cancellationToken)
+        {
+            var version = await GetSchemaVersionAsync(connection, cancellationToken).ConfigureAwait(false);
+            while (version < CurrentSchemaVersion)
+            {
+                switch (version)
+                {
+                    case 1:
+                        await MigrateV1ToV2Async(connection, cancellationToken).ConfigureAwait(false);
+                        version = 2;
+                        break;
+                    case 2:
+                        await MigrateV2ToV3Async(connection, cancellationToken).ConfigureAwait(false);
+                        version = 3;
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unsupported HAgent MySQL schema version: " + version + ".");
+                }
+
+                await SetSchemaVersionAsync(connection, version, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task<int> GetSchemaVersionAsync(MySqlConnection connection, CancellationToken cancellationToken)
+        {
+            const string sql = "SELECT SchemaVersion FROM HAgentSchemaInfo WHERE SchemaName='core';";
+            using (var command = new MySqlCommand(sql, connection))
+            {
+                var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                if (value == null || value == DBNull.Value)
+                    throw new InvalidOperationException("The HAgent MySQL schema version record is missing.");
+                return Convert.ToInt32(value);
+            }
+        }
+
+        private static async Task SetSchemaVersionAsync(MySqlConnection connection, int version, CancellationToken cancellationToken)
+        {
+            const string sql = "UPDATE HAgentSchemaInfo SET SchemaVersion=@Version, UpdatedAt=UTC_TIMESTAMP() WHERE SchemaName='core';";
+            using (var command = new MySqlCommand(sql, connection))
+            {
+                command.Parameters.AddWithValue("@Version", version);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task MigrateV1ToV2Async(MySqlConnection connection, CancellationToken cancellationToken)
         {
             const string columnSql = @"
 SELECT
@@ -93,9 +138,10 @@ WHERE TABLE_SCHEMA = DATABASE()
             using (var command = new MySqlCommand(columnSql, connection))
             using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) return;
-                hasType = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
-                hasLegacyType = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                    return;
+                hasType = reader.IsDBNull(0) ? 0 : Convert.ToInt32(reader.GetValue(0));
+                hasLegacyType = reader.IsDBNull(1) ? 0 : Convert.ToInt32(reader.GetValue(1));
             }
 
             if (hasType > 0 || hasLegacyType == 0)
@@ -123,6 +169,33 @@ ALTER TABLE HAgentTools DROP COLUMN ToolType;";
             }
         }
 
+        private static async Task MigrateV2ToV3Async(MySqlConnection connection, CancellationToken cancellationToken)
+        {
+            const string sql = @"
+SET @idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'HAgentMemoryEntries' AND INDEX_NAME = 'IX_HAgentMemoryEntries_OwnerScopeOccurred');
+SET @sql = IF(@idx = 0, 'CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON HAgentMemoryEntries(OwnerId, Scope, OccurredAt, CreatedAt)', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'HAgentMemoryEntries' AND INDEX_NAME = 'IX_HAgentMemoryEntries_TaskOccurred');
+SET @sql = IF(@idx = 0, 'CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON HAgentMemoryEntries(TaskId, OccurredAt, CreatedAt)', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'HAgentConversations' AND INDEX_NAME = 'IX_HAgentConversations_UpdatedAt');
+SET @sql = IF(@idx = 0, 'CREATE INDEX IX_HAgentConversations_UpdatedAt ON HAgentConversations(UpdatedAt)', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;";
+
+            using (var command = new MySqlCommand(sql, connection))
+            {
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         private static string GetSchemaSql()
         {
             var sql = new StringBuilder();
@@ -135,7 +208,8 @@ ALTER TABLE HAgentTools DROP COLUMN ToolType;";
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentSkills (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Description longtext NULL, DefinitionJson longtext NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));");
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentWikiDocuments (Id varchar(128) NOT NULL, Title varchar(500) NOT NULL, Content longtext NOT NULL, Source varchar(1000) NULL, Version varchar(64) NULL, CreatedAt datetime(6) NOT NULL, UpdatedAt datetime(6) NOT NULL, PRIMARY KEY (Id));");
             sql.AppendLine("CREATE TABLE IF NOT EXISTS HAgentWikiChunks (Id varchar(128) NOT NULL, DocumentId varchar(128) NOT NULL, ChunkIndex int NOT NULL, Content longtext NOT NULL, MetadataJson longtext NULL, PRIMARY KEY (Id), CONSTRAINT FK_HAgentWikiChunks_Document FOREIGN KEY (DocumentId) REFERENCES HAgentWikiDocuments(Id));");
-            sql.AppendLine("INSERT INTO HAgentSchemaInfo (SchemaName, SchemaVersion, UpdatedAt) VALUES ('core', " + CurrentSchemaVersion + ", UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE SchemaVersion=VALUES(SchemaVersion), UpdatedAt=VALUES(UpdatedAt);");
+            sql.AppendLine("IF NOT EXISTS (SELECT 1 FROM HAgentSchemaInfo WHERE SchemaName=N'core')");
+            sql.AppendLine("INSERT INTO HAgentSchemaInfo (SchemaName, SchemaVersion, UpdatedAt) VALUES ('core', 1, UTC_TIMESTAMP());");
             return sql.ToString();
         }
 

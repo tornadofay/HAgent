@@ -34,7 +34,7 @@ namespace HAgent.Example
                 ButtonDownBackGroundColor1 = Color.FromArgb(72, 52, 132),
                 ButtonDownBackGroundColor2 = Color.FromArgb(45, 31, 88),
                 ButtonDownForeColor = Color.White,
-                ButtonDownBorderColor = Color.FromArgb(104, 79, 176),
+                ButtonDownBorderColor = Color.FromArgb(104, 76, 176),
                 Margin = new Padding(0, 0, 10, 0)
             };
         }

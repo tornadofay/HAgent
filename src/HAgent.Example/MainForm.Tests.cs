@@ -21,7 +21,8 @@ namespace HAgent.Example
             if (!agent.Enabled)
                 throw new InvalidOperationException("The selected agent is disabled. Enable it in Configuration first.");
 
-            var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+            var configurationPath = Path.Combine(_basePath, "configuration", "settings.json");
+            var store = new FileAiStore(configurationPath);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var providers = await store.GetProvidersAsync();
 
@@ -92,7 +93,7 @@ namespace HAgent.Example
             var firstConversationStore = new FileConversationStore(conversationPath);
             try
             {
-                var firstStore = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+                var firstStore = new FileAiStore(Path.Combine(_basePath, "configuration", "settings.json"));
                 var firstSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
                 var firstClient = new HAgentClient(
                     firstStore,
@@ -115,7 +116,7 @@ namespace HAgent.Example
             var secondConversationStore = new FileConversationStore(conversationPath);
             try
             {
-                var secondStore = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+                var secondStore = new FileAiStore(Path.Combine(_basePath, "configuration", "settings.json"));
                 var secondSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
                 var secondClient = new HAgentClient(
                     secondStore,
@@ -178,11 +179,12 @@ namespace HAgent.Example
 
         private async Task ReadConfigurationAsync(string unused)
         {
-            var store = new FileAiStore(Path.Combine(_basePath, "settings.json"));
+            var configurationPath = Path.Combine(_basePath, "configuration", "settings.json");
+            var store = new FileAiStore(configurationPath);
             var providers = await store.GetProvidersAsync();
             var agents = await store.GetAgentsAsync();
 
-            Write("CONFIGURATION", "Settings: " + Path.Combine(_basePath, "settings.json") + Environment.NewLine +
+            Write("CONFIGURATION", "Settings: " + configurationPath + Environment.NewLine +
                                   "Providers: " + providers.Count + Environment.NewLine +
                                   string.Join(Environment.NewLine, providers.Select(p => "  - " + p.Name + " [" + p.Kind + "] model=" + p.DefaultModel)) + Environment.NewLine +
                                   "Agents: " + agents.Count + Environment.NewLine +

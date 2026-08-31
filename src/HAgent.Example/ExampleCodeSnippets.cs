@@ -276,6 +276,28 @@ host.Application.Attach(""invoiceTable"", tableInfo, maxDepth: 2, maxCollectionI
 var descriptor = host.Application.Describe(""invoiceTable"");
 foreach (var property in descriptor.Properties)
     Console.WriteLine(property.Name + "": "" + property.Kind);";
+                case "Data Query Contract": return @"var source = new MyDataQuerySource();
+
+var request = new DataQueryRequest
+{
+    Fields = new[] { ""Id"", ""Name"", ""Amount"" },
+    Filters = new[]
+    {
+        new DataFilterCondition
+        {
+            Field = ""Amount"",
+            Operator = DataQueryOperator.GreaterThanOrEqual,
+            Value = 60
+        }
+    },
+    Sorts = new[]
+    {
+        new DataSort { Field = ""Amount"", Descending = true }
+    },
+    Take = 20
+};
+
+var result = await source.QueryAsync(request, CancellationToken.None);";
                 default: return @"// See the corresponding HAgent example source file.
 // The Example application uses the public HAgent API shown here as the reference pattern.";
             }

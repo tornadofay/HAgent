@@ -41,7 +41,6 @@ BEGIN
     CREATE INDEX IX_HAgentExecutionAudits_CorrelationId ON dbo.HAgentExecutionAudits(CorrelationId);
     CREATE INDEX IX_HAgentExecutionAudits_AgentCreated ON dbo.HAgentExecutionAudits(AgentId, CreatedAt DESC);
 END;";
-
             using (var connection = new SqlConnection(connectionString))
             using (var command = new SqlCommand(sql, connection))
             {
@@ -55,12 +54,10 @@ END;";
         {
             if (record == null) throw new ArgumentNullException(nameof(record));
             cancellationToken.ThrowIfCancellationRequested();
-
             const string sql = @"INSERT INTO dbo.HAgentExecutionAudits
 (ExecutionId, CorrelationId, AgentId, AgentName, Model, LastProviderId, LastProviderName, State, FailureKind, ProviderErrorKind, CreatedAt, StartedAt, CompletedAt, DurationMs)
 VALUES
 (@ExecutionId, @CorrelationId, @AgentId, @AgentName, @Model, @LastProviderId, @LastProviderName, @State, @FailureKind, @ProviderErrorKind, @CreatedAt, @StartedAt, @CompletedAt, @DurationMs);";
-
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand(sql, connection))
             {
@@ -80,7 +77,6 @@ WHERE (@ExecutionId = N'' OR ExecutionId = @ExecutionId)
   AND (@CorrelationId = N'' OR CorrelationId = @CorrelationId)
   AND (@AgentId = N'' OR AgentId = @AgentId)
 ORDER BY CreatedAt DESC;";
-
             var result = new List<AgentExecutionAuditRecord>();
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand(sql, connection))
@@ -92,11 +88,29 @@ ORDER BY CreatedAt DESC;";
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
                 using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                        result.Add(Read(reader));
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) result.Add(Read(reader));
                 }
             }
             return result.AsReadOnly();
+        }
+
+        public async Task TrimAsync(int maxRecords, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (maxRecords < 1) throw new ArgumentOutOfRangeException(nameof(maxRecords));
+            const string sql = @"DELETE FROM dbo.HAgentExecutionAudits
+WHERE ExecutionId NOT IN
+(
+    SELECT TOP (@MaxRecords) ExecutionId
+    FROM dbo.HAgentExecutionAudits
+    ORDER BY CreatedAt DESC
+);";
+            using (var connection = new SqlConnection(_connectionString))
+            using (var command = new SqlCommand(sql, connection))
+            {
+                command.Parameters.AddWithValue("@MaxRecords", maxRecords);
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
 
         private static void Bind(SqlCommand command, AgentExecutionAuditRecord record)
@@ -125,7 +139,6 @@ ORDER BY CreatedAt DESC;";
             Enum.TryParse(reader.GetString(7), true, out state);
             Enum.TryParse(reader.GetString(8), true, out failure);
             Enum.TryParse(reader.GetString(9), true, out providerError);
-
             return new AgentExecutionAuditRecord
             {
                 ExecutionId = reader.GetString(0),

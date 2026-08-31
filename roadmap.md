@@ -169,7 +169,7 @@ Provide bounded structured data contracts and establish HAgent-owned persistence
 6. [x] SQL Server HAgent database creation and initial schema bootstrap.
 7. [x] MySQL HAgent database creation and initial schema bootstrap.
 8. [ ] Wire providers, agents, tools, memory, conversations, skills, wiki/content, and runtime repositories to the selected backend.
-9. [ ] Versioned schema migrations beyond the initial bootstrap version.
+9. [x] Versioned schema migrations beyond the initial bootstrap version.
 10. [ ] Read-only HAgent internal data tools, audit/correlation metadata, and live Example verification before any internal writes beyond repository persistence.
 
 ## Internal database naming
@@ -184,11 +184,15 @@ File storage is application-specific and rooted beneath the host executable dire
 
 SQL Server and MySQL storage providers receive server name and username as persisted configuration metadata and a password through the secret/runtime boundary. They connect to the server, create the HAgent-owned database if it does not exist, and initialize only HAgent-owned tables. Schema version metadata supports deterministic future migrations.
 
+The relational bootstrappers use `HAgentSchemaInfo` as the migration boundary. They establish a baseline schema version, read the persisted version, apply ordered provider-specific migrations until the current version is reached, and update the version only after each migration succeeds. Unknown future schema versions are rejected rather than silently skipped.
+
+Current relational schema versions are SQL Server `2` and MySQL `3`. The current migrations add idempotent indexes for bounded memory/conversation retrieval; the MySQL v1→v2 step also preserves the previously implemented `HAgentTools.ToolType` compatibility migration for older databases.
+
 The initial internal database schema contains provider, agent, tool, memory, conversation, skill, wiki document/chunk, and schema metadata tables. It must never inspect, alter, or query unrelated host application tables.
 
 ## Live Example
 
-The Example storage verification will exercise File, SQL Server, and MySQL initialization where the corresponding backend is configured. It will verify database creation when absent, idempotent initialization when present, schema version reporting, persistence through the HAgent repositories, and strict separation from host application data.
+The Example storage verification will exercise File, SQL Server, and MySQL initialization where the corresponding backend is configured. It will verify database creation when absent, idempotent initialization when present, schema version reporting, persistence through the HAgent repositories, and strict separation from host application data. Live backend switching is expected to work without restarting when the host supports storage rebinding.
 
 Connection values must never become persisted agent/tool configuration or normal logs.
 

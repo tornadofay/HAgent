@@ -32,6 +32,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [ ] Wire all remaining internal repositories to the selected storage backend.
 - [x] HAgent internal storage connection testing APIs and WinForms UI.
 - [x] Bounded HAgent internal inventory read-tool foundation for providers, agents, and persisted tool definitions.
+- [x] Bounded HAgent internal memory read-tool foundation with explicit scope/owner filtering and sensitive metadata redaction.
 - [ ] Read-only HAgent internal data tools and result/audit metadata before any writes.
 
 ### Independent database connection profiles
@@ -101,6 +102,12 @@ Tool execution context and results carry execution-local correlation metadata: c
 `HAgentInternalInventoryTool` is the first HAgent-owned read-tool foundation. It reads only through `IAiStore` and `IToolStore`, returns provider/agent/tool inventory metadata without secrets, supports caller cancellation, and bounds each category to a default of 50 and a hard maximum of 100 items. It has no write operation and does not expose raw connection data, passwords, executable handlers, or arbitrary host application records.
 
 The `HAgent.Example` application exposes an `Internal Inventory` verification tab. The manual check uses the currently selected HAgent storage backend, applies `maxItems = 1`, verifies category bounds and absence of sensitive metadata, and performs no writes.
+
+### Internal memory read tool
+
+`HAgentInternalMemoryTool` provides read-only bounded inspection of HAgent-owned memory for one explicit scope and owner. Optional kind, task, and text filters narrow the existing `IMemoryStore.SearchAsync` contract. Results are limited to 20 by default and 50 maximum, memory content is bounded, cancellation is propagated, and sensitive metadata keys are redacted.
+
+The `HAgent.Example` application exposes an `Internal Memory` verification tab. The manual check creates temporary memory only as test setup, reads one explicit owner/scope, verifies another owner's entry is excluded, verifies sensitive metadata redaction, rejects an excessive result bound, and cleans up the temporary entries directly through the memory store.
 
 ### Storage foundation
 

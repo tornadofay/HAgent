@@ -26,9 +26,11 @@ An application-owned source must enforce the relevant data permission and then o
 
 Execution is additionally bounded by a host-owned `DataQueryExecutionPolicy`, which limits query shape and result rows and supplies a linked cancellation/timeout budget to authorization and source execution. A physical adapter remains responsible for honoring the supplied cancellation token and for applying equivalent limits to its own execution plan.
 
+The SQL Server structured-query implementation lives in `HAgent.Storage.SqlServer`, not Core. It generates only restricted `SELECT` statements from validated schema fields, table identifiers, structured operators, and bounded paging; filter values are passed as parameters. It has no raw-SQL request surface and performs no database writes.
+
 Export and write permissions are defined separately so they cannot be inferred from query access.
 
-Database access must use an allow-listed schema and structured query model. Credentials use the secret subsystem and must not be persisted as ordinary agent/tool configuration.
+Database credentials remain runtime connection/secret material and must not be persisted as ordinary agent/tool configuration.
 
 ## Isolation
 

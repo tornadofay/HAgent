@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using HAgent.Models;
 
 namespace HAgent.WinForms.UI
 {
@@ -25,5 +26,6 @@ namespace HAgent.WinForms.UI
         Task<UiControlSnapshot> InspectAsync(string controlId = null, CancellationToken cancellationToken = default(CancellationToken));
         Task<object> ReadControlAsync(string controlId, CancellationToken cancellationToken = default(CancellationToken));
         Task<IReadOnlyList<IReadOnlyDictionary<string, object>>> ReadDataAsync(string controlId, int maxRows = 100, CancellationToken cancellationToken = default(CancellationToken));
+        Task<DataProjectionResult> ProjectDataAsync(string controlId, DataProjectionRequest request, CancellationToken cancellationToken = default(CancellationToken));
     }
 }

@@ -1,64 +1,74 @@
 # Completed implementation ledger
 
+Only completed work belongs here. Future work is not listed as planned items.
+
 ## 0.1 Foundation
-- [x] Multi-target .NET 4.8.1 and .NET 9.
-- [x] Provider/agent models and multi-provider references.
-- [x] OpenAI-compatible adapter.
-- [x] File/SQL Server/MySQL persistence foundations.
-- [x] Protected local secrets.
-- [x] Provider/agent/tool management UI.
-- [x] HAgent.Example integration host and modular tests.
+
+- Provider/agent configuration models.
+- OpenAI-compatible provider foundation.
+- File, SQL Server, and MySQL persistence foundations.
+- Protected local secrets.
+- Provider/agent/tool management UI.
+- HAgent.Example integration host.
 
 ## 0.2 Runtime
-- [x] Execution lifecycle and stable execution IDs.
-- [x] Provider routing, attempts, retries, timeout, cancellation.
-- [x] Diagnostics and structured failure categories.
-- [x] Actionable provider/model/account errors.
-- [x] System-prompt resolution and failure detail preservation.
+
+- Stable execution IDs and lifecycle state.
+- Provider routing and fallback candidates.
+- Retries, timeout, and cancellation.
+- Provider error classification and actionable failures.
+- Execution snapshots.
+- System-prompt resolution.
 
 ## 0.3 Memory + Context
-- [x] Persistent JSONL memory and bounded search.
-- [x] Explicit remember/recall/forget and scopes.
-- [x] Typed Task/Event/Fact/Preference records.
-- [x] Conversation store and persistent sessions.
-- [x] Context budgets and tokenizer-free estimate.
-- [x] Conservative automatic memory policy.
-- [x] Lightweight relevance ranking.
-- [x] Episodic memory with provenance.
+
+- Persistent JSONL memory.
+- Explicit remember/recall/forget.
+- Agent/task/event/fact/preference memory records.
+- Persistent conversations and sessions.
+- Context budgets and tokenizer-free estimation.
+- Conservative automatic memory.
+- Lightweight relevance ranking.
+- Episodic memory with provenance.
 
 ## 0.4 Capabilities + Response Normalization
-- [x] Tri-state capabilities and evidence/provenance.
-- [x] Capability cache.
-- [x] Normalized text/reasoning/raw/structured/tool/usage metadata.
-- [x] `<think>` detection without assuming native reasoning.
-- [x] Provider error classification/advice.
-- [x] Streaming delta contract and OpenAI-compatible SSE.
-- [x] Streaming cancellation.
 
-## 0.5 Verified tool foundation
-- [x] Six initial tool types.
-- [x] Tool definition/handler separation.
-- [x] Tool registry and application handler.
-- [x] JSON Schema validation.
-- [x] OpenAI-compatible tool transport.
-- [x] Bounded multi-turn tool loop.
-- [x] File tool-definition persistence.
-- [x] Agent `ToolIds` assignment model.
-- [x] Live Groq tool loop verification.
+- Tri-state provider/model capabilities with evidence.
+- Capability caching.
+- Normalized text, reasoning, structured output, tool calls, usage, and provider metadata.
+- Reasoning separation and diagnostic `<think>` handling.
+- Provider error advice.
+- Streaming contract, OpenAI-compatible SSE, cancellation, and live streaming verification.
 
-## 0.7 WinForms UI Context + Data Discovery
-- [x] `IUiContext` and `WinFormsUiContext`.
-- [x] Form and arbitrary control-tree/UserControl attachment with stable root identity.
-- [x] UI-thread-safe read-only inspection and control reads.
-- [x] Bound/native `DataGridView` data-source extraction without mandatory `DataTable` normalization.
-- [x] Semantic control discovery.
-- [x] Data-source discovery for `DataTable`, `DataView`, `BindingSource`, `IList`, arrays, and compatible collections.
-- [x] CurrencyManager, current-item, position/count, list/source metadata.
-- [x] Control-to-source relationship discovery based on actual bindings and source identity.
-- [x] Convention-based `IUiControlAdapter`.
-- [x] Reflection adaptation of external `IHyperControl`-style controls using `DbFieldName`, `GetValue()`, and `SetValue(object)`.
-- [x] Live application-object attachment by stable ID.
-- [x] Bounded structural discovery of application-owned objects such as `TableInfo` without compile-time type knowledge.
-- [x] `maxDepth` and `maxCollectionItems` resource bounds documented and enforced.
-- [x] Provider-neutral structured data query contract with explicit fields, scalar filters, sorting, and bounded paging.
-- [x] `HAgent.Example` verification for UI Context, UserControl, native `IList`, shared data relationships, custom control adaptation, application-object context, and structured data-query semantics.
+## 0.5 Tool Foundation
+
+- BuiltIn, Application, Declarative, UI, SqlServer, and MySql tool types.
+- Definition/handler separation.
+- Tool registry and application handlers.
+- JSON Schema validation.
+- Provider tool-definition transport.
+- Bounded multi-turn tool loop.
+- Tool-definition persistence.
+- Agent `ToolIds` assignment.
+- Live Groq tool-loop verification.
+
+## 0.7 UI Context + Data Discovery
+
+- Form and arbitrary WinForms control-tree/UserControl attachment.
+- Stable logical root identity.
+- UI-thread-safe read-only inspection and control reads.
+- Native/bound `DataGridView` data extraction without mandatory `DataTable` normalization.
+- Standard semantic control discovery.
+- Data-source discovery for DataTable, DataView, BindingSource, IList, arrays, and compatible collections.
+- CurrencyManager/current-item/position/count metadata.
+- Control-to-source relationship discovery.
+- Convention-based custom control adapters.
+- External `IHyperControl`-style adaptation without assembly dependency.
+- Live application-object attachment and bounded structural discovery.
+- `maxDepth` and `maxCollectionItems` resource bounds.
+- Provider-neutral structured data projection/query contracts.
+- Verified HAgent.Example coverage for the complete 0.7 slice.
+
+## Verification rule
+
+A completed milestone is based on actual local verification, not merely code existence.

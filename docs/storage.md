@@ -49,7 +49,14 @@ The layout is created on demand. Existing individual file stores can continue to
 
 SQL Server and MySQL providers receive server credentials at runtime, connect to the server, derive the HAgent database name, create the database when it does not exist, then create or upgrade only HAgent-owned tables.
 
-Database schema changes are versioned through an HAgent schema-info record. Future upgrades should use ordered migrations and must never silently recreate or modify unrelated application tables.
+Database schema changes are versioned through `HAgentSchemaInfo`. Bootstrap establishes the base HAgent-owned objects and a baseline schema version, then reads the persisted version and applies ordered provider-specific migrations until the current version is reached. A schema version is advanced only after its migration succeeds. Unknown future versions are rejected rather than silently skipped.
+
+Current relational schema versions are:
+
+- SQL Server: version `2`; v1→v2 adds idempotent indexes for bounded memory and conversation retrieval.
+- MySQL: version `3`; v1→v2 preserves the legacy `HAgentTools.ToolType` compatibility migration, and v2→v3 adds idempotent indexes for bounded memory and conversation retrieval.
+
+All migrations operate only on HAgent-owned tables and indexes.
 
 Initial internal schema areas include providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, and schema metadata. Additional HAgent-owned tables may be added through later migrations.
 

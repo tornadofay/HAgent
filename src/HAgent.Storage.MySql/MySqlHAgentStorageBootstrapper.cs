@@ -25,10 +25,10 @@ namespace HAgent.Storage.MySql
                 throw new ArgumentException("The storage options must use MySQL.", nameof(options));
 
             var databaseName = options.GetEffectiveDatabaseName();
-            var serverConnection = BuildConnectionString(options.ServerName, options.UserName, password, null);
+            var serverConnection = BuildConnectionString(options.ServerName, options.GetEffectivePort(), options.UserName, password, null);
             await EnsureDatabaseAsync(serverConnection, databaseName, cancellationToken).ConfigureAwait(false);
 
-            var databaseConnection = BuildConnectionString(options.ServerName, options.UserName, password, databaseName);
+            var databaseConnection = BuildConnectionString(options.ServerName, options.GetEffectivePort(), options.UserName, password, databaseName);
             using (var connection = new MySqlConnection(databaseConnection))
             using (var command = new MySqlCommand(GetSchemaSql(), connection))
             {
@@ -39,10 +39,17 @@ namespace HAgent.Storage.MySql
 
         public static string BuildConnectionString(string serverName, string userName, string password, string databaseName)
         {
+            return BuildConnectionString(serverName, 3306, userName, password, databaseName);
+        }
+
+        public static string BuildConnectionString(string serverName, int port, string userName, string password, string databaseName)
+        {
             if (string.IsNullOrWhiteSpace(serverName)) throw new ArgumentException("Server name is required.", nameof(serverName));
+            if (port < 1 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
             var builder = new MySqlConnectionStringBuilder
             {
-                Server = serverName,
+                Server = serverName.Trim(),
+                Port = (uint)port,
                 Database = databaseName ?? string.Empty,
                 UserID = userName ?? string.Empty,
                 Password = password ?? string.Empty,

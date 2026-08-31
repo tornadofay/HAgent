@@ -3,6 +3,7 @@ using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers.Button;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -22,7 +23,7 @@ namespace HAgent.Example
 
         private readonly string _basePath = new HAgentStorageOptions
         {
-            ApplicationName = "HAgent.Example",
+            ApplicationName = string.IsNullOrWhiteSpace(Process.GetCurrentProcess().ProcessName) ? "HAgent" : Process.GetCurrentProcess().ProcessName,
             RootPath = AppContext.BaseDirectory
         }.GetEffectiveRootPath();
 

@@ -121,6 +121,26 @@ Execution
 
 The distinction between persistent profiles and runtime instances is fundamental. A host may create many runtime agents from one configured profile without turning every live instance into a permanent configuration record.
 
+## System-prompt model
+
+System prompts are composed from additive layers. A higher layer establishes the broader policy and may add restrictions that every lower layer must preserve. A lower layer may add narrower instructions for its own scope, but it must not replace, erase, or weaken a higher layer.
+
+The intended hierarchy is:
+
+```text
+Higher policy
+    Provider
+      ↓
+    Agent profile
+      ↓
+    Runtime / workspace / context / task additions
+Lower policy
+```
+
+All applicable layers remain present in the final system prompt. The current implementation provides provider + agent + per-execution layers; future runtime/context/workspace layers must use the same composition mechanism rather than introducing replacement semantics.
+
+Prompt layering improves behavioral consistency but is not security. Authorization, permissions, approvals, budgets, and host-side validation remain authoritative outside the prompt.
+
 ## Host context
 
 HAgent must support two complementary ways for hosts to describe their environment.

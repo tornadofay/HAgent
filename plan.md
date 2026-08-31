@@ -303,6 +303,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 - [x] Example agent/provider/prompt loading follows the selected internal storage backend.
 - [x] Storage changes that affect the active runtime are identified as restart-required.
 - [x] Persistent-session Example test uses the selected HAgent AI storage backend instead of hardcoding File storage for agent lookup.
+- [x] Storage backend persistence uses explicit enum names and verifies the saved backend immediately.
 - [ ] Wire all internal repositories to the selected storage backend.
 - [ ] Versioned schema migrations beyond the initial bootstrap version.
 - [ ] HAgent internal storage credentials/secret lifecycle and connection testing UI.
@@ -315,6 +316,8 @@ The Example now resolves its `IAiStore` and tool-definition store from `HAgentSt
 The selected backend is used consistently for agent/provider loading, provider-system-prompt resolution, configuration display, and client creation. This prevents the UI from displaying one backend's agents while runtime execution uses another backend.
 
 The Example persistent-session verification also uses the selected HAgent AI store for both client instances so an agent loaded from SQL Server or MySQL is not looked up again in the legacy File store. The conversation persistence portion of that test remains explicitly File-based until conversation repositories are wired to all configured storage backends.
+
+The storage configuration file persists the backend as an explicit enum name (`File`, `SqlServer`, or `MySql`) rather than an opaque numeric value. Saving now immediately re-reads the configuration and rejects the save if the selected backend was not persisted correctly.
 
 SQL Server and MySQL resolution bootstraps the HAgent-owned database before creating the corresponding internal repositories. No host application database is used by this resolution path.
 

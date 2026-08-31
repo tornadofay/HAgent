@@ -1,6 +1,6 @@
 # Memory, chat, collaboration
 
-## 0.3 advanced memory
+## 0.3 Advanced Memory
 
 - [ ] Richer automatic-memory inference without saving ordinary conversation by default.
 - [ ] Memory update/upsert semantics.
@@ -12,7 +12,7 @@
 - [ ] Optional vector-memory adapter.
 - [ ] Remote embedding providers without local GPU or RAM-heavy resident models.
 
-## 0.8 Agent Scope + Chat
+## 0.9 Agent Scope + Chat
 
 - [ ] Separate agent profile from runtime binding/lifetime.
 - [ ] Application/global, form, session, task, and ephemeral scopes.
@@ -24,7 +24,7 @@
 - [ ] Safe handling of deleted/disabled agents.
 - [ ] Cross-form memory governed by explicit scope and policy.
 
-## 0.9 Orchestration + Collaboration
+## 0.10 Orchestration + Collaboration
 
 - [ ] Agents-as-tools.
 - [ ] Handoffs/delegation.

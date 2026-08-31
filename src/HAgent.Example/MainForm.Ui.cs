@@ -95,9 +95,8 @@ namespace HAgent.Example
 
         private async Task RefreshExampleAgentsAsync()
         {
-            var configurationPath = Path.Combine(_basePath, "configuration", "settings.json");
-            var store = new FileAiStore(configurationPath);
-            var agents = await store.GetAgentsAsync();
+            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+            var agents = await store.GetAgentsAsync().ConfigureAwait(true);
 
             _agents.Clear();
             _agents.AddRange(agents);
@@ -118,16 +117,20 @@ namespace HAgent.Example
             }
         }
 
-        private void OpenConfiguration()
+        private async void OpenConfiguration()
         {
-            var store = new HAgent.Storage.File.FileAiStore(System.IO.Path.Combine(_basePath, "configuration", "settings.json"));
-            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
+            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
+            var toolStore = CreateConfiguredToolStore(secrets);
+
             AISettings.ShowMainAISettingsForm(
                 store,
                 secrets,
                 this,
-                new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() });
-            _ = RefreshExampleAgentsAsync();
+                new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() },
+                toolStore);
+
+            await RefreshExampleAgentsAsync().ConfigureAwait(true);
         }
 
         private sealed class AgentItem

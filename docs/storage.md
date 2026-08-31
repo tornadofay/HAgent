@@ -18,7 +18,7 @@ The host application name is the storage identity shared by the configuration UI
 
 `HAgentStorageOptions` contains the storage backend and non-secret connection metadata. Server name, username, database name, and application name are configuration values. Database passwords are not part of ordinary persisted configuration and remain in the secret/runtime connection boundary.
 
-The configured backend is intended to become the backing store for HAgent's internal repositories: providers, agents, tools, memory, conversations, skills, wiki/content, runtime metadata, and future internal data introduced by HAgent.
+The configured backend is intended to become the backing store for HAgent's internal repositories: providers, agents, tools, memory, conversations, skills, wiki/content, runtime metadata, execution audit data, and future internal data introduced by HAgent.
 
 SQL Server and MySQL retain independent connection profiles. Switching the selected backend does not overwrite the other backend's server, port, username, or secret identity.
 
@@ -41,6 +41,7 @@ HAgentData/
   runtime/
   cache/
   logs/
+  audit/
 ```
 
 The layout is created on demand. Existing individual file stores can continue to use their focused repository files while the common storage configuration establishes one consistent application-local root.
@@ -55,14 +56,16 @@ The MySQL bootstrap executes schema statements and migrations as separate comman
 
 Current relational schema versions are:
 
-- SQL Server: version `2`; v1→v2 adds idempotent indexes for bounded memory and conversation retrieval.
-- MySQL: version `3`; v1→v2 preserves the legacy `HAgentTools.ToolType` compatibility migration, and v2→v3 adds idempotent indexes for bounded memory and conversation retrieval.
+- SQL Server: version `3`; v1→v2 adds idempotent indexes for bounded memory and conversation retrieval, and v2→v3 adds the execution-audit table and indexes.
+- MySQL: version `4`; v1→v2 preserves the legacy `HAgentTools.ToolType` compatibility migration, v2→v3 adds idempotent indexes for bounded memory and conversation retrieval, and v3→v4 adds the execution-audit table and indexes.
 
 All migrations operate only on HAgent-owned tables and indexes.
 
-Initial internal schema areas include providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, and schema metadata. Additional HAgent-owned tables may be added through later migrations.
+Initial internal schema areas include providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, execution audits, and schema metadata. Additional HAgent-owned tables may be added through later migrations.
 
 Conversation snapshots are persisted through `IConversationStore`. File storage keeps one JSON file per session; SQL Server and MySQL store the serialized message list in the HAgent-owned `HAgentConversations` table. Session identity and agent identity remain part of the persisted snapshot.
+
+Execution audit metadata is persisted through `IExecutionAuditStore`. File storage keeps secret-safe terminal execution records in `audit/executions.jsonl`; SQL Server and MySQL store the same metadata in `HAgentExecutionAudits`. Audit records contain correlation/lifecycle/identity metadata only and never store prompts, response payloads, provider secrets, connection strings, or raw exceptions.
 
 ## Connection testing
 
@@ -85,6 +88,14 @@ The WinForms Example closes any configuration surface that still owns stores for
 Runtime agent instances, workspaces, and other live collaboration state are not configuration by default. A host may keep them in memory or persist them when recovery, collaboration, audit, or multi-process visibility requires it.
 
 When persisted, runtime records must distinguish the host instance, user/session, workspace, agent profile ID, and runtime instance ID.
+
+## Audit and observability
+
+`AgentExecutionAuditRecord` is the provider-neutral, payload-free projection used for persistent execution audit metadata. Its correlation ID is distinct from execution ID and tool-call IDs and provides a stable runtime anchor across a terminal execution.
+
+`IExecutionAuditStore` is intentionally append/search oriented. Search is bounded and may target an execution ID, correlation ID, or agent ID. `HAgentInternalExecutionAuditTool` is the corresponding trusted read-only tool and constrains reads to the requesting agent identity when that identity is present.
+
+Automatic terminal audit capture and configurable retention are separate runtime concerns and are not implicit consequences of configuring a store. Until automatic capture is enabled, hosts can persist an explicitly created `AgentExecutionAuditRecord` through the store.
 
 ## Secrets
 

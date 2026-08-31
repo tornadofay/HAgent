@@ -18,8 +18,7 @@ namespace HAgent.Example
             var input = RequireInput(message);
             var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            var memoryPath = Path.Combine(_basePath, "memory", "example-automatic-memory-" + Guid.NewGuid().ToString("N") + ".jsonl");
-            var memory = new FileMemoryStore(memoryPath);
+            var memory = await CreateConfiguredMemoryStoreAsync().ConfigureAwait(true);
             var agent = GetSelectedAgent();
             if (agent == null) throw new InvalidOperationException("Select an agent first.");
 
@@ -81,15 +80,8 @@ namespace HAgent.Example
             }
             finally
             {
-                memory.Dispose();
-                try
-                {
-                    if (File.Exists(memoryPath)) File.Delete(memoryPath);
-                }
-                catch
-                {
-                    // Example cleanup must not hide the actual policy test result.
-                }
+                var disposable = memory as IDisposable;
+                if (disposable != null) disposable.Dispose();
             }
         }
 
@@ -98,8 +90,7 @@ namespace HAgent.Example
             var agent = GetSelectedAgent();
             if (agent == null) throw new InvalidOperationException("Select an agent first.");
 
-            var memoryPath = Path.Combine(_basePath, "memory", "example-episodic-" + Guid.NewGuid().ToString("N") + ".jsonl");
-            var memory = new FileMemoryStore(memoryPath);
+            var memory = await CreateConfiguredMemoryStoreAsync().ConfigureAwait(true);
             var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
 
@@ -151,15 +142,8 @@ namespace HAgent.Example
             }
             finally
             {
-                memory.Dispose();
-                try
-                {
-                    if (File.Exists(memoryPath)) File.Delete(memoryPath);
-                }
-                catch
-                {
-                    // Example cleanup must not hide the actual test result.
-                }
+                var disposable = memory as IDisposable;
+                if (disposable != null) disposable.Dispose();
             }
         }
     }

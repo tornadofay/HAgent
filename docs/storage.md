@@ -12,6 +12,8 @@ The host selects one HAgent storage backend:
 
 The database name defaults from the host application name using the pattern `<application-name>-ai`, for example `nap-ai` or `hworld-ai`.
 
+The host application name is the storage identity shared by the configuration UI and runtime. Both derive the default application identity from the running host process so they resolve the same `HAgentData` root.
+
 ## Configuration
 
 `HAgentStorageOptions` contains the storage backend and non-secret connection metadata. Server name, username, database name, and application name are configuration values. Database passwords are not part of ordinary persisted configuration and remain in the secret/runtime connection boundary.

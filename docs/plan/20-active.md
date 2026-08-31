@@ -14,21 +14,23 @@ Turn the verified structured-query contracts into safe application and database 
 - [x] Data permissions separated into discovery, projection/query, export, and write operations.
 - [x] Host authorization callback contract.
 - [x] Query limits, cancellation, timeout, and resource budgets.
-- [ ] Restricted SQL Server adapter using generated parameterized commands only.
+- [x] Restricted SQL Server adapter using generated parameterized commands only.
 - [ ] Restricted MySQL adapter using generated parameterized commands only.
 - [ ] Read-only database tools and result/audit metadata before database writes.
 
-### Current slice: bounded structured-query execution
+### Current slice: restricted SQL Server structured reads
 
-`HAgent.Core` now provides `DataQueryExecutionPolicy` for host-owned query-shape, result-size, and execution-time limits. An application-owned `IDataQuerySource` validates the request against the execution policy and authoritative schema, then creates a linked cancellation token with the configured timeout for authorization and physical execution.
+`HAgent.Storage.SqlServer` now provides `SqlServerDataQuerySource`, a read-only `IDataQuerySource` implementation over SQL Server. It requires a host-owned `DataQuerySchema`, `DataAccessPermissions`, request-specific `IDataAccessAuthorizer`, and `DataQueryExecutionPolicy`.
 
-The Example verifies that oversized pages are rejected, caller cancellation propagates through authorization, execution timeouts cancel the operation, and successful bounded queries still return the expected page.
+The adapter generates only structured `SELECT` statements. Projected/filter/sort identifiers come from the authoritative schema and validated table identifiers; scalar filter values and paging values are SQL parameters. `StartsWith`, `Contains`, and `EndsWith` values are escaped for SQL `LIKE` matching. The adapter has no raw SQL input and does not perform writes.
 
-The implementation is committed, but local build/Example verification has not been run. The execution-bounds slice remains pending until that verification passes locally.
+`HAgent.Example` now exposes a dedicated SQL Server Data Query tab with runtime-only Server Name, User Name, Password, and Database fields. It targets a disposable/read-only `dbo.HAgentExampleCustomers` table and verifies successful structured reads, bounded paging, schema rejection, host authorization denial, and parameterized handling of injection-shaped values.
+
+The implementation and Example surface are committed. Live SQL Server verification must be performed locally before the SQL Server roadmap slice and live integration are considered verified.
 
 ### Live Example
 
-When the SQL Server adapter is ready, `HAgent.Example` will provide runtime-only test fields:
+The SQL integration Example provides runtime-only connection fields:
 
 ```text
 Server Name
@@ -37,9 +39,7 @@ Password
 Database
 ```
 
-The Example will target an explicitly disposable/read-only test database and verify connection, authorized schema/fields, structured queries, bounded results, cancellation/timeout, and unauthorized-operation rejection.
-
-Connection values must never become persisted agent/tool configuration or normal logs.
+It targets an explicitly disposable/read-only test database and verifies connection, authorized schema/fields, structured queries, bounded results, cancellation/timeout, and unauthorized-operation rejection. Connection values must never become persistent agent/tool configuration or normal logs.
 
 ### Non-goals
 

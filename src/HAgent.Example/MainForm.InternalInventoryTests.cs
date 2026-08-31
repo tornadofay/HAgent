@@ -13,6 +13,8 @@ namespace HAgent.Example
     {
         private void AddInternalInventoryTab()
         {
+            AddExecutionAuditTab();
+
             AddApiTab(
                 "Internal Inventory",
                 "Run inventory test",

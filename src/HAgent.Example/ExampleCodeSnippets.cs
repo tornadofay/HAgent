@@ -23,7 +23,7 @@ await session.SendAsync(""Store this persistent test value in this conversation:
 
 var reopened = await ai.OpenSessionAsync(""assistant"", ""conversation-42"");
 var history = await reopened.ReadAsync();";
-                case "Runtime 0.2": return @"var execution = await ai.ExecuteAsync(
+                case "Runtime Execution": return @"var execution = await ai.ExecuteAsync(
     ""assistant"",
     ""Reply with the word RUNTIME-OK and nothing else."",
     new AgentExecutionOptions

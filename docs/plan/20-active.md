@@ -81,13 +81,16 @@
 - [x] `ReflectionApplicationObjectDiscovery` inspects bounded public property structure, scalar values, collection shape, and nested objects without executing arbitrary methods.
 - [x] `HAgentApplicationContext.Attach` documents and enforces `maxDepth` and `maxCollectionItems` bounds for predictable resource usage.
 - [x] Custom-control adapter and application-object context Examples verified locally.
+- [x] Provider-neutral structured data query contract supports explicit fields, scalar filters, explicit sorting, and bounded paging without SQL or executable expressions.
+- [ ] Local Example verification of the structured data query contract.
+- [ ] SQL Server/MySQL execution adapters for the structured query contract.
 - [ ] Automatic data querying against application/SQL sources requires explicit permissions and restricted query tools; never give the model arbitrary database access by default.
 - [ ] Cross-form discovery/memory requires explicit scope and policy.
 - [x] The UI boundary remains outside `HAgent.Core`, allowing future HControl/BaseForm, GDI, DirectX, and Unity-style adapters.
 
 ### Next
-- [ ] Safe data projection/query abstraction.
-- [ ] SQL Server/MySQL read/query tools under separate restricted permissions.
+- [ ] SQL Server/MySQL query execution adapters under separate restricted permissions.
+- [ ] Query authorization/schema allow-list layer.
 - [ ] UI write/invoke tools only after permission/approval foundation.
 - [ ] Floating assistant/flyout.
 
@@ -97,6 +100,7 @@
 - [ ] Every public-API snippet should become self-contained or link to a clearly identified shared setup snippet.
 - [ ] Keep snippets synchronized whenever a public API used by an example changes.
 - [x] Custom-control adapter and application-object context Examples are present and verified.
+- [ ] Structured data query Example verification is present and pending local verification.
 - [ ] Maintain focused partial test files instead of returning to one monolithic `MainForm` implementation.
 
 ## Documentation workflow

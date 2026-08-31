@@ -45,9 +45,11 @@ An internal read tool remains a trusted capability boundary. Registering it is a
 
 ## Audit-safe execution projection
 
-`AgentExecutionAuditRecord` is a provider-neutral projection of `AgentExecution` for observability and future audit persistence. It contains execution/correlation IDs, agent identity, model, selected provider identity, lifecycle timestamps, duration, execution state, and classified failure metadata. It deliberately excludes prompts, message contents, response text, secret IDs/values, raw connection strings, and raw exception objects.
+`AgentExecutionAuditRecord` is a provider-neutral projection of `AgentExecution` for observability and audit persistence. It contains execution/correlation IDs, agent identity, model, selected provider identity, lifecycle timestamps, duration, execution state, and classified failure metadata. It deliberately excludes prompts, message contents, response text, secret IDs/values, raw connection strings, and raw exception objects.
 
-The audit projection is a snapshot, not an audit store. Hosts may persist or export it through a future explicit audit capability without making payload logging implicit in the execution runtime.
+`IExecutionAuditStore` is the explicit persistence boundary for these records. File, SQL Server, and MySQL implementations persist only audit metadata. Reads are bounded and may target an execution ID, correlation ID, or agent ID. `HAgentInternalExecutionAuditTool` exposes the persisted metadata as a trusted read-only capability; when a requesting agent identity is present, the audit query is constrained to that agent and cannot be redirected to another agent by model-supplied arguments.
+
+Audit persistence is not transcript persistence and is not an authorization mechanism. Hosts may choose whether to configure an audit store; the existence of an audit record does not grant access to the underlying execution, conversation, provider secret, or host application resources.
 
 ## Tool loops
 

@@ -5,16 +5,16 @@ Turn the verified data-discovery and structured-query contracts into safe real a
 
 ## Steps
 
-1. Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
-2. Authoritative schema/field allow-list independent of model requests.
-3. Separate permissions for discovery, projection/query, export, and write operations.
-4. Host authorization callback contract.
-5. Query/result limits, cancellation, timeout, and resource budgets.
-6. Restricted SQL Server read adapter using generated parameterized commands only.
-7. Restricted MySQL read adapter using generated parameterized commands only.
-8. Database audit/correlation metadata.
-9. Read-only database tools before database writes.
-10. Live `HAgent.Example` integration against a disposable/read-only test database.
+1. [x] Application-owned adapter implementing `IDataQuerySource` for explicitly approved sources.
+2. [x] Authoritative schema/field allow-list independent of model requests.
+3. [x] Separate permissions for discovery, projection/query, export, and write operations.
+4. [x] Host authorization callback contract.
+5. [ ] Query/result limits, cancellation, timeout, and resource budgets.
+6. [ ] Restricted SQL Server read adapter using generated parameterized commands only.
+7. [ ] Restricted MySQL read adapter using generated parameterized commands only.
+8. [ ] Database audit/correlation metadata.
+9. [ ] Read-only database tools before database writes.
+10. [ ] Live `HAgent.Example` integration against a disposable/read-only test database.
 
 ## Live Example
 
@@ -35,6 +35,7 @@ It will verify connection, authorization, schema/field allow-listing, structured
 - No arbitrary SQL fragments in the structured query contract.
 - No implicit access to every table or field.
 - UI discovery, `TableInfo`-style metadata, provenance, or model instructions do not grant authorization.
+- Data-operation permission policy and request-specific host authorization are separate controls.
 - Database passwords remain in the secret/connection boundary.
 
 ## Exit criterion

@@ -62,6 +62,7 @@ namespace HAgent.WinForms
             {
                 AttachPermissionsNavigation(form);
                 AttachStorageNavigation(form, secrets);
+                AttachStorageConnectionTestNavigation(form, secrets);
                 AttachRepositoryLink(form);
                 form.ShowDialog(owner);
             }
@@ -113,6 +114,26 @@ namespace HAgent.WinForms
                         storageForm.ShowDialog(form);
                         if (storageForm.RuntimeStorageChanged && !form.IsDisposed)
                             form.Close();
+                    }
+                };
+                InsertBeforeAbout(nav, button);
+            };
+        }
+
+        private static void AttachStorageConnectionTestNavigation(Form form, ISecretStore secrets)
+        {
+            form.Shown += delegate
+            {
+                var nav = FindControl(form, c => c is FlowLayoutPanel && c.Width == 188 && c.BackColor == Color.FromArgb(31, 24, 69)) as FlowLayoutPanel;
+                if (nav == null || FindControl(nav, c => c is HButton && string.Equals(c.Text, "Storage Test", StringComparison.Ordinal)) != null)
+                    return;
+
+                var button = CreateNavigationButton("Storage Test");
+                button.Click += delegate
+                {
+                    using (var testForm = new HAgentStorageConnectionTestForm(AppContext.BaseDirectory, secrets))
+                    {
+                        testForm.ShowDialog(form);
                     }
                 };
                 InsertBeforeAbout(nav, button);

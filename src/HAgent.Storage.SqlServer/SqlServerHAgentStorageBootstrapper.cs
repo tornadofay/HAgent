@@ -12,7 +12,7 @@ namespace HAgent.Storage.SqlServer
     /// </summary>
     public sealed class SqlServerHAgentStorageBootstrapper
     {
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
 
         public async Task EnsureCreatedAsync(
             HAgentStorageOptions options,
@@ -147,6 +147,10 @@ END;";
                         await MigrateV1ToV2Async(connection, cancellationToken).ConfigureAwait(false);
                         version = 2;
                         break;
+                    case 2:
+                        await MigrateV2ToV3Async(connection, cancellationToken).ConfigureAwait(false);
+                        version = 3;
+                        break;
                     default:
                         throw new InvalidOperationException("Unsupported HAgent SQL Server schema version: " + version + ".");
                 }
@@ -191,6 +195,44 @@ END;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentConversations_UpdatedAt' AND object_id=OBJECT_ID(N'dbo.HAgentConversations'))
 BEGIN
     CREATE INDEX IX_HAgentConversations_UpdatedAt ON dbo.HAgentConversations(UpdatedAt DESC);
+END;";
+
+            using (var command = new SqlCommand(sql, connection))
+            {
+                command.CommandTimeout = 60;
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task MigrateV2ToV3Async(SqlConnection connection, CancellationToken cancellationToken)
+        {
+            const string sql = @"
+IF OBJECT_ID(N'dbo.HAgentExecutionAudits', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.HAgentExecutionAudits (
+        ExecutionId nvarchar(128) NOT NULL CONSTRAINT PK_HAgentExecutionAudits PRIMARY KEY,
+        CorrelationId nvarchar(128) NOT NULL,
+        AgentId nvarchar(128) NOT NULL,
+        AgentName nvarchar(200) NOT NULL,
+        Model nvarchar(200) NOT NULL,
+        LastProviderId nvarchar(128) NOT NULL,
+        LastProviderName nvarchar(200) NOT NULL,
+        State nvarchar(50) NOT NULL,
+        FailureKind nvarchar(100) NOT NULL,
+        ProviderErrorKind nvarchar(100) NOT NULL,
+        CreatedAt datetimeoffset NOT NULL,
+        StartedAt datetimeoffset NULL,
+        CompletedAt datetimeoffset NULL,
+        DurationMs float NULL
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentExecutionAudits_CorrelationId' AND object_id=OBJECT_ID(N'dbo.HAgentExecutionAudits'))
+BEGIN
+    CREATE INDEX IX_HAgentExecutionAudits_CorrelationId ON dbo.HAgentExecutionAudits(CorrelationId);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentExecutionAudits_AgentCreated' AND object_id=OBJECT_ID(N'dbo.HAgentExecutionAudits'))
+BEGIN
+    CREATE INDEX IX_HAgentExecutionAudits_AgentCreated ON dbo.HAgentExecutionAudits(AgentId, CreatedAt DESC);
 END;";
 
             using (var command = new SqlCommand(sql, connection))

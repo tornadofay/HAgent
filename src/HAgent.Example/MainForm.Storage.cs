@@ -188,5 +188,50 @@ namespace HAgent.Example
                     throw new ArgumentOutOfRangeException(nameof(options.StorageType), "Unsupported HAgent storage type.");
             }
         }
+
+        private async Task<IConversationStore> CreateConfiguredConversationStoreAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var options = await LoadStorageOptionsAsync(cancellationToken).ConfigureAwait(false);
+            switch (options.StorageType)
+            {
+                case HAgentStorageType.File:
+                    return new FileConversationStore(Path.Combine(options.GetEffectiveRootPath(), "conversations"));
+
+                case HAgentStorageType.SqlServer:
+                {
+                    var profile = options.GetDatabaseProfile(HAgentStorageType.SqlServer);
+                    var password = await LoadDatabasePasswordAsync(options, HAgentStorageType.SqlServer, cancellationToken).ConfigureAwait(false);
+                    var bootstrapper = new SqlServerHAgentStorageBootstrapper();
+                    await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
+                    var connectionString = SqlServerHAgentStorageBootstrapper.BuildConnectionString(
+                        profile.ServerName,
+                        profile.GetEffectivePort(HAgentStorageType.SqlServer),
+                        profile.UserName,
+                        password,
+                        options.GetEffectiveDatabaseName());
+                    await SqlServerConversationStore.EnsureSchemaAsync(connectionString, cancellationToken).ConfigureAwait(false);
+                    return new SqlServerConversationStore(connectionString);
+                }
+
+                case HAgentStorageType.MySql:
+                {
+                    var profile = options.GetDatabaseProfile(HAgentStorageType.MySql);
+                    var password = await LoadDatabasePasswordAsync(options, HAgentStorageType.MySql, cancellationToken).ConfigureAwait(false);
+                    var bootstrapper = new MySqlHAgentStorageBootstrapper();
+                    await bootstrapper.EnsureCreatedAsync(options, password, cancellationToken).ConfigureAwait(false);
+                    var connectionString = MySqlHAgentStorageBootstrapper.BuildConnectionString(
+                        profile.ServerName,
+                        profile.GetEffectivePort(HAgentStorageType.MySql),
+                        profile.UserName,
+                        password,
+                        options.GetEffectiveDatabaseName());
+                    await MySqlConversationStore.EnsureSchemaAsync(connectionString, cancellationToken).ConfigureAwait(false);
+                    return new MySqlConversationStore(connectionString);
+                }
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(options.StorageType), "Unsupported HAgent storage type.");
+            }
+        }
     }
 }

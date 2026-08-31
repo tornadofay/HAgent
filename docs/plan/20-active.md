@@ -100,6 +100,8 @@ Tool execution context and results carry execution-local correlation metadata: c
 
 `HAgentInternalInventoryTool` is the first HAgent-owned read-tool foundation. It reads only through `IAiStore` and `IToolStore`, returns provider/agent/tool inventory metadata without secrets, supports caller cancellation, and bounds each category to a default of 50 and a hard maximum of 100 items. It has no write operation and does not expose raw connection data, passwords, executable handlers, or arbitrary host application records.
 
+The `HAgent.Example` application exposes an `Internal Inventory` verification tab. The manual check uses the currently selected HAgent storage backend, applies `maxItems = 1`, verifies category bounds and absence of sensitive metadata, and performs no writes.
+
 ### Storage foundation
 
 `HAgent.Core` provides `HAgentStorageOptions` with `File`, `SqlServer`, and `MySql` backends, host application naming, application-specific database naming, database port, non-secret connection metadata, and independent database profiles. Database passwords remain outside this ordinary configuration model.

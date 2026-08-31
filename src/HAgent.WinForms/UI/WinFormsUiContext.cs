@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using HAgent.Models;
 
 namespace HAgent.WinForms.UI
 {
@@ -83,7 +84,57 @@ namespace HAgent.WinForms.UI
                 if (control == null) throw new ArgumentException("Control was not found: " + controlId, nameof(controlId));
                 var grid = control as DataGridView;
                 if (grid == null) throw new ArgumentException("Control is not a DataGridView: " + controlId, nameof(controlId));
-                return ExtractGridRows(grid, maxRows, cancellationToken);
+                return ExtractGridRows(grid, 0, maxRows, cancellationToken).Rows;
+            });
+        }
+
+        public Task<DataProjectionResult> ProjectDataAsync(string controlId, DataProjectionRequest request, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(controlId)) throw new ArgumentException("Control ID is required.", nameof(controlId));
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            request.Validate();
+            cancellationToken.ThrowIfCancellationRequested();
+            return OnUiAsync(delegate
+            {
+                var control = FindControl(_rootControl, controlId);
+                if (control == null) throw new ArgumentException("Control was not found: " + controlId, nameof(controlId));
+                var grid = control as DataGridView;
+                if (grid == null) throw new ArgumentException("Control is not a DataGridView: " + controlId, nameof(controlId));
+
+                var sourceDescriptor = new WinFormsDataSourceDiscovery().Discover((Control)grid, Permissions)
+                    .FirstOrDefault(x => string.Equals(x.ControlId, grid.Name, StringComparison.OrdinalIgnoreCase));
+                var availableFields = sourceDescriptor == null || sourceDescriptor.FieldNames == null
+                    ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                    : new HashSet<string>(sourceDescriptor.FieldNames, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var field in request.Fields)
+                {
+                    if (!availableFields.Contains(field))
+                        throw new ArgumentException("Projected field was not discovered on the data source: " + field, nameof(request));
+                }
+
+                var extraction = ExtractGridRows(grid, request.Skip, request.Take + 1, cancellationToken);
+                var projected = new List<IReadOnlyDictionary<string, object>>();
+                foreach (var row in extraction.Rows)
+                {
+                    var data = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var field in request.Fields)
+                    {
+                        object value;
+                        row.TryGetValue(field, out value);
+                        data[field] = value;
+                    }
+                    projected.Add(data);
+                    if (projected.Count >= request.Take) break;
+                }
+
+                return new DataProjectionResult
+                {
+                    Rows = projected.AsReadOnly(),
+                    Skipped = extraction.Skipped,
+                    Returned = projected.Count,
+                    HasMore = extraction.HasMore || extraction.Rows.Count > projected.Count
+                };
             });
         }
 
@@ -186,29 +237,34 @@ namespace HAgent.WinForms.UI
             return control.Text;
         }
 
-        private static IReadOnlyList<IReadOnlyDictionary<string, object>> ExtractGridRows(DataGridView grid, int maxRows, CancellationToken cancellationToken)
+        private static GridExtractionResult ExtractGridRows(DataGridView grid, int skip, int take, CancellationToken cancellationToken)
         {
             var source = GetBoundSource(grid);
             if (source != null)
             {
-                var bound = ExtractRowsFromSource(source, maxRows, cancellationToken);
-                if (bound.Count > 0 || source is DataTable || source is DataView || source is DataSet)
-                    return bound.AsReadOnly();
+                var bound = ExtractRowsFromSource(source, skip, take, cancellationToken);
+                if (bound.Rows.Count > 0 || source is DataTable || source is DataView || source is DataSet)
+                    return bound;
             }
 
             var rows = new List<IReadOnlyDictionary<string, object>>();
             var columns = grid.Columns.Cast<DataGridViewColumn>().Where(c => c.Visible).ToList();
-            for (var rowIndex = 0; rowIndex < grid.Rows.Count && rows.Count < maxRows; rowIndex++)
+            var skipped = 0;
+            var seenAfterSkip = 0;
+            for (var rowIndex = 0; rowIndex < grid.Rows.Count && rows.Count < take; rowIndex++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var row = grid.Rows[rowIndex];
                 if (row.IsNewRow) continue;
+                if (skipped < skip) { skipped++; continue; }
                 var data = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 foreach (var column in columns)
                     data[column.Name] = row.Cells[column.Index].Value;
                 rows.Add(data);
+                seenAfterSkip++;
             }
-            return rows.AsReadOnly();
+            var totalVisible = grid.Rows.Cast<DataGridViewRow>().Count(r => !r.IsNewRow);
+            return new GridExtractionResult(rows, skipped, rows.Count == take && skipped + rows.Count < totalVisible);
         }
 
         private static object GetBoundSource(DataGridView grid)
@@ -216,45 +272,49 @@ namespace HAgent.WinForms.UI
             return grid.DataSource;
         }
 
-        private static List<IReadOnlyDictionary<string, object>> ExtractRowsFromSource(object source, int maxRows, CancellationToken cancellationToken)
+        private static GridExtractionResult ExtractRowsFromSource(object source, int skip, int take, CancellationToken cancellationToken)
         {
             var bindingSource = source as BindingSource;
             if (bindingSource != null)
-                return ExtractRowsFromSource(bindingSource.List ?? bindingSource.DataSource, maxRows, cancellationToken);
+                return ExtractRowsFromSource(bindingSource.List ?? bindingSource.DataSource, skip, take, cancellationToken);
 
             var result = new List<IReadOnlyDictionary<string, object>>();
+            var skipped = 0;
             var table = source as DataTable;
             if (table != null)
             {
-                foreach (DataRow row in table.Rows)
+                for (var i = 0; i < table.Rows.Count && result.Count < take; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (result.Count >= maxRows) break;
-                    result.Add(RowFromDataRow(row, table.Columns));
+                    if (skipped < skip) { skipped++; continue; }
+                    result.Add(RowFromDataRow(table.Rows[i], table.Columns));
                 }
-                return result;
+                return new GridExtractionResult(result, skipped, skipped + result.Count < table.Rows.Count);
             }
 
             var view = source as DataView;
             if (view != null)
             {
-                for (var i = 0; i < view.Count && result.Count < maxRows; i++)
+                for (var i = 0; i < view.Count && result.Count < take; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (skipped < skip) { skipped++; continue; }
                     result.Add(RowFromDataRow(view[i].Row, view.Table.Columns));
                 }
-                return result;
+                return new GridExtractionResult(result, skipped, skipped + result.Count < view.Count);
             }
 
             var enumerable = source as IEnumerable;
-            if (enumerable == null || source is string) return result;
+            if (enumerable == null || source is string) return new GridExtractionResult(result, 0, false);
+            var exhausted = true;
             foreach (var item in enumerable)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (result.Count >= maxRows) break;
+                if (skipped < skip) { skipped++; continue; }
+                if (result.Count >= take) { exhausted = false; break; }
                 result.Add(RowFromObject(item));
             }
-            return result;
+            return new GridExtractionResult(result, skipped, !exhausted);
         }
 
         private static IReadOnlyDictionary<string, object> RowFromDataRow(DataRow row, DataColumnCollection columns)
@@ -289,6 +349,20 @@ namespace HAgent.WinForms.UI
         public void Dispose()
         {
             _disposed = true;
+        }
+
+        private sealed class GridExtractionResult
+        {
+            public GridExtractionResult(IReadOnlyList<IReadOnlyDictionary<string, object>> rows, int skipped, bool hasMore)
+            {
+                Rows = rows;
+                Skipped = skipped;
+                HasMore = hasMore;
+            }
+
+            public IReadOnlyList<IReadOnlyDictionary<string, object>> Rows { get; private set; }
+            public int Skipped { get; private set; }
+            public bool HasMore { get; private set; }
         }
     }
 }

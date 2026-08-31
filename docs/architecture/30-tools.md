@@ -29,8 +29,6 @@ The model may request a registered tool. HAgent validates structured arguments a
 
 Each tool execution carries execution-local correlation metadata. The execution context and result identify the agent, tool, and model tool-call, and carry a correlation ID plus start/completion timing. Validation failures and disabled/missing-tool failures receive the same metadata shape so callers can correlate accepted and rejected attempts without inspecting or logging tool arguments by default.
 
-Agent executions also receive their own immutable `CorrelationId` at execution creation. This ID is distinct from provider attempt identity and tool-call correlation IDs, providing a stable runtime-level anchor for later audit and telemetry without making persistence mandatory.
-
 Correlation metadata is execution state, not permission. It does not authorize a tool, expand its arguments, or grant access to host resources. Persistent audit storage is a separate capability and is not implied by these runtime fields.
 
 ## HAgent internal read tools
@@ -44,6 +42,12 @@ HAgent may expose selected HAgent-owned repositories through trusted built-in re
 The inventory tool accepts an optional `maxItems` argument. The default is 50 and the hard maximum is 100 items per category. It propagates caller cancellation and returns only non-secret metadata such as IDs, names, relationships, enabled state, and tool type. Provider secrets, passwords, raw connection strings, arbitrary storage records, and executable handlers are not returned.
 
 An internal read tool remains a trusted capability boundary. Registering it is an explicit host/runtime decision; the tool does not grant the model authority to inspect unrelated host application data or bypass other HAgent permissions.
+
+## Audit-safe execution projection
+
+`AgentExecutionAuditRecord` is a provider-neutral projection of `AgentExecution` for observability and future audit persistence. It contains execution/correlation IDs, agent identity, model, selected provider identity, lifecycle timestamps, duration, execution state, and classified failure metadata. It deliberately excludes prompts, message contents, response text, secret IDs/values, raw connection strings, and raw exception objects.
+
+The audit projection is a snapshot, not an audit store. Hosts may persist or export it through a future explicit audit capability without making payload logging implicit in the execution runtime.
 
 ## Tool loops
 

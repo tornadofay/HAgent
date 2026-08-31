@@ -93,42 +93,89 @@ namespace HAgent.Example
 
         private async Task RefreshExampleAgentsAsync()
         {
-            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var agents = await store.GetAgentsAsync().ConfigureAwait(true);
-
-            _agents.Clear();
-            _agents.AddRange(agents);
-
-            _agentSelector.BeginUpdate();
             try
             {
-                _agentSelector.Items.Clear();
-                foreach (var agent in _agents)
-                    _agentSelector.Items.Add(new AgentItem(agent));
+                var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+                var agents = await store.GetAgentsAsync().ConfigureAwait(true);
 
-                if (_agentSelector.Items.Count > 0)
-                    _agentSelector.SelectedIndex = 0;
+                _agents.Clear();
+                _agents.AddRange(agents);
+
+                _agentSelector.BeginUpdate();
+                try
+                {
+                    _agentSelector.Items.Clear();
+                    foreach (var agent in _agents)
+                        _agentSelector.Items.Add(new AgentItem(agent));
+
+                    if (_agentSelector.Items.Count > 0)
+                        _agentSelector.SelectedIndex = 0;
+                }
+                finally
+                {
+                    _agentSelector.EndUpdate();
+                }
+
+                _globalStatus.Text = "Ready";
+                _globalStatus.ForeColor = Muted;
             }
-            finally
+            catch (Exception ex)
             {
-                _agentSelector.EndUpdate();
+                _agents.Clear();
+                _agentSelector.BeginUpdate();
+                try
+                {
+                    _agentSelector.Items.Clear();
+                }
+                finally
+                {
+                    _agentSelector.EndUpdate();
+                }
+
+                _globalStatus.Text = "HAgent storage is unavailable. Open Configuration to repair storage settings.";
+                _globalStatus.ForeColor = Error;
+                Write("STORAGE UNAVAILABLE", "The configured HAgent storage backend could not be opened." + Environment.NewLine + ex.Message);
             }
         }
 
         private async void OpenConfiguration()
         {
-            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+            try
+            {
+                var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+                var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
+                var toolStore = await CreateConfiguredToolStoreAsync().ConfigureAwait(true);
+
+                AISettings.ShowMainAISettingsForm(
+                    store,
+                    secrets,
+                    this,
+                    new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() },
+                    toolStore);
+
+                await RefreshExampleAgentsAsync().ConfigureAwait(true);
+            }
+            catch (Exception ex)
+            {
+                Write("STORAGE CONFIGURATION", "The configured HAgent storage backend could not be opened." + Environment.NewLine +
+                                                   ex.Message + Environment.NewLine +
+                                                   "Opening the Storage settings directly so the backend can be repaired without requiring a database connection.");
+                HMessage.ShowException(this,
+                    "The configured HAgent storage backend could not be opened. The Storage settings will be opened so you can repair the connection.",
+                    "HAgent Storage",
+                    ex);
+
+                OpenStorageSettingsDirectly();
+            }
+        }
+
+        private void OpenStorageSettingsDirectly()
+        {
             var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
-            var toolStore = await CreateConfiguredToolStoreAsync().ConfigureAwait(true);
-
-            AISettings.ShowMainAISettingsForm(
-                store,
-                secrets,
-                this,
-                new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() },
-                toolStore);
-
-            await RefreshExampleAgentsAsync().ConfigureAwait(true);
+            using (var form = new HAgentStorageSettingsForm(AppContext.BaseDirectory, Process.GetCurrentProcess().ProcessName, secrets))
+            {
+                form.ShowDialog(this);
+            }
         }
 
         private sealed class AgentItem

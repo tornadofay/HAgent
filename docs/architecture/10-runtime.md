@@ -10,56 +10,101 @@ A runtime instance is the live execution identity created from a reusable profil
 
 Creating or retiring a runtime instance never mutates the reusable `AiAgent` profile and does not make the instance a persistent configured agent by default.
 
-Runtime-instance identity is intentionally separate from `AgentExecution.Id` and `AgentExecution.CorrelationId`. An instance may own many executions over its lifetime, while each execution retains its own immutable execution identity and correlation anchor.
+Runtime-instance identity is intentionally separate from `AgentExecution.Id` and host correlation identity. An instance may own many executions over its lifetime, while each execution retains its own immutable execution identity and host correlation when supplied.
 
-Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only values applied to a cloned execution snapshot and never written back to the persistent profile. Supported overrides currently include provider ID, model, temperature, maximum output tokens, an optional runtime system-prompt value, and a bounded host-supplied string context dictionary. Runtime context is captured immutably in the execution snapshot; it is context data, not an authorization mechanism.
+Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only values applied to a cloned execution snapshot and never written back to the persistent profile. Overrides are configuration, not the generic execution-input channel.
 
-Each runtime instance also has an independent `MemoryOwnerId`, currently equal to its `InstanceId`. Instance-created sessions and explicit memory operations use that owner so multiple runtime instances created from the same persistent profile cannot collide in agent-scoped automatic or explicit memory.
+Each runtime instance also has an independent `MemoryOwnerId`, currently equal to its `InstanceId`. Instance-created sessions and explicit memory operations use that owner so multiple runtime instances created from the same persistent profile cannot collide in private agent-scoped memory.
 
 Executing an `AgentRuntimeInstance` is exposed through `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`. A retired or shutdown instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
 
-Each instance maintains a monotonically increasing execution revision. An instance-bound `AgentExecution` captures the instance ID and revision at execution start. Hosts can call `AgentRuntimeInstance.IsExecutionCurrent(execution)` to determine whether a result is still authoritative. A result becomes stale when a newer execution has started on that instance or when the instance is retired or shutdown. Stale protection does not cancel or discard provider work; it gives the host a deterministic authority check for late results.
+Each instance maintains a monotonically increasing execution revision. An instance-bound `AgentExecution` captures the instance ID and revision at execution start. Hosts can use `AgentRuntimeInstance.IsExecutionCurrent(execution)` to determine whether a completed result is still authoritative for that runtime instance. Stale protection is an authority mechanism and must not be confused with provider cancellation.
 
-`AgentRuntimeInstance.Shutdown()` is terminal for the instance. It prevents new execution and cancels outstanding instance-bound execution through the instance shutdown token. Retirement and shutdown are distinct: retirement stops new execution and invalidates result authority without cancelling already-running work, while shutdown additionally requests cancellation of outstanding instance-bound work.
+`AgentRuntimeInstance.Shutdown()` is terminal for the instance. It prevents new execution and requests cancellation of outstanding instance-bound work. Retirement stops new execution and invalidates result authority without cancelling already-running work.
+
+## Generic execution request
+
+The runtime execution boundary must be generic enough for a host to provide arbitrary external context or observations without converting everything into a plain string message.
+
+The canonical request should carry:
+
+```text
+host-supplied input/context
+host correlation identity
+execution options
+optional structured-output contract
+```
+
+The input/context is opaque to HAgent at the domain level. HAgent may bound, normalize, project, or serialize it through generic mechanisms for model consumption, but it must not assign host-specific meaning to the data.
+
+Plain string execution remains a convenience overload built on the generic request boundary.
+
+## Execution identity and correlation
+
+Every execution has a HAgent-owned execution ID.
+
+A host may additionally provide a correlation ID. These identities have different responsibilities:
+
+```text
+AgentExecution.Id
+    HAgent execution identity
+
+HostCorrelationId
+    host-owned request identity
+
+AgentRuntimeInstance.InstanceId
+    long-lived runtime identity
+```
+
+Correlation must be carried through the execution contract rather than encoded into prompt text.
+
+Tool execution should inherit the relevant execution/runtime/host correlation identities so host authorization and telemetry do not require passing those identities as model arguments.
+
+## Cancellation, timeout, and late completion
+
+Execution supports caller cancellation and configured timeout.
+
+Cancellation and timeout are execution-control semantics, not prompt instructions.
+
+Provider cancellation is cooperative. A provider may therefore complete after a caller cancellation or timeout request. The runtime must treat execution completion as a guarded state transition: once cancellation, timeout, retirement, shutdown, or another terminal outcome has won, a late provider result cannot publish a conflicting terminal result.
+
+Hosts may use runtime-instance revision checks to reject results that are stale for their own state. HAgent should additionally prevent stale provider completion from mutating its own execution outcome.
+
+## Structured output
+
+A host may define a structured output schema for an execution.
+
+The runtime must provide a generic path to:
+
+```text
+host schema
+    -> provider structured-output request
+    -> provider response
+    -> schema validation
+    -> structured result + validation metadata
+```
+
+The schema is host-owned. HAgent must not embed host-domain schemas.
+
+Provider capability support remains explicit and may be `Supported`, `Unsupported`, or `Unknown`. Valid JSON text alone is not evidence that a structured-output contract was honored.
 
 ## Scheduling
 
-Scheduling is host-controlled and optional. `IAgentExecutionScheduler` and `AgentExecutionScheduler` provide a focused admission boundary that can limit concurrent runtime executions without taking ownership of application timing, simulation ticks, or external scheduling policy. The scheduler waits for an available slot, delegates to `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`, honors caller cancellation while queued or running, and releases its slot when execution finishes.
+Scheduling is host-controlled and optional. `IAgentExecutionScheduler` and `AgentExecutionScheduler` provide a focused admission boundary that can limit concurrent runtime executions without taking ownership of the host's timing model.
 
-The scheduler is not a second execution engine and does not alter provider routing, timeout, cancellation, correlation, stale-result, or runtime-instance semantics. Hosts may use their own scheduler instead.
+The scheduler is not a second execution engine. Hosts may use it, replace it, or schedule direct calls to `HAgentClient.ExecuteAsync(...)` themselves.
 
 ## Runtime state persistence
 
-Runtime-state persistence is a separate optional boundary from `IAiStore`. `IAgentRuntimeStateStore` persists only runtime identity and lifecycle metadata: instance ID, reusable profile ID, host instance ID, user ID, workspace ID, session ID, scope, state, and timestamps. Runtime prompts, context, secrets, provider credentials, and execution history are not persisted by this store.
+Runtime-state persistence is a separate optional boundary from `IAiStore`. `IAgentRuntimeStateStore` persists only generic runtime identity and lifecycle metadata. Host-owned domain state remains outside this contract.
 
-`AgentRuntimeStatePersistence` provides explicit save, restore, and delete operations. Restore requires the corresponding persistent `AiAgent` profile and verifies that the persisted profile ID matches before recreating the live runtime instance. Runtime creation remains non-persistent by default; a host must explicitly opt into this state store.
+`AgentRuntimeStatePersistence` provides explicit save, restore, and delete operations. Restore requires the corresponding persistent `AiAgent` profile and verifies profile identity before recreating the runtime instance.
 
-File stores runtime state in an HAgent-owned JSONL file. SQL Server and MySQL/MariaDB use HAgent-owned `HAgentRuntimeInstances` tables with schema-versioned migrations. Runtime-state persistence may be used for recovery, collaboration, or multi-process coordination, but the live in-memory runtime lifecycle remains owned by the host process.
-
-Runtime instances must support:
-
-- concurrent independent execution;
-- host-controlled scheduling or direct asynchronous execution;
-- cancellation and timeout;
-- execution snapshots;
-- stale-result protection;
-- explicit retirement and shutdown;
-- optional persistence for recovery/collaboration.
+Runtime creation is non-persistent by default. Persisted runtime metadata remains distinct from the persistent profile, the live instance, individual executions, and host-owned state.
 
 ## Scope
 
-`AgentRuntimeScope` describes where a runtime instance belongs. The current provider-neutral scope vocabulary is:
-
-```text
-Application
-Workspace
-ContextForm
-Session
-Task
-Ephemeral
-```
-
-Scope is metadata and lifecycle context; it must not be encoded as different agent classes.
+`AgentRuntimeScope` describes where a runtime instance belongs. The scope value is metadata and lifecycle context; it must not be used to create domain-specific agent classes.
 
 ## System-prompt composition
 
@@ -77,26 +122,16 @@ Higher priority
 Lower priority
 ```
 
-A layer may add instructions or restrictions for the layer below it, but it must not erase, replace, or contradict a higher-priority layer. Lower layers may add narrower constraints; they do not obtain authority to weaken an earlier layer.
-
-The provider layer is included when `AiAgent.UseProviderSystemPrompt` is enabled. Disabling that layer is an explicit configuration choice; it does not turn the agent prompt into a replacement mechanism for another layer.
-
-`SystemPromptLayer.Priority` provides deterministic composition order. Future runtime/context/workspace layers should use reserved priority ranges rather than inventing separate prompt-merging logic.
+A lower layer may add narrower instructions or restrictions but must not erase, replace, or contradict a higher-priority layer.
 
 Prompt composition is not an authorization boundary. Permissions, authorization callbacks, approvals, budgets, and host-side validation remain authoritative outside model instructions.
 
-## Execution
+## Execution model
 
-The host supplies a request/context snapshot. Runtime resolves the profile/provider, applies any runtime-only overrides to an execution clone, creates an execution snapshot, composes the applicable system-prompt layers, invokes the provider, normalizes the result, and reports lifecycle/usage metadata.
+The host supplies an execution request snapshot. Runtime resolves the profile/provider, applies runtime-only overrides to an execution snapshot, composes applicable system-prompt layers, invokes the provider, normalizes the response, validates structured output when requested, and reports lifecycle/usage metadata.
 
-The host may schedule executions independently of application or simulation timing.
+The host may schedule executions independently of its own application timing or event model.
 
-`AgentExecution.CorrelationId` is an execution-level identifier. It is not a runtime-instance identifier and remains unique per execution.
+## Design invariant
 
-## Sessions
-
-A session is conversation state. It is related to an agent runtime but is not the same concept as an agent profile or runtime instance.
-
-## HWorld
-
-HWorld uses runtime instances at its external cognition boundary. HWorld owns simulation time and scheduling; HAgent owns generic execution. HAgent must not require HWorld.
+HAgent is the reusable LLM cognition/execution layer. A host remains responsible for understanding its own environment and for deciding what state, capabilities, and side effects are exposed through the generic HAgent boundary.

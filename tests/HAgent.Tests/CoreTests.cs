@@ -44,8 +44,14 @@ namespace HAgent.Tests
             public string DisplayName => "Echo Adapter";
             public bool CanHandle(AiProvider provider) => provider != null && string.Equals(provider.Kind, Kind, System.StringComparison.OrdinalIgnoreCase);
 
-            public Task<AIResponse> SendAsync(AiProvider provider, AiAgent agent, string apiKey, string systemPrompt, System.Collections.Generic.IReadOnlyList<AIMessage> messages, System.Threading.CancellationToken token)
-                => Task.FromResult(new AIResponse { AgentId = agent.Id, ProviderId = provider.Id, Model = agent.Model, Text = "echo: " + messages[messages.Count - 1].Content });
+            public Task<AIResponse> SendAsync(ProviderExecutionRequest request, System.Threading.CancellationToken token)
+                => Task.FromResult(new AIResponse
+                {
+                    AgentId = request.Agent.Id,
+                    ProviderId = request.Provider.Id,
+                    Model = request.Agent.Model,
+                    Text = "echo: " + request.Messages[request.Messages.Count - 1].Content
+                });
         }
 
         private sealed class FakeSecretStore : HAgent.Abstractions.ISecretStore

@@ -1,11 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net481;net9.0</TargetFrameworks>
+    <TargetFrameworks>net481;net9.0-windows</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <RootNamespace>HAgent.ExternalConsumer</RootNamespace>
     <AssemblyName>HAgent.ExternalConsumer</AssemblyName>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\HAgent.Core\HAgent.Core.csproj" />
+    <ProjectReference Include="..\..\src\HAgent.Providers.OpenAICompatible\HAgent.Providers.OpenAICompatible.csproj" />
+    <ProjectReference Include="..\..\src\HAgent.Storage.File\HAgent.Storage.File.csproj" />
+    <ProjectReference Include="..\..\src\HAgent.Storage.SqlServer\HAgent.Storage.SqlServer.csproj" />
+    <ProjectReference Include="..\..\src\HAgent.Storage.MySql\HAgent.Storage.MySql.csproj" />
+    <ProjectReference Include="..\..\src\HAgent.WinForms\HAgent.WinForms.csproj" />
   </ItemGroup>
 </Project>

@@ -26,6 +26,13 @@ namespace HAgent.Models
         public AgentRuntimeOverrides RuntimeOverrides { get; set; }
 
         /// <summary>
+        /// Runtime-instance identity captured for stale-result protection.
+        /// These values are assigned by HAgentClient for instance-bound executions.
+        /// </summary>
+        public string RuntimeInstanceId { get; internal set; }
+        public long RuntimeInstanceRevision { get; internal set; }
+
+        /// <summary>
         /// Additional additive system-prompt layers supplied for this execution.
         /// These layers are composed with the provider and agent layers and never replace them.
         /// </summary>

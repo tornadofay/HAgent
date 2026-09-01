@@ -329,11 +329,11 @@ Complete the provider-neutral execution boundary required by arbitrary host appl
 5. [x] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome.
 6. [x] Verify mutable runtime overrides and host context remain isolated in immutable execution snapshots.
 7. [x] Verify the canonical request through deterministic Example coverage.
-8. [ ] Verify concurrent external consumption through a provider-neutral consumer scenario.
+8. [x] Add a standalone external-consumer smoke sample referencing only `HAgent.Core` and verifying canonical execution plus concurrent runtime consumption. Local execution verification remains required before final phase closure.
 9. [x] Define a distinct provider-facing `ProviderExecutionRequest` boundary separate from the host-facing request.
 10. [x] Route normal, tool-calling, and streaming provider adapter contracts through `ProviderExecutionRequest`.
 11. [x] Verify provider-facing propagation of host-owned structured-output requirements with a deterministic Example adapter.
-12. [ ] Use provider-facing structured-output requirements for provider-native constrained generation where supported. Native/fallback implementation and deterministic Example transport verification are pending local test.
+12. [x] Use provider-facing structured-output requirements for provider-native constrained generation where supported. Native/fallback implementation and deterministic Example transport verification are complete.
 13. [ ] Run the full 0.95 verification pass and close the phase only after all cross-cutting slices pass.
 
 ## Boundary rule
@@ -346,9 +346,13 @@ Host context is arbitrary host-owned data with bounded size. HAgent preserves it
 
 Structured-output schemas are owned by the host. HAgent validates normalized provider output regardless of provider capability claims. Provider adapters receive the structured-output requirement through `ProviderExecutionRequest`, enabling provider-native constrained generation without leaking transport details into the host-facing contract.
 
-The OpenAI-compatible adapter currently attempts the native `response_format`/JSON Schema request shape when structured output is requested. If the endpoint explicitly reports `response_format` as unsupported or unknown, the adapter retries using the ordinary request shape. The normalized response remains subject to the same HAgent validation in either case, and provider metadata records whether native transport or fallback was used.
+The OpenAI-compatible adapter attempts the native `response_format`/JSON Schema request shape when structured output is requested. If the endpoint explicitly reports `response_format` as unsupported or unknown, the adapter retries using the ordinary request shape. The normalized response remains subject to the same HAgent validation in either case, and provider metadata records whether native transport or fallback was used.
 
 The legacy string-message execution overload remains a convenience API and delegates to the canonical host-facing request boundary.
+
+## External consumer verification
+
+`samples/HAgent.ExternalConsumer` is a standalone host sample with a project reference to `HAgent.Core` only. It owns its own in-memory AI store, secret store, and provider adapter. It exercises `AgentExecutionRequest`, host context/correlation, runtime-instance execution, and concurrent consumption without referencing HAgent.WinForms, storage-provider projects, or HWorld. The sample is provider-neutral and uses no network calls.
 
 ## HWorld boundary
 
@@ -356,7 +360,7 @@ HWorld is an external consumer. HAgent does not contain an HWorld dependency, ad
 
 ## Exit criterion
 
-A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent resolves it into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, and preserves execution identity without coupling to host or provider-specific domain models.
+A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent resolves it into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, and preserves execution identity without coupling to host or provider-specific domain models. A standalone external consumer must demonstrate the same public boundary before the phase is closed.
 
 ## Phase 0.10 — Workspaces, Routing + Chat
 

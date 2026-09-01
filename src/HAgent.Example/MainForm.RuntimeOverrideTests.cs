@@ -19,8 +19,8 @@ namespace HAgent.Example
                 "RUNTIME OVERRIDES",
                 "Run runtime override test",
                 "Executes one runtime instance with provider/model/generation/context overrides and verifies that the reusable profile remains unchanged.",
-                "The runtime snapshot should use the override values while the stored profile keeps its original values.",
-                "Runtime override verification.",
+                "The runtime snapshot should use the override values while the stored profile keeps its original values. The same test also verifies independent runtime memory ownership.",
+                "Runtime override and memory ownership verification.",
                 TestRuntimeOverridesAsync,
                 "Profile isolation",
                 "Uses a local adapter only. No external provider is contacted.");
@@ -29,6 +29,7 @@ namespace HAgent.Example
         private async Task TestRuntimeOverridesAsync(string message)
         {
             var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+            var memoryStore = await CreateConfiguredMemoryStoreAsync().ConfigureAwait(true);
             var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var providers = await store.GetProvidersAsync().ConfigureAwait(true);
             var profile = GetSelectedAgent();
@@ -61,7 +62,7 @@ namespace HAgent.Example
                 });
             instance.Overrides.Context[contextKey] = contextValue;
 
-            var client = new HAgentClient(store, secrets, new[] { new RuntimeOverrideTestAdapter() });
+            var client = new HAgentClient(store, secrets, new[] { new RuntimeOverrideTestAdapter() }, null, memoryStore);
             var execution = await client.ExecuteAsync(
                 instance,
                 string.IsNullOrWhiteSpace(message) ? "Runtime override test." : message,
@@ -97,6 +98,41 @@ namespace HAgent.Example
             if (instance.State != AgentRuntimeInstanceState.Active)
                 throw new InvalidOperationException("Runtime instance was not active during execution.");
 
+            var secondInstance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Session);
+            var firstMemoryContent = "runtime-memory-instance-1-42";
+            var secondMemoryContent = "runtime-memory-instance-2-42";
+            var firstMemoryId = await client.RememberAsync(
+                instance,
+                firstMemoryContent,
+                MemoryScope.Agent,
+                null,
+                CancellationToken.None).ConfigureAwait(true);
+            var secondMemoryId = await client.RememberAsync(
+                secondInstance,
+                secondMemoryContent,
+                MemoryScope.Agent,
+                null,
+                CancellationToken.None).ConfigureAwait(true);
+
+            try
+            {
+                var firstMemories = await client.RecallAsync(instance, string.Empty, MemoryScope.Agent, 10, null, CancellationToken.None).ConfigureAwait(true);
+                var secondMemories = await client.RecallAsync(secondInstance, string.Empty, MemoryScope.Agent, 10, null, CancellationToken.None).ConfigureAwait(true);
+                if (!firstMemories.Any(x => string.Equals(x.Id, firstMemoryId, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException("The first runtime instance could not recall its own memory.");
+                if (firstMemories.Any(x => string.Equals(x.Id, secondMemoryId, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException("The first runtime instance recalled another instance's memory.");
+                if (!secondMemories.Any(x => string.Equals(x.Id, secondMemoryId, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException("The second runtime instance could not recall its own memory.");
+                if (secondMemories.Any(x => string.Equals(x.Id, firstMemoryId, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException("The second runtime instance recalled another instance's memory.");
+            }
+            finally
+            {
+                await client.ForgetAsync(firstMemoryId, CancellationToken.None).ConfigureAwait(true);
+                await client.ForgetAsync(secondMemoryId, CancellationToken.None).ConfigureAwait(true);
+            }
+
             Write("RUNTIME OVERRIDES",
                 "Contract test succeeded." + Environment.NewLine +
                 "Profile: " + profile.Name + " (" + profile.Id + ")" + Environment.NewLine +
@@ -108,6 +144,10 @@ namespace HAgent.Example
                 "Max output tokens override: " + snapshotAgent.MaxOutputTokens + Environment.NewLine +
                 "Runtime context: " + contextKey + "=" + capturedContext + Environment.NewLine +
                 "Profile remained unchanged: yes." + Environment.NewLine +
+                "Independent memory ownership: verified." + Environment.NewLine +
+                "Memory owner 1: " + instance.MemoryOwnerId + Environment.NewLine +
+                "Memory owner 2: " + secondInstance.MemoryOwnerId + Environment.NewLine +
+                "Cross-instance memory access: rejected." + Environment.NewLine +
                 "Execution state: " + execution.State);
         }
 

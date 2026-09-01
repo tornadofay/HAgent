@@ -112,7 +112,16 @@ namespace HAgent.Runtime
                         continue;
                     }
 
-                    return await adapter.SendAsync(provider, agent, apiKey, BuildSystemPrompt(provider, agent, options.SystemPromptLayers), contextMessages, cancellationToken).ConfigureAwait(false);
+                    var providerRequest = new ProviderExecutionRequest
+                    {
+                        Provider = provider,
+                        Agent = agent,
+                        ApiKey = apiKey,
+                        SystemPrompt = BuildSystemPrompt(provider, agent, options.SystemPromptLayers),
+                        Messages = contextMessages,
+                        StructuredOutput = null
+                    };
+                    return await adapter.SendAsync(providerRequest, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {

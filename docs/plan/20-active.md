@@ -30,10 +30,11 @@ Provide an optional shared conversation where one host user and multiple runtime
 - [ ] Add configurable default approval type/policy.
 - [ ] Add allowed provider/agent/model selection and runtime overrides for workspace and private chats without mutating persistent profiles.
 - [ ] Add Lobby and distinct user↔agent Private Chats.
-- [ ] Add integrated approval requests and decisions to workspace UI and conversation history.
+- [ ] Add integrated approval requests and decisions to workspace UI and conversation history using workspace-native approval records/events, not `HMessage`.
+- [ ] Add bounded provider-neutral presentation contracts for tables, graphs/charts, and popup/detail surfaces.
 - [ ] Add safe workspace/agent statistics, activity, unread/last-seen state, and selected-channel persistence.
 - [ ] Add the modern WinForms workspace surface and public workspace facade.
-- [ ] Add Example controls/tests for create, show/open, hide, close UI, agent join/leave, lobby chat, private chat, approvals, persistence, and restart restoration.
+- [ ] Add Example controls/tests for create, show/open, hide, close UI, agent join/leave, lobby chat, private chat, provider/agent/model selection, tables/graphs/popups, approvals, persistence, and restart restoration.
 - [ ] Verify File, SQL Server, and MySQL workspace persistence and per-user isolation.
 
 ### Workspace foundation
@@ -64,9 +65,13 @@ Unread/read and last-seen state is part of workspace UX state so a returning use
 
 The workspace/application may configure default manager/coordinator, default specialist, default provider/model, and default approval policy. Users may switch an allowed agent/provider/model for a workspace conversation or private chat. These choices are runtime/workspace selection state or execution overrides and must not silently mutate the stored `AiAgent` profile.
 
+### Presentation
+
+Workspace presentation is a bounded, provider-neutral UI contract. HAgent may publish tabular data, chart/graph data, or popup/detail presentation requests into the workspace. Presentation payloads are data, not executable UI instructions. The WinForms implementation renders these contracts, while a host remains free to provide richer application-specific UI outside the workspace.
+
 ### Approval integration
 
-Approval requests identify the requesting agent/execution, bounded operation description, available decision options, and lifecycle state. Approval requests and their resolutions are persisted as workspace state when persistence is enabled. Approval configuration is a default policy only and never bypasses HAgent authorization.
+Approval is a built-in workspace system facility rather than a generic chat-message convention. Approval requests identify the requesting agent/execution, bounded operation description, available decision options, and lifecycle state. Approval requests and their resolutions are persisted as workspace state when persistence is enabled. Approval configuration is a default policy only and never bypasses HAgent authorization. Workspace approvals must not depend on `HMessage`.
 
 ### Persistence boundary
 
@@ -78,9 +83,9 @@ Agent-private memory remains private unless explicit shared-memory policy grants
 
 ### UI/API boundary
 
-HAgent exposes a provider-neutral workspace facade for create/open/show/hide/close, agent join/leave, Lobby messaging, private-chat access, approval interaction, and state observation. Hosts do not manipulate internal WinForms controls directly.
+HAgent exposes a provider-neutral workspace facade for create/open/show/hide/close, agent join/leave, Lobby messaging, private-chat access, approval interaction, bounded table/chart/popup presentation, and state observation. Hosts do not manipulate internal WinForms controls directly.
 
-The WinForms surface is an optional HAgent UI implementation. The target design is compact, modern, professional, and collaboration-focused rather than a dashboard. It includes Lobby, participant/agent selection, private-chat access, approvals, message composition, clear author identity, and explicit state/lifecycle controls.
+The WinForms surface is an optional HAgent UI implementation. The target design is compact, modern, professional, and collaboration-focused rather than a dashboard. It includes Lobby, participant/agent selection, private-chat access, approvals, message composition, clear author identity, and bounded presentation surfaces.
 
 ### HWorld boundary
 

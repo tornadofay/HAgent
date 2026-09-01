@@ -23,8 +23,8 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 - [x] Route normal, tool-calling, and streaming provider interfaces through `ProviderExecutionRequest`.
 - [x] Migrate in-repository Example and Core test adapters to the `ProviderExecutionRequest` contract.
 - [x] Add deterministic Example verification that provider-facing requests preserve host-owned structured-output requirements.
-- [ ] Use provider-facing structured-output requirements for provider-native constrained generation where supported. Implementation landed; Example native/fallback transport verification pending.
-- [ ] Add deterministic concurrent external-consumer verification without introducing HWorld-specific dependencies.
+- [x] Use provider-facing structured-output requirements for provider-native constrained generation where supported. Implementation and deterministic native/fallback transport verification are complete.
+- [x] Add a standalone external-consumer smoke sample that references only `HAgent.Core` and verifies canonical execution plus concurrent runtime consumption. Local execution verification pending.
 - [ ] Run the full 0.95 verification pass and close the phase only after all cross-cutting slices pass.
 
 ### Generic host boundary
@@ -43,11 +43,15 @@ This boundary is intentionally separate from `AgentExecutionRequest`. Host calle
 
 The normal, tool-calling, and streaming provider adapter contracts consume `ProviderExecutionRequest`. All in-repository adapter implementations and deterministic test doubles now use the request-object contract. The current OpenAI-compatible implementation retains legacy overloads only as internal compatibility helpers; the adapter interfaces themselves use the request object.
 
-Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization. The OpenAI-compatible adapter attempts native `response_format`/JSON Schema transport when structured output is requested; if the endpoint explicitly reports that feature as unsupported, it retries using the ordinary request shape and marks the fallback in provider metadata.
+Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization. The OpenAI-compatible implementation also attempts native `response_format`/JSON Schema transport when requested; explicit unsupported-feature responses fall back to the ordinary request shape, while HAgent continues to validate the normalized result.
 
 ### Runtime terminal outcome
 
 `AgentExecution` owns the first-terminal-outcome-wins gate. HAgent may finish caller-visible cancellation or timeout before a non-cooperative provider task returns. Such a late provider task cannot replace the terminal execution state or response, and provider faults from detached late work are observed so they do not surface as unobserved task failures. This behavior is verified by the `RUNTIME TERMINAL STATE` Example test.
+
+### External consumer boundary
+
+A standalone sample under `samples/HAgent.ExternalConsumer` references only `HAgent.Core` and implements its own in-memory host store, secret store, and provider adapter. It exercises the public canonical request and runtime-instance APIs without HAgent WinForms, HAgent storage-provider, or HWorld dependencies. The sample's local execution is the remaining verification required for the external-consumer slice.
 
 ### HWorld boundary
 
@@ -59,4 +63,4 @@ Workspace execution/chat belongs to Phase 0.10. Knowledge, Skills, Wiki/content 
 
 ## Verification rule
 
-A 0.95 slice becomes complete only after its implementation exists, its matching `HAgent.Example` verification passes locally, and the authoritative documentation reflects the result.
+A 0.95 slice becomes complete only after its implementation exists, its matching Example or external-consumer verification passes locally, and the authoritative documentation reflects the result.

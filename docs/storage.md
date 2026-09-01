@@ -12,13 +12,11 @@ The host selects one HAgent storage backend:
 
 The database name defaults from the host application name using the pattern `<application-name>-ai`, for example `nap-ai` or `hworld-ai`.
 
-The host application name is the storage identity shared by the configuration UI and runtime. Both derive the default application identity from the running host process so they resolve the same `HAgentData` root.
-
 ## Configuration
 
 `HAgentStorageOptions` contains the storage backend and non-secret connection metadata. Server name, username, database name, and application name are configuration values. Database passwords are not part of ordinary persisted configuration and remain in the secret/runtime connection boundary.
 
-The configured backend is intended to become the backing store for HAgent's internal repositories: providers, agents, tools, memory, conversations, skills, wiki/content, runtime metadata, execution audit data, and future internal data introduced by HAgent.
+The configured backend is intended to become the backing store for HAgent's internal repositories: providers, agents, tools, memory, conversations, skills, wiki/content, learning candidates/review state, capability assignments/overrides, runtime metadata, execution audit data, and future HAgent-owned records.
 
 SQL Server and MySQL retain independent connection profiles. Switching the selected backend does not overwrite the other backend's server, port, username, or secret identity.
 
@@ -38,13 +36,14 @@ HAgentData/
   memory/
   conversations/
   wiki/
+  learning/
   runtime/
   cache/
   logs/
   audit/
 ```
 
-The layout is created on demand. Existing individual file stores can continue to use their focused repository files while the common storage configuration establishes one consistent application-local root.
+The layout is created on demand. Existing individual file stores can continue to use focused repository files while the common storage configuration establishes one consistent application-local root.
 
 ## Database backend lifecycle
 
@@ -59,9 +58,11 @@ Current relational schema versions are:
 - SQL Server: version `3`; v1→v2 adds idempotent indexes for bounded memory and conversation retrieval, and v2→v3 adds execution-audit persistence.
 - MySQL: version `4`; v1→v2 preserves the legacy `HAgentTools.ToolType` compatibility migration, v2→v3 adds idempotent indexes for bounded memory and conversation retrieval, and v3→v4 adds execution-audit persistence.
 
+Phase 0.11 will add later migrations as required for learning candidates/review state, knowledge/skill relationships and versions, capability assignments/overrides, and extensible memory-type policy. These migrations remain HAgent-owned and provider-specific where SQL syntax differs.
+
 All migrations operate only on HAgent-owned tables and indexes.
 
-Initial internal schema areas include providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, execution audits, and schema metadata. Additional HAgent-owned tables may be added through later migrations.
+Initial internal schema areas include providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, execution audits, and schema metadata. Additional HAgent-owned tables are introduced through ordered migrations.
 
 Conversation snapshots are persisted through `IConversationStore`. File storage keeps one JSON file per session; SQL Server and MySQL store the serialized message list in the HAgent-owned `HAgentConversations` table. Session identity and agent identity remain part of the persisted snapshot.
 
@@ -71,39 +72,40 @@ Conversation snapshots are persisted through `IConversationStore`. File storage 
 
 `DefaultAgentRuntime` accepts an optional audit store. When configured, every terminal execution result—success, failure, timeout, or cancellation—is projected and appended automatically. Audit persistence is non-fatal: an audit-store failure never changes the primary execution outcome and terminal audit persistence does not use the caller cancellation token.
 
-`ExecutionAuditOptions` makes automatic capture and retention explicit. Capture remains enabled by default when an audit store is supplied, with a default retention limit of 5,000 records and a configurable maximum of 1,000,000 records. Older audit metadata is removed after successful append. Trimming does not affect provider, agent, memory, conversation, or host-application data.
+`ExecutionAuditOptions` makes automatic capture and retention explicit. Capture remains enabled by default when an audit store is supplied, with a default retention limit of 5,000 records and a configurable maximum of 1,000,000 records. Older audit metadata is removed after successful append.
 
-## Connection testing
+## Knowledge, skills, memory, and learning persistence
 
-`SqlServerHAgentStorageBootstrapper.TestConnectionAsync` and `MySqlHAgentStorageBootstrapper.TestConnectionAsync` provide non-destructive endpoint and credential validation. They open a connection without selecting an HAgent database and do not create databases, create tables, run migrations, or modify persisted HAgent data.
+Persisted definitions are separated from runtime state:
 
-The WinForms AI Settings navigation exposes this capability as **Storage Test**. It loads the saved selected backend profile, retrieves the password only for the connection attempt, and reports success or the underlying connection failure without exposing the password.
+```text
+Skill definition/version       reusable resource
+Wiki/knowledge resource       reusable managed information
+Memory record                  scoped experience/state
+Learning candidate             proposed change awaiting policy/review
+Capability assignment          profile-level resource access
+Runtime capability override    live instance override
+```
 
-A connection test succeeds only when the database server accepts the supplied credentials. Successful connectivity does not imply that the HAgent database exists or that the account has permission to create it; those responsibilities remain with the separate storage bootstrap operation.
+A candidate must retain provenance, source execution/runtime identity, proposed scope, and evidence/confidence when available. Approval or automatic policy promotion writes through the appropriate target repository; rejection does not mutate the target.
 
-## Live backend switching
-
-Storage configuration changes that affect the active backend can be applied without restarting the host when the host supports live storage rebinding. HAgent does not mutate an existing store while it is in use. Instead, the host creates a new configured store set and routes subsequent work to it.
-
-In-flight operations continue using the store/client snapshots with which they started. New operations use the newly selected backend. This preserves the runtime snapshot invariant while allowing File, SQL Server, and MySQL to be selected during one process lifetime.
-
-The WinForms Example closes any configuration surface that still owns stores for the previous backend, rebuilds the configured HAgent stores, reloads the agent list, and continues on the new backend. An unavailable new backend does not terminate the host; the configuration repair path remains available.
+Learning records and knowledge/skill management data must be bounded and secret-safe. The physical store may be shared by all runtime instances, but logical ownership/scope remains explicit.
 
 ## Runtime state
 
 Runtime agent instances, workspaces, and other live collaboration state are not configuration by default. A host may keep them in memory or persist them when recovery, collaboration, audit, or multi-process visibility requires it.
 
-When persisted, runtime records must distinguish the host instance, user/session, workspace, agent profile ID, and runtime instance ID.
+When persisted, runtime records must distinguish the host instance, user/session, workspace, agent profile ID, and runtime instance ID. Persisted runtime capability overrides remain runtime metadata and never silently modify the profile.
 
 ## Audit and observability
 
 `AgentExecutionAuditRecord` is the provider-neutral, payload-free projection used for persistent execution audit metadata. Its correlation ID is distinct from execution ID and tool-call IDs and provides a stable runtime anchor across a terminal execution.
 
-`IExecutionAuditStore` is intentionally append/search oriented. Search is bounded and may target an execution ID, correlation ID, or agent ID. `HAgentInternalExecutionAuditTool` is the corresponding trusted read-only tool and constrains reads to the requesting agent identity when that identity is present.
+`IExecutionAuditStore` is intentionally append/search oriented. Search is bounded and may target an execution ID, correlation ID, or agent ID.
 
 ## Secrets
 
-`ISecretStore` owns credentials/secrets. Secrets must not be stored in ordinary provider, agent, tool, or storage-option records and must not appear in normal diagnostics.
+`ISecretStore` owns credentials/secrets. Secrets must not be stored in ordinary provider, agent, tool, learning, or storage-option records and must not appear in normal diagnostics.
 
 `HAgent.Storage.File` currently keeps secrets separate and protects local secrets with Windows DPAPI `CurrentUser`.
 

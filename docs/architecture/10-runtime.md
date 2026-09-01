@@ -12,6 +12,10 @@ Creating or retiring a runtime instance never mutates the reusable `AiAgent` pro
 
 Runtime-instance identity is intentionally separate from `AgentExecution.Id` and `AgentExecution.CorrelationId`. An instance may own many executions over its lifetime, while each execution retains its own immutable execution identity and correlation anchor.
 
+Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only values applied to a cloned execution snapshot and never written back to the persistent profile. Supported overrides currently include provider ID, model, temperature, maximum output tokens, an optional runtime system-prompt value, and a bounded host-supplied string context dictionary. Runtime context is captured immutably in the execution snapshot; it is context data, not an authorization mechanism.
+
+Executing an `AgentRuntimeInstance` is exposed through `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`. A retired instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
+
 Runtime instances must support:
 
 - concurrent independent execution;
@@ -62,7 +66,7 @@ Prompt composition is not an authorization boundary. Permissions, authorization 
 
 ## Execution
 
-The host supplies a request/context snapshot. Runtime resolves the profile/provider, creates an execution snapshot, composes the applicable system-prompt layers, invokes the provider, normalizes the result, and reports lifecycle/usage metadata.
+The host supplies a request/context snapshot. Runtime resolves the profile/provider, applies any runtime-only overrides to an execution clone, creates an execution snapshot, composes the applicable system-prompt layers, invokes the provider, normalizes the result, and reports lifecycle/usage metadata.
 
 The host may schedule executions independently of application or simulation timing.
 

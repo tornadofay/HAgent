@@ -21,9 +21,9 @@ Make live agents first-class runtime objects separate from reusable agent profil
 
 One configured profile can produce many live instances. Runtime roles are host policy over the same generic runtime model, not separate agent classes.
 
-Runtime-only provider, model, generation, system-prompt, and context overrides are applied to execution snapshots created from the persistent profile. They never mutate the stored profile. Runtime configuration must remain distinct from per-execution host input.
+Runtime-only provider, model, generation, system-prompt, context, and capability overrides are applied to execution snapshots created from the persistent profile. They never mutate the stored profile. Runtime configuration remains distinct from per-execution host input.
 
-Each runtime instance owns memory through its `MemoryOwnerId`, keeping private agent-scoped memory separate across instances created from the same profile.
+Each runtime instance owns private memory through its `MemoryOwnerId`, keeping private agent-scoped memory separate across instances created from the same profile. Shared memory is possible only through an explicit shared scope and authorization policy.
 
 Each instance-bound execution receives a monotonically increasing instance revision. Hosts can use `AgentRuntimeInstance.IsExecutionCurrent(execution)` to reject late results after a newer execution starts or the instance is retired. The generic execution hardening phase additionally ensures late provider completion cannot overwrite a terminal execution outcome.
 
@@ -31,14 +31,12 @@ Retirement and shutdown are separate lifecycle operations. Retirement prevents n
 
 `IAgentExecutionScheduler` and the default `AgentExecutionScheduler` provide an optional host-controlled admission boundary with a configurable concurrency limit. The scheduler does not own host timing or replace runtime execution semantics.
 
-The runtime contract is covered by deterministic Example verification for runtime instance identity, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, scheduling, shutdown lifecycle, and optional runtime-state persistence. No external provider is required for those tests.
-
-Dynamically created runtime instances are not persisted as `AiAgent` profile records by default. Optional runtime-state persistence is a separate host-controlled capability using the HAgent-owned runtime-state store; persisted state contains generic identity/scope/lifecycle metadata only and does not persist secrets or provider credentials.
+Capability policy and learning are layered above this runtime foundation. Phase 0.11 resolves profile capability defaults plus runtime tri-state overrides (`Inherit`, `Enabled`, `Disabled`) into each execution snapshot. Learning operates on execution experience and never mutates runtime identity directly.
 
 ## External-host relationship
 
-Phase 0.9 establishes the runtime-instance foundation. Phase 0.95 completes the generic execution boundary required for external hosts: arbitrary host input/context, host correlation, structured output contracts, terminal execution semantics, and tool identity propagation. No external consumer is a dependency or special-case adapter in Core.
+Phase 0.9 establishes the runtime-instance foundation. Phase 0.95 completes the generic execution boundary required for external hosts: arbitrary host input/context, host correlation, structured output contracts, terminal execution semantics, and tool identity propagation. Phase 0.11 consumes these runtime guarantees for scoped knowledge, Skills, Memory, Learning, and management UI.
 
 ## Exit criterion
 
-A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, memory, or execution-state collisions. Phase 0.95 extends this foundation into the complete generic LLM host integration contract.
+A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, private-memory, or execution-state collisions. Later phases may layer reusable Skills, Knowledge/Wiki, Memory governance, and Learning without weakening runtime isolation.

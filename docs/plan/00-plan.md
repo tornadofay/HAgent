@@ -2,33 +2,15 @@
 
 ## Purpose
 
-HAgent is a general-purpose, provider-neutral cognition and execution library that makes connecting software to LLMs practical. Its goal is not to serve one application category; it must provide the reusable infrastructure required by any software project that needs LLM-driven behavior.
+HAgent is a general-purpose, provider-neutral cognition and execution library that makes connecting software to LLMs practical. Its goal is to provide reusable infrastructure for any software project that needs LLM-driven behavior without importing host-specific domain models into HAgent.Core.
 
-A host may be a simple conversational program, business software, a service, a game, a simulation, an automation system, a developer tool, or another environment. HAgent supports these through generic capabilities rather than application-specific domain classes.
-
-HAgent must remain useful at both ends of the range:
-
-```text
-simple host
-    -> one provider
-    -> one agent
-    -> one execution
-
-advanced host
-    -> many runtime agents
-    -> independent memories and contexts
-    -> tools and host capabilities
-    -> shared workspaces and routing
-    -> structured input/output
-    -> concurrent execution
-    -> persistent or ephemeral runtime state
-```
+A host may be a conversational program, business software, service, game, simulation, automation system, developer tool, or another environment.
 
 ## End-state goal
 
-A host should be able to add HAgent and choose how much intelligence it wants to expose. HAgent should provide the generic infrastructure required for LLM-driven software to provide context, invoke models, maintain memory, use authorized tools, produce structured outputs, coordinate agents, and execute asynchronously without forcing the host into HAgent-specific domain classes.
+A host should be able to add HAgent and choose how much intelligence it wants to expose. HAgent should provide generic infrastructure for model invocation, context, tools, memory, reusable skills, knowledge/Wiki, controlled learning, structured output, multi-agent coordination, and asynchronous execution.
 
-The host remains authoritative over its real state, domain rules, side effects, scheduling, persistence, and authorization.
+The host remains authoritative over real domain state, lifecycle, scheduling, host persistence, authorization, and side effects.
 
 ## Core model
 
@@ -37,204 +19,199 @@ Provider profile
     -> connection/model configuration
 
 Agent profile
-    -> reusable behavior/configuration
+    -> reusable behavior + capability policy defaults
 
 Runtime agent instance
     -> one live agent identity created from a profile
+    -> runtime-only capability/memory overrides
 
 Execution request
-    -> host-supplied input/context + correlation + execution requirements
+    -> host input/context + correlation + execution requirements
 
-Context
-    -> host-supplied information available to an agent
+Skills
+    -> reusable executable capabilities/procedures
 
-Tool
-    -> structured capability request with trusted host-owned execution
+Knowledge
+    -> reusable retrievable information
+    -> Wiki is a managed persistent knowledge source
 
 Memory
-    -> owned and scoped information used across executions
+    -> scoped experience/state
+    -> working / episodic / semantic / procedural / future families
 
-Workspace
-    -> optional shared communication context for users and agents
+Learning
+    -> execution experience -> typed candidates -> policy -> promotion
 
 Execution
     -> bounded asynchronous model/tool work with lifecycle and correlation
 ```
 
-The distinction between persistent profiles and runtime instances is fundamental. A host may create many runtime agents from one configured profile without turning every live instance into a permanent configuration record.
+The distinction between persistent profiles and runtime instances remains fundamental. One profile can produce many independent runtime instances. Shared resources are referenced; private runtime state is not copied across instances.
 
-## Generic external-host requirement
+## Knowledge, Skills, Memory, and Learning
 
-HAgent must be capable of serving as the generic LLM cognition/execution layer for different project types.
+HAgent must keep the following distinctions explicit:
 
-The host owns:
+```text
+Skill     = reusable executable capability/procedure
+Knowledge = reusable information
+Wiki      = managed persistent knowledge source
+Memory    = scoped experience/state
+Learning  = controlled transformation of experience into candidates
+```
 
-- domain objects and authoritative state;
-- observations and events;
-- application lifecycle;
-- scheduling policy;
-- host-state persistence;
-- authorization and approval rules;
-- external side effects.
+Knowledge and Skills are reusable resources with explicit scope and authorization rather than private copies owned by every agent. Memory has explicit ownership/scope and may be private to a runtime instance, shared at logical-agent/user/tenant level, or execution-local.
 
-HAgent owns:
+Learning is not model-weight training. It may use deterministic code, LLM reasoning, or both. Code controls candidate typing, provenance, policy, authorization, retention, and promotion.
 
-- agent profiles and runtime identity;
-- provider/model invocation;
-- execution lifecycle and snapshots;
-- generic context ingestion and bounded model-facing representation;
-- memory abstractions and ownership;
-- structured tool contracts;
-- structured output request/validation;
-- execution correlation and observability;
-- cancellation, timeout, concurrency, and stale-result protection;
-- optional workspace and multi-agent coordination.
+### Learning modes
 
-HAgent must not require a host-specific domain model, event framework, scheduler, persistence system, authorization model, or side-effect API.
+```text
+Disabled
+SuggestOnly
+AutomaticWithPolicy
+FullyAutomatic
+```
+
+`SuggestOnly` is the recommended governance mode. `AutomaticWithPolicy` permits promotion only under explicit policy. `FullyAutomatic` is an explicit advanced opt-in and never follows merely from enabling learning.
+
+Learning candidates are typed (`MemoryCandidate`, `KnowledgeCandidate`, `SkillCandidate`) and preserve source execution/runtime identity, proposed scope, provenance, and evidence/confidence where available.
+
+### Promotion rules
+
+LLM output must never write authoritative Wiki/knowledge or mutate a published Skill directly merely because it was generated. Normal promotion is:
+
+```text
+experience
+  -> candidate
+  -> validation / policy / authorization
+  -> memory, managed knowledge, or new skill version
+```
+
+Skill improvements produce new versions; already-running executions use their immutable skill/configuration snapshots.
+
+## Capability policy
+
+Agent profiles establish reusable capability defaults. Runtime instances inherit them and can override them without mutating the profile.
+
+The effective state for each capability/resource is tri-state:
+
+```text
+Inherit
+Enabled
+Disabled
+```
+
+The policy must support at least:
+
+- skills and individual skill resources;
+- Wiki/knowledge and individual knowledge resources;
+- memory and individual memory families/types;
+- future resource types by stable type/resource identifiers.
+
+Capability enforcement occurs before retrieval or invocation. Prompt instructions are not authorization.
+
+## Runtime and memory target
+
+A host may keep a runtime instance alive and execute against it repeatedly for an arbitrary lifetime. Private runtime memory must remain independent across runtime instances created from the same profile.
+
+Working memory is execution-local. Long-term memory ownership is explicit and may be runtime-, agent-, user-, tenant-, or another host-approved scope. The physical store may be shared when its contract is concurrency-safe.
+
+Effective profile/runtime capability policy and memory access are captured in execution snapshots so configuration changes cannot alter already-running work.
 
 ## Generic execution request
 
-The canonical execution boundary must accept a generic request/context payload instead of making plain string message the only integration model.
-
-The request must support:
-
-```text
-host-supplied input/context
-host correlation identity
-execution options
-optional structured-output requirements
-```
-
-The host payload is opaque to HAgent at the domain level. HAgent may bound, normalize, project, or serialize it through generic mechanisms but must not assign host-specific meaning to it.
-
-Plain string messages remain a convenience API layered over this generic request model.
+The canonical execution boundary accepts generic host input/context, host correlation identity, execution options, and optional structured-output requirements. Plain strings remain convenience APIs.
 
 ## System-prompt model
 
-System prompts are composed from additive layers. A higher layer establishes broader policy and may add restrictions that every lower layer must preserve. A lower layer may add narrower instructions for its own scope, but it must not replace, erase, or weaken a higher layer.
-
-The intended hierarchy is:
-
-```text
-Higher policy
-    Provider
-      ↓
-    Agent profile
-      ↓
-    Runtime / context / execution additions
-Lower policy
-```
-
-Prompt layering improves behavioral consistency but is not security. Authorization, permissions, approvals, budgets, and host-side validation remain authoritative outside the prompt.
+System prompts are additive layers. Lower layers can add narrower instructions/restrictions but cannot erase higher layers. Prompt layering is behavioral composition, not a security boundary.
 
 ## Context target
 
-An agent should be able to receive a compact, bounded context snapshot containing only what the host has chosen to expose. Context may originate from observations, state snapshots, events, records, objects, resources, or other host information.
-
-The representation should prefer native, lazy, projected, paged, and bounded forms over unnecessary materialization.
-
-Automatic discovery, where supported, describes evidence rather than granting authority. Explicit host semantics may enrich or constrain the model-facing representation.
+Context remains bounded, generic, and host-supplied. HAgent may normalize/project/serialize host context but does not assign domain meaning.
 
 ## Structured output target
 
-A host may define its own output schema. HAgent must provide the generic mechanism to:
-
-```text
-host-defined schema
-    -> provider structured-output request
-    -> provider response
-    -> schema validation
-    -> validated structured result
-```
-
-HAgent must not contain host-domain schemas.
-
-Provider capability support must remain explicit as Supported, Unsupported, or Unknown. Valid JSON text alone does not establish that a structured-output contract was satisfied.
+A host may define its own schema. HAgent carries it through provider invocation, validates the returned structure, and exposes validation metadata. Valid JSON alone does not prove schema compliance.
 
 ## Tool target
 
-Tool definitions describe what a model may request. Trusted handlers define what the host actually executes.
+Tool definitions describe what may be requested; trusted runtime handlers define what executes. Handler delegates are never serialized. Tool execution preserves execution/runtime/host correlation for authorization and telemetry.
 
-Tool permissions, authorization callbacks, approvals, budgets, and guardrails must be enforced outside model instructions.
+## Learning and management UI target
 
-Tool execution context must preserve enough generic identity for authorization and observability, including execution identity, runtime-instance identity, host correlation, tool identity, tool-call identity, arguments, and cancellation.
+`HAgent.WinForms` must provide:
 
-## Memory target
+```text
+Learning Review
+    pending candidates
+    inspect provenance/evidence/source
+    approve / reject
 
-Memory ownership must be separable from the reusable agent profile. Two runtime instances created from the same profile must be able to maintain independent private memories.
+Wiki / Knowledge Manager
+    new / edit / delete
+    search/filter
+    relationships
+    which agents use/access it
 
-Shared memory is a separate, explicitly governed scope.
+Skill Manager
+    new / edit / delete
+    version/status
+    relationships
+    which agents use it
 
-Memory should remain lightweight and work without requiring a local GPU, embedding model, vector database, or large resident index.
+Agent Configuration
+    selected agent -> effective skills
+                     -> knowledge/wiki access
+                     -> memory families
+                     -> any future resource types
+    profile enable/disable
+    runtime-instance overrides
+```
 
-## Runtime and concurrency target
+The agent knowledge overview is based on a generic resource inventory. Known types may have specialized panels, but unknown/new types remain visible without adding a new hard-coded Agent property.
 
-A host must be able to create one runtime instance, execute against it repeatedly for an arbitrary lifetime, and explicitly retire or shut it down.
+## Generic external-host requirement
 
-Multiple runtime instances must remain independently addressable and safe to execute concurrently. Runtime state such as lifecycle, execution revision, shutdown signaling, overrides, and private memory ownership must not leak across instances.
-
-Execution must remain asynchronous, cancellable, bounded, and safe against conflicting late completion when a provider ignores cooperative cancellation.
-
-Host scheduling remains host-controlled. HAgent may provide focused admission primitives but must not take ownership of host timing or event-loop policy.
-
-## External-consumer target
-
-HAgent must remain independent of the applications that consume it. External hosts adapt their own state, context, capabilities, scheduling, and side effects to HAgent's generic contracts.
-
-No external consumer should require HAgent.Core to import or understand the consumer's domain types.
+HAgent must be capable of serving as the generic LLM cognition/execution layer for different project types. Host state, lifecycle, scheduling, persistence, authorization, and side effects remain host-owned.
 
 ## Security target
 
-No model instruction is an authorization boundary.
-
-The architecture must distinguish, wherever meaningful:
-
-```text
-discovery
-read
-projection/query
-export
-write
-invoke
-approval
-```
-
-Database access must use restricted structured queries and parameterized execution. Raw model-generated SQL is outside the target design.
+No model instruction is an authorization boundary. Retrieval, memory recall, skill use, learning, and learning promotion are independently enforceable policy boundaries where meaningful.
 
 ## Development principles
 
 - Keep Core provider-neutral and dependency-light.
-- Prefer small adapters over framework-sized dependencies.
-- Preserve .NET Framework 4.8.1 compatibility where currently targeted and support .NET 9 where supported.
+- Preserve .NET Framework 4.8.1 compatibility where targeted and support .NET 9 where supported.
 - Design for low RAM and no GPU assumption.
 - Keep runtime work cancellable, bounded, correlated, concurrent, and safe against stale results.
 - Keep persistent configuration separate from live runtime state.
-- Treat host execution input and runtime configuration as separate concepts.
-- Make structured output a real request/validation contract rather than JSON detection.
-- Add one coherent implementation slice at a time.
+- Use generic contracts for future extensibility rather than hard-coded host concepts.
 - Verify completed capabilities through `HAgent.Example` before marking them complete.
-- Keep documentation synchronized with implementation state.
+- Keep authoritative documentation synchronized with implementation.
 
 ## What success looks like
 
-A developer should be able to add HAgent to a host and start with a simple call:
+A developer can start with:
 
 ```csharp
 await ai.SendAsync("assistant", "Hello");
 ```
 
-and later grow the same integration into:
+and later grow the integration into:
 
 ```text
 host
   -> generic execution/context requests
   -> multiple runtime agent instances
   -> private/shared memory
-  -> bounded host context
+  -> reusable skills
+  -> scoped Wiki/knowledge
+  -> controlled learning
   -> authorized tools
   -> structured model output
   -> workspace routing
-  -> visible agent collaboration
   -> asynchronous background work
 ```
 

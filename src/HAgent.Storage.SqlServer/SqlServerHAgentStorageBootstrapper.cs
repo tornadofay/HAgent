@@ -12,7 +12,7 @@ namespace HAgent.Storage.SqlServer
     /// </summary>
     public sealed class SqlServerHAgentStorageBootstrapper
     {
-        public const int CurrentSchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
 
         public async Task EnsureCreatedAsync(
             HAgentStorageOptions options,
@@ -46,9 +46,6 @@ namespace HAgent.Storage.SqlServer
             }
         }
 
-        /// <summary>
-        /// Verifies that SQL Server accepts the supplied endpoint and credentials without creating a database or changing schema.
-        /// </summary>
         public static async Task TestConnectionAsync(
             string serverName,
             int port,
@@ -58,9 +55,7 @@ namespace HAgent.Storage.SqlServer
         {
             var connectionString = BuildConnectionString(serverName, port, userName, password, null);
             using (var connection = new SqlConnection(connectionString))
-            {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            }
         }
 
         public static string BuildConnectionString(string serverName, string userName, string password, string databaseName)
@@ -82,9 +77,7 @@ namespace HAgent.Storage.SqlServer
             };
 
             if (string.IsNullOrWhiteSpace(userName))
-            {
                 builder.IntegratedSecurity = true;
-            }
             else
             {
                 builder.UserID = userName;
@@ -150,6 +143,10 @@ END;";
                     case 2:
                         await MigrateV2ToV3Async(connection, cancellationToken).ConfigureAwait(false);
                         version = 3;
+                        break;
+                    case 3:
+                        await MigrateV3ToV4Async(connection, cancellationToken).ConfigureAwait(false);
+                        version = 4;
                         break;
                     default:
                         throw new InvalidOperationException("Unsupported HAgent SQL Server schema version: " + version + ".");
@@ -235,6 +232,43 @@ BEGIN
     CREATE INDEX IX_HAgentExecutionAudits_AgentCreated ON dbo.HAgentExecutionAudits(AgentId, CreatedAt DESC);
 END;";
 
+            using (var command = new SqlCommand(sql, connection))
+            {
+                command.CommandTimeout = 60;
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task MigrateV3ToV4Async(SqlConnection connection, CancellationToken cancellationToken)
+        {
+            const string sql = @"
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.HAgentRuntimeInstances (
+        InstanceId nvarchar(128) NOT NULL CONSTRAINT PK_HAgentRuntimeInstances PRIMARY KEY,
+        ProfileId nvarchar(128) NOT NULL,
+        HostInstanceId nvarchar(128) NULL,
+        UserId nvarchar(128) NULL,
+        WorkspaceId nvarchar(128) NULL,
+        SessionId nvarchar(128) NULL,
+        Scope nvarchar(50) NOT NULL,
+        State nvarchar(50) NOT NULL,
+        CreatedAt datetimeoffset NOT NULL,
+        UpdatedAt datetimeoffset NOT NULL
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_ProfileUpdated' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances'))
+BEGIN
+    CREATE INDEX IX_HAgentRuntimeInstances_ProfileUpdated ON dbo.HAgentRuntimeInstances(ProfileId, UpdatedAt DESC);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_HostUser' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances'))
+BEGIN
+    CREATE INDEX IX_HAgentRuntimeInstances_HostUser ON dbo.HAgentRuntimeInstances(HostInstanceId, UserId, UpdatedAt DESC);
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_Workspace' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances'))
+BEGIN
+    CREATE INDEX IX_HAgentRuntimeInstances_Workspace ON dbo.HAgentRuntimeInstances(WorkspaceId, UpdatedAt DESC);
+END;";
             using (var command = new SqlCommand(sql, connection))
             {
                 command.CommandTimeout = 60;

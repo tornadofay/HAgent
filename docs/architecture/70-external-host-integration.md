@@ -134,7 +134,7 @@ A host may define a structured output schema for an execution. HAgent provides t
 
 Tools are the generic capability boundary between model reasoning and host-owned operations. A host registers a tool definition plus trusted executable handler. Handlers remain runtime registrations and are never serialized.
 
-Tool execution context carries sufficient generic identity for authorization and observability, including execution identity, runtime-instance identity, host correlation, tool identity, tool-call identity, arguments, and cancellation.
+Tool execution context carries sufficient generic identity for authorization and observability, including execution identity, runtime-instance identity, host correlation, tool identity, tool-call identity, arguments, and cancellation. `ToolExecutionContext.HostCorrelationId` and `ToolExecutionResult.HostCorrelationId` preserve the host correlation separately from the tool execution correlation ID.
 
 ## Memory ownership
 

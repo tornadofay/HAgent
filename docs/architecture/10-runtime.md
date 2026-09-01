@@ -63,7 +63,11 @@ Learning does not own runtime identity and must not mutate an active runtime's p
 
 Execution supports caller cancellation and configured timeout. Cancellation and timeout are execution-control semantics, not prompt instructions.
 
-Provider cancellation is cooperative. A provider may therefore complete after a caller cancellation or timeout request. The runtime must treat execution completion as a guarded state transition: once cancellation, timeout, retirement, shutdown, or another terminal outcome has won, a late provider result cannot publish a conflicting terminal result.
+Provider cancellation is cooperative, but HAgent does not require provider cooperation to finalize the caller-facing execution. When cancellation or timeout wins, the execution transitions atomically to `Cancelled` with the appropriate `AgentExecutionFailureKind` and completes without waiting for a non-cooperative provider task to return. A late provider task is detached from the execution lifecycle; its fault is observed so it cannot produce an unobserved task failure, and its eventual response cannot overwrite the already-terminal execution.
+
+`AgentExecution` owns the terminal-state gate. Success, failure, and cancellation/timeout use atomic first-terminal-outcome-wins transitions. Later terminal attempts are ignored, preventing conflicting lifecycle notifications, response replacement, or duplicate audit finalization.
+
+Retirement and shutdown also invalidate runtime result authority. A provider response that arrives after an execution is no longer current may still be a provider completion, but it must not regain authority over host state. Hosts use runtime-instance revision checks to reject stale results.
 
 ## Structured output
 

@@ -5,7 +5,7 @@
 
 ## HAgent Roadmap
 
-The roadmap is the ordered implementation path toward the HAgent master plan. It describes phases and dependencies; stable architectural definitions belong under `docs/architecture/`, and current work belongs under `docs/plan/`.
+The roadmap is the ordered implementation path toward the HAgent master plan. Stable architectural definitions belong under `docs/architecture/`, and current work belongs under `docs/plan/`.
 
 ## Current position
 
@@ -14,18 +14,21 @@ The roadmap is the ordered implementation path toward the HAgent master plan. It
 - 0.5 — tool foundation complete; hardening remains
 - 0.6 — safety/permission foundation complete; broader authorization remains
 - 0.7 — WinForms UI Context + Data Discovery complete and locally verified
-- 0.8 — Data Access + Authorization + Internal Storage foundations substantially implemented; Skills/Wiki and remaining internal-repository parity are deferred
+- 0.8 — Data Access + Authorization + Internal Storage foundations substantially implemented; Skills/Wiki management and broader knowledge governance were deferred
 - 0.9 — Runtime Agent Instances foundations complete and locally verified
 - 0.10 — Workspaces, Routing + Chat **active**
+- 0.11 — Knowledge, Skills, Memory Governance + Learning **planned next major feature layer**
 - 0.95 — Generic External Host Integration **planned cross-cutting hardening**
 - 1.0 — Collaboration + Workflows
 - Later — provider ecosystem, extensibility, developer platform, release hardening
 
-Phase 0.95 is a cross-cutting runtime/API hardening phase. It can be implemented alongside unfinished higher-level roadmap work, but its completion is required before HAgent can claim a complete generic external-host integration surface. It closes the remaining gap between the runtime architecture and a reusable LLM boundary: arbitrary host input/context, host correlation, structured output contracts, execution terminality, tool identity propagation, and strong runtime isolation. It does not introduce any host-specific domain dependency. Scheduling, authorization, host state, persistence, and side effects remain host-owned.
+Phase 0.11 converts existing memory/skill/wiki foundations into a coherent scoped resource model and adds controlled learning, review, capability inheritance, runtime overrides, and management UI. It must consume the generic runtime contracts rather than create project-specific exceptions.
 
-The roadmap therefore distinguishes feature phases from generic runtime hardening. Higher-level features may continue, but they must consume the generic contracts rather than create project-specific exceptions.
+Phase 0.95 is a cross-cutting runtime/API hardening phase. It can be implemented alongside unfinished higher-level roadmap work, but its completion is required before HAgent can claim a complete generic external-host integration surface. It closes the remaining gap between the runtime architecture and a reusable LLM boundary: arbitrary host input/context, host correlation, structured output contracts, execution terminality, tool identity propagation, and strong runtime isolation. It does not introduce any host-specific domain dependency.
 
-External consumers use HAgent through the public provider-neutral APIs. HAgent does not contain consumer-specific dependencies or domain logic.
+The roadmap distinguishes feature phases from generic runtime hardening. Higher-level features may continue, but they must consume the generic contracts rather than create project-specific exceptions.
+
+External consumers use HAgent through public provider-neutral APIs. HAgent does not contain consumer-specific dependencies or domain logic.
 
 ## Foundations — 0.1 through 0.7
 
@@ -162,6 +165,7 @@ These phases establish the base on which the remaining roadmap is built. The nex
 ## Phase 0.8 — Data Access + Authorization + Internal Storage
 
 ## Goal
+
 Provide bounded structured data contracts and establish HAgent-owned persistence across File, SQL Server, and MySQL backends without ever using HAgent storage as access to a host application's business database.
 
 ## Steps
@@ -173,11 +177,11 @@ Provide bounded structured data contracts and establish HAgent-owned persistence
 5. [x] Application-specific File storage layout.
 6. [x] SQL Server HAgent database creation and initial schema bootstrap.
 7. [x] MySQL HAgent database creation and initial schema bootstrap.
-8. [ ] Wire providers, agents, tools, memory, conversations, skills, wiki/content, and runtime repositories to the selected backend.
+8. [ ] Wire providers, agents, tools, memory, conversations, skills, wiki/content, learning candidates, and runtime repositories to the selected backend.
 9. [x] Versioned schema migrations beyond the initial bootstrap version.
 10. [ ] Read-only HAgent internal data tools, audit/correlation metadata, and live Example verification before any internal writes beyond repository persistence.
 
-The read-only foundation now includes bounded provider/agent/tool inventory, memory inspection with scope/owner isolation, explicit-session conversation inspection, and execution-audit inspection. Execution audit persistence is available through File, SQL Server, and MySQL using a secret-safe payload-free record. Automatic terminal audit capture and retention policy remain open work.
+The read-only foundation now includes bounded provider/agent/tool inventory, memory inspection with scope/owner isolation, explicit-session conversation inspection, and execution-audit inspection. Execution audit persistence is available through File, SQL Server, and MySQL using a secret-safe payload-free record.
 
 ## Internal database naming
 
@@ -185,31 +189,23 @@ The default HAgent database name is derived from the host application name using
 
 ## File backend
 
-File storage is application-specific and rooted beneath the host executable directory in `HAgentData`, with dedicated areas for configuration, providers, agents, tools, skills, memory, conversations, wiki, runtime, cache, logs, and audit data.
+File storage is application-specific and rooted beneath the host executable directory in `HAgentData`, with dedicated areas for configuration, providers, agents, tools, skills, memory, conversations, wiki, runtime, cache, logs, and audit data. Future learning/knowledge-governance records remain HAgent-owned and must use additive schema/layout changes rather than host databases.
 
 ## Database backends
 
 SQL Server and MySQL storage providers receive server name and username as persisted configuration metadata and a password through the secret/runtime boundary. They connect to the server, create the HAgent-owned database if it does not exist, and initialize only HAgent-owned tables. Schema version metadata supports deterministic migrations.
 
-The relational bootstrappers use `HAgentSchemaInfo` as the migration boundary. They establish a baseline schema version, read the persisted version, apply ordered provider-specific migrations until the current version is reached, and update the version only after each migration succeeds. Unknown future schema versions are rejected rather than silently skipped.
-
-Current relational schema versions are SQL Server `3` and MySQL `4`. SQL Server v2→v3 and MySQL v3→v4 establish `HAgentExecutionAudits` and its retrieval indexes. The MySQL bootstrap executes schema statements and migrations as separate commands so MariaDB deployments do not depend on multi-statement command execution.
-
-The internal database schema includes provider, agent, tool, memory, conversation, execution-audit, skill, wiki document/chunk, and schema metadata tables. It must never inspect, alter, or query unrelated host application tables.
+The internal database schema includes provider, agent, tool, memory, conversation, execution-audit, skill, wiki document/chunk, and schema metadata areas. Phase 0.11 will add the HAgent-owned persistence required for knowledge resources, skill versions/relationships, learning candidates/review state, capability assignments/overrides, and extensible memory-type policy.
 
 ## Audit foundation
 
 `AgentExecution` carries an execution-level correlation ID. `AgentExecutionAuditRecord` projects only execution/correlation identity, agent/provider/model metadata, lifecycle timing, state, and classified failure metadata. Prompts, responses, provider secrets, secret IDs, connection strings, raw exceptions, and other payloads are excluded.
 
-`IExecutionAuditStore` provides bounded append/search persistence. File uses an HAgent-owned `audit/executions.jsonl` file; SQL Server and MySQL use the HAgent-owned `HAgentExecutionAudits` table. `HAgentInternalExecutionAuditTool` exposes bounded read-only inspection and constrains explicit agent filtering to the requesting agent identity when one is present.
-
-Automatic runtime capture of terminal executions and retention/compaction are intentionally separate follow-up slices.
+`IExecutionAuditStore` provides bounded append/search persistence. File uses an HAgent-owned `audit/executions.jsonl` file; SQL Server and MySQL use the HAgent-owned `HAgentExecutionAudits` table.
 
 ## Live Example
 
-The Example storage verification will exercise File, SQL Server, and MySQL initialization where the corresponding backend is configured. It will verify database creation when absent, idempotent initialization when present, schema version reporting, persistence through the HAgent repositories, execution-audit round trips, and strict separation from host application data. Live backend switching is expected to work without restarting when the host supports storage rebinding.
-
-Connection values must never become persisted agent/tool configuration or normal logs.
+The Example storage verification will exercise File, SQL Server, and MySQL initialization where the corresponding backend is configured. It will verify database creation when absent, idempotent initialization when present, schema version reporting, persistence through the HAgent repositories, execution-audit round trips, and strict separation from host application data.
 
 ## Boundaries
 
@@ -218,6 +214,7 @@ Connection values must never become persisted agent/tool configuration or normal
 - HAgent storage providers are internal persistence providers, not host database adapters.
 - Database passwords remain in the secret/runtime boundary.
 - UI discovery, object provenance, and model instructions do not grant database authorization.
+- Learning candidates and knowledge/skill management remain HAgent-owned data and do not grant host-business-data access.
 
 ## Exit criterion
 
@@ -367,6 +364,102 @@ HWorld remains an external consumer. It references HAgent normally and uses publ
 ## Exit criterion
 
 A host can run a visible multi-agent conversation in which messages reach only their intended recipients, coordinator/specialist delegation works, and workspace execution remains bounded and traceable.
+
+## Phase 0.11 — Knowledge, Skills, Memory Governance + Learning
+
+## Goal
+
+Turn the existing memory/skill/wiki storage foundations into a coherent, provider-neutral knowledge and learning subsystem with explicit scope, capability inheritance, runtime overrides, and WinForms management surfaces.
+
+## Architecture outcome
+
+```text
+Skills    = reusable executable capabilities/procedures
+Knowledge = reusable retrievable information
+Wiki      = managed persistent knowledge source
+Memory    = scoped experience/state
+Learning  = execution experience -> typed candidates -> policy -> promotion
+```
+
+Resources are shared/reusable by default; ownership and access are explicit through scope and authorization. Runtime instances inherit profile configuration but may override individual capability/resource states without mutating the profile.
+
+## Learning modes
+
+1. [ ] Add provider-neutral `LearningMode`: `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, `FullyAutomatic`.
+2. [ ] Add learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, and promotion authorization.
+3. [ ] Add typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts.
+4. [ ] Preserve execution/runtime/agent provenance on candidates.
+5. [ ] Support deterministic code-derived learning signals without requiring an LLM.
+6. [ ] Allow optional model-assisted extraction/classification without making the model the authority.
+7. [ ] Keep promotion separate from candidate creation and keep published Skills versioned.
+
+## Knowledge and Wiki
+
+8. [ ] Define the provider-neutral knowledge resource/source contract and managed Wiki model.
+9. [ ] Define resource scope, lifecycle/status, provenance, versioning, metadata, tags/categories, and relationships.
+10. [ ] Define bounded retrieval contracts independent of keyword/vector/index implementation.
+11. [ ] Support reusable shared knowledge plus agent/runtime scoped resources where authorized.
+12. [ ] Prevent model-generated content from silently becoming authoritative knowledge.
+
+## Skills
+
+13. [ ] Define stable/versioned SkillDefinition and SkillSet/reference contracts.
+14. [ ] Keep executable handlers separate from persisted definitions.
+15. [ ] Support required knowledge, required tools, input/output contracts, preconditions, procedure steps, constraints, and lifecycle.
+16. [ ] Preserve snapshot semantics so in-flight executions are not changed by later skill edits.
+17. [ ] Support SkillCandidate -> validation -> new skill version workflow.
+
+## Memory
+
+18. [ ] Normalize memory families including working, episodic, semantic, procedural, and future extensible types.
+19. [ ] Make memory scope explicit: execution, runtime, logical agent, user, tenant, or host-approved future scope.
+20. [ ] Preserve the existing invariant that independent runtime instances never share private mutable memory ownership.
+21. [ ] Keep storage implementation independent of memory ownership and retrieval policy.
+22. [ ] Add memory-type enable/disable policy to agent profiles and runtime overrides.
+
+## Capability policy
+
+23. [ ] Add profile capability defaults for Skills, Knowledge/Wiki, Memory, and individual resources/types.
+24. [ ] Add tri-state runtime override: `Inherit`, `Enabled`, `Disabled`.
+25. [ ] Compute one effective immutable capability snapshot per execution.
+26. [ ] Enforce capability policy before retrieval, exposure, or invocation.
+27. [ ] Use stable resource/type identifiers so future knowledge types can be surfaced without changing the agent domain model.
+
+## Management UI
+
+28. [ ] Add Learning Review management surface with pending candidate list, inspection, provenance/evidence, source execution/runtime, target scope, approve, and reject.
+29. [ ] Add Wiki/Knowledge Manager with New/Edit/Delete, search/filter, relationships, and "used by/accessed by agents" views.
+30. [ ] Add Skill Manager with New/Edit/Delete, version/status, relationships, and "used by agents" views.
+31. [ ] Extend Agent Configuration so selecting an agent shows effective Skills, Knowledge/Wiki, Memory families, and all generic future resource types.
+32. [ ] Add profile-level capability switches for Skills, Wiki/Knowledge, Memory, and memory types.
+33. [ ] Add runtime-instance-level override controls using `Inherit`/`Enabled`/`Disabled`.
+34. [ ] Keep known types specialized while rendering unknown/future resource types through the generic inventory view.
+35. [ ] Follow existing HAgent.WinForms conventions: `HMessage`, shared `Header`, `HButton`, and preserve existing layouts unless this phase requires a targeted change.
+
+## Storage
+
+36. [ ] Add HAgent-owned storage migrations for candidates, knowledge resources, skill relationships/versioning, capability assignments/overrides, and memory-type policy where required.
+37. [ ] Keep File, SQL Server, and MySQL behavior aligned through provider-specific migrations.
+38. [ ] Keep learning/review metadata secret-safe and bounded.
+
+## Runtime integration
+
+39. [ ] Bind effective knowledge/skill/memory policy into the runtime execution snapshot.
+40. [ ] Capture execution outcomes/observations as learning input without mutating runtime identity.
+41. [ ] Preserve runtime-instance isolation, execution correlation, cancellation, timeout, stale-result protection, and concurrent execution behavior.
+42. [ ] Ensure runtime-only overrides never write back to the persistent profile.
+
+## Verification
+
+43. [ ] Add deterministic Example verification for scope isolation, inherited/overridden capability state, memory types, knowledge retrieval, skill binding, and learning candidates.
+44. [ ] Add Example verification for SuggestOnly review and approval/rejection.
+45. [ ] Add tests that a candidate cannot bypass authorization or directly mutate a published Wiki/Skill.
+46. [ ] Add tests for future/unknown resource types surviving inventory and UI projection.
+47. [ ] Add tests that existing executions retain immutable capability/skill snapshots after later edits.
+
+## Exit criterion
+
+A host can define reusable Skills and managed Wiki/knowledge, keep independent scoped runtime memories, enable/disable individual capability families and resources at profile or runtime level, run automatic or review-based learning through `LearningMode`, and administer all of it through HAgent.WinForms without introducing host-specific domain types into Core.
 
 ## Phase 1.0 — Collaboration + Workflows
 

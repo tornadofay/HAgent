@@ -4,9 +4,9 @@
 
 HAgent provides the reusable infrastructure needed to connect software to LLMs without forcing a specific application architecture or domain model. The project is intended to support any software environment that requires LLM-driven behavior, from simple conversational programs to business software, services, games, simulations, automation, developer tools, and other hosts.
 
-> Status: **0.95 Generic External Host Integration — active**
+> Status: **0.10 Workspaces, Routing + Chat — active**
 >
-> Next feature milestone: **0.10 Workspaces, Routing + Chat**.
+> Completed foundation: **0.95 Generic External Host Integration**.
 >
 > Targets: **.NET Framework 4.8.1 and .NET 9**.
 
@@ -42,7 +42,7 @@ var response = await ai.SendAsync(
 Console.WriteLine(response.Text);
 ```
 
-Plain string messaging is the convenience entry point. The canonical generic execution boundary is `AgentExecutionRequest`, which can carry multiple messages, host-supplied bounded context, host correlation identity, execution options, and later structured-output requirements without embedding host-domain concepts in HAgent.Core.
+Plain string messaging is the convenience entry point. The canonical generic execution boundary is `AgentExecutionRequest`, which can carry multiple messages, host-supplied bounded context, host correlation identity, execution options, and structured-output requirements without embedding host-domain concepts in HAgent.Core.
 
 ## Capability model
 
@@ -74,10 +74,12 @@ The verified foundation includes:
 - HAgent-owned SQL Server/MySQL database bootstrap foundations;
 - bounded internal HAgent data inspection and payload-free execution audit;
 - runtime agent instances with independent memory, concurrency, stale-result, shutdown, scheduling, and optional runtime-state persistence;
-- provider-neutral workspace participants, message metadata, and default-recipient routing;
-- canonical generic host execution requests with bounded host context and host correlation (verification pending).
+- provider-neutral workspace participants, message metadata, default-recipient routing, and coordinator/specialist role policy;
+- canonical generic host execution requests with bounded host context and host correlation;
+- distinct provider-facing execution requests and native/fallback structured-output transport;
+- verified external-consumer compatibility on .NET Framework 4.8.1 and .NET 9.
 
-Knowledge, Skills, Learning governance, and their complete management UI remain a later capability layer.
+Knowledge, Skills, Learning governance, and their complete management UI are part of the dedicated Phase 0.11 capability layer.
 
 ## Generic host integration target
 
@@ -178,6 +180,7 @@ Meaningful capabilities should have runnable Example verification using public A
 - `HAgent.WinForms` — management UI and WinForms UI Context/control adapters.
 - `HAgent.Example` — manual verification host.
 - `HAgent.Tests` — automated tests.
+- `samples/HAgent.ExternalConsumer` — broad external-host integration smoke sample.
 
 ## Documentation
 

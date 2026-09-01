@@ -42,6 +42,16 @@ namespace HAgent.Example
                 "Revision-based authority",
                 "Uses only a local adapter; no external provider is contacted.");
 
+            AddApiTab(
+                "RUNTIME STATE PERSISTENCE",
+                "Run runtime state persistence test",
+                "Persists and restores runtime identity and lifecycle metadata without persisting prompts, context, secrets, or execution history.",
+                "The runtime instance should round-trip its identity and host metadata, restore retirement state, and be removable from the selected HAgent backend.",
+                "Runtime state persistence verification.",
+                TestRuntimeStatePersistenceAsync,
+                "Optional runtime persistence",
+                "Uses the currently selected HAgent storage backend.");
+
             AddRuntimeSchedulingTab();
         }
 

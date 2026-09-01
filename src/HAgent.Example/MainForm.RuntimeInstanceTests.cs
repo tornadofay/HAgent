@@ -63,6 +63,7 @@ namespace HAgent.Example
                 "Uses only a local adapter; no external provider is contacted.");
 
             AddRuntimeSchedulingTab();
+            AddRuntimeTerminalStateTab();
         }
 
         private Task TestRuntimeInstanceAsync(string message)

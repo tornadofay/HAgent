@@ -23,9 +23,9 @@ namespace HAgent.ExternalConsumer
 
         private static async Task RunAsync()
         {
-            // Compile-time references prove that an unrelated host can consume the
-            // complete HAgent production surface. The test still supplies its own
-            // in-memory host dependencies and does not require a database or UI.
+            // This sample represents an unrelated host consuming the HAgent system.
+            // It references the production HAgent modules but supplies its own host
+            // storage/provider implementations so no external database or API is required.
             TouchProductionSurface();
 
             var provider = new AiProvider
@@ -102,7 +102,7 @@ namespace HAgent.ExternalConsumer
         private static void TouchProductionSurface()
         {
             GC.KeepAlive(typeof(OpenAICompatibleProviderAdapter));
-            GC.KeepAlive(typeof(FileProtectedDataSecretStore));
+            GC.KeepAlive(typeof(ProtectedDataSecretStore));
             GC.KeepAlive(typeof(SqlServerHAgentStorageBootstrapper));
             GC.KeepAlive(typeof(MySqlHAgentStorageBootstrapper));
             GC.KeepAlive(typeof(HMessage));

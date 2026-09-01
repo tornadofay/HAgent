@@ -27,7 +27,9 @@ namespace HAgent.Runtime
         {
             ValidateWorkspace(workspace);
             cancellationToken.ThrowIfCancellationRequested();
-            ValidateParticipant(workspace, senderId, WorkspaceParticipantKind.User);
+
+            WorkspaceParticipant sender;
+            ValidateParticipant(workspace, senderId, WorkspaceParticipantKind.User, out sender);
 
             var targetId = string.IsNullOrWhiteSpace(recipientId)
                 ? workspace.DefaultRecipientId

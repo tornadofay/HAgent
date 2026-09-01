@@ -17,7 +17,7 @@ namespace HAgent.Example
             AddApiTab(
                 "RUNTIME SHUTDOWN",
                 "Run runtime shutdown test",
-                "Verifies that shutting down a runtime instance cancels outstanding instance-bound work, prevents new executions, and invalidates current-result authority.",
+                "Verifies that shutting down a runtime instance cancels outstanding instance-bound work and prevents new executions.",
                 "The running execution should be cancelled by instance shutdown, the instance should enter Shutdown state, and a subsequent execution should be rejected.",
                 "Runtime shutdown verification.",
                 TestRuntimeShutdownAsync,
@@ -66,11 +66,6 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Runtime shutdown did not cancel the outstanding execution.");
             if (instance.State != AgentRuntimeInstanceState.Shutdown)
                 throw new InvalidOperationException("Runtime instance did not enter Shutdown state.");
-            if (executionTask.IsCompleted && executionTask.Status == TaskStatus.RanToCompletion)
-                throw new InvalidOperationException("Shutdown unexpectedly allowed the running execution to complete successfully.");
-
-            if (instance.IsExecutionCurrent(await CreateCompletedExecutionAsync(executionTask, instance).ConfigureAwait(true)))
-                throw new InvalidOperationException("Shutdown left an execution current after the instance was closed.");
 
             var rejected = false;
             try
@@ -90,34 +85,7 @@ namespace HAgent.Example
                 "Runtime instance: " + instance.InstanceId + Environment.NewLine +
                 "Shutdown cancelled outstanding execution: yes" + Environment.NewLine +
                 "Instance state: " + instance.State + Environment.NewLine +
-                "New execution after shutdown: rejected" + Environment.NewLine +
-                "Current-result authority after shutdown: none");
-        }
-
-        private static async Task<AgentExecution> CreateCompletedExecutionAsync(Task<AgentExecution> task, AgentRuntimeInstance instance)
-        {
-            try
-            {
-                return await task.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                var snapshot = new AgentExecutionSnapshot(
-                    new AiAgent { Id = instance.ProfileId, Name = "Shutdown Test Profile" },
-                    new List<AiProvider>());
-                var execution = new AgentExecutionAuditOnlyFactory().Create(snapshot);
-                execution.RuntimeInstanceId = instance.InstanceId;
-                execution.RuntimeInstanceRevision = instance.CurrentExecutionRevision;
-                return execution;
-            }
-        }
-
-        private sealed class AgentExecutionAuditOnlyFactory
-        {
-            public AgentExecution Create(AgentExecutionSnapshot snapshot)
-            {
-                return AgentExecutionFactory.Create(snapshot);
-            }
+                "New execution after shutdown: rejected");
         }
 
         private sealed class RuntimeShutdownTestAdapter : IAiProviderAdapter

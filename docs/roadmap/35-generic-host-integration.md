@@ -5,43 +5,70 @@
 **Complete — verified on .NET Framework 4.8.1 and .NET 9.**
 
 ## Goal
+
 Complete the provider-neutral execution boundary required by arbitrary host applications without coupling HAgent.Core to a host domain, UI framework, scheduler, persistence model, or side-effect system.
 
-## Steps
+## Requirements
 
-1. [x] Define a canonical `AgentExecutionRequest` carrying multiple messages, host correlation identity, bounded host context, runtime overrides, and execution options.
-2. [x] Preserve host correlation identity through tool execution and correlation metadata.
-3. [x] Define a host-owned `StructuredOutputOptions` request contract and HAgent validation boundary.
-4. [x] Validate structured output independently of provider capability claims.
-5. [x] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome.
-6. [x] Verify mutable runtime overrides and host context remain isolated in immutable execution snapshots.
-7. [x] Verify the canonical request through deterministic Example coverage.
-8. [x] Add and verify a standalone external-consumer smoke sample representing a host that can consume the HAgent production surface.
-9. [x] Define a distinct provider-facing `ProviderExecutionRequest` boundary separate from the host-facing request.
-10. [x] Route normal, tool-calling, and streaming provider adapter contracts through `ProviderExecutionRequest`.
-11. [x] Verify provider-facing propagation of host-owned structured-output requirements with a deterministic Example adapter.
-12. [x] Use provider-facing structured-output requirements for provider-native constrained generation where supported. Native/fallback implementation and deterministic Example transport verification are complete.
-13. [x] Run the full 0.95 verification pass and close the phase only after all cross-cutting slices pass.
+1. [x] Introduce a canonical `AgentExecutionRequest` carrying multiple messages, host-supplied bounded context, runtime overrides, and execution options.
+2. [x] Preserve plain string message execution as a convenience overload over the canonical request boundary.
+3. [x] Preserve host-supplied correlation identity separately from `AgentExecution.Id` and `AgentRuntimeInstance.InstanceId`.
+4. [x] Propagate execution, runtime-instance, tool-call, tool, and host correlation identity through tool execution metadata.
+5. [x] Define a host-owned `StructuredOutputOptions` request contract with HAgent-side validation.
+6. [x] Request structured output through capable provider adapters rather than relying on post-generation JSON detection alone.
+7. [x] Validate normalized structured output against the requested schema and expose normalized validation/result metadata.
+8. [x] Preserve provider capability distinction for structured output (`Supported`, `Unsupported`, `Unknown`).
+9. [x] Make execution terminal-state transitions race-safe so late provider completion cannot overwrite cancellation, timeout, retirement, shutdown, or another terminal outcome.
+10. [x] Preserve independent runtime-instance identity, overrides, execution state, shutdown lifecycle, and private memory ownership when multiple instances originate from one profile.
+11. [x] Snapshot runtime overrides and host context at the execution/instance boundary so mutable caller-owned state cannot create cross-instance coupling.
+12. [x] Keep host scheduling external; HAgent provides only focused admission-control primitives.
+13. [x] Preserve host ownership of domain state, persistence, authorization, scheduling policy, and side effects.
+14. [x] Add deterministic Example verification covering generic execution input, host correlation, structured output, late completion protection, tool identity propagation, concurrent runtime instances, and memory isolation.
+15. [x] Define and verify a provider-facing `ProviderExecutionRequest` boundary separate from the host-facing request.
+16. [x] Route normal, tool-calling, and streaming provider adapter contracts through `ProviderExecutionRequest`.
+17. [x] Use provider-facing structured-output requirements for provider-native constrained generation where supported, with controlled fallback and continued HAgent validation.
+18. [x] Add and verify an external-consumer smoke sample representing a host consuming the HAgent production surface on both supported target frameworks.
 
-## Boundary rule
+## API direction
 
-External hosts consume HAgent through the public provider-neutral API. `AgentExecutionRequest` is the host-facing boundary; `ProviderExecutionRequest` is the provider-facing boundary created by HAgent after agent/provider resolution.
+The public integration shape is:
 
-Host correlation identity is distinct from HAgent execution and runtime-instance identities and is never encoded into model prompt text. It remains distinct through tool execution metadata.
+```text
+Host
+  -> AgentExecutionRequest
+  -> AgentRuntimeInstance
+  -> HAgentClient.ExecuteAsync(...)
+  -> AgentExecution
+```
 
-Host context is arbitrary host-owned data with bounded size. HAgent preserves it as context but does not assign domain meaning or treat it as authorization.
+After HAgent resolves the agent/provider/runtime state, the provider adapter receives:
 
-Structured-output schemas are owned by the host. HAgent validates normalized provider output regardless of provider capability claims. Provider adapters receive the structured-output requirement through `ProviderExecutionRequest`, enabling provider-native constrained generation without leaking transport details into the host-facing contract.
+```text
+AgentExecutionRequest
+  -> ProviderExecutionRequest
+  -> provider adapter
+  -> normalized AIResponse
+```
 
-The OpenAI-compatible adapter attempts the native `response_format`/JSON Schema request shape when structured output is requested. If the endpoint explicitly reports `response_format` as unsupported or unknown, the adapter retries using the ordinary request shape. The normalized response remains subject to the same HAgent validation in either case, and provider metadata records whether native transport or fallback was used.
+The request boundaries remain generic. HAgent does not define host-domain schemas, event types, command types, domain objects, or lifecycle policy.
 
-The legacy string-message execution overload remains a convenience API and delegates to the canonical host-facing request boundary.
+## Runtime invariants
+
+One reusable profile may produce many long-lived runtime instances. Every runtime instance remains independently addressable and owns its own runtime lifecycle, execution revision, override snapshot, shutdown signaling, and private memory ownership.
+
+An execution that has reached a terminal outcome cannot later publish a conflicting outcome because a provider completed late. Non-cooperative providers may continue executing after HAgent has completed cancellation/timeout handling, but their late results cannot regain authority over the terminal execution state.
+
+## Structured-output invariant
+
+A structured-output response is valid only when the requested contract is successfully honored and validated. Arbitrary JSON text is not sufficient evidence that the contract was satisfied.
+
+Provider-native constrained generation is opportunistic. When an OpenAI-compatible endpoint supports the native `response_format`/JSON Schema request shape, the adapter uses it. If the endpoint explicitly reports that feature as unsupported or unknown, the adapter may retry without the native field. HAgent validation remains authoritative in either path.
 
 ## External consumer verification
 
-`samples/HAgent.ExternalConsumer` is a standalone host sample that references the broad HAgent production surface available to an application: Core, the OpenAI-compatible provider transport, File storage, SQL Server storage, MySQL storage, and WinForms. It owns its own in-memory host data and test provider so verification requires no external database or network. The sample was executed successfully on both `.NET Framework 4.8.1` and `.NET 9` and demonstrates canonical execution, host context/correlation, concurrent runtime consumption, distinct execution/correlation/runtime identities, and the absence of HWorld-specific domain logic inside HAgent.
+`samples/HAgent.ExternalConsumer` is a standalone host sample that references the broad HAgent production surface available to an application: Core, the OpenAI-compatible provider transport, File storage, SQL Server storage, MySQL storage, and WinForms. It owns its own host-side test data/provider and does not introduce HWorld-specific domain logic into HAgent. The sample has been executed successfully on both `.NET Framework 4.8.1` and `.NET 9`.
 
-A real host is not required to reference every HAgent assembly in production; it selects the HAgent modules it needs. The sample is intentionally broad so the external-consumer milestone verifies the production surface rather than only `HAgent.Core`.
+A real host is not required to reference every HAgent assembly in production; it selects the modules it needs. The sample is intentionally broad so this milestone verifies the public HAgent system surface rather than only `HAgent.Core`.
 
 ## HWorld boundary
 
@@ -49,4 +76,4 @@ HWorld is an external consumer. HAgent does not contain an HWorld dependency, ad
 
 ## Exit criterion
 
-A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent resolves it into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, and preserves execution identity without coupling to host or provider-specific domain models. A standalone external consumer representing the HAgent production surface demonstrated the same public boundary on both supported target frameworks.
+A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent resolves it into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, preserves execution identity, protects terminal state, and isolates runtime snapshots without coupling to host or provider-specific domain models. A standalone external consumer representing the HAgent production surface demonstrated the public boundary on both supported target frameworks.

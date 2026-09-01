@@ -2,7 +2,7 @@
 
 ## Profile
 
-`AiAgent` is persistent reusable configuration: identity, provider preferences, model, system prompt, generation settings, and tool references.
+`AiAgent` is persistent reusable configuration: identity, provider preferences, model, system prompt, generation settings, capability references, and learning/memory policy defaults.
 
 ## Runtime instance
 
@@ -12,7 +12,7 @@ Creating or retiring a runtime instance never mutates the reusable `AiAgent` pro
 
 Runtime-instance identity is intentionally separate from `AgentExecution.Id` and host correlation identity. An instance may own many executions over its lifetime, while each execution retains its own immutable execution identity and host correlation when supplied.
 
-Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only values applied to a cloned execution snapshot and never written back to the persistent profile. Overrides are configuration, not the generic execution-input channel.
+Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only values applied to a cloned execution snapshot and never written back to the persistent profile. Runtime capability overrides follow tri-state inheritance (`Inherit`, `Enabled`, `Disabled`) so an instance can selectively change Skills, Knowledge/Wiki, Memory, individual resources, or individual memory types without copying the complete profile.
 
 Each runtime instance also has an independent `MemoryOwnerId`, currently equal to its `InstanceId`. Instance-created sessions and explicit memory operations use that owner so multiple runtime instances created from the same persistent profile cannot collide in private agent-scoped memory.
 
@@ -22,11 +22,26 @@ Each instance maintains a monotonically increasing execution revision. An instan
 
 `AgentRuntimeInstance.Shutdown()` is terminal for the instance. It prevents new execution and requests cancellation of outstanding instance-bound work. Retirement stops new execution and invalidates result authority without cancelling already-running work.
 
+## Effective capability snapshot
+
+Before provider execution, HAgent resolves the effective capability policy from host/system policy, the persistent profile, and runtime overrides, then captures it in the immutable execution snapshot.
+
+```text
+host/system policy
+    -> profile defaults
+        -> runtime override
+            -> execution snapshot
+```
+
+The snapshot determines which Skills, Knowledge/Wiki resources, Memory families, and future resource types are available to the execution. Later edits to the profile or runtime instance cannot change an execution already in progress.
+
+Capability policy is enforced by code before retrieval or invocation. Prompt text is not used as authorization.
+
 ## Generic execution request
 
 The runtime execution boundary must be generic enough for a host to provide arbitrary external context or observations without converting everything into a plain string message.
 
-The canonical request should carry:
+The canonical request carries:
 
 ```text
 host-supplied input/context
@@ -41,96 +56,49 @@ Plain string execution remains a convenience overload built on the generic reque
 
 ## Execution identity and correlation
 
-Every execution has a HAgent-owned execution ID.
+Every execution has a HAgent-owned execution ID. A host may additionally provide a correlation ID. Runtime identity, execution identity, and host correlation identity remain distinct.
 
-A host may additionally provide a correlation ID. These identities have different responsibilities:
+Tool execution should inherit relevant execution/runtime/host correlation identities so host authorization and telemetry do not require passing those identities as model arguments.
 
-```text
-AgentExecution.Id
-    HAgent execution identity
+## Memory and learning lifecycle
 
-HostCorrelationId
-    host-owned request identity
+An execution may use working memory plus any memory families allowed by its effective capability policy. Execution outcomes and explicitly captured observations can be passed to the learning subsystem according to the configured `LearningMode`.
 
-AgentRuntimeInstance.InstanceId
-    long-lived runtime identity
-```
-
-Correlation must be carried through the execution contract rather than encoded into prompt text.
-
-Tool execution should inherit the relevant execution/runtime/host correlation identities so host authorization and telemetry do not require passing those identities as model arguments.
+Learning does not own runtime identity and must not mutate an active runtime's profile. It creates typed candidates (`MemoryCandidate`, `KnowledgeCandidate`, `SkillCandidate`) that are later accepted, rejected, or automatically promoted by policy.
 
 ## Cancellation, timeout, and late completion
 
-Execution supports caller cancellation and configured timeout.
-
-Cancellation and timeout are execution-control semantics, not prompt instructions.
+Execution supports caller cancellation and configured timeout. Cancellation and timeout are execution-control semantics, not prompt instructions.
 
 Provider cancellation is cooperative. A provider may therefore complete after a caller cancellation or timeout request. The runtime must treat execution completion as a guarded state transition: once cancellation, timeout, retirement, shutdown, or another terminal outcome has won, a late provider result cannot publish a conflicting terminal result.
 
-Hosts may use runtime-instance revision checks to reject results that are stale for their own state. HAgent should additionally prevent stale provider completion from mutating its own execution outcome.
-
 ## Structured output
 
-A host may define a structured output schema for an execution.
-
-The runtime must provide a generic path to:
-
-```text
-host schema
-    -> provider structured-output request
-    -> provider response
-    -> schema validation
-    -> structured result + validation metadata
-```
-
-The schema is host-owned. HAgent must not embed host-domain schemas.
-
-Provider capability support remains explicit and may be `Supported`, `Unsupported`, or `Unknown`. Valid JSON text alone is not evidence that a structured-output contract was honored.
+A host may define a structured output schema for an execution. The runtime carries it through provider execution and validates the result.
 
 ## Scheduling
 
-Scheduling is host-controlled and optional. `IAgentExecutionScheduler` and `AgentExecutionScheduler` provide a focused admission boundary that can limit concurrent runtime executions without taking ownership of the host's timing model.
-
-The scheduler is not a second execution engine. Hosts may use it, replace it, or schedule direct calls to `HAgentClient.ExecuteAsync(...)` themselves.
+Scheduling is host-controlled and optional. `IAgentExecutionScheduler` and `AgentExecutionScheduler` provide a focused admission boundary that can limit concurrent runtime executions without taking ownership of host timing.
 
 ## Runtime state persistence
 
-Runtime-state persistence is a separate optional boundary from `IAiStore`. `IAgentRuntimeStateStore` persists only generic runtime identity and lifecycle metadata. Host-owned domain state remains outside this contract.
+Runtime-state persistence is a separate optional boundary from `IAiStore`. It persists generic runtime identity and lifecycle metadata, including runtime-only capability overrides when the host elects to persist them. It must not convert runtime state into a persistent `AiAgent` profile.
 
-`AgentRuntimeStatePersistence` provides explicit save, restore, and delete operations. Restore requires the corresponding persistent `AiAgent` profile and verifies profile identity before recreating the runtime instance.
+Restore requires the corresponding persistent `AiAgent` profile and verifies profile identity before recreating the runtime instance.
 
-Runtime creation is non-persistent by default. Persisted runtime metadata remains distinct from the persistent profile, the live instance, individual executions, and host-owned state.
+## Scope and isolation
 
-## Scope
+`AgentRuntimeScope` describes where a runtime instance belongs. Scope is metadata and lifecycle context, not a host-specific agent class.
 
-`AgentRuntimeScope` describes where a runtime instance belongs. The scope value is metadata and lifecycle context; it must not be used to create domain-specific agent classes.
+Private runtime memory remains independently owned. Shared memory must be an explicit scope with authorization. Stores can be shared concurrently, but mutable private runtime state cannot be shared implicitly.
 
 ## System-prompt composition
 
-System prompts are **additive layers**, not replacement values.
-
-The current composition order is:
-
-```text
-Higher priority
-    Provider policy
-        ↓
-    Agent profile
-        ↓
-    Runtime / execution additions
-Lower priority
-```
-
-A lower layer may add narrower instructions or restrictions but must not erase, replace, or contradict a higher-priority layer.
-
-Prompt composition is not an authorization boundary. Permissions, authorization callbacks, approvals, budgets, and host-side validation remain authoritative outside model instructions.
+System prompts are additive layers, not replacement values. A lower layer may add narrower instructions or restrictions but must not erase or contradict a higher-priority layer.
 
 ## Execution model
 
-The host supplies an execution request snapshot. Runtime resolves the profile/provider, applies runtime-only overrides to an execution snapshot, composes applicable system-prompt layers, invokes the provider, normalizes the response, validates structured output when requested, and reports lifecycle/usage metadata.
-
-The host may schedule executions independently of its own application timing or event model.
+The host supplies an execution request snapshot. Runtime resolves profile/provider, applies runtime-only overrides, resolves the effective capability snapshot, composes applicable prompt layers, retrieves only permitted knowledge/memory, binds only enabled skills/tools, invokes the provider, normalizes the response, validates structured output when requested, captures configured memory/observations, optionally invokes learning, and reports lifecycle/usage metadata.
 
 ## Design invariant
 

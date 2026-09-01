@@ -243,9 +243,9 @@ Make live agents first-class runtime objects separate from reusable agent profil
 
 One configured profile can produce many live instances. Runtime roles are host policy over the same generic runtime model, not separate agent classes.
 
-Runtime-only provider, model, generation, system-prompt, and context overrides are applied to execution snapshots created from the persistent profile. They never mutate the stored profile. Runtime configuration must remain distinct from per-execution host input.
+Runtime-only provider, model, generation, system-prompt, context, and capability overrides are applied to execution snapshots created from the persistent profile. They never mutate the stored profile. Runtime configuration remains distinct from per-execution host input.
 
-Each runtime instance owns memory through its `MemoryOwnerId`, keeping private agent-scoped memory separate across instances created from the same profile.
+Each runtime instance owns private memory through its `MemoryOwnerId`, keeping private agent-scoped memory separate across instances created from the same profile. Shared memory is possible only through an explicit shared scope and authorization policy.
 
 Each instance-bound execution receives a monotonically increasing instance revision. Hosts can use `AgentRuntimeInstance.IsExecutionCurrent(execution)` to reject late results after a newer execution starts or the instance is retired. The generic execution hardening phase additionally ensures late provider completion cannot overwrite a terminal execution outcome.
 
@@ -253,17 +253,15 @@ Retirement and shutdown are separate lifecycle operations. Retirement prevents n
 
 `IAgentExecutionScheduler` and the default `AgentExecutionScheduler` provide an optional host-controlled admission boundary with a configurable concurrency limit. The scheduler does not own host timing or replace runtime execution semantics.
 
-The runtime contract is covered by deterministic Example verification for runtime instance identity, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, scheduling, shutdown lifecycle, and optional runtime-state persistence. No external provider is required for those tests.
-
-Dynamically created runtime instances are not persisted as `AiAgent` profile records by default. Optional runtime-state persistence is a separate host-controlled capability using the HAgent-owned runtime-state store; persisted state contains generic identity/scope/lifecycle metadata only and does not persist secrets or provider credentials.
+Capability policy and learning are layered above this runtime foundation. Phase 0.11 resolves profile capability defaults plus runtime tri-state overrides (`Inherit`, `Enabled`, `Disabled`) into each execution snapshot. Learning operates on execution experience and never mutates runtime identity directly.
 
 ## External-host relationship
 
-Phase 0.9 establishes the runtime-instance foundation. Phase 0.95 completes the generic execution boundary required for external hosts: arbitrary host input/context, host correlation, structured output contracts, terminal execution semantics, and tool identity propagation. No external consumer is a dependency or special-case adapter in Core.
+Phase 0.9 establishes the runtime-instance foundation. Phase 0.95 completes the generic execution boundary required for external hosts: arbitrary host input/context, host correlation, structured output contracts, terminal execution semantics, and tool identity propagation. Phase 0.11 consumes these runtime guarantees for scoped knowledge, Skills, Memory, Learning, and management UI.
 
 ## Exit criterion
 
-A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, memory, or execution-state collisions. Phase 0.95 extends this foundation into the complete generic LLM host integration contract.
+A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, private-memory, or execution-state collisions. Later phases may layer reusable Skills, Knowledge/Wiki, Memory governance, and Learning without weakening runtime isolation.
 
 ## Phase 0.95 — Generic External Host Integration
 
@@ -316,6 +314,38 @@ A structured-output response is valid only when the requested contract is succes
 ## Exit criterion
 
 A generic external host can provide arbitrary bounded context, correlate requests, request validated structured output, expose host-owned tools, run multiple long-lived runtime instances concurrently, control cancellation/timeout/lifecycle, and safely ignore stale or late results without introducing host-specific concepts into HAgent.Core.
+
+## Phase 0.95 — Generic External Host Integration
+
+## Goal
+Complete the provider-neutral execution boundary required by arbitrary host applications without coupling HAgent.Core to a host domain, UI framework, scheduler, persistence model, or side-effect system.
+
+## Steps
+
+1. [x] Define a canonical `AgentExecutionRequest` carrying multiple messages, host correlation identity, bounded host context, and execution options.
+2. [ ] Preserve host correlation identity through tool execution and correlation metadata.
+3. [ ] Define a host-owned structured-output request/validation contract.
+4. [ ] Validate structured output independently of provider capability claims.
+5. [ ] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome.
+6. [ ] Verify mutable runtime overrides and host context remain isolated in immutable execution snapshots.
+7. [ ] Verify the canonical request through deterministic Example coverage.
+8. [ ] Verify concurrent external consumption through a provider-neutral consumer scenario.
+
+## Boundary rule
+
+External hosts consume HAgent through the public provider-neutral API. Host correlation identity is distinct from HAgent execution and runtime-instance identities and is never encoded into model prompt text.
+
+Host context is arbitrary host-owned data with bounded size. HAgent preserves it as context but does not assign domain meaning or treat it as authorization.
+
+The legacy string-message execution overload remains a convenience API and delegates to the canonical request boundary.
+
+## HWorld boundary
+
+HWorld is an external consumer. HAgent does not contain an HWorld dependency, adapter, physics, rendering, simulation-time, or action-authority code. HWorld references HAgent and owns its own domain lifecycle, scheduling, state, authorization, and side effects.
+
+## Exit criterion
+
+A host can submit a complete provider-neutral execution request with bounded context and host correlation, receive an immutable execution snapshot, and rely on HAgent to keep host identity distinct from runtime and execution identity.
 
 ## Phase 0.10 — Workspaces, Routing + Chat
 

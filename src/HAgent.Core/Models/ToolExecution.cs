@@ -8,6 +8,7 @@ namespace HAgent.Models
     public sealed class ToolExecutionContext
     {
         public string CorrelationId { get; set; }
+        public string HostCorrelationId { get; set; }
         public string AgentId { get; set; }
         public string ToolId { get; set; }
         public string ToolCallId { get; set; }
@@ -17,6 +18,7 @@ namespace HAgent.Models
         public ToolExecutionContext()
         {
             CorrelationId = string.Empty;
+            HostCorrelationId = string.Empty;
             AgentId = string.Empty;
             ToolId = string.Empty;
             ToolCallId = string.Empty;
@@ -30,6 +32,7 @@ namespace HAgent.Models
         public string Output { get; set; }
         public string Error { get; set; }
         public string CorrelationId { get; set; }
+        public string HostCorrelationId { get; set; }
         public string AgentId { get; set; }
         public string ToolId { get; set; }
         public string ToolCallId { get; set; }
@@ -45,6 +48,7 @@ namespace HAgent.Models
             Output = string.Empty;
             Error = string.Empty;
             CorrelationId = string.Empty;
+            HostCorrelationId = string.Empty;
             AgentId = string.Empty;
             ToolId = string.Empty;
             ToolCallId = string.Empty;

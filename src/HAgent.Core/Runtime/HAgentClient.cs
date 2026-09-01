@@ -163,9 +163,9 @@ namespace HAgent.Runtime
             return _capabilityCache.GetOrCreateAsync(key, () => capabilitiesAdapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, CancellationToken.None), cancellationToken);
         }
 
-        private AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore, IReadOnlyList<AIMessage> initialMessages)
+        private AgentSession CreateSession(string agentId, string sessionId, IConversationStore conversationStore, IReadOnlyList<AIMessage> initialMessages, string memoryOwnerId = null)
         {
-            return new AgentSession(agentId, sessionId, (messages, token) => SendAsync(agentId, messages, null, token), conversationStore, initialMessages, null, _memory, _memoryPolicy);
+            return new AgentSession(agentId, sessionId, (messages, token) => SendAsync(agentId, messages, null, token), conversationStore, initialMessages, null, _memory, _memoryPolicy, memoryOwnerId);
         }
 
         public AgentSession CreateSession(string agentId) { return CreateSession(agentId, Guid.NewGuid().ToString("N"), null, null); }

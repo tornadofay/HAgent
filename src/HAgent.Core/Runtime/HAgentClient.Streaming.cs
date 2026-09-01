@@ -76,12 +76,15 @@ namespace HAgent.Runtime
                     }
 
                     return await streamingAdapter.SendStreamingAsync(
-                        provider,
-                        agent,
-                        apiKey,
-                        BuildSystemPrompt(provider, agent, null),
-                        contextMessages,
-                        progress,
+                        new ProviderExecutionRequest
+                        {
+                            Provider = provider,
+                            Agent = agent,
+                            ApiKey = apiKey,
+                            SystemPrompt = BuildSystemPrompt(provider, agent, null),
+                            Messages = contextMessages,
+                            Progress = progress
+                        },
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)

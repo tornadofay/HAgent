@@ -65,13 +65,21 @@ namespace HAgent.Providers.OpenAICompatible
                     {
                         if (IsNativeStructuredOutputUnsupported(responseBody))
                         {
-                            return await SendAsync(
+                            var fallback = await SendAsync(
                                 providerRequest.Provider,
                                 providerRequest.Agent,
                                 providerRequest.ApiKey,
                                 providerRequest.SystemPrompt,
                                 providerRequest.Messages,
                                 cancellationToken).ConfigureAwait(false);
+                            if (fallback != null)
+                            {
+                                if (fallback.ProviderMetadata == null)
+                                    fallback.ProviderMetadata = new Dictionary<string, object>();
+                                fallback.ProviderMetadata["structured_output_native"] = false;
+                                fallback.ProviderMetadata["structured_output_native_fallback"] = true;
+                            }
+                            return fallback;
                         }
 
                         throw new HttpRequestException(
@@ -126,11 +134,13 @@ namespace HAgent.Providers.OpenAICompatible
         {
             if (string.IsNullOrWhiteSpace(responseBody)) return false;
             var value = responseBody.ToLowerInvariant();
-            return value.Contains("response_format") &&
-                   (value.Contains("not supported") ||
-                    value.Contains("unsupported") ||
-                    value.Contains("json_schema") ||
-                    value.Contains("structured output"));
+            if (!value.Contains("response_format")) return false;
+
+            return value.Contains("not supported") ||
+                   value.Contains("unsupported") ||
+                   value.Contains("unknown parameter") ||
+                   value.Contains("unrecognized parameter") ||
+                   value.Contains("not allowed");
         }
     }
 }

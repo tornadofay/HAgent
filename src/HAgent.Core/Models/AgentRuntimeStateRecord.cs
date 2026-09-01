@@ -28,6 +28,30 @@ namespace HAgent.Models
         public AgentRuntimeInstanceState State { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
+
+        public static AgentRuntimeStateRecord FromInstance(
+            AgentRuntimeInstance instance,
+            string hostInstanceId = null,
+            string userId = null,
+            string workspaceId = null,
+            string sessionId = null)
+        {
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
+            var now = DateTimeOffset.UtcNow;
+            return new AgentRuntimeStateRecord
+            {
+                InstanceId = instance.InstanceId,
+                ProfileId = instance.ProfileId,
+                HostInstanceId = hostInstanceId ?? string.Empty,
+                UserId = userId ?? string.Empty,
+                WorkspaceId = workspaceId ?? string.Empty,
+                SessionId = sessionId ?? string.Empty,
+                Scope = instance.Scope,
+                State = instance.State,
+                CreatedAt = instance.CreatedAt,
+                UpdatedAt = now
+            };
+        }
     }
 
     public sealed class AgentRuntimeStateQuery

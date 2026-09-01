@@ -64,6 +64,7 @@ namespace HAgent.Example
 
             AddRuntimeSchedulingTab();
             AddRuntimeTerminalStateTab();
+            AddProviderNativeStructuredOutputTab();
         }
 
         private Task TestRuntimeInstanceAsync(string message)

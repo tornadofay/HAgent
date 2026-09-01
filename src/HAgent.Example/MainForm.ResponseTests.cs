@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using HAgent.Models;
+using HAgent.Runtime;
 
 namespace HAgent.Example
 {
@@ -55,11 +56,55 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Normalized usage values were not preserved.");
             }
 
+            var structuredOptions = new StructuredOutputOptions
+            {
+                SchemaJson = "{\"type\":\"object\",\"properties\":{\"customerId\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"}},\"required\":[\"customerId\",\"status\"],\"additionalProperties\":false}"
+            };
+
+            var structuredContract = new AgentExecutionRequest
+            {
+                AgentId = "example-agent",
+                Messages = new List<AIMessage> { new AIMessage("user", "Return the customer payload.") },
+                StructuredOutput = structuredOptions
+            };
+            structuredContract.Validate();
+
+            var validStructured = StructuredOutputValidator.Validate(
+                structuredOptions,
+                response.StructuredOutputJson);
+            if (!validStructured.IsValid)
+                throw new InvalidOperationException("Valid structured output was rejected: " + string.Join(" ", validStructured.Errors));
+
+            var wrongTypeStructured = StructuredOutputValidator.Validate(
+                structuredOptions,
+                "{\"customerId\":\"42\",\"status\":\"active\"}");
+            if (wrongTypeStructured.IsValid)
+                throw new InvalidOperationException("Structured output accepted an invalid property type.");
+
+            var missingRequiredStructured = StructuredOutputValidator.Validate(
+                structuredOptions,
+                "{\"customerId\":42}");
+            if (missingRequiredStructured.IsValid)
+                throw new InvalidOperationException("Structured output accepted a missing required property.");
+
+            var extraPropertyStructured = StructuredOutputValidator.Validate(
+                structuredOptions,
+                "{\"customerId\":42,\"status\":\"active\",\"secret\":true}");
+            if (extraPropertyStructured.IsValid)
+                throw new InvalidOperationException("Structured output accepted an undeclared property.");
+
+            var malformedStructured = StructuredOutputValidator.Validate(
+                structuredOptions,
+                "{not-json}");
+            if (malformedStructured.IsValid)
+                throw new InvalidOperationException("Malformed structured output was accepted.");
+
             Write("RESPONSE NORMALIZATION",
                 "Contract test succeeded." + Environment.NewLine +
                 "Text: " + response.Text + Environment.NewLine +
                 "Reasoning: " + response.Reasoning + Environment.NewLine +
                 "Structured output: " + response.StructuredOutputJson + Environment.NewLine +
+                "Structured contract: valid, wrong type, missing required, extra property, and malformed JSON cases verified." + Environment.NewLine +
                 "Tool calls: " + response.ToolCalls.Count + Environment.NewLine +
                 "Tool: " + response.ToolCalls[0].Name + Environment.NewLine +
                 "Arguments JSON: " + response.ToolCalls[0].ArgumentsJson + Environment.NewLine +

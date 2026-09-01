@@ -8,7 +8,13 @@ namespace HAgent.Runtime
 {
     public sealed class WorkspaceRouter : IWorkspaceRouter
     {
+        private readonly IWorkspaceRolePolicy _rolePolicy;
         private long _sequence;
+
+        public WorkspaceRouter(IWorkspaceRolePolicy rolePolicy = null)
+        {
+            _rolePolicy = rolePolicy;
+        }
 
         public Task<WorkspaceMessage> RouteUserMessageAsync(
             AgentWorkspace workspace,
@@ -27,7 +33,11 @@ namespace HAgent.Runtime
                 ? workspace.DefaultRecipientId
                 : recipientId.Trim();
 
-            ValidateParticipant(workspace, targetId, WorkspaceParticipantKind.Agent);
+            WorkspaceParticipant target;
+            ValidateParticipant(workspace, targetId, WorkspaceParticipantKind.Agent, out target);
+            if (_rolePolicy != null && !_rolePolicy.CanReceiveUserMessages(target))
+                throw new InvalidOperationException("Workspace role policy does not allow user messages for participant: " + target.ParticipantId);
+
             return Task.FromResult(CreateMessage(
                 workspace,
                 WorkspaceMessageKind.User,
@@ -49,8 +59,13 @@ namespace HAgent.Runtime
         {
             ValidateWorkspace(workspace);
             cancellationToken.ThrowIfCancellationRequested();
-            ValidateParticipant(workspace, senderId, WorkspaceParticipantKind.Agent);
-            ValidateParticipant(workspace, recipientId, WorkspaceParticipantKind.Agent);
+
+            WorkspaceParticipant sender;
+            WorkspaceParticipant recipient;
+            ValidateParticipant(workspace, senderId, WorkspaceParticipantKind.Agent, out sender);
+            ValidateParticipant(workspace, recipientId, WorkspaceParticipantKind.Agent, out recipient);
+            if (_rolePolicy != null && !_rolePolicy.CanDelegate(sender, recipient))
+                throw new InvalidOperationException("Workspace role policy does not allow delegation from '" + sender.ParticipantId + "' to '" + recipient.ParticipantId + "'.");
 
             return Task.FromResult(CreateMessage(
                 workspace,
@@ -94,12 +109,15 @@ namespace HAgent.Runtime
             if (workspace == null) throw new ArgumentNullException(nameof(workspace));
         }
 
-        private static void ValidateParticipant(AgentWorkspace workspace, string participantId, WorkspaceParticipantKind expectedKind)
+        private static void ValidateParticipant(
+            AgentWorkspace workspace,
+            string participantId,
+            WorkspaceParticipantKind expectedKind,
+            out WorkspaceParticipant participant)
         {
             if (string.IsNullOrWhiteSpace(participantId))
                 throw new ArgumentException("Workspace participant ID is required.", nameof(participantId));
 
-            WorkspaceParticipant participant;
             if (!workspace.TryGetParticipant(participantId, out participant))
                 throw new InvalidOperationException("Workspace participant was not found: " + participantId);
             if (participant.State != WorkspaceParticipantState.Active)

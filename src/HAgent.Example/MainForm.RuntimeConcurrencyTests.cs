@@ -121,13 +121,11 @@ namespace HAgent.Example
             }
 
             public async Task<AIResponse> SendAsync(
-                AiProvider provider,
-                AiAgent agent,
-                string apiKey,
-                string systemPrompt,
-                IReadOnlyList<AIMessage> messages,
+                ProviderExecutionRequest request,
                 CancellationToken cancellationToken)
             {
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request));
                 if (Interlocked.Increment(ref _activeCalls) > 1)
                     Interlocked.Exchange(ref _overlapObserved, 1);
 
@@ -137,7 +135,7 @@ namespace HAgent.Example
                     return new AIResponse
                     {
                         Text = "RUNTIME-CONCURRENT-OK",
-                        ProviderId = provider == null ? string.Empty : provider.Id
+                        ProviderId = request.Provider == null ? string.Empty : request.Provider.Id
                     };
                 }
                 finally

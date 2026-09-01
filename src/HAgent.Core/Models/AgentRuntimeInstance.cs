@@ -20,6 +20,7 @@ namespace HAgent.Models
         public DateTimeOffset CreatedAt { get; private set; }
         public AgentRuntimeInstanceState State { get; private set; }
         public AgentRuntimeOverrides Overrides { get; private set; }
+        public string MemoryOwnerId { get { return InstanceId; } }
 
         public static AgentRuntimeInstance Create(AiAgent profile, AgentRuntimeScope scope = AgentRuntimeScope.Ephemeral, AgentRuntimeOverrides overrides = null)
         {

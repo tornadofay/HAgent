@@ -15,7 +15,7 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 - [x] Preserve host correlation identity through relevant tool execution/correlation metadata.
 - [x] Define host-owned structured-output request and validation contract.
 - [x] Validate structured output independently of provider claims.
-- [ ] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome.
+- [ ] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome. Implementation landed; Example verification pending.
 - [ ] Verify execution snapshots fully isolate mutable runtime overrides and host context.
 - [x] Add deterministic Example verification for the generic host execution request.
 - [x] Add deterministic Example verification for structured-output schema validation.
@@ -44,6 +44,10 @@ This boundary is intentionally separate from `AgentExecutionRequest`. Host calle
 The normal, tool-calling, and streaming provider adapter contracts consume `ProviderExecutionRequest`. All in-repository adapter implementations and deterministic test doubles now use the request-object contract. The current OpenAI-compatible implementation retains legacy overloads only as internal compatibility helpers; the adapter interfaces themselves use the request object.
 
 Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization.
+
+### Runtime terminal outcome
+
+`AgentExecution` owns the first-terminal-outcome-wins gate. HAgent may finish caller-visible cancellation or timeout before a non-cooperative provider task returns. Such a late provider task cannot replace the terminal execution state or response, and provider faults from detached late work are observed so they do not surface as unobserved task failures.
 
 ### HWorld boundary
 

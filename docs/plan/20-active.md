@@ -17,7 +17,7 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 - [ ] Validate structured output independently of provider claims.
 - [ ] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome.
 - [ ] Verify execution snapshots fully isolate mutable runtime overrides and host context.
-- [ ] Add deterministic Example verification for the generic host execution request.
+- [x] Add deterministic Example verification for the generic host execution request.
 - [ ] Add deterministic concurrent external-consumer verification without introducing HWorld-specific dependencies.
 
 ### Generic host boundary

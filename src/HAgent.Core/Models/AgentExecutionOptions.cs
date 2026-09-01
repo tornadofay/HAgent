@@ -20,6 +20,12 @@ namespace HAgent.Models
         public TimeSpan RetryBaseDelay { get; set; }
 
         /// <summary>
+        /// Runtime-instance overrides applied to a cloned execution snapshot.
+        /// The persisted agent profile is never mutated.
+        /// </summary>
+        public AgentRuntimeOverrides RuntimeOverrides { get; set; }
+
+        /// <summary>
         /// Additional additive system-prompt layers supplied for this execution.
         /// These layers are composed with the provider and agent layers and never replace them.
         /// </summary>

@@ -6,8 +6,13 @@ namespace HAgent.Models
     public sealed class AgentExecutionSnapshot
     {
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers)
+            : this(agent, providers, null)
         {
-            Agent = CloneAgent(agent ?? throw new ArgumentNullException(nameof(agent)));
+        }
+
+        public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides)
+        {
+            Agent = CloneAgent(agent ?? throw new ArgumentNullException(nameof(agent)), overrides);
             Providers = CloneProviders(providers ?? throw new ArgumentNullException(nameof(providers)));
             CreatedAt = DateTimeOffset.UtcNow;
         }
@@ -16,7 +21,7 @@ namespace HAgent.Models
         public IReadOnlyList<AiProvider> Providers { get; private set; }
         public DateTimeOffset CreatedAt { get; private set; }
 
-        private static AiAgent CloneAgent(AiAgent source)
+        private static AiAgent CloneAgent(AiAgent source, AgentRuntimeOverrides overrides)
         {
             var clone = new AiAgent
             {
@@ -32,6 +37,19 @@ namespace HAgent.Models
                 ProviderIds = source.ProviderIds == null ? new List<string>() : new List<string>(source.ProviderIds),
                 ToolIds = source.ToolIds == null ? new List<string>() : new List<string>(source.ToolIds)
             };
+
+            if (overrides == null) return clone;
+
+            if (!string.IsNullOrWhiteSpace(overrides.ProviderId))
+            {
+                clone.ProviderId = overrides.ProviderId;
+                clone.ProviderIds = new List<string> { overrides.ProviderId };
+            }
+            if (!string.IsNullOrWhiteSpace(overrides.Model)) clone.Model = overrides.Model;
+            if (overrides.Temperature.HasValue) clone.Temperature = overrides.Temperature;
+            if (overrides.MaxOutputTokens.HasValue) clone.MaxOutputTokens = overrides.MaxOutputTokens;
+            if (!string.IsNullOrWhiteSpace(overrides.SystemPrompt)) clone.SystemPrompt = overrides.SystemPrompt;
+
             return clone;
         }
 

@@ -40,7 +40,9 @@ Host context is copied into the immutable execution snapshot. HAgent does not as
 
 This boundary is intentionally separate from `AgentExecutionRequest`. Host callers do not need to know provider transport details, while provider adapters can evolve their supported capabilities without expanding the host-facing model.
 
-Provider adapters must still normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization.
+The normal, tool-calling, and streaming provider adapter contracts consume `ProviderExecutionRequest`. The current OpenAI-compatible implementation retains legacy overloads only as internal compatibility helpers; the adapter interfaces themselves use the request object.
+
+Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization.
 
 ### HWorld boundary
 

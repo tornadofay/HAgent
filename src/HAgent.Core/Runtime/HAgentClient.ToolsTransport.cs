@@ -77,7 +77,17 @@ namespace HAgent.Runtime
                         continue;
                     }
 
-                    return await toolAdapter.SendWithToolsAsync(provider, agent, apiKey, BuildSystemPrompt(provider, agent, null), contextMessages, enabledTools, cancellationToken).ConfigureAwait(false);
+                    return await toolAdapter.SendWithToolsAsync(
+                        new ProviderExecutionRequest
+                        {
+                            Provider = provider,
+                            Agent = agent,
+                            ApiKey = apiKey,
+                            SystemPrompt = BuildSystemPrompt(provider, agent, null),
+                            Messages = contextMessages,
+                            Tools = enabledTools
+                        },
+                        cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {

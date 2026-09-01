@@ -75,7 +75,7 @@ namespace HAgent.Runtime
             if (!agent.Enabled) throw new InvalidOperationException("Agent is disabled: " + agent.Name);
 
             var providers = await _store.GetProvidersAsync(cancellationToken).ConfigureAwait(false);
-            var snapshot = new AgentExecutionSnapshot(agent, providers);
+            var snapshot = new AgentExecutionSnapshot(agent, providers, options.RuntimeOverrides);
             var messages = new List<AIMessage> { new AIMessage("user", message) }.AsReadOnly();
             var execution = new AgentExecution(snapshot, messages);
 

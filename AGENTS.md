@@ -35,61 +35,71 @@ This repository is designed to be worked on by human developers and coding agent
 29. Execution terminal-state transitions must be protected against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome.
 30. Independent runtime instances must not share mutable runtime identity, override state, execution state, shutdown signaling, or private memory ownership.
 31. Shared infrastructure such as stores, provider adapters, and tool registries may be reused across instances only through contracts that support concurrent use.
+32. Skills are reusable versioned capability definitions, not private copies owned by every runtime instance.
+33. Knowledge is a broader retrievable-information concept; Wiki is a managed knowledge source, not the universal representation for every future knowledge type.
+34. Memory ownership and scope must be explicit. Working memory is execution-local; private long-term memory must remain isolated across independent runtime instances; shared memory requires explicit scope and authorization.
+35. Learning must create typed candidates before promotion. Model-generated text must not directly mutate authoritative Wiki/knowledge or published Skills.
+36. `LearningMode` governs learning behavior and is distinct from capability enable/disable policy.
+37. Agent capability policy must support profile defaults plus runtime tri-state overrides (`Inherit`, `Enabled`, `Disabled`) for Skills, Knowledge/Wiki, Memory families/types, and future resource types.
+38. Effective capability state must be resolved into an execution snapshot. Later profile/runtime edits must not alter an already-running execution.
+39. Resource/type identity must be extensible so future knowledge types can be inventoried and shown without adding hard-coded Agent properties.
+40. Learning promotion must preserve provenance, source execution/runtime identity, proposed scope, and evidence/confidence when available.
 
 ## Context rules
 
-32. WinForms integration belongs in `HAgent.WinForms`, not Core.
-33. The public WinForms concept is **UI Context / Control Adapters**, not generic form serialization.
-34. UI adapters should prefer native/bound data sources and bounded projections over scraping visible control state.
-35. `DataTable` is optional, not the mandatory data representation.
-36. Application-owned objects may be attached as live runtime context and inspected through bounded, non-executable discovery.
-37. Discovery describes evidence; it never grants authorization or invents business meaning.
-38. Explicit developer semantics/authorization may override or enrich automatic discovery.
-39. Generic context may represent observations, state snapshots, events, records, objects, resources, or other host information without HAgent assigning domain meaning.
+41. WinForms integration belongs in `HAgent.WinForms`, not Core.
+42. The public WinForms concept is **UI Context / Control Adapters**, not generic form serialization.
+43. UI adapters should prefer native/bound data sources and bounded projections over scraping visible control state.
+44. `DataTable` is optional, not the mandatory data representation.
+45. Application-owned objects may be attached as live runtime context and inspected through bounded, non-executable discovery.
+46. Discovery describes evidence; it never grants authorization or invents business meaning.
+47. Explicit developer semantics/authorization may override or enrich automatic discovery.
+48. Generic context may represent observations, state snapshots, events, records, objects, resources, or other host information without HAgent assigning domain meaning.
 
 ## Multi-agent rules
 
-40. A workspace is a communication context, not an instruction to broadcast every message.
-41. Unaddressed user messages go only to the configured workspace default recipient.
-42. Direct user messages and agent delegation target explicit runtime participants.
-43. Visible agent-to-agent dialogue is a real workspace message stream when the host enables it.
-44. Coordinator and specialist are roles over the same generic runtime agent model.
-45. Specialists may represent a whole domain, table, subsystem, or capability; they are not inherently tied to one record.
-46. Dynamically created runtime agents come from reusable profiles and do not become permanent configuration entries by default.
-47. Runtime retirement is explicit or follows host shutdown/lifecycle policy.
-48. Runtime persistence, when enabled, must distinguish host instance, user/session, workspace, profile ID, and runtime instance ID.
-49. Private memory belongs to runtime ownership; shared memory requires explicit scope and authorization.
+49. A workspace is a communication context, not an instruction to broadcast every message.
+50. Unaddressed user messages go only to the configured workspace default recipient.
+51. Direct user messages and agent delegation target explicit runtime participants.
+52. Visible agent-to-agent dialogue is a real workspace message stream when the host enables it.
+53. Coordinator and specialist are roles over the same generic runtime agent model.
+54. Specialists may represent a whole domain, table, subsystem, or capability; they are not inherently tied to one record.
+55. Dynamically created runtime agents come from reusable profiles and do not become permanent configuration entries by default.
+56. Runtime retirement is explicit or follows host shutdown/lifecycle policy.
+57. Runtime persistence, when enabled, must distinguish host instance, user/session, workspace, profile ID, and runtime instance ID.
+58. Private memory belongs to runtime ownership; shared memory requires explicit scope and authorization.
 
 ## External consumers
 
-50. External hosts consume HAgent through provider-neutral public contracts and do not require host-specific dependencies in Core.
-51. HAgent must not contain host-specific physics, rendering, simulation time, application state, domain actions, or other domain rules.
-52. External hosts remain authoritative for their state and side effects. HAgent supplies generic agent execution, context, tools, memory integrations, coordination, structured output, and telemetry.
+59. External hosts consume HAgent through provider-neutral public contracts and do not require host-specific dependencies in Core.
+60. HAgent must not contain host-specific physics, rendering, simulation time, application state, domain actions, or other domain rules.
+61. External hosts remain authoritative for their state and side effects. HAgent supplies generic agent execution, context, tools, memory integrations, coordination, structured output, and telemetry.
 
 ## WinForms UI conventions
 
-53. Do not use `System.Windows.Forms.MessageBox` directly in `HAgent.WinForms`.
-54. Use `HMessage.ShowDelete`, `ShowQuestion`, `ShowInformation`, `ShowError`, and `ShowException` for dialogs.
-55. Use the shared HAgent `Header` for HAgent form chrome.
-56. Use `HButton` for HAgent action buttons.
-57. Preserve existing UI/layout work unless a task explicitly requests UI changes.
+62. Do not use `System.Windows.Forms.MessageBox` directly in `HAgent.WinForms`.
+63. Use `HMessage.ShowDelete`, `ShowQuestion`, `ShowInformation`, `ShowError`, and `ShowException` for dialogs.
+64. Use the shared HAgent `Header` for HAgent form chrome.
+65. Use `HButton` for HAgent action buttons.
+66. Preserve existing UI/layout work unless a task explicitly requests UI changes.
+67. Knowledge/Skill/Learning management UI must use the shared HAgent conventions and must expose effective agent configuration, not only persisted profile references.
 
 ## Example and testing rules
 
-58. `HAgent.Example` is the manual developer/verification host; it is not `HAgent.Tests`.
-59. Every meaningful completed capability requires a matching Example verification using public APIs.
-60. Keep Example code split across focused partial files/components.
-61. Example snippets must be reproducible and explain required setup or shared setup.
-62. Do not claim build/test success unless it was actually executed.
-63. Network-provider automated tests must use fakes/local test infrastructure rather than a real vendor.
+68. `HAgent.Example` is the manual developer/verification host; it is not `HAgent.Tests`.
+69. Every meaningful completed capability requires a matching Example verification using public APIs.
+70. Keep Example code split across focused partial files/components.
+71. Example snippets must be reproducible and explain required setup or shared setup.
+72. Do not claim build/test success unless it was actually executed.
+73. Network-provider automated tests must use fakes/local test infrastructure rather than a real vendor.
 
 ## Documentation rules
 
-64. `README.md` is the public introduction and quick start.
-65. `docs/architecture/` is the authoritative stable architecture description.
-66. `docs/plan/` is implementation state: master direction, current state, and active implementation only.
-67. `docs/roadmap/` is the ordered implementation path, including completed foundation history and future phases.
-68. `docs/storage.md` contains storage-specific details.
-69. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them except to synchronize a generated view when automation has not yet run.
-70. When implementation changes architecture or milestone state, update the authoritative source document in the same change.
-71. Never maintain the same architectural decision independently in multiple documents.
+74. `README.md` is the public introduction and quick start.
+75. `docs/architecture/` is the authoritative stable architecture description.
+76. `docs/plan/` is implementation state: master direction, current state, and active implementation only.
+77. `docs/roadmap/` is the ordered implementation path, including completed foundation history and future phases.
+78. `docs/storage.md` contains storage-specific details.
+79. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them except to synchronize a generated view when automation has not yet run.
+80. When implementation changes architecture or milestone state, update the authoritative source document in the same change.
+81. Do not duplicate architectural decisions across multiple source documents when a referenced authoritative document can own the decision.

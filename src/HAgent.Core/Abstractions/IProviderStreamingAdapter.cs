@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Models;
@@ -13,12 +12,7 @@ namespace HAgent.Abstractions
     public interface IProviderStreamingAdapter
     {
         Task<AIResponse> SendStreamingAsync(
-            AiProvider provider,
-            AiAgent agent,
-            string apiKey,
-            string systemPrompt,
-            IReadOnlyList<AIMessage> messages,
-            IProgress<AIResponseDelta> progress,
+            ProviderExecutionRequest request,
             CancellationToken cancellationToken);
     }
 }

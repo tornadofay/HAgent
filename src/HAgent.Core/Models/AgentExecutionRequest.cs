@@ -24,6 +24,11 @@ namespace HAgent.Models
         public IReadOnlyDictionary<string, string> HostContext { get; set; }
         public AgentExecutionOptions Options { get; set; }
 
+        /// <summary>
+        /// Optional host-owned structured-output contract for this execution.
+        /// </summary>
+        public StructuredOutputOptions StructuredOutput { get; set; }
+
         public void Validate()
         {
             if (string.IsNullOrWhiteSpace(AgentId))
@@ -49,6 +54,9 @@ namespace HAgent.Models
 
             if (Options == null)
                 Options = new AgentExecutionOptions();
+
+            if (StructuredOutput != null)
+                StructuredOutput.Validate();
         }
     }
 }

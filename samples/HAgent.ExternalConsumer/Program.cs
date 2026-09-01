@@ -10,7 +10,6 @@ using HAgent.Runtime;
 using HAgent.Storage.File;
 using HAgent.Storage.MySql;
 using HAgent.Storage.SqlServer;
-using HAgent.WinForms;
 
 namespace HAgent.ExternalConsumer
 {
@@ -77,8 +76,8 @@ namespace HAgent.ExternalConsumer
             var sessionInstance = AgentRuntimeInstance.Create(agent, AgentRuntimeScope.Session);
             var taskInstance = AgentRuntimeInstance.Create(agent, AgentRuntimeScope.Task);
             var executions = await Task.WhenAll(
-                client.ExecuteAsync(sessionInstance, "external-session-work", CancellationToken.None),
-                client.ExecuteAsync(taskInstance, "external-task-work", CancellationToken.None)).ConfigureAwait(false);
+                client.ExecuteAsync(sessionInstance, "external-session-work", cancellationToken: CancellationToken.None),
+                client.ExecuteAsync(taskInstance, "external-task-work", cancellationToken: CancellationToken.None)).ConfigureAwait(false);
 
             Assert(executions.Length == 2, "Concurrent external consumer execution count is incorrect.");
             Assert(executions.All(x => x.State == AgentExecutionState.Succeeded), "A concurrent external execution did not succeed.");
@@ -101,11 +100,11 @@ namespace HAgent.ExternalConsumer
 
         private static void TouchProductionSurface()
         {
+            // Compile-time references to the production HAgent modules.
             GC.KeepAlive(typeof(OpenAICompatibleProviderAdapter));
             GC.KeepAlive(typeof(ProtectedDataSecretStore));
             GC.KeepAlive(typeof(SqlServerHAgentStorageBootstrapper));
             GC.KeepAlive(typeof(MySqlHAgentStorageBootstrapper));
-            GC.KeepAlive(typeof(HMessage));
         }
 
         private static void Assert(bool condition, string message)

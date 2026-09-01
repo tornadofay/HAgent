@@ -7,7 +7,7 @@ Make live agents first-class runtime objects separate from reusable agent profil
 
 1. [x] Introduce a provider-neutral runtime agent instance with its own stable instance ID and profile reference.
 2. [x] Define explicit runtime scopes: Application, Workspace, Context/Form, Session, Task, and Ephemeral.
-3. [ ] Allow runtime-specific context and provider/model overrides without mutating stored profiles.
+3. [x] Allow runtime-specific context and provider/model overrides without mutating stored profiles.
 4. [ ] Give each runtime instance an independent memory owner.
 5. [ ] Support multiple runtime instances executing concurrently.
 6. [ ] Expose asynchronous scheduling, cancellation, timeout, correlation, and stale-result protection.
@@ -20,6 +20,8 @@ Make live agents first-class runtime objects separate from reusable agent profil
 ## Runtime rule
 
 One configured profile can produce many live instances. Roles such as coordinator and specialist are host policy over the same runtime model, not separate agent classes.
+
+Runtime-only provider, model, generation, system-prompt, and context overrides are applied to execution snapshots created from the persistent profile. They never mutate the stored profile.
 
 ## HWorld gate
 

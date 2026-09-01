@@ -79,6 +79,7 @@ namespace HAgent.Example
             AddRuntimeOverrideTab();
             AddRuntimeLifecycleTab();
             AddWorkspaceRoutingTab();
+            AddWorkspaceRoleTab();
             Shown += async delegate
             {
                 try

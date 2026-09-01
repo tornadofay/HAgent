@@ -380,10 +380,10 @@ Provide an optional shared conversation where a user and multiple runtime agents
 3. [x] Define one workspace default recipient for unaddressed user messages.
 4. [x] Define direct user-to-agent addressing.
 5. [x] Define addressed agent-to-agent delegation and responses.
-6. [ ] Make coordinator/specialist behavior a role/policy over generic runtime agents.
+6. [x] Define coordinator/specialist behavior as a role/policy over generic runtime agents. Implementation landed; `WORKSPACE ROLES` Example verification pending.
 7. [ ] Allow specialists to represent whole domains, tables, subsystems, or other host responsibilities.
 8. [x] Preserve sender, recipient, correlation, causation, ordering, and routing metadata.
-9. [ ] Make agent-to-agent work visible in the workspace when the host enables it.
+9. [ ] Execute routed workspace messages through runtime agents and make agent-to-agent work visible in the workspace when the host enables it.
 10. [ ] Add configurable addressing syntax at the host/UI layer.
 11. [ ] Add loop protection and collaboration budgets.
 12. [ ] Add optional workspace persistence and shared-memory policy.
@@ -391,18 +391,22 @@ Provide an optional shared conversation where a user and multiple runtime agents
 
 ### Current foundation
 
-The provider-neutral foundation now contains `AgentWorkspace`, `WorkspaceParticipant`, `WorkspaceMessage`, `IWorkspaceRouter`, and `WorkspaceRouter`. Participants are either users or runtime agents and have explicit Active/Suspended/Retired state. An active default recipient may be defined for unaddressed user messages. Routing does not invoke providers, mutate agent profiles, or perform host side effects.
+The provider-neutral foundation contains `AgentWorkspace`, `WorkspaceParticipant`, `WorkspaceMessage`, `IWorkspaceRouter`, and `WorkspaceRouter`. Participants are either users or runtime agents and have explicit Active/Suspended/Retired state. An active default recipient may be defined for unaddressed user messages. Routing does not invoke providers, mutate agent profiles, or perform host side effects.
 
-The `HAgent.Example` application contains deterministic `WORKSPACE ROUTING` verification. The verification confirms the workspace abstraction, participant lifecycle/identity, default recipient behavior, direct user-to-agent addressing, addressed agent delegation, and preservation of sender/recipient/correlation/causation/sequence metadata. The remaining 0.10 execution/chat steps are intentionally still open.
+`IWorkspaceRolePolicy` and `WorkspaceRolePolicy` now allow coordinator/specialist behavior to be expressed as policy over ordinary agent participants. `WorkspaceAgentRoleAssignment` describes `Participant`, `Coordinator`, or `Specialist` role, optional responsibility metadata, user-message eligibility, and allowed delegation target roles. No separate coordinator/specialist agent classes are introduced.
+
+The `WORKSPACE ROUTING` Example verification is complete and confirms the workspace abstraction, participant lifecycle/identity, default recipient behavior, direct user-to-agent addressing, addressed agent delegation, and preservation of sender/recipient/correlation/causation/sequence metadata.
+
+The `WORKSPACE ROLES` Example verification exercises the role policy and is the next required manual test.
 
 ## Routing rules
 
 - Unaddressed user message: send only to the workspace default recipient.
 - Explicitly addressed user message: send to that participant.
-- Agent delegation: send only to the addressed participant unless an explicit policy invokes others.
+- Agent delegation: send only to the addressed participant unless an explicit policy allows the sender's role to delegate to the recipient's role.
 - Broadcast: explicit opt-in operation, never the default.
 
-The user can observe the coordinator ask a specialist to work and the specialist return its result before the coordinator answers.
+The user can observe the coordinator ask a specialist to work and the specialist return its result before the coordinator answers once workspace execution/chat is implemented.
 
 ## Specialist context
 

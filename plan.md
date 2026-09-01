@@ -395,7 +395,11 @@ Agent executions now also receive an immutable `CorrelationId` at execution crea
 
 `HAgentInternalExecutionAuditTool` exposes persisted audit metadata as a trusted read-only capability. Requests are bounded to 50 records, require an execution/correlation/agent target, and cannot use a model-supplied agent ID to redirect a request away from the requesting agent when an execution identity is present.
 
-`DefaultAgentRuntime` accepts an optional execution-audit store. When configured, it automatically persists one payload-free audit record at terminal success, failure, timeout, or cancellation. Audit persistence is non-fatal and uses independent retention cleanup; a failed audit write never changes the primary execution outcome. `ExecutionAuditOptions` controls whether automatic capture is enabled and the retention limit. The default retention is 5,000 records and the supported maximum is 1,000,000 records.
+`DefaultAgentRuntime` accepts an optional execution-audit store. When configured, it automatically persists one payload-free audit record at terminal success, failure, timeout, or cancellation. Audit persistence is non-fatal and uses independent retention cleanup; a failed audit write never changes the primary execution outcome. `ExecutionAuditOptions` controls whether automatic capture is enabled and the retention limit. The default retention is 5,000 records and the supported maximum is 1,000,000 records. Deterministic Example lifecycle verification confirms automatic audit persistence for failure, timeout, and caller cancellation on File, SQL Server, and MySQL.
+
+### Runtime instance foundation
+
+`AgentRuntimeInstance` is the live execution identity created from a reusable `AiAgent` profile. It has a stable instance ID, source profile ID, scope, runtime-only overrides, explicit active/retired lifecycle, and an independent `MemoryOwnerId` equal to its instance ID. Multiple instances created from the same profile therefore have independent memory ownership. Instance-created sessions and explicit memory operations use that owner rather than the shared profile ID. Runtime-specific provider/model/generation/context overrides are applied only to cloned execution snapshots and do not mutate the persistent profile.
 
 ### Internal inventory read tool
 

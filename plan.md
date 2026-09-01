@@ -381,7 +381,7 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 - [x] Preserve host correlation identity through relevant tool execution/correlation metadata.
 - [x] Define host-owned structured-output request and validation contract.
 - [x] Validate structured output independently of provider claims.
-- [ ] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome. Implementation landed; Example verification pending.
+- [x] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome. Implementation and deterministic Example verification are complete.
 - [ ] Verify execution snapshots fully isolate mutable runtime overrides and host context.
 - [x] Add deterministic Example verification for the generic host execution request.
 - [x] Add deterministic Example verification for structured-output schema validation.

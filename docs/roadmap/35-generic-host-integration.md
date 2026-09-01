@@ -2,7 +2,7 @@
 
 ## Status
 
-**Complete — verified on .NET Framework 4.8.1 and .NET 9.**
+**Implementation-complete baseline verified on .NET Framework 4.8.1 and .NET 9; runtime-instance request composition correction pending manual verification.**
 
 ## Goal
 
@@ -28,6 +28,7 @@ Complete the provider-neutral execution boundary required by arbitrary host appl
 16. [x] Route normal, tool-calling, and streaming provider adapter contracts through `ProviderExecutionRequest`.
 17. [x] Use provider-facing structured-output requirements for provider-native constrained generation where supported, with controlled fallback and continued HAgent validation.
 18. [x] Add and verify an external-consumer smoke sample representing a host consuming the HAgent production surface on both supported target frameworks.
+19. [ ] Compose a long-lived `AgentRuntimeInstance` with the canonical `AgentExecutionRequest` through `HAgentClient.ExecuteAsync(instance, request, cancellationToken)`, preserving request input/context/correlation/structured-output semantics while the instance supplies runtime identity, revision, overrides, lifecycle, and private-memory ownership.
 
 ## API direction
 
@@ -35,16 +36,18 @@ The public integration shape is:
 
 ```text
 Host
-  -> AgentExecutionRequest
-  -> AgentRuntimeInstance
-  -> HAgentClient.ExecuteAsync(...)
+  -> AgentRuntimeInstance (optional long-lived execution identity)
+  + AgentExecutionRequest (execution input/context)
+  -> HAgentClient.ExecuteAsync(instance, request, ...)
   -> AgentExecution
 ```
+
+The runtime instance and execution request are orthogonal. The runtime instance answers **who is executing**; the request answers **what is being executed**. The request must not absorb the runtime instance because runtime ownership, lifecycle, revision, overrides, shutdown signaling, and private-memory ownership belong to the instance boundary.
 
 After HAgent resolves the agent/provider/runtime state, the provider adapter receives:
 
 ```text
-AgentExecutionRequest
+AgentExecutionRequest + runtime-derived execution options
   -> ProviderExecutionRequest
   -> provider adapter
   -> normalized AIResponse
@@ -55,6 +58,8 @@ The request boundaries remain generic. HAgent does not define host-domain schema
 ## Runtime invariants
 
 One reusable profile may produce many long-lived runtime instances. Every runtime instance remains independently addressable and owns its own runtime lifecycle, execution revision, override snapshot, shutdown signaling, and private memory ownership.
+
+When an execution is started from a runtime instance, `request.AgentId` must match `instance.ProfileId`. The caller's request/options objects are not mutated to attach runtime identity; HAgent creates the effective execution request/options internally.
 
 An execution that has reached a terminal outcome cannot later publish a conflicting outcome because a provider completed late. Non-cooperative providers may continue executing after HAgent has completed cancellation/timeout handling, but their late results cannot regain authority over the terminal execution state.
 
@@ -76,4 +81,4 @@ HWorld is an external consumer. HAgent does not contain an HWorld dependency, ad
 
 ## Exit criterion
 
-A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent resolves it into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, preserves execution identity, protects terminal state, and isolates runtime snapshots without coupling to host or provider-specific domain models. A standalone external consumer representing the HAgent production surface demonstrated the public boundary on both supported target frameworks.
+A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent can execute that request either directly or through a long-lived runtime instance without losing request semantics or runtime ownership. HAgent resolves the request into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, preserves execution identity, protects terminal state, and isolates runtime snapshots without coupling to host or provider-specific domain models. A standalone external consumer representing the HAgent production surface demonstrated the public boundary on both supported target frameworks, and runtime-instance execution must additionally compose the canonical request without a string-only path.

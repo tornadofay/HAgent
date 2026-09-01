@@ -14,5 +14,9 @@ namespace HAgent.Abstractions
             string message,
             AgentExecutionOptions options = null,
             CancellationToken cancellationToken = default(CancellationToken));
+
+        Task<AgentExecution> ExecuteAsync(
+            AgentExecutionRequest request,
+            CancellationToken cancellationToken = default(CancellationToken));
     }
 }

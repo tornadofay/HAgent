@@ -12,6 +12,7 @@ namespace HAgent.Models
             MaxRetriesPerProvider = 0;
             RetryBaseDelay = TimeSpan.FromMilliseconds(250);
             SystemPromptLayers = new List<SystemPromptLayer>();
+            HostContext = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
         public TimeSpan Timeout { get; set; }
@@ -37,5 +38,15 @@ namespace HAgent.Models
         /// These layers are composed with the provider and agent layers and never replace them.
         /// </summary>
         public IList<SystemPromptLayer> SystemPromptLayers { get; set; }
+
+        /// <summary>
+        /// Host-provided correlation identity. It is kept separate from HAgent execution and runtime-instance IDs.
+        /// </summary>
+        public string HostCorrelationId { get; set; }
+
+        /// <summary>
+        /// Bounded host context captured into the immutable execution snapshot.
+        /// </summary>
+        public IDictionary<string, string> HostContext { get; set; }
     }
 }

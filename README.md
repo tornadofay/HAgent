@@ -1,27 +1,30 @@
 # HAgent
 
-**Lightweight, provider-neutral AI agent runtime for .NET applications.**
+**Lightweight, provider-neutral AI cognition and execution runtime for .NET applications.**
 
-HAgent provides the infrastructure needed to connect applications to LLMs without forcing a specific application architecture. It supports simple chat today and is being extended for business applications, games, simulations, and multi-agent environments.
+HAgent provides the reusable infrastructure needed to connect software to LLMs without forcing a specific application architecture or domain model. The project is intended to support any software environment that requires LLM-driven behavior, from simple conversational programs to business software, services, games, simulations, automation, developer tools, and other hosts.
 
 > Status: **0.8 Data Access + Authorization + Internal Storage — active**
+>
+> Next architecture milestone: **0.95 Generic External Host Integration**.
 >
 > Targets: **.NET Framework 4.8.1 and .NET 9**.
 
 ## What HAgent provides
 
 ```text
-Providers / models
+Host application
         |
-Agent profiles
+Generic execution/context
         |
 Runtime agent instances
         |
++-- provider/model execution
 +-- memory/context
 +-- structured tools
-+-- UI/data/application context
-+-- asynchronous execution
-+-- future workspaces and multi-agent coordination
++-- structured model output
++-- asynchronous lifecycle/cancellation
++-- workspaces and multi-agent coordination
 ```
 
 A host may use one configured agent or create many independent runtime instances from reusable profiles.
@@ -35,6 +38,8 @@ var response = await ai.SendAsync(
 
 Console.WriteLine(response.Text);
 ```
+
+Plain string messaging is the convenience entry point. The architecture is moving toward a canonical generic execution request that can carry host-supplied context, host correlation, execution requirements, and optional structured-output contracts without embedding host-domain concepts in HAgent.Core.
 
 See the architecture and plan documents for runtime, memory, tools, context, authorization, storage, and multi-agent design.
 
@@ -54,7 +59,26 @@ The verified foundation includes:
 - provider-neutral structured data projection/query contracts;
 - HAgent-owned storage configuration for File, SQL Server, and MySQL backends;
 - application-specific File storage layout;
-- HAgent-owned SQL Server/MySQL database bootstrap foundations with schema-version metadata.
+- HAgent-owned SQL Server/MySQL database bootstrap foundations.
+
+## Generic host integration target
+
+HAgent is designed to be the generic LLM cognition/execution layer for host software. The host remains authoritative for domain state, lifecycle, scheduling, persistence, authorization, and side effects.
+
+The generic integration target includes:
+
+- arbitrary bounded host input/context;
+- long-lived independent runtime instances;
+- separate runtime memory ownership;
+- host-supplied correlation identities;
+- cancellation, timeout, and safe late-completion handling;
+- host-defined structured output schemas with validation;
+- host-owned tools and capability execution;
+- concurrent execution across independent runtime instances;
+- optional persistence of generic runtime identity and lifecycle metadata;
+- optional multi-agent coordination and workspace communication.
+
+HAgent must not require a host-specific domain object model, event system, command system, scheduler, authorization framework, or UI framework.
 
 ## HAgent storage
 
@@ -62,7 +86,7 @@ HAgent persists its own internal data separately from the host application's bus
 
 Supported storage backends are:
 
-- **File** — application-specific files beneath the host executable in `HAgentData`;
+- **File** — HAgent-owned files beneath the host executable in `HAgentData`;
 - **SQL Server** — a dedicated HAgent-owned database, normally named `<application-name>-ai`;
 - **MySQL** — a dedicated HAgent-owned database, normally named `<application-name>-ai`.
 
@@ -98,14 +122,6 @@ Tool definitions are separate from executable handlers. Handlers remain runtime-
 The model is a requester, not an authority.
 
 Permissions, authorization, approvals, limits, cancellation, and host-side validation remain outside model instructions. HAgent database storage is dedicated to HAgent's own persistence and does not provide implicit access to host application tables. Structured data contracts are not raw SQL access.
-
-## HWorld
-
-HWorld is an external consumer target. It owns its world, physics, simulation time, sensors, scheduling, rendering, and action validation. HAgent supplies generic agent execution, context, memory, tools, and future coordination.
-
-HAgent must not depend on HWorld or contain HWorld-specific types or simulation logic.
-
-The minimum HWorld integration point is the asynchronous runtime-agent boundary: caller-supplied observation/context in, provider-neutral decision/tool output out, with cancellation, timeout, correlation, and stale-result handling.
 
 ## Example application
 

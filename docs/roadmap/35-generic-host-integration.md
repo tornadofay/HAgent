@@ -1,5 +1,9 @@
 # Phase 0.95 — Generic External Host Integration
 
+## Status
+
+**Complete — verified on .NET Framework 4.8.1 and .NET 9.**
+
 ## Goal
 Complete the provider-neutral execution boundary required by arbitrary host applications without coupling HAgent.Core to a host domain, UI framework, scheduler, persistence model, or side-effect system.
 
@@ -12,12 +16,12 @@ Complete the provider-neutral execution boundary required by arbitrary host appl
 5. [x] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome.
 6. [x] Verify mutable runtime overrides and host context remain isolated in immutable execution snapshots.
 7. [x] Verify the canonical request through deterministic Example coverage.
-8. [x] Add a standalone external-consumer smoke sample representing a host that can consume the HAgent production surface. Local execution verification remains required before final phase closure.
+8. [x] Add and verify a standalone external-consumer smoke sample representing a host that can consume the HAgent production surface.
 9. [x] Define a distinct provider-facing `ProviderExecutionRequest` boundary separate from the host-facing request.
 10. [x] Route normal, tool-calling, and streaming provider adapter contracts through `ProviderExecutionRequest`.
 11. [x] Verify provider-facing propagation of host-owned structured-output requirements with a deterministic Example adapter.
 12. [x] Use provider-facing structured-output requirements for provider-native constrained generation where supported. Native/fallback implementation and deterministic Example transport verification are complete.
-13. [ ] Run the full 0.95 verification pass and close the phase only after all cross-cutting slices pass.
+13. [x] Run the full 0.95 verification pass and close the phase only after all cross-cutting slices pass.
 
 ## Boundary rule
 
@@ -35,7 +39,7 @@ The legacy string-message execution overload remains a convenience API and deleg
 
 ## External consumer verification
 
-`samples/HAgent.ExternalConsumer` is a standalone host sample that references the HAgent production modules available to an application: Core, the OpenAI-compatible provider transport, File storage, SQL Server storage, MySQL storage, and WinForms. It owns its own in-memory host data and test provider so the verification requires no external database or network. The sample proves that an unrelated host can consume the HAgent system through its public boundaries without any HWorld-specific dependency or domain logic inside HAgent.
+`samples/HAgent.ExternalConsumer` is a standalone host sample that references the broad HAgent production surface available to an application: Core, the OpenAI-compatible provider transport, File storage, SQL Server storage, MySQL storage, and WinForms. It owns its own in-memory host data and test provider so verification requires no external database or network. The sample was executed successfully on both `.NET Framework 4.8.1` and `.NET 9` and demonstrates canonical execution, host context/correlation, concurrent runtime consumption, distinct execution/correlation/runtime identities, and the absence of HWorld-specific domain logic inside HAgent.
 
 A real host is not required to reference every HAgent assembly in production; it selects the HAgent modules it needs. The sample is intentionally broad so the external-consumer milestone verifies the production surface rather than only `HAgent.Core`.
 
@@ -45,4 +49,4 @@ HWorld is an external consumer. HAgent does not contain an HWorld dependency, ad
 
 ## Exit criterion
 
-A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent resolves it into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, and preserves execution identity without coupling to host or provider-specific domain models. A standalone external consumer representing the HAgent production surface must demonstrate the same public boundary before the phase is closed.
+A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent resolves it into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, and preserves execution identity without coupling to host or provider-specific domain models. A standalone external consumer representing the HAgent production surface demonstrated the same public boundary on both supported target frameworks.

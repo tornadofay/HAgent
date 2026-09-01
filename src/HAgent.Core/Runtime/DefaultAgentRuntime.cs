@@ -146,7 +146,11 @@ namespace HAgent.Runtime
                                     StructuredOutput = request.StructuredOutput
                                 };
 
-                                execution.Response = await adapter.SendAsync(providerRequest, token).ConfigureAwait(false);
+                                var response = await adapter.SendAsync(providerRequest, token).ConfigureAwait(false);
+                                if (token.IsCancellationRequested)
+                                    throw new OperationCanceledException("Agent execution was cancelled before the provider response became authoritative.", token);
+
+                                execution.Response = response;
 
                                 if (request.StructuredOutput != null)
                                 {
@@ -160,13 +164,14 @@ namespace HAgent.Runtime
                                     }
                                 }
 
-                                execution.State = AgentExecutionState.Succeeded;
-                                execution.FailureKind = AgentExecutionFailureKind.None;
-                                execution.ProviderErrorKind = ProviderErrorKind.Unknown;
-                                execution.CompletedAt = DateTimeOffset.UtcNow;
-                                Notify(execution);
-                                await PersistAuditAsync(execution).ConfigureAwait(false);
-                                return execution;
+                                if (execution.TryCompleteSucceeded(execution.Response, DateTimeOffset.UtcNow))
+                                {
+                                    Notify(execution);
+                                    await PersistAuditAsync(execution).ConfigureAwait(false);
+                                    return execution;
+                                }
+
+                                throw new InvalidOperationException("Execution reached a terminal state before the provider response could be committed.");
                             }
                             catch (Exception ex)
                             {
@@ -214,32 +219,72 @@ namespace HAgent.Runtime
                             throw new InvalidOperationException(actionable, lastError);
                     }
 
-                    throw lastError ?? new InvalidOperationException(
+                    var finalFailure = lastError ?? new InvalidOperationException(
                         "No enabled and compatible provider could handle agent: " + snapshot.Agent.Name);
+                    if (execution.TryCompleteFailed(
+                        finalFailure,
+                        execution.FailureKind,
+                        lastErrorKind,
+                        DateTimeOffset.UtcNow))
+                    {
+                        Notify(execution);
+                        await PersistAuditAsync(execution).ConfigureAwait(false);
+                    }
+                    throw finalFailure;
                 }
                 catch (OperationCanceledException)
                 {
-                    execution.State = AgentExecutionState.Cancelled;
-                    execution.CompletedAt = DateTimeOffset.UtcNow;
-                    execution.FailureKind = cancellationToken.IsCancellationRequested
+                    var cancellationFailureKind = cancellationToken.IsCancellationRequested
                         ? AgentExecutionFailureKind.Cancelled
                         : AgentExecutionFailureKind.Timeout;
-                    execution.Error = cancellationToken.IsCancellationRequested
+                    var cancellationError = cancellationToken.IsCancellationRequested
                         ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
                         : new TimeoutException("Agent execution exceeded its configured timeout.");
-                    Notify(execution);
-                    await PersistAuditAsync(execution).ConfigureAwait(false);
+
+                    if (execution.TryCompleteCancelled(
+                        cancellationError,
+                        cancellationFailureKind,
+                        DateTimeOffset.UtcNow))
+                    {
+                        Notify(execution);
+                        await PersistAuditAsync(execution).ConfigureAwait(false);
+                    }
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    execution.State = AgentExecutionState.Failed;
-                    execution.CompletedAt = DateTimeOffset.UtcNow;
-                    if (execution.FailureKind == AgentExecutionFailureKind.None)
-                        execution.FailureKind = AgentExecutionFailureKind.Unknown;
-                    execution.Error = ex;
-                    Notify(execution);
-                    await PersistAuditAsync(execution).ConfigureAwait(false);
+                    if (token.IsCancellationRequested)
+                    {
+                        var cancellationFailureKind = cancellationToken.IsCancellationRequested
+                            ? AgentExecutionFailureKind.Cancelled
+                            : AgentExecutionFailureKind.Timeout;
+                        var cancellationError = cancellationToken.IsCancellationRequested
+                            ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
+                            : new TimeoutException("Agent execution exceeded its configured timeout.");
+
+                        if (execution.TryCompleteCancelled(
+                            cancellationError,
+                            cancellationFailureKind,
+                            DateTimeOffset.UtcNow))
+                        {
+                            Notify(execution);
+                            await PersistAuditAsync(execution).ConfigureAwait(false);
+                        }
+                        throw cancellationError;
+                    }
+
+                    var failureKind = execution.FailureKind == AgentExecutionFailureKind.None
+                        ? AgentExecutionFailureKind.Unknown
+                        : execution.FailureKind;
+                    if (execution.TryCompleteFailed(
+                        ex,
+                        failureKind,
+                        execution.ProviderErrorKind,
+                        DateTimeOffset.UtcNow))
+                    {
+                        Notify(execution);
+                        await PersistAuditAsync(execution).ConfigureAwait(false);
+                    }
                     throw;
                 }
             }

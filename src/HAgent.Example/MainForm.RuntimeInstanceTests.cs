@@ -178,22 +178,20 @@ namespace HAgent.Example
             }
 
             public async Task<AIResponse> SendAsync(
-                AiProvider provider,
-                AiAgent agent,
-                string apiKey,
-                string systemPrompt,
-                IReadOnlyList<AIMessage> messages,
+                ProviderExecutionRequest request,
                 CancellationToken cancellationToken)
             {
-                var delay = messages != null && messages.Count > 0 &&
-                             string.Equals(messages[messages.Count - 1].Content, "stale-first", StringComparison.Ordinal)
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request));
+                var delay = request.Messages != null && request.Messages.Count > 0 &&
+                             string.Equals(request.Messages[request.Messages.Count - 1].Content, "stale-first", StringComparison.Ordinal)
                     ? 200
                     : 40;
                 await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 return new AIResponse
                 {
                     Text = "RUNTIME-STALE-OK",
-                    ProviderId = provider == null ? string.Empty : provider.Id
+                    ProviderId = request.Provider == null ? string.Empty : request.Provider.Id
                 };
             }
         }

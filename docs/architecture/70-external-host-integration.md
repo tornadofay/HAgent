@@ -39,20 +39,45 @@ HAgent must not require the host to adopt any particular domain object, event mo
 
 ## Generic execution request
 
-The canonical execution boundary must accept a generic host request rather than requiring the host to encode all external information as a plain string message.
+The canonical host-facing execution boundary is `AgentExecutionRequest`. It accepts generic host input rather than requiring all external information to be encoded as one string.
 
-The execution request should be capable of carrying:
+The request can carry:
 
 ```text
-host-supplied input/context
+ordered messages
 host correlation ID
+bounded host context
 execution options
+runtime overrides
 optional structured-output requirements
 ```
 
-The supplied input is opaque to HAgent at the domain level. HAgent may normalize, bound, project, or serialize it for model consumption through generic mechanisms, but it must not assign host-specific meaning to the data.
+The supplied context is opaque to HAgent at the domain level. HAgent may normalize, bound, project, or serialize it for model consumption through generic mechanisms, but it must not assign host-specific meaning to the data.
 
-Plain string messages remain a supported convenience form built on the generic execution boundary.
+Plain string messages remain a supported convenience form built on the canonical request boundary.
+
+## Provider-facing execution request
+
+The host-facing request is deliberately different from the provider-facing request.
+
+`ProviderExecutionRequest` is the internal provider boundary and carries the resolved transport inputs required by an adapter:
+
+```text
+resolved provider
+execution agent snapshot
+API key
+composed system prompt
+bounded messages
+structured-output requirements
+optional tools
+optional streaming progress sink
+```
+
+`IAiProviderAdapter`, `IProviderToolCallingAdapter`, and `IProviderStreamingAdapter` consume this request object rather than accumulating provider parameters on their method signatures.
+
+This separation allows the host-facing contract and provider transport contract to evolve independently. Provider-native capabilities can be added to `ProviderExecutionRequest` without forcing host callers to understand transport details, while HAgent can still validate normalized results centrally.
+
+For structured output, the provider request can carry the host schema so an adapter can use provider-native constrained generation when supported. HAgent still performs provider-neutral post-response validation; provider claims are never treated as sufficient authority for correctness.
 
 ## Runtime identity and lifetime
 
@@ -128,7 +153,9 @@ Model output does not directly grant authority to publish Wiki knowledge or muta
 
 ## Structured output
 
-A host may define a structured output schema for an execution. HAgent provides the generic request, provider invocation, validation, and result metadata path. The schema belongs to the host.
+A host may define a structured output schema for an execution. `StructuredOutputOptions` belongs to the host-facing request. The same requirement is carried into `ProviderExecutionRequest` so a provider adapter can apply native constraints when it knows how to do so.
+
+Regardless of provider behavior, HAgent validates the normalized response against the host-owned contract before reporting a successful structured-output execution.
 
 ## Tools
 
@@ -168,6 +195,17 @@ Host
   -> HAgentClient.ExecuteAsync(...)
   -> AgentExecution
   -> host-owned result handling / side effects
+```
+
+The provider boundary remains behind HAgent:
+
+```text
+AgentExecutionRequest
+    -> HAgent runtime resolution
+    -> ProviderExecutionRequest
+    -> provider adapter
+    -> normalized AIResponse
+    -> HAgent validation / lifecycle
 ```
 
 HAgent provides reusable LLM cognition/execution infrastructure rather than becoming an application framework.

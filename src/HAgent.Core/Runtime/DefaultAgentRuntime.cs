@@ -144,6 +144,18 @@ namespace HAgent.Runtime
                                     execution.Messages,
                                     token).ConfigureAwait(false);
 
+                                if (request.StructuredOutput != null)
+                                {
+                                    var structuredValidation = StructuredOutputValidator.Validate(
+                                        request.StructuredOutput,
+                                        execution.Response == null ? string.Empty : execution.Response.StructuredOutputJson);
+                                    if (!structuredValidation.IsValid)
+                                    {
+                                        throw new InvalidOperationException(
+                                            "Structured output validation failed: " + string.Join(" ", structuredValidation.Errors));
+                                    }
+                                }
+
                                 execution.State = AgentExecutionState.Succeeded;
                                 execution.FailureKind = AgentExecutionFailureKind.None;
                                 execution.ProviderErrorKind = ProviderErrorKind.Unknown;

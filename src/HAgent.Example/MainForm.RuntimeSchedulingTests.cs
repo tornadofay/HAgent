@@ -97,13 +97,11 @@ namespace HAgent.Example
             }
 
             public async Task<AIResponse> SendAsync(
-                AiProvider provider,
-                AiAgent agent,
-                string apiKey,
-                string systemPrompt,
-                IReadOnlyList<AIMessage> messages,
+                ProviderExecutionRequest request,
                 CancellationToken cancellationToken)
             {
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request));
                 var active = Interlocked.Increment(ref _activeCalls);
                 while (true)
                 {
@@ -119,7 +117,7 @@ namespace HAgent.Example
                     return new AIResponse
                     {
                         Text = "RUNTIME-SCHEDULE-OK",
-                        ProviderId = provider == null ? string.Empty : provider.Id
+                        ProviderId = request.Provider == null ? string.Empty : request.Provider.Id
                     };
                 }
                 finally

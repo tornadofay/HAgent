@@ -41,6 +41,8 @@ namespace HAgent.Example
                 TestRuntimeStaleResultsAsync,
                 "Revision-based authority",
                 "Uses only a local adapter; no external provider is contacted.");
+
+            AddRuntimeSchedulingTab();
         }
 
         private Task TestRuntimeInstanceAsync(string message)

@@ -18,17 +18,19 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.8 Data Access + Authorization — active**
+**0.95 Generic External Host Integration — active**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
-0.9 Runtime Agent Instances foundations are complete and documented.
+0.8 Data Access + Authorization + Internal Storage foundations are substantially implemented and manually verified across supported storage backends; remaining internal repository parity is intentionally deferred.
 
-0.10 Workspaces, Routing + Chat is the current active feature milestone in `docs/plan/20-active.md`.
+0.9 Runtime Agent Instances is complete for the generic runtime contract and manually verified through deterministic Example coverage. HWorld is an external consumer rather than an HAgent dependency.
 
-0.95 Generic External Host Integration remains a planned cross-cutting hardening phase.
+0.10 Workspaces, Routing + Chat has an implemented and locally verified routing foundation, but workspace execution/chat remains deferred until the 0.95 host boundary is stable.
 
-The next major capability layer after the current workspace work is **Knowledge + Skills + Memory Governance + Learning**, including management UI and profile/runtime capability controls.
+0.95 Generic External Host Integration is the current active hardening milestone.
+
+The next major capability layer after the generic host boundary is **Knowledge + Skills + Memory Governance + Learning**, including management UI and profile/runtime capability controls.
 
 ## Verified implementation
 
@@ -47,8 +49,14 @@ The repository currently contains verified foundations for:
 - convention-based custom control adaptation;
 - bounded application-object discovery;
 - provider-neutral structured data projection/query contracts;
-- runtime-instance foundations including independent runtime identity, lifecycle, memory ownership, execution revisions, scheduling, and optional runtime-state persistence;
-- HAgent.Example verification for completed capabilities.
+- HAgent-owned storage configuration for File, SQL Server, and MySQL backends;
+- application-specific File storage layout;
+- HAgent-owned SQL Server/MySQL database bootstrap foundations;
+- bounded internal inventory, memory, conversation, and execution-audit read tools;
+- automatic payload-free execution auditing with configurable bounded retention;
+- runtime-instance identity, scope, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, host-controlled scheduling, shutdown semantics, and optional runtime-state persistence;
+- provider-neutral workspace participants, message metadata, and default-recipient routing;
+- canonical generic host execution requests with multiple messages, host correlation identity, and bounded host context (pending local verification).
 
 ## Planned Knowledge / Skills / Learning layer
 
@@ -104,7 +112,7 @@ Storage implementations remain responsible for persistence. WinForms owns admini
 
 ## Planned generic integration hardening
 
-Phase 0.95 will complete the generic host boundary required for a broad class of LLM-driven software:
+Phase 0.95 completes the generic host boundary required for a broad class of LLM-driven software:
 
 - arbitrary bounded host execution input/context;
 - host-supplied correlation identity;
@@ -114,11 +122,11 @@ Phase 0.95 will complete the generic host boundary required for a broad class of
 - stronger isolation of mutable runtime overrides;
 - deterministic verification of concurrent independent runtime instances.
 
-These changes must remain provider-neutral and domain-neutral. Host state, lifecycle, scheduling policy, persistence, authorization, and side effects remain host-owned.
+These changes remain provider-neutral and domain-neutral. Host state, lifecycle, scheduling policy, persistence, authorization, and side effects remain host-owned.
 
 ## Active implementation
 
-The active implementation plan is the current file `docs/plan/20-active.md`. It must contain only work being implemented now; the Knowledge/Skills/Learning layer is planned until the workspace milestone changes the active slice.
+The active implementation plan is `docs/plan/20-active.md`. It contains only work being implemented now. Knowledge/Skills/Learning remains planned until the generic host boundary and subsequent capability-governance work are ready.
 
 ## Verification rule
 

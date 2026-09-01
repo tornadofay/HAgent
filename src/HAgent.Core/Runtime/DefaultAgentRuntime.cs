@@ -146,17 +146,17 @@ namespace HAgent.Runtime
                                     StructuredOutput = request.StructuredOutput
                                 };
 
-                                var response = await adapter.SendAsync(providerRequest, token).ConfigureAwait(false);
+                                var response = await AwaitProviderResponseAsync(
+                                    adapter.SendAsync(providerRequest, token),
+                                    token).ConfigureAwait(false);
                                 if (token.IsCancellationRequested)
                                     throw new OperationCanceledException("Agent execution was cancelled before the provider response became authoritative.", token);
-
-                                execution.Response = response;
 
                                 if (request.StructuredOutput != null)
                                 {
                                     var structuredValidation = StructuredOutputValidator.Validate(
                                         request.StructuredOutput,
-                                        execution.Response == null ? string.Empty : execution.Response.StructuredOutputJson);
+                                        response == null ? string.Empty : response.StructuredOutputJson);
                                     if (!structuredValidation.IsValid)
                                     {
                                         throw new InvalidOperationException(
@@ -164,7 +164,7 @@ namespace HAgent.Runtime
                                     }
                                 }
 
-                                if (execution.TryCompleteSucceeded(execution.Response, DateTimeOffset.UtcNow))
+                                if (execution.TryCompleteSucceeded(response, DateTimeOffset.UtcNow))
                                 {
                                     Notify(execution);
                                     await PersistAuditAsync(execution).ConfigureAwait(false);
@@ -288,6 +288,30 @@ namespace HAgent.Runtime
                     throw;
                 }
             }
+        }
+
+        private static async Task<AIResponse> AwaitProviderResponseAsync(Task<AIResponse> providerTask, CancellationToken cancellationToken)
+        {
+            if (providerTask == null) throw new ArgumentNullException(nameof(providerTask));
+            if (providerTask.IsCompleted)
+                return await providerTask.ConfigureAwait(false);
+
+            var cancellationTask = Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            var completedTask = await Task.WhenAny(providerTask, cancellationTask).ConfigureAwait(false);
+            if (completedTask == providerTask)
+                return await providerTask.ConfigureAwait(false);
+
+            providerTask.ContinueWith(
+                task =>
+                {
+                    var ignored = task.Exception;
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new OperationCanceledException(cancellationToken);
         }
 
         private static void ValidateOptions(AgentExecutionOptions options)

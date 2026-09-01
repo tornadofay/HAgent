@@ -50,34 +50,45 @@ namespace HAgent.Runtime
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
 
-        public async Task<AgentExecution> ExecuteAsync(
+        public Task<AgentExecution> ExecuteAsync(
             string agentId,
             string message,
             AgentExecutionOptions options = null,
             CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (string.IsNullOrWhiteSpace(agentId)) throw new ArgumentException("Agent id is required.", nameof(agentId));
             if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Message is required.", nameof(message));
+            return ExecuteAsync(
+                new AgentExecutionRequest
+                {
+                    AgentId = agentId,
+                    Messages = new List<AIMessage> { new AIMessage("user", message) }.AsReadOnly(),
+                    HostCorrelationId = options == null ? string.Empty : options.HostCorrelationId,
+                    HostContext = options == null ? null : new Dictionary<string, string>(options.HostContext ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
+                    Options = options ?? new AgentExecutionOptions()
+                },
+                cancellationToken);
+        }
 
-            options = options ?? new AgentExecutionOptions();
-            if (options.Timeout <= TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(options.Timeout), "Timeout must be greater than zero.");
-            if (options.MaxProviderAttempts <= 0)
-                throw new ArgumentOutOfRangeException(nameof(options.MaxProviderAttempts), "MaxProviderAttempts must be greater than zero.");
-            if (options.MaxRetriesPerProvider < 0)
-                throw new ArgumentOutOfRangeException(nameof(options.MaxRetriesPerProvider), "MaxRetriesPerProvider cannot be negative.");
-            if (options.RetryBaseDelay < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(options.RetryBaseDelay), "RetryBaseDelay cannot be negative.");
+        public async Task<AgentExecution> ExecuteAsync(
+            AgentExecutionRequest request,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            request.Validate();
+
+            var options = request.Options ?? new AgentExecutionOptions();
+            ValidateOptions(options);
 
             var agents = await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false);
-            var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
-            if (agent == null) throw new InvalidOperationException("Agent was not found: " + agentId);
+            var agent = agents.FirstOrDefault(x => string.Equals(x.Id, request.AgentId, StringComparison.OrdinalIgnoreCase));
+            if (agent == null) throw new InvalidOperationException("Agent was not found: " + request.AgentId);
             if (!agent.Enabled) throw new InvalidOperationException("Agent is disabled: " + agent.Name);
 
             var providers = await _store.GetProvidersAsync(cancellationToken).ConfigureAwait(false);
-            var snapshot = new AgentExecutionSnapshot(agent, providers, options.RuntimeOverrides);
-            var messages = new List<AIMessage> { new AIMessage("user", message) }.AsReadOnly();
+            var snapshot = new AgentExecutionSnapshot(agent, providers, options.RuntimeOverrides, request.HostContext);
+            var messages = new List<AIMessage>(request.Messages).AsReadOnly();
             var execution = new AgentExecution(snapshot, messages);
+            execution.HostCorrelationId = request.HostCorrelationId ?? string.Empty;
             execution.RuntimeInstanceId = options.RuntimeInstanceId;
             execution.RuntimeInstanceRevision = options.RuntimeInstanceRevision;
 
@@ -216,6 +227,18 @@ namespace HAgent.Runtime
                     throw;
                 }
             }
+        }
+
+        private static void ValidateOptions(AgentExecutionOptions options)
+        {
+            if (options.Timeout <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(options.Timeout), "Timeout must be greater than zero.");
+            if (options.MaxProviderAttempts <= 0)
+                throw new ArgumentOutOfRangeException(nameof(options.MaxProviderAttempts), "MaxProviderAttempts must be greater than zero.");
+            if (options.MaxRetriesPerProvider < 0)
+                throw new ArgumentOutOfRangeException(nameof(options.MaxRetriesPerProvider), "MaxRetriesPerProvider cannot be negative.");
+            if (options.RetryBaseDelay < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(options.RetryBaseDelay), "RetryBaseDelay cannot be negative.");
         }
 
         private async Task PersistAuditAsync(AgentExecution execution)

@@ -21,7 +21,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.9 Runtime Agent Instances is complete for the generic runtime contract and manually verified through deterministic Example coverage. HWorld is an external consumer rather than an HAgent dependency.
 
-0.95 Generic External Host Integration has a completed and verified baseline on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, and external-consumer verification. A final API completeness correction is pending for composition of a long-lived `AgentRuntimeInstance` with the canonical `AgentExecutionRequest`.
+0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
 0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation. The current work expands this foundation into the persisted per-user workspace product, workspace execution, Lobby/private chats, approvals, presentation surfaces, and WinForms UI.
 
@@ -51,7 +51,7 @@ The repository currently contains verified foundations for:
 - automatic payload-free execution auditing with configurable bounded retention;
 - runtime-instance identity, scope, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, host-controlled scheduling, shutdown semantics, and optional runtime-state persistence;
 - provider-neutral workspace participants, message metadata, default-recipient routing, and coordinator/specialist role policy;
-- generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, and verified external-consumer coverage on both supported target frameworks.
+- generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, verified external-consumer coverage on both supported target frameworks, and verified runtime-instance + canonical-request composition.
 
 ## Active Workspace target
 

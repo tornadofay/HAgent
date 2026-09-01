@@ -39,24 +39,17 @@ Capability policy is enforced by code before retrieval or invocation. Prompt tex
 
 ## Generic execution request
 
-The runtime execution boundary must be generic enough for a host to provide arbitrary external context or observations without converting everything into a plain string message.
+`AgentExecutionRequest` is the canonical provider-neutral host execution request. It can carry multiple ordered `AIMessage` inputs, a host-supplied correlation identity, a bounded string context dictionary, and `AgentExecutionOptions`.
 
-The canonical request carries:
+The request validates required agent/message identity, limits the message count, and bounds host-context entry count, key length, and value length. Host context is copied into `AgentExecutionSnapshot.HostContext` and is therefore immutable for the lifetime of the execution snapshot.
 
-```text
-host-supplied input/context
-host correlation identity
-execution options
-optional structured-output contract
-```
+Host correlation is copied to `AgentExecution.HostCorrelationId`. It remains distinct from the HAgent execution correlation ID and runtime-instance ID and is never encoded into prompt text.
 
-The input/context is opaque to HAgent at the domain level. HAgent may bound, normalize, project, or serialize it through generic mechanisms for model consumption, but it must not assign host-specific meaning to the data.
-
-Plain string execution remains a convenience overload built on the generic request boundary.
+The legacy `ExecuteAsync(agentId, message, ...)` overload remains a convenience compatibility path and delegates to the canonical request boundary.
 
 ## Execution identity and correlation
 
-Every execution has a HAgent-owned execution ID. A host may additionally provide a correlation ID. Runtime identity, execution identity, and host correlation identity remain distinct.
+Every execution has a HAgent-owned execution ID and HAgent-owned execution correlation ID. A host may additionally provide a correlation ID. Runtime identity, execution identity, and host correlation identity remain distinct.
 
 Tool execution should inherit relevant execution/runtime/host correlation identities so host authorization and telemetry do not require passing those identities as model arguments.
 
@@ -74,7 +67,7 @@ Provider cancellation is cooperative. A provider may therefore complete after a 
 
 ## Structured output
 
-A host may define a structured output schema for an execution. The runtime carries it through provider execution and validates the result.
+A host may define a structured output schema for an execution. The runtime carries it through provider execution and validates the result. The validation contract remains independent of any provider capability claim.
 
 ## Scheduling
 
@@ -82,9 +75,9 @@ Scheduling is host-controlled and optional. `IAgentExecutionScheduler` and `Agen
 
 ## Runtime state persistence
 
-Runtime-state persistence is a separate optional boundary from `IAiStore`. It persists generic runtime identity and lifecycle metadata, including runtime-only capability overrides when the host elects to persist them. It must not convert runtime state into a persistent `AiAgent` profile.
+Runtime-state persistence is a separate optional boundary from `IAiStore`. The current persisted runtime-state record contains generic identity, host/user/workspace/session metadata, scope, lifecycle state, and timestamps. It does not persist prompts, runtime context, secrets, execution history, or mutable provider responses.
 
-Restore requires the corresponding persistent `AiAgent` profile and verifies profile identity before recreating the runtime instance.
+Restore requires the corresponding persistent `AiAgent` profile and verifies profile identity before recreating the runtime instance. Runtime-only overrides are not part of the current persisted record and must be supplied again by the host when required.
 
 ## Scope and isolation
 
@@ -98,7 +91,7 @@ System prompts are additive layers, not replacement values. A lower layer may ad
 
 ## Execution model
 
-The host supplies an execution request snapshot. Runtime resolves profile/provider, applies runtime-only overrides, resolves the effective capability snapshot, composes applicable prompt layers, retrieves only permitted knowledge/memory, binds only enabled skills/tools, invokes the provider, normalizes the response, validates structured output when requested, captures configured memory/observations, optionally invokes learning, and reports lifecycle/usage metadata.
+The host supplies a canonical execution request. Runtime resolves profile/provider, applies runtime-only overrides, resolves the effective capability snapshot, composes applicable prompt layers, retrieves only permitted knowledge/memory, binds only enabled skills/tools, invokes the provider, normalizes the response, validates structured output when requested, captures configured memory/observations, optionally invokes learning, and reports lifecycle/usage metadata.
 
 ## Design invariant
 

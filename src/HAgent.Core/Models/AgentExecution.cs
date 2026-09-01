@@ -5,6 +5,8 @@ namespace HAgent.Models
 {
     public sealed class AgentExecution
     {
+        private readonly object _terminalSync = new object();
+
         internal AgentExecution(AgentExecutionSnapshot snapshot, IReadOnlyList<AIMessage> messages)
         {
             Id = Guid.NewGuid().ToString("N");
@@ -42,10 +44,78 @@ namespace HAgent.Models
         {
             get
             {
-                return State == Runtime.AgentExecutionState.Succeeded ||
-                       State == Runtime.AgentExecutionState.Failed ||
-                       State == Runtime.AgentExecutionState.Cancelled;
+                lock (_terminalSync)
+                {
+                    return IsTerminalState(State);
+                }
             }
+        }
+
+        internal bool TryCompleteSucceeded(AIResponse response, DateTimeOffset completedAt)
+        {
+            lock (_terminalSync)
+            {
+                if (IsTerminalState(State)) return false;
+
+                Response = response;
+                Error = null;
+                FailureKind = AgentExecutionFailureKind.None;
+                ProviderErrorKind = ProviderErrorKind.Unknown;
+                State = Runtime.AgentExecutionState.Succeeded;
+                CompletedAt = completedAt;
+                return true;
+            }
+        }
+
+        internal bool TryCompleteFailed(
+            Exception error,
+            AgentExecutionFailureKind failureKind,
+            ProviderErrorKind providerErrorKind,
+            DateTimeOffset completedAt)
+        {
+            lock (_terminalSync)
+            {
+                if (IsTerminalState(State)) return false;
+
+                Response = null;
+                Error = error;
+                FailureKind = failureKind == AgentExecutionFailureKind.None
+                    ? AgentExecutionFailureKind.Unknown
+                    : failureKind;
+                ProviderErrorKind = providerErrorKind;
+                State = Runtime.AgentExecutionState.Failed;
+                CompletedAt = completedAt;
+                return true;
+            }
+        }
+
+        internal bool TryCompleteCancelled(
+            Exception error,
+            AgentExecutionFailureKind failureKind,
+            DateTimeOffset completedAt)
+        {
+            if (failureKind != AgentExecutionFailureKind.Cancelled &&
+                failureKind != AgentExecutionFailureKind.Timeout)
+                throw new ArgumentException("Cancellation completion must use Cancelled or Timeout failure kind.", nameof(failureKind));
+
+            lock (_terminalSync)
+            {
+                if (IsTerminalState(State)) return false;
+
+                Response = null;
+                Error = error;
+                FailureKind = failureKind;
+                State = Runtime.AgentExecutionState.Cancelled;
+                CompletedAt = completedAt;
+                return true;
+            }
+        }
+
+        private static bool IsTerminalState(Runtime.AgentExecutionState state)
+        {
+            return state == Runtime.AgentExecutionState.Succeeded ||
+                   state == Runtime.AgentExecutionState.Failed ||
+                   state == Runtime.AgentExecutionState.Cancelled;
         }
     }
 }

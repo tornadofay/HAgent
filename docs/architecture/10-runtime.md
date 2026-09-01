@@ -6,7 +6,7 @@
 
 ## Runtime instance
 
-A runtime instance is the live execution identity created from a reusable profile. `AgentRuntimeInstance` has its own stable `InstanceId`, keeps the source `ProfileId`, records its `AgentRuntimeScope`, and has an explicit active/retired lifecycle.
+A runtime instance is the live execution identity created from a reusable profile. `AgentRuntimeInstance` has its own stable `InstanceId`, keeps the source `ProfileId`, records its `AgentRuntimeScope`, and has an explicit active/retired/shutdown lifecycle.
 
 Creating or retiring a runtime instance never mutates the reusable `AiAgent` profile and does not make the instance a persistent configured agent by default.
 
@@ -16,9 +16,11 @@ Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only valu
 
 Each runtime instance also has an independent `MemoryOwnerId`, currently equal to its `InstanceId`. Instance-created sessions and explicit memory operations use that owner so multiple runtime instances created from the same persistent profile cannot collide in agent-scoped automatic or explicit memory.
 
-Executing an `AgentRuntimeInstance` is exposed through `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`. A retired instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
+Executing an `AgentRuntimeInstance` is exposed through `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`. A retired or shutdown instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
 
-Each instance maintains a monotonically increasing execution revision. An instance-bound `AgentExecution` captures the instance ID and revision at execution start. Hosts can call `AgentRuntimeInstance.IsExecutionCurrent(execution)` to determine whether a result is still authoritative. A result becomes stale when a newer execution has started on that instance or when the instance is retired. Stale protection does not cancel or discard provider work; it gives the host a deterministic authority check for late results.
+Each instance maintains a monotonically increasing execution revision. An instance-bound `AgentExecution` captures the instance ID and revision at execution start. Hosts can call `AgentRuntimeInstance.IsExecutionCurrent(execution)` to determine whether a result is still authoritative. A result becomes stale when a newer execution has started on that instance or when the instance is retired or shutdown. Stale protection does not cancel or discard provider work; it gives the host a deterministic authority check for late results.
+
+`AgentRuntimeInstance.Shutdown()` is terminal for the instance. It prevents new execution and cancels outstanding instance-bound execution through the instance shutdown token. Retirement and shutdown are distinct: retirement stops new execution and invalidates result authority without cancelling already-running work, while shutdown additionally requests cancellation of outstanding instance-bound work.
 
 Runtime instances must support:
 
@@ -26,7 +28,7 @@ Runtime instances must support:
 - cancellation and timeout;
 - execution snapshots;
 - stale-result protection;
-- explicit retirement;
+- explicit retirement and shutdown;
 - optional persistence for recovery/collaboration.
 
 ## Scope

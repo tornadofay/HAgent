@@ -387,6 +387,7 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 - [x] Add deterministic Example verification for structured-output schema validation.
 - [x] Define a distinct provider-facing `ProviderExecutionRequest` boundary.
 - [x] Route normal, tool-calling, and streaming provider interfaces through `ProviderExecutionRequest`.
+- [x] Migrate in-repository Example and Core test adapters to the `ProviderExecutionRequest` contract.
 - [x] Add deterministic Example verification that provider-facing requests preserve host-owned structured-output requirements.
 - [ ] Use provider-facing structured-output requirements for provider-native constrained generation where supported.
 - [ ] Add deterministic concurrent external-consumer verification without introducing HWorld-specific dependencies.
@@ -406,7 +407,7 @@ Host context is copied into the immutable execution snapshot. HAgent does not as
 
 This boundary is intentionally separate from `AgentExecutionRequest`. Host callers do not need to know provider transport details, while provider adapters can evolve their supported capabilities without expanding the host-facing model.
 
-The normal, tool-calling, and streaming provider adapter contracts consume `ProviderExecutionRequest`. The current OpenAI-compatible implementation retains legacy overloads only as internal compatibility helpers; the adapter interfaces themselves use the request object.
+The normal, tool-calling, and streaming provider adapter contracts consume `ProviderExecutionRequest`. All in-repository adapter implementations and deterministic test doubles now use the request-object contract. The current OpenAI-compatible implementation retains legacy overloads only as internal compatibility helpers; the adapter interfaces themselves use the request object.
 
 Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization.
 

@@ -187,13 +187,11 @@ namespace HAgent.Example
             }
 
             public async Task<AIResponse> SendAsync(
-                AiProvider provider,
-                AiAgent agent,
-                string apiKey,
-                string systemPrompt,
-                IReadOnlyList<AIMessage> messages,
+                ProviderExecutionRequest request,
                 CancellationToken cancellationToken)
             {
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request));
                 switch (_mode)
                 {
                     case LocalAuditAdapterMode.Failure:

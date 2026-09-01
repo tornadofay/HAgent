@@ -17,6 +17,16 @@ namespace HAgent.Example
                 TestRuntimeInstanceAsync,
                 "Profile → instances",
                 "Provider-independent deterministic model test; no network or storage mutation.");
+
+            AddApiTab(
+                "RUNTIME CONCURRENCY",
+                "Run runtime concurrency test",
+                "Runs two independent runtime instances concurrently against a local adapter and verifies that execution identities and results remain isolated.",
+                "Both executions should overlap, complete successfully, and retain distinct instance, execution, and correlation identities.",
+                "Runtime concurrency verification.",
+                TestRuntimeConcurrencyAsync,
+                "Two independent instances",
+                "Uses only a local adapter; no external provider is contacted.");
         }
 
         private Task TestRuntimeInstanceAsync(string message)
@@ -43,6 +53,10 @@ namespace HAgent.Example
                 throw new InvalidOperationException("New runtime instances must start active.");
             if (!string.Equals(profile.Id, "runtime-profile-42", StringComparison.Ordinal))
                 throw new InvalidOperationException("Runtime instance creation mutated the reusable profile identity.");
+            if (!string.Equals(first.MemoryOwnerId, first.InstanceId, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(second.MemoryOwnerId, second.InstanceId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(first.MemoryOwnerId, second.MemoryOwnerId, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Runtime instances must have independent memory owners.");
 
             first.Retire();
             if (first.State != AgentRuntimeInstanceState.Retired)
@@ -55,10 +69,13 @@ namespace HAgent.Example
                 "Profile: " + profile.Id + Environment.NewLine +
                 "Instance 1: " + first.InstanceId + Environment.NewLine +
                 "Instance 1 scope: " + first.Scope + Environment.NewLine +
+                "Instance 1 memory owner: " + first.MemoryOwnerId + Environment.NewLine +
                 "Instance 1 state after retire: " + first.State + Environment.NewLine +
                 "Instance 2: " + second.InstanceId + Environment.NewLine +
                 "Instance 2 scope: " + second.Scope + Environment.NewLine +
+                "Instance 2 memory owner: " + second.MemoryOwnerId + Environment.NewLine +
                 "Instance 2 state: " + second.State + Environment.NewLine +
+                "Independent memory owners: yes" + Environment.NewLine +
                 "Profile remained reusable: yes.");
 
             return Task.CompletedTask;

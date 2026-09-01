@@ -382,14 +382,14 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 - [x] Define host-owned structured-output request and validation contract.
 - [x] Validate structured output independently of provider claims.
 - [x] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome. Implementation and deterministic Example verification are complete.
-- [ ] Verify execution snapshots fully isolate mutable runtime overrides and host context.
+- [x] Verify execution snapshots fully isolate mutable runtime overrides and host context.
 - [x] Add deterministic Example verification for the generic host execution request.
 - [x] Add deterministic Example verification for structured-output schema validation.
 - [x] Define a distinct provider-facing `ProviderExecutionRequest` boundary.
 - [x] Route normal, tool-calling, and streaming provider interfaces through `ProviderExecutionRequest`.
 - [x] Migrate in-repository Example and Core test adapters to the `ProviderExecutionRequest` contract.
 - [x] Add deterministic Example verification that provider-facing requests preserve host-owned structured-output requirements.
-- [ ] Use provider-facing structured-output requirements for provider-native constrained generation where supported.
+- [ ] Use provider-facing structured-output requirements for provider-native constrained generation where supported. Implementation landed; Example native/fallback transport verification pending.
 - [ ] Add deterministic concurrent external-consumer verification without introducing HWorld-specific dependencies.
 - [ ] Run the full 0.95 verification pass and close the phase only after all cross-cutting slices pass.
 
@@ -409,7 +409,7 @@ This boundary is intentionally separate from `AgentExecutionRequest`. Host calle
 
 The normal, tool-calling, and streaming provider adapter contracts consume `ProviderExecutionRequest`. All in-repository adapter implementations and deterministic test doubles now use the request-object contract. The current OpenAI-compatible implementation retains legacy overloads only as internal compatibility helpers; the adapter interfaces themselves use the request object.
 
-Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization.
+Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization. The OpenAI-compatible adapter now attempts native `response_format`/JSON Schema transport when structured output is requested; if the endpoint explicitly reports that feature as unsupported, it retries using the ordinary request shape and marks the fallback in provider metadata.
 
 ### Runtime terminal outcome
 

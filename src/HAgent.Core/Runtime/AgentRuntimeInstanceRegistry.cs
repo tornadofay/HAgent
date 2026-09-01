@@ -66,6 +66,16 @@ namespace HAgent.Runtime
             return true;
         }
 
+        public bool Shutdown(string instanceId)
+        {
+            AgentRuntimeInstance instance;
+            if (!TryGet(instanceId, out instance))
+                return false;
+
+            instance.Shutdown();
+            return true;
+        }
+
         public bool RemoveRetired(string instanceId)
         {
             if (string.IsNullOrWhiteSpace(instanceId))

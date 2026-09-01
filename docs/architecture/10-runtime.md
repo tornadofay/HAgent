@@ -14,6 +14,8 @@ Runtime-instance identity is intentionally separate from `AgentExecution.Id` and
 
 Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only values applied to a cloned execution snapshot and never written back to the persistent profile. Supported overrides currently include provider ID, model, temperature, maximum output tokens, an optional runtime system-prompt value, and a bounded host-supplied string context dictionary. Runtime context is captured immutably in the execution snapshot; it is context data, not an authorization mechanism.
 
+Each runtime instance also has an independent `MemoryOwnerId`, currently equal to its `InstanceId`. Instance-created sessions and explicit memory operations use that owner so multiple runtime instances created from the same persistent profile cannot collide in agent-scoped automatic or explicit memory.
+
 Executing an `AgentRuntimeInstance` is exposed through `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`. A retired instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
 
 Runtime instances must support:

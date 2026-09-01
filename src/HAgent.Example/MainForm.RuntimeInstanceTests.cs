@@ -52,6 +52,16 @@ namespace HAgent.Example
                 "Optional runtime persistence",
                 "Uses the currently selected HAgent storage backend.");
 
+            AddApiTab(
+                "GENERIC HOST EXECUTION",
+                "Run generic host execution test",
+                "Verifies the canonical provider-neutral host execution request with multiple messages, host correlation, and bounded host context.",
+                "The execution should preserve the host correlation and immutable host context without mutating the reusable agent profile.",
+                "0.95 generic host boundary verification.",
+                TestGenericHostExecutionAsync,
+                "Canonical host request",
+                "Uses only a local adapter; no external provider is contacted.");
+
             AddRuntimeSchedulingTab();
         }
 

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net481;net9.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HAgent.ExternalConsumer</RootNamespace>
+    <AssemblyName>HAgent.ExternalConsumer</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HAgent.Core\HAgent.Core.csproj" />
+  </ItemGroup>
+</Project>

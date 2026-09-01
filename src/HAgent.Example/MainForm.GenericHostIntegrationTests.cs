@@ -34,6 +34,10 @@ namespace HAgent.Example
                     { "host-operation", "generic-host-execution-42" },
                     { "resource-id", "resource-42" }
                 },
+                StructuredOutput = new StructuredOutputOptions
+                {
+                    SchemaJson = "{\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"}},\"required\":[\"status\"],\"additionalProperties\":false}"
+                },
                 Options = new AgentExecutionOptions
                 {
                     Timeout = TimeSpan.FromSeconds(5),
@@ -51,6 +55,14 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Host context was not captured in the execution snapshot.");
             if (!string.Equals(execution.Snapshot.HostContext["resource-id"], "resource-42", StringComparison.Ordinal))
                 throw new InvalidOperationException("Host context resource identity was not captured in the execution snapshot.");
+            if (execution.Response == null || !string.Equals(execution.Response.StructuredOutputJson, "{\"status\":\"ok\"}", StringComparison.Ordinal))
+                throw new InvalidOperationException("Provider-facing request did not produce the expected structured response for validation.");
+            if (!adapter.ReceivedRequest)
+                throw new InvalidOperationException("The provider adapter did not receive a ProviderExecutionRequest.");
+            if (adapter.ReceivedMessages != request.Messages.Count)
+                throw new InvalidOperationException("ProviderExecutionRequest did not preserve the canonical message count.");
+            if (!string.Equals(adapter.ReceivedStructuredSchema, request.StructuredOutput.SchemaJson, StringComparison.Ordinal))
+                throw new InvalidOperationException("Structured-output requirements were not propagated to the provider-facing request.");
             if (execution.State != AgentExecutionState.Succeeded)
                 throw new InvalidOperationException("Canonical generic host execution did not succeed.");
             if (!string.Equals(profile.Id, execution.Snapshot.Agent.Id, StringComparison.Ordinal))
@@ -62,6 +74,8 @@ namespace HAgent.Example
                 "Messages: " + execution.Messages.Count + Environment.NewLine +
                 "Host correlation: " + execution.HostCorrelationId + Environment.NewLine +
                 "Host context: host-operation=generic-host-execution-42; resource-id=resource-42" + Environment.NewLine +
+                "Provider request object: verified" + Environment.NewLine +
+                "Structured output requirement propagated: yes" + Environment.NewLine +
                 "Execution correlation: " + execution.CorrelationId + Environment.NewLine +
                 "Snapshot context immutable: verified" + Environment.NewLine +
                 "Profile remained unchanged: yes" + Environment.NewLine +
@@ -70,6 +84,10 @@ namespace HAgent.Example
 
         private sealed class GenericHostExecutionTestAdapter : IAiProviderAdapter
         {
+            public bool ReceivedRequest { get; private set; }
+            public int ReceivedMessages { get; private set; }
+            public string ReceivedStructuredSchema { get; private set; }
+
             public string Kind { get { return "GenericHostExecutionTest"; } }
             public string DisplayName { get { return "Generic Host Execution Test Adapter"; } }
 
@@ -79,19 +97,24 @@ namespace HAgent.Example
             }
 
             public Task<AIResponse> SendAsync(
-                AiProvider provider,
-                AiAgent agent,
-                string apiKey,
-                string systemPrompt,
-                IReadOnlyList<AIMessage> messages,
+                ProviderExecutionRequest request,
                 CancellationToken cancellationToken)
             {
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request));
+
+                request.Validate();
+                ReceivedRequest = true;
+                ReceivedMessages = request.Messages == null ? 0 : request.Messages.Count;
+                ReceivedStructuredSchema = request.StructuredOutput == null ? string.Empty : request.StructuredOutput.SchemaJson;
+
                 return Task.FromResult(new AIResponse
                 {
-                    AgentId = agent == null ? string.Empty : agent.Id,
-                    ProviderId = provider == null ? string.Empty : provider.Id,
-                    Model = agent == null ? string.Empty : agent.Model ?? string.Empty,
-                    Text = "GENERIC-HOST-OK"
+                    AgentId = request.Agent.Id,
+                    ProviderId = request.Provider.Id,
+                    Model = request.Agent.Model ?? string.Empty,
+                    Text = "GENERIC-HOST-OK",
+                    StructuredOutputJson = "{\"status\":\"ok\"}"
                 });
             }
         }

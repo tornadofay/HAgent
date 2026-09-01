@@ -12,21 +12,25 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 - [x] Reusable runtime-agent profiles and live runtime instances remain separate and verified through the 0.9 runtime foundation.
 - [x] Provider-neutral workspace/routing foundation exists for later host coordination; workspace UI/execution remains deferred to Phase 0.10.
 - [x] Canonical `AgentExecutionRequest` supports multiple messages, host correlation identity, bounded host context, and normal execution options.
-- [ ] Preserve host correlation identity through all relevant tool execution/correlation metadata.
-- [ ] Define host-owned structured-output request and validation contract.
-- [ ] Validate structured output independently of provider claims.
+- [x] Preserve host correlation identity through relevant tool execution/correlation metadata.
+- [x] Define host-owned structured-output request and validation contract.
+- [x] Validate structured output independently of provider claims.
 - [ ] Strengthen terminal-state protection against late provider completion after cancellation, timeout, retirement, shutdown, or another terminal outcome.
 - [ ] Verify execution snapshots fully isolate mutable runtime overrides and host context.
 - [x] Add deterministic Example verification for the generic host execution request.
+- [x] Add deterministic Example verification for structured-output schema validation.
 - [ ] Add deterministic concurrent external-consumer verification without introducing HWorld-specific dependencies.
+- [ ] Run the full 0.95 verification pass and close the phase only after all cross-cutting slices pass.
 
 ### Generic host boundary
 
 `AgentExecutionRequest` is the canonical provider-neutral execution request. It identifies the target reusable agent profile, carries an ordered message list, accepts a host-supplied correlation identity, carries a bounded host context dictionary, and reuses `AgentExecutionOptions` for execution policies and runtime overrides.
 
-Host correlation is distinct from HAgent execution correlation and runtime-instance identity. It is never embedded into prompt text.
+Host correlation is distinct from HAgent execution correlation and runtime-instance identity. It is never embedded into prompt text and is retained through tool execution metadata as a separate identity.
 
 Host context is copied into the immutable execution snapshot. HAgent does not assign domain meaning to the context and does not use it as an authorization mechanism.
+
+Structured output is a host-owned optional execution contract. `StructuredOutputOptions` carries the schema, and `StructuredOutputValidator` validates the normalized provider output against that schema independently of provider capability claims. The runtime rejects a response that does not satisfy the requested structured-output contract.
 
 The existing string-based `ExecuteAsync(agentId, message, ...)` API remains a compatibility convenience and delegates to the canonical request boundary.
 
@@ -34,9 +38,9 @@ The existing string-based `ExecuteAsync(agentId, message, ...)` API remains a co
 
 HWorld is an external consumer, not an HAgent dependency. HWorld should reference HAgent normally and use the public canonical request/runtime APIs. HAgent must not add HWorld-specific adapters, world types, physics, simulation scheduling, or action authority.
 
-### Deferred work
+### Next phases
 
-Skills, Wiki/content integration, Learning governance, and their management UI remain intentionally deferred. Phase 0.10 workspace execution/chat also remains deferred until this cross-cutting host boundary is stable.
+Workspace execution/chat belongs to Phase 0.10. Knowledge, Skills, Wiki/content management, and Learning governance belong to the dedicated Phase 0.11 and are no longer treated as part of the 0.95 implementation milestone.
 
 ## Verification rule
 

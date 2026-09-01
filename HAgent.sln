@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HAgent.Example", "src\HAgen
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HAgent.Tests", "tests\HAgent.Tests\HAgent.Tests.csproj", "{182E3D3D-C21E-83CF-F3A6-F282A2B5B668}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HAgent.ExternalConsumer", "samples\HAgent.ExternalConsumer\HAgent.ExternalConsumer.csproj", "{7F4E5B24-9D0C-4B35-AC16-6E0C7A4B8D92}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,11 +52,16 @@ Global
 		{F60C1B1B-A09C-61AD-D184-D06080939446}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2A7E4F10-5D64-4A17-8A43-DAE50B6F1278}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2A7E4F10-5D64-4A17-8A43-DAE50B6F1278}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A7E4F10-5D64-4A17-8A43-DAE50B6F1278}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A7E4F10-5D64-4A17-8A43-DAE50B6F1278}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A7E4F10-5D64-4A17-8A43-DAE50B6F1278}.Release|Any CPU.Build.0 = Release|Any CPU
 		{182E3D3D-C21E-83CF-F3A6-F282A2B5B668}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{182E3D3D-C21E-83CF-F3A6-F282A2B5B668}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{182E3D3D-C21E-83CF-F3A6-F282A2B5B668}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{182E3D3D-C21E-83CF-F3A6-F282A2B5B668}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F4E5B24-9D0C-4B35-AC16-6E0C7A4B8D92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F4E5B24-9D0C-4B35-AC16-6E0C7A4B8D92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F4E5B24-9D0C-4B35-AC16-6E0C7A4B8D92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F4E5B24-9D0C-4B35-AC16-6E0C7A4B8D92}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

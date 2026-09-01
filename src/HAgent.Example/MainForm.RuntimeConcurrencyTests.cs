@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
+using HAgent.Storage.File;
 
 namespace HAgent.Example
 {
@@ -27,7 +29,7 @@ namespace HAgent.Example
         private async Task TestRuntimeConcurrencyAsync(string message)
         {
             var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var secrets = CreateExampleSecretStore();
+            var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var profile = GetSelectedAgent();
             if (profile == null)
                 throw new InvalidOperationException("Select an agent first.");

@@ -2,7 +2,7 @@
 
 ## Project
 
-HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for simple chat or embedded into a host application, simulation, game, or other environment.
+HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. Its purpose is to provide reusable LLM infrastructure for software projects of different types without requiring HAgent.Core to understand any host-specific domain model.
 
 ## Supported targets
 
@@ -16,6 +16,8 @@ HAgent is a lightweight, provider-neutral .NET agent runtime. It can be used for
 **0.8 Data Access + Authorization — active**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
+
+The next cross-cutting runtime milestone is **0.95 Generic External Host Integration**. It is a planned architectural hardening phase, not a host-specific integration.
 
 ## Verified implementation
 
@@ -34,7 +36,22 @@ The repository currently contains verified foundations for:
 - convention-based custom control adaptation;
 - bounded application-object discovery;
 - provider-neutral structured data projection/query contracts;
-- `HAgent.Example` verification for the completed 0.7 UI/data capabilities.
+- runtime-instance foundations including independent runtime identity, lifecycle, memory ownership, execution revisions, scheduling, and optional runtime-state persistence;
+- `HAgent.Example` verification for completed capabilities.
+
+## Planned generic integration hardening
+
+Phase 0.95 will complete the generic host boundary required for a broad class of LLM-driven software:
+
+- arbitrary bounded host execution input/context;
+- host-supplied correlation identity;
+- host-defined structured-output contracts and validation;
+- race-safe terminal execution semantics against late provider completion;
+- runtime/execution identity propagation into tool execution;
+- stronger isolation of mutable runtime overrides;
+- deterministic verification of concurrent independent runtime instances.
+
+These changes must remain provider-neutral and domain-neutral. Host state, lifecycle, scheduling policy, persistence, authorization, and side effects remain host-owned.
 
 ## Active implementation
 

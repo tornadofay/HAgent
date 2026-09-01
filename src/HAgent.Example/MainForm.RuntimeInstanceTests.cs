@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using HAgent.Abstractions;
 using HAgent.Models;
+using HAgent.Runtime;
 
 namespace HAgent.Example
 {
@@ -26,6 +30,16 @@ namespace HAgent.Example
                 "Runtime concurrency verification.",
                 TestRuntimeConcurrencyAsync,
                 "Two independent instances",
+                "Uses only a local adapter; no external provider is contacted.");
+
+            AddApiTab(
+                "RUNTIME STALE RESULTS",
+                "Run stale-result test",
+                "Runs two executions on one runtime instance and verifies that an older late result is no longer authoritative after a newer execution starts or the instance is retired.",
+                "The first execution should be stale after the second begins; the second should be current until the instance is retired.",
+                "Runtime stale-result verification.",
+                TestRuntimeStaleResultsAsync,
+                "Revision-based authority",
                 "Uses only a local adapter; no external provider is contacted.");
         }
 
@@ -79,6 +93,87 @@ namespace HAgent.Example
                 "Profile remained reusable: yes.");
 
             return Task.CompletedTask;
+        }
+
+        private async Task TestRuntimeStaleResultsAsync(string message)
+        {
+            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
+            var profile = GetSelectedAgent();
+            if (profile == null)
+                throw new InvalidOperationException("Select an agent first.");
+
+            var adapter = new RuntimeStaleResultTestAdapter();
+            var client = new HAgentClient(store, secrets, new[] { adapter });
+            var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Task);
+            var options = new AgentExecutionOptions
+            {
+                Timeout = TimeSpan.FromSeconds(5),
+                MaxProviderAttempts = 1,
+                MaxRetriesPerProvider = 0
+            };
+
+            var firstTask = client.ExecuteAsync(instance, "stale-first", options, CancellationToken.None);
+            await Task.Delay(25).ConfigureAwait(true);
+            var secondTask = client.ExecuteAsync(instance, "stale-second", options, CancellationToken.None);
+            var first = await firstTask.ConfigureAwait(true);
+            var second = await secondTask.ConfigureAwait(true);
+
+            if (first.RuntimeInstanceRevision <= 0 || second.RuntimeInstanceRevision <= 0)
+                throw new InvalidOperationException("Runtime executions did not capture an instance revision.");
+            if (first.RuntimeInstanceRevision >= second.RuntimeInstanceRevision)
+                throw new InvalidOperationException("Runtime execution revisions did not advance monotonically.");
+            if (instance.IsExecutionCurrent(first))
+                throw new InvalidOperationException("The older execution was incorrectly treated as current after a newer execution started.");
+            if (!instance.IsExecutionCurrent(second))
+                throw new InvalidOperationException("The newest execution was not treated as current before retirement.");
+            if (first.State != AgentExecutionState.Succeeded || second.State != AgentExecutionState.Succeeded)
+                throw new InvalidOperationException("The stale-result verification executions did not both succeed.");
+
+            instance.Retire();
+            if (instance.IsExecutionCurrent(second))
+                throw new InvalidOperationException("A completed execution remained current after the runtime instance was retired.");
+
+            Write("RUNTIME STALE RESULTS",
+                "Contract test succeeded." + Environment.NewLine +
+                "Runtime instance: " + instance.InstanceId + Environment.NewLine +
+                "First revision: " + first.RuntimeInstanceRevision + Environment.NewLine +
+                "Second revision: " + second.RuntimeInstanceRevision + Environment.NewLine +
+                "First result current: no" + Environment.NewLine +
+                "Second result current before retire: yes" + Environment.NewLine +
+                "Second result current after retire: no" + Environment.NewLine +
+                "Both executions succeeded: yes");
+        }
+
+        private sealed class RuntimeStaleResultTestAdapter : IAiProviderAdapter
+        {
+            public string Kind { get { return "RuntimeStaleResultTest"; } }
+            public string DisplayName { get { return "Runtime Stale Result Test Adapter"; } }
+
+            public bool CanHandle(AiProvider provider)
+            {
+                return provider != null;
+            }
+
+            public async Task<AIResponse> SendAsync(
+                AiProvider provider,
+                AiAgent agent,
+                string apiKey,
+                string systemPrompt,
+                IReadOnlyList<AIMessage> messages,
+                CancellationToken cancellationToken)
+            {
+                var delay = messages != null && messages.Count > 0 &&
+                             string.Equals(messages[messages.Count - 1].Content, "stale-first", StringComparison.Ordinal)
+                    ? 200
+                    : 40;
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                return new AIResponse
+                {
+                    Text = "RUNTIME-STALE-OK",
+                    ProviderId = provider == null ? string.Empty : provider.Id
+                };
+            }
         }
     }
 }

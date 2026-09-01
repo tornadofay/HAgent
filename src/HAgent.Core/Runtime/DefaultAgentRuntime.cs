@@ -64,6 +64,7 @@ namespace HAgent.Runtime
                     Messages = new List<AIMessage> { new AIMessage("user", message) }.AsReadOnly(),
                     HostCorrelationId = options == null ? string.Empty : options.HostCorrelationId,
                     HostContext = options == null ? null : new Dictionary<string, string>(options.HostContext ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
+                    StructuredOutput = options == null ? null : options.StructuredOutput,
                     Options = options ?? new AgentExecutionOptions()
                 },
                 cancellationToken);
@@ -136,13 +137,17 @@ namespace HAgent.Runtime
                                 lastProviderName = provider.Name;
                                 lastModel = string.IsNullOrWhiteSpace(snapshot.Agent.Model) ? provider.DefaultModel : snapshot.Agent.Model;
 
-                                execution.Response = await adapter.SendAsync(
-                                    provider,
-                                    snapshot.Agent,
-                                    apiKey,
-                                    systemPrompt,
-                                    execution.Messages,
-                                    token).ConfigureAwait(false);
+                                var providerRequest = new ProviderExecutionRequest
+                                {
+                                    Provider = provider,
+                                    Agent = snapshot.Agent,
+                                    ApiKey = apiKey,
+                                    SystemPrompt = systemPrompt,
+                                    Messages = execution.Messages,
+                                    StructuredOutput = request.StructuredOutput
+                                };
+
+                                execution.Response = await adapter.SendAsync(providerRequest, token).ConfigureAwait(false);
 
                                 if (request.StructuredOutput != null)
                                 {

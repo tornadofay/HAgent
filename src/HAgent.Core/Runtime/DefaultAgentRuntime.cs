@@ -237,9 +237,18 @@ namespace HAgent.Runtime
                     var cancellationFailureKind = cancellationToken.IsCancellationRequested
                         ? AgentExecutionFailureKind.Cancelled
                         : AgentExecutionFailureKind.Timeout;
-                    var cancellationError = cancellationToken.IsCancellationRequested
-                        ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
-                        : new TimeoutException("Agent execution exceeded its configured timeout.");
+                    Exception cancellationError;
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        cancellationError = new OperationCanceledException(
+                            "Agent execution was cancelled by the caller.",
+                            cancellationToken);
+                    }
+                    else
+                    {
+                        cancellationError = new TimeoutException(
+                            "Agent execution exceeded its configured timeout.");
+                    }
 
                     if (execution.TryCompleteCancelled(
                         cancellationError,
@@ -258,9 +267,18 @@ namespace HAgent.Runtime
                         var cancellationFailureKind = cancellationToken.IsCancellationRequested
                             ? AgentExecutionFailureKind.Cancelled
                             : AgentExecutionFailureKind.Timeout;
-                        var cancellationError = cancellationToken.IsCancellationRequested
-                            ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
-                            : new TimeoutException("Agent execution exceeded its configured timeout.");
+                        Exception cancellationError;
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            cancellationError = new OperationCanceledException(
+                                "Agent execution was cancelled by the caller.",
+                                cancellationToken);
+                        }
+                        else
+                        {
+                            cancellationError = new TimeoutException(
+                                "Agent execution exceeded its configured timeout.");
+                        }
 
                         if (execution.TryCompleteCancelled(
                             cancellationError,

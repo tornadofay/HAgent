@@ -19,7 +19,7 @@ namespace HAgent.Storage.File
         {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Runtime state file path is required.", nameof(path));
             _path = path;
-            var directory = Path.GetDirectoryName(_path);
+            var directory = System.IO.Path.GetDirectoryName(_path);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
         }
 

@@ -4,9 +4,9 @@
 
 HAgent provides the reusable infrastructure needed to connect software to LLMs without forcing a specific application architecture or domain model. The project is intended to support any software environment that requires LLM-driven behavior, from simple conversational programs to business software, services, games, simulations, automation, developer tools, and other hosts.
 
-> Status: **0.8 Data Access + Authorization + Internal Storage — active**
+> Status: **0.95 Generic External Host Integration — active**
 >
-> Next architecture milestone: **0.95 Generic External Host Integration**.
+> Next feature milestone: **0.10 Workspaces, Routing + Chat**.
 >
 > Targets: **.NET Framework 4.8.1 and .NET 9**.
 
@@ -42,7 +42,7 @@ var response = await ai.SendAsync(
 Console.WriteLine(response.Text);
 ```
 
-Plain string messaging is the convenience entry point. The architecture is moving toward a canonical generic execution request that can carry host-supplied context, host correlation, execution requirements, and optional structured-output contracts without embedding host-domain concepts in HAgent.Core.
+Plain string messaging is the convenience entry point. The canonical generic execution boundary is `AgentExecutionRequest`, which can carry multiple messages, host-supplied bounded context, host correlation identity, execution options, and later structured-output requirements without embedding host-domain concepts in HAgent.Core.
 
 ## Capability model
 
@@ -60,7 +60,7 @@ Resources are scope-aware. Runtime instances inherit profile capability configur
 The verified foundation includes:
 
 - provider/model routing and capability discovery;
-- execution lifecycle, retries, timeout, cancellation, and diagnostics;
+- execution lifecycle, retries, timeout, cancellation, diagnostics, and stale-result protection;
 - persistent sessions and multiple memory forms;
 - context budgeting and lightweight memory retrieval;
 - normalized responses and streaming;
@@ -71,9 +71,13 @@ The verified foundation includes:
 - provider-neutral structured data projection/query contracts;
 - HAgent-owned storage configuration for File, SQL Server, and MySQL backends;
 - application-specific File storage layout;
-- HAgent-owned SQL Server/MySQL database bootstrap foundations.
+- HAgent-owned SQL Server/MySQL database bootstrap foundations;
+- bounded internal HAgent data inspection and payload-free execution audit;
+- runtime agent instances with independent memory, concurrency, stale-result, shutdown, scheduling, and optional runtime-state persistence;
+- provider-neutral workspace participants, message metadata, and default-recipient routing;
+- canonical generic host execution requests with bounded host context and host correlation (verification pending).
 
-Knowledge, Skills, Learning governance, and their complete management UI are the next major capability layer.
+Knowledge, Skills, Learning governance, and their complete management UI remain a later capability layer.
 
 ## Generic host integration target
 
@@ -82,11 +86,9 @@ HAgent is designed to be the generic LLM cognition/execution layer for host soft
 The generic integration target includes:
 
 - arbitrary bounded host input/context;
-- long-lived independent runtime instances;
-- separate runtime memory ownership;
 - host-supplied correlation identities;
-- cancellation, timeout, and safe late-completion handling;
 - host-defined structured output schemas with validation;
+- cancellation, timeout, and safe late-completion handling;
 - host-owned tools and capability execution;
 - concurrent execution across independent runtime instances;
 - optional persistence of generic runtime identity and lifecycle metadata;

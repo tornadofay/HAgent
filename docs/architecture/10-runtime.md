@@ -16,7 +16,30 @@ Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only valu
 
 Each runtime instance also has an independent `MemoryOwnerId`, currently equal to its `InstanceId`. Instance-created sessions and explicit memory operations use that owner so multiple runtime instances created from the same persistent profile cannot collide in private agent-scoped memory.
 
-Executing an `AgentRuntimeInstance` is exposed through `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`. A retired or shutdown instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
+Executing an `AgentRuntimeInstance` is exposed through `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`. The runtime-instance execution API accepts the canonical `AgentExecutionRequest` as the execution input. The older string-message overload remains as a convenience overload over that canonical path.
+
+The responsibilities are deliberately orthogonal:
+
+```text
+AgentRuntimeInstance
+    = who is executing + runtime identity/lifecycle/overrides
+
+AgentExecutionRequest
+    = what is being executed + messages/host context/correlation/structured-output contract
+```
+
+The public composition point is:
+
+```csharp
+HAgentClient.ExecuteAsync(
+    AgentRuntimeInstance instance,
+    AgentExecutionRequest request,
+    CancellationToken cancellationToken)
+```
+
+HAgent requires `request.AgentId` to match `instance.ProfileId`. The supplied runtime instance owns the runtime identity, execution revision, runtime overrides, shutdown cancellation, and private-memory ownership; the canonical request remains the source of execution messages, host context, host correlation, and structured-output requirements. The request is copied into an effective execution request so caller-owned options are not mutated.
+
+A retired or shutdown instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
 
 Each instance maintains a monotonically increasing execution revision. An instance-bound `AgentExecution` captures the instance ID and revision at execution start. Hosts can use `AgentRuntimeInstance.IsExecutionCurrent(execution)` to determine whether a completed result is still authoritative for that runtime instance. Stale protection is an authority mechanism and must not be confused with provider cancellation.
 
@@ -39,7 +62,7 @@ Capability policy is enforced by code before retrieval or invocation. Prompt tex
 
 ## Generic execution request
 
-`AgentExecutionRequest` is the canonical provider-neutral host execution request. It can carry multiple ordered `AIMessage` inputs, a host-supplied correlation identity, a bounded string context dictionary, and `AgentExecutionOptions`.
+`AgentExecutionRequest` is the canonical provider-neutral host execution request. It can carry multiple ordered `AIMessage` inputs, a host-supplied correlation identity, a bounded string context dictionary, `AgentExecutionOptions`, and an optional host-owned structured-output contract.
 
 The request validates required agent/message identity, limits the message count, and bounds host-context entry count, key length, and value length. Host context is copied into `AgentExecutionSnapshot.HostContext` and is therefore immutable for the lifetime of the execution snapshot.
 
@@ -95,7 +118,7 @@ System prompts are additive layers, not replacement values. A lower layer may ad
 
 ## Execution model
 
-The host supplies a canonical execution request. Runtime resolves profile/provider, applies runtime-only overrides, resolves the effective capability snapshot, composes applicable prompt layers, retrieves only permitted knowledge/memory, binds only enabled skills/tools, invokes the provider, normalizes the response, validates structured output when requested, captures configured memory/observations, optionally invokes learning, and reports lifecycle/usage metadata.
+The host supplies a canonical execution request and, when needed, a long-lived runtime instance. Runtime resolves the profile/provider, applies runtime-only overrides, resolves the effective capability snapshot, composes applicable prompt layers, retrieves only permitted knowledge/memory, binds only enabled skills/tools, invokes the provider, normalizes the response, validates structured output when requested, captures configured memory/observations, optionally invokes learning, and reports lifecycle/usage metadata.
 
 ## Design invariant
 

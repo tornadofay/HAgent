@@ -13,13 +13,7 @@ namespace HAgent.Providers.OpenAICompatible
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
             request.Validate();
-            return SendAsync(
-                request.Provider,
-                request.Agent,
-                request.ApiKey,
-                request.SystemPrompt,
-                request.Messages,
-                cancellationToken);
+            return SendWithStructuredOutputAsync(request, cancellationToken);
         }
 
         public Task<AIResponse> SendWithToolsAsync(

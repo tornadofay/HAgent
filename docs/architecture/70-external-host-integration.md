@@ -56,6 +56,42 @@ The supplied context is opaque to HAgent at the domain level. HAgent may normali
 
 Plain string messages remain a supported convenience form built on the canonical request boundary.
 
+## Runtime instance + execution request composition
+
+`AgentRuntimeInstance` and `AgentExecutionRequest` are orthogonal public concepts.
+
+```text
+AgentRuntimeInstance
+    = who is executing
+    + long-lived identity
+    + profile reference
+    + runtime overrides
+    + revision/lifecycle
+    + shutdown signaling
+    + private-memory ownership
+
+AgentExecutionRequest
+    = what is being executed
+    + messages
+    + host context
+    + host correlation
+    + execution options
+    + structured-output contract
+```
+
+A host combines them through:
+
+```csharp
+HAgentClient.ExecuteAsync(
+    AgentRuntimeInstance instance,
+    AgentExecutionRequest request,
+    CancellationToken cancellationToken)
+```
+
+HAgent requires `request.AgentId` to match `instance.ProfileId`. Runtime identity is not embedded into the request model, and HAgent does not mutate the caller's request/options objects to attach runtime state. Instead, HAgent creates an effective internal request/options snapshot containing the instance ID and execution revision.
+
+The existing runtime-instance string-message overload remains a compatibility/convenience API and delegates to this canonical composition boundary.
+
 ## Provider-facing execution request
 
 The host-facing request is deliberately different from the provider-facing request.
@@ -191,10 +227,9 @@ The generic integration surface should remain small:
 
 ```text
 Host
-  -> AgentExecutionRequest
-  -> AgentRuntimeInstance
-  -> effective capability/memory/knowledge context
-  -> HAgentClient.ExecuteAsync(...)
+  -> AgentRuntimeInstance (when long-lived runtime ownership is needed)
+  + AgentExecutionRequest
+  -> HAgentClient.ExecuteAsync(instance, request, ...)
   -> AgentExecution
   -> host-owned result handling / side effects
 ```
@@ -202,7 +237,7 @@ Host
 The provider boundary remains behind HAgent:
 
 ```text
-AgentExecutionRequest
+AgentExecutionRequest + runtime-derived state
     -> HAgent runtime resolution
     -> ProviderExecutionRequest
     -> provider adapter

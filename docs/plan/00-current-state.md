@@ -21,9 +21,9 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.9 Runtime Agent Instances is complete for the generic runtime contract and manually verified through deterministic Example coverage. HWorld is an external consumer rather than an HAgent dependency.
 
-0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, and external-consumer verification.
+0.95 Generic External Host Integration has a completed and verified baseline on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, and external-consumer verification. A final API completeness correction is pending for composition of a long-lived `AgentRuntimeInstance` with the canonical `AgentExecutionRequest`.
 
-0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation. The current work expands this foundation into the persisted per-user workspace product, workspace execution, Lobby/private chats, approvals, and WinForms UI.
+0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation. The current work expands this foundation into the persisted per-user workspace product, workspace execution, Lobby/private chats, approvals, presentation surfaces, and WinForms UI.
 
 The next major capability layer after 0.10 is **Knowledge + Skills + Memory Governance + Learning**, including management UI and profile/runtime capability controls.
 
@@ -55,11 +55,11 @@ The repository currently contains verified foundations for:
 
 ## Active Workspace target
 
-Phase 0.10 initially provides one default persisted workspace per host user. The host supplies a stable `UserId` and `IsAdmin` identity. Database-backed persistence is partitioned by host application identity and user identity; File storage remains local to the host installation.
+Phase 0.10 initially provides one default persisted workspace per host user. The host supplies a stable `UserId`, display identity, and `IsAdmin` identity. Database-backed persistence is partitioned by host application identity and user identity; File storage remains local to the host installation.
 
 Workspace visibility is always explicit: the workspace is hidden until the host opens it. `Create`, `Open/Show`, `Hide`, and `Close` are separate lifecycle operations, and closing the UI never destroys persisted workspace state. The model remains extensible to multiple named workspaces later.
 
-The workspace product target includes a shared Lobby, distinct user-to-agent Private Chats, agent join/leave, coordinator/specialist defaults, permitted provider/agent/model selection and runtime overrides, integrated approval requests/resolution, safe activity/statistics, unread/last-seen state, and modern WinForms presentation through a public host-facing workspace facade.
+The workspace product target includes a shared Lobby, distinct user-to-agent Private Chats, agent join/leave, coordinator/specialist defaults, permitted provider/agent/model selection and runtime overrides, integrated approval requests/resolution, safe activity/statistics, unread/last-seen state, bounded presentation of tables/charts/graphs and popup/detail results, and modern WinForms presentation through a public host-facing workspace facade.
 
 Provider secrets, connection strings, live provider tasks, live `CancellationToken` state, runtime synchronization primitives, raw HTTP requests, raw provider payloads, and temporary execution objects remain outside persisted workspace state; these exclusions were established by Phase 0.95.
 

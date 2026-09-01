@@ -140,7 +140,11 @@ namespace HAgent.Example
                 ReceivedMessages = request.Messages == null ? 0 : request.Messages.Count;
                 ReceivedStructuredSchema = request.StructuredOutput == null ? string.Empty : request.StructuredOutput.SchemaJson;
                 Started.TrySetResult(true);
-                await Release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                var cancellationTask = Task.Delay(Timeout.Infinite, cancellationToken);
+                var completedTask = await Task.WhenAny(Release.Task, cancellationTask).ConfigureAwait(false);
+                if (completedTask == cancellationTask)
+                    cancellationToken.ThrowIfCancellationRequested();
 
                 return new AIResponse
                 {

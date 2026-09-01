@@ -11,8 +11,9 @@ namespace HAgent.Runtime
         /// <summary>
         /// Executes a live runtime instance without mutating its persistent profile.
         /// The execution captures the instance revision so the host can identify stale late results.
+        /// Shutdown cancels instance-bound work in addition to preventing new work.
         /// </summary>
-        public Task<AgentExecution> ExecuteAsync(
+        public async Task<AgentExecution> ExecuteAsync(
             AgentRuntimeInstance instance,
             string message,
             AgentExecutionOptions options = null,
@@ -20,7 +21,7 @@ namespace HAgent.Runtime
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (instance.State != AgentRuntimeInstanceState.Active)
-                throw new InvalidOperationException("Runtime agent instance is retired: " + instance.InstanceId);
+                throw new InvalidOperationException("Runtime agent instance is not active: " + instance.InstanceId);
             if (string.IsNullOrWhiteSpace(message))
                 throw new ArgumentException("Message is required.", nameof(message));
 
@@ -29,7 +30,17 @@ namespace HAgent.Runtime
             effective.RuntimeOverrides = instance.Overrides;
             effective.RuntimeInstanceId = instance.InstanceId;
             effective.RuntimeInstanceRevision = revision;
-            return _runtime.ExecuteAsync(instance.ProfileId, message, effective, cancellationToken);
+
+            using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                instance.ShutdownToken))
+            {
+                return await _runtime.ExecuteAsync(
+                    instance.ProfileId,
+                    message,
+                    effective,
+                    linkedCts.Token).ConfigureAwait(false);
+            }
         }
 
         private static AgentExecutionOptions CloneOptions(AgentExecutionOptions source)

@@ -27,6 +27,8 @@ Each runtime instance owns memory through its `MemoryOwnerId`, keeping agent-sco
 
 Each instance-bound execution receives a monotonically increasing instance revision. Hosts can use `AgentRuntimeInstance.IsExecutionCurrent(execution)` to reject late results after a newer execution starts or the instance is retired. This authority check does not cancel provider work.
 
+Retirement and shutdown are separate lifecycle operations. Retirement prevents new executions and invalidates result authority while allowing already-running work to finish or be cancelled by the host. Shutdown is terminal, prevents new executions, invalidates result authority, and cancels outstanding instance-bound executions through the instance shutdown token.
+
 ## HWorld gate
 
 HWorld can begin consuming HAgent when the runtime exposes independent agent instances, asynchronous execution, caller-supplied observation/context, structured tool requests, cancellation/timeout, and stale-result protection. HWorld remains responsible for world state and action validation.

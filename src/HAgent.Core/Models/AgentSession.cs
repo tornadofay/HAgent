@@ -24,13 +24,15 @@ namespace HAgent.Models
             IReadOnlyList<AIMessage> initialMessages = null,
             DateTimeOffset? createdAt = null,
             IMemoryStore memoryStore = null,
-            IConversationMemoryPolicy memoryPolicy = null)
+            IConversationMemoryPolicy memoryPolicy = null,
+            string memoryOwnerId = null)
         {
             if (string.IsNullOrWhiteSpace(agentId)) throw new ArgumentException("Agent id is required.", nameof(agentId));
             if (string.IsNullOrWhiteSpace(sessionId)) throw new ArgumentException("Session id is required.", nameof(sessionId));
 
             AgentId = agentId;
             SessionId = sessionId;
+            MemoryOwnerId = string.IsNullOrWhiteSpace(memoryOwnerId) ? agentId : memoryOwnerId;
             _send = send ?? throw new ArgumentNullException(nameof(send));
             _conversationStore = conversationStore;
             _memoryStore = memoryStore;
@@ -42,6 +44,7 @@ namespace HAgent.Models
 
         public string AgentId { get; private set; }
         public string SessionId { get; private set; }
+        public string MemoryOwnerId { get; private set; }
         public IReadOnlyList<AIMessage> Messages { get { return _messages.AsReadOnly(); } }
         public bool IsPersistent { get { return _conversationStore != null; } }
         public bool HasAutomaticMemory { get { return _memoryStore != null && _memoryPolicy != null; } }
@@ -97,7 +100,7 @@ namespace HAgent.Models
                 var entry = new MemoryEntry
                 {
                     Scope = MemoryScope.Agent,
-                    OwnerId = AgentId,
+                    OwnerId = MemoryOwnerId,
                     Content = candidate.Trim(),
                     Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {

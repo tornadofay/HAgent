@@ -78,6 +78,8 @@ namespace HAgent.Runtime
             var snapshot = new AgentExecutionSnapshot(agent, providers, options.RuntimeOverrides);
             var messages = new List<AIMessage> { new AIMessage("user", message) }.AsReadOnly();
             var execution = new AgentExecution(snapshot, messages);
+            execution.RuntimeInstanceId = options.RuntimeInstanceId;
+            execution.RuntimeInstanceRevision = options.RuntimeInstanceRevision;
 
             Notify(execution);
             execution.State = AgentExecutionState.Running;

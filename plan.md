@@ -18,7 +18,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.95 Generic External Host Integration — active**
+**0.10 Workspaces, Routing + Chat — active**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -26,11 +26,11 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.9 Runtime Agent Instances is complete for the generic runtime contract and manually verified through deterministic Example coverage. HWorld is an external consumer rather than an HAgent dependency.
 
-0.10 Workspaces, Routing + Chat has an implemented and locally verified routing foundation, but workspace execution/chat remains deferred until the 0.95 host boundary is stable.
+0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, and external-consumer verification.
 
-0.95 Generic External Host Integration is the current active hardening milestone.
+0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation. The current work expands this foundation into the persisted per-user workspace product, workspace execution, Lobby/private chats, approvals, and WinForms UI.
 
-The next major capability layer after the generic host boundary is **Knowledge + Skills + Memory Governance + Learning**, including management UI and profile/runtime capability controls.
+The next major capability layer after 0.10 is **Knowledge + Skills + Memory Governance + Learning**, including management UI and profile/runtime capability controls.
 
 ## Verified implementation
 
@@ -55,8 +55,18 @@ The repository currently contains verified foundations for:
 - bounded internal inventory, memory, conversation, and execution-audit read tools;
 - automatic payload-free execution auditing with configurable bounded retention;
 - runtime-instance identity, scope, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, host-controlled scheduling, shutdown semantics, and optional runtime-state persistence;
-- provider-neutral workspace participants, message metadata, and default-recipient routing;
-- canonical generic host execution requests with multiple messages, host correlation identity, and bounded host context (pending local verification).
+- provider-neutral workspace participants, message metadata, default-recipient routing, and coordinator/specialist role policy;
+- generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, and verified external-consumer coverage on both supported target frameworks.
+
+## Active Workspace target
+
+Phase 0.10 initially provides one default persisted workspace per host user. The host supplies a stable `UserId` and `IsAdmin` identity. Database-backed persistence is partitioned by host application identity and user identity; File storage remains local to the host installation.
+
+Workspace visibility is always explicit: the workspace is hidden until the host opens it. `Create`, `Open/Show`, `Hide`, and `Close` are separate lifecycle operations, and closing the UI never destroys persisted workspace state. The model remains extensible to multiple named workspaces later.
+
+The workspace product target includes a shared Lobby, distinct user-to-agent Private Chats, agent join/leave, coordinator/specialist defaults, permitted provider/agent/model selection and runtime overrides, integrated approval requests/resolution, safe activity/statistics, unread/last-seen state, and modern WinForms presentation through a public host-facing workspace facade.
+
+Provider secrets, connection strings, live provider tasks, live `CancellationToken` state, runtime synchronization primitives, raw HTTP requests, raw provider payloads, and temporary execution objects remain outside persisted workspace state; these exclusions were established by Phase 0.95.
 
 ## Planned Knowledge / Skills / Learning layer
 
@@ -106,27 +116,13 @@ The agent knowledge view must be future-proof: known types may have specialized 
 
 ## Boundaries
 
-Knowledge, skills, memory, learning, and their management UI remain HAgent-owned generic infrastructure. No host-specific application or HWorld type may be introduced into Core.
+Knowledge, skills, memory, learning, workspace state, and workspace management UI remain HAgent-owned generic infrastructure. No host-specific application or HWorld type may be introduced into Core.
 
-Storage implementations remain responsible for persistence. WinForms owns administration surfaces. The model is never the authorization authority; learning promotion and capability enforcement occur through code/policy.
-
-## Planned generic integration hardening
-
-Phase 0.95 completes the generic host boundary required for a broad class of LLM-driven software:
-
-- arbitrary bounded host execution input/context;
-- host-supplied correlation identity;
-- host-defined structured-output contracts and validation;
-- race-safe terminal execution semantics against late provider completion;
-- runtime/execution identity propagation into tool execution;
-- stronger isolation of mutable runtime overrides;
-- deterministic verification of concurrent independent runtime instances.
-
-These changes remain provider-neutral and domain-neutral. Host state, lifecycle, scheduling policy, persistence, authorization, and side effects remain host-owned.
+Storage implementations remain responsible for persistence. WinForms owns administration/presentation surfaces. The model is never the authorization authority; learning promotion, workspace approvals, and capability enforcement occur through code/policy.
 
 ## Active implementation
 
-The active implementation plan is `docs/plan/20-active.md`. It contains only work being implemented now. Knowledge/Skills/Learning remains planned until the generic host boundary and subsequent capability-governance work are ready.
+The active implementation plan is `docs/plan/20-active.md`. It contains only work being implemented now. Knowledge/Skills/Learning remains planned until the 0.10 workspace layer and its dependencies are ready.
 
 ## Verification rule
 

@@ -22,9 +22,16 @@ Each instance maintains a monotonically increasing execution revision. An instan
 
 `AgentRuntimeInstance.Shutdown()` is terminal for the instance. It prevents new execution and cancels outstanding instance-bound execution through the instance shutdown token. Retirement and shutdown are distinct: retirement stops new execution and invalidates result authority without cancelling already-running work, while shutdown additionally requests cancellation of outstanding instance-bound work.
 
+## Scheduling
+
+Scheduling is host-controlled and optional. `IAgentExecutionScheduler` and `AgentExecutionScheduler` provide a focused admission boundary that can limit concurrent runtime executions without taking ownership of application timing, simulation ticks, or external scheduling policy. The scheduler waits for an available slot, delegates to `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`, honors caller cancellation while queued or running, and releases its slot when execution finishes.
+
+The scheduler is not a second execution engine and does not alter provider routing, timeout, cancellation, correlation, stale-result, or runtime-instance semantics. Hosts may use their own scheduler instead.
+
 Runtime instances must support:
 
 - concurrent independent execution;
+- host-controlled scheduling or direct asynchronous execution;
 - cancellation and timeout;
 - execution snapshots;
 - stale-result protection;

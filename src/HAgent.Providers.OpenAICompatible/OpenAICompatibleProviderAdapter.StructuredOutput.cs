@@ -74,10 +74,15 @@ namespace HAgent.Providers.OpenAICompatible
                                 cancellationToken).ConfigureAwait(false);
                             if (fallback != null)
                             {
-                                if (fallback.ProviderMetadata == null)
-                                    fallback.ProviderMetadata = new Dictionary<string, object>();
-                                fallback.ProviderMetadata["structured_output_native"] = false;
-                                fallback.ProviderMetadata["structured_output_native_fallback"] = true;
+                                var metadata = new Dictionary<string, object>();
+                                if (fallback.ProviderMetadata != null)
+                                {
+                                    foreach (var item in fallback.ProviderMetadata)
+                                        metadata[item.Key] = item.Value;
+                                }
+                                metadata["structured_output_native"] = false;
+                                metadata["structured_output_native_fallback"] = true;
+                                fallback.ProviderMetadata = metadata;
                             }
                             return fallback;
                         }

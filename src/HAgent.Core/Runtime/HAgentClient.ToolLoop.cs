@@ -29,7 +29,8 @@ namespace HAgent.Runtime
             string message,
             int maxTurns = 8,
             int maxToolCalls = 16,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default(CancellationToken),
+            string hostCorrelationId = null)
         {
             if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Message is required.", nameof(message));
             if (maxTurns < 1) throw new ArgumentOutOfRangeException(nameof(maxTurns));
@@ -105,7 +106,13 @@ namespace HAgent.Runtime
                                 arguments = normalizedArguments;
                             }
 
-                            result = await ExecuteToolAsync(agentId, definition.Id, call.Id, arguments, cancellationToken).ConfigureAwait(false);
+                            result = await ExecuteToolAsync(
+                                agentId,
+                                definition.Id,
+                                call.Id,
+                                arguments,
+                                cancellationToken,
+                                hostCorrelationId).ConfigureAwait(false);
                         }
                     }
 

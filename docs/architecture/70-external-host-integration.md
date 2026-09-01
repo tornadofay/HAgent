@@ -25,7 +25,10 @@ HAgent owns generic cognition/execution capabilities:
 - execution lifecycle;
 - provider routing and model invocation;
 - context ingestion and bounded context handling;
-- memory abstractions;
+- scoped memory;
+- reusable Skills;
+- reusable Knowledge and managed Wiki sources;
+- learning candidates and policy-governed promotion;
 - structured tool requests and trusted tool execution boundaries;
 - structured model output contracts;
 - workspace and agent-to-agent coordination primitives;
@@ -55,18 +58,23 @@ Plain string messages remain a supported convenience form built on the generic e
 
 `AgentRuntimeInstance` is the long-lived execution identity created from a reusable `AiAgent` profile.
 
-A host may:
-
-```text
-create instance
-    -> execute repeatedly
-    -> keep instance alive for an arbitrary lifetime
-    -> retire or shut down explicitly
-```
-
-The runtime instance is independent from the persistent profile and from individual executions.
+A host may create an instance, execute repeatedly, keep it alive for an arbitrary lifetime, then retire or shut it down explicitly.
 
 Multiple instances created from the same profile must remain independently addressable and must not share mutable runtime identity, runtime overrides, execution state, or private memory ownership.
+
+## Capability inheritance
+
+The runtime inherits the profile's effective capability policy and may apply runtime-only tri-state overrides:
+
+```text
+Inherit
+Enabled
+Disabled
+```
+
+The policy applies to Skills, Knowledge/Wiki, Memory families/types, individual resources, and future resource types. The effective policy is captured in each execution snapshot.
+
+This allows two runtime instances from the same profile to use different capability sets without creating duplicate profiles or mutating shared configuration.
 
 ## Execution identity and correlation
 
@@ -95,78 +103,58 @@ Cancellation and timeout are execution outcomes, not prompt instructions.
 
 A provider may complete late when cancellation is cooperative. HAgent must protect the execution state machine so that once a terminal outcome has won, a late provider completion cannot publish a conflicting result.
 
-Runtime-instance retirement invalidates result authority for subsequently completed work. Runtime-instance shutdown additionally requests cancellation of outstanding instance-bound executions.
+## Learning and authority
 
-The host may still use execution identity/revision information to decide whether a completed result is authoritative for its own state.
+Learning is part of HAgent's generic capability surface but is not automatic model training.
+
+```text
+execution experience
+    -> learning analysis
+    -> typed candidate
+    -> validation/policy/authorization
+    -> memory / knowledge / new skill version
+```
+
+The host can choose `LearningMode`:
+
+```text
+Disabled
+SuggestOnly
+AutomaticWithPolicy
+FullyAutomatic
+```
+
+Model output does not directly grant authority to publish Wiki knowledge or mutate a published Skill. Candidates preserve provenance and source runtime/execution identity.
 
 ## Structured output
 
-A host may define a structured output schema for an execution.
-
-HAgent provides the generic mechanism to:
-
-```text
-accept schema
-    -> request structured output from a capable provider
-    -> receive structured output
-    -> validate the returned document
-    -> expose validation/result metadata
-```
-
-The schema belongs to the host. HAgent must not contain domain-specific schemas.
-
-Provider capability is explicit. A provider may report structured output as supported, unsupported, or unknown. HAgent must not silently treat arbitrary valid JSON text as proof that a structured-output contract was honored.
+A host may define a structured output schema for an execution. HAgent provides the generic request, provider invocation, validation, and result metadata path. The schema belongs to the host.
 
 ## Tools
 
-Tools are the generic capability boundary between model reasoning and host-owned operations.
+Tools are the generic capability boundary between model reasoning and host-owned operations. A host registers a tool definition plus trusted executable handler. Handlers remain runtime registrations and are never serialized.
 
-A host registers tools by providing:
-
-```text
-tool definition
-trusted executable handler
-```
-
-Tool definitions describe the callable contract. Handlers perform the actual operation.
-
-Tool execution context should carry sufficient generic identity for authorization and observability, including execution identity, runtime-instance identity, host correlation, tool identity, tool-call identity, arguments, and cancellation.
-
-HAgent must not define what a tool means or what side effects are permitted. Host authorization remains authoritative.
+Tool execution context carries sufficient generic identity for authorization and observability, including execution identity, runtime-instance identity, host correlation, tool identity, tool-call identity, arguments, and cancellation.
 
 ## Memory ownership
 
-Private memory is associated with runtime ownership rather than the reusable profile.
+Private memory is associated with explicit runtime ownership rather than the reusable profile. Independent runtime instances can therefore maintain separate private memories even when they share the same profile, provider, stores, or skill library.
 
-A host may therefore create multiple runtime instances from one profile while maintaining separate private memory for each instance.
-
-Shared memory remains an explicitly scoped capability and must not be inferred merely because instances use the same profile or HAgent client.
+Working memory is execution-local. Episodic, semantic, procedural, and future memory families may use different explicit scopes. Shared memory remains an explicitly authorized capability.
 
 ## Concurrency
 
-Long-lived runtime instances must be able to execute concurrently.
+Long-lived runtime instances must be able to execute concurrently. Runtime state such as lifecycle, execution revision, shutdown signaling, capability overrides, and memory ownership remains isolated per instance.
 
-Runtime state such as lifecycle, execution revision, shutdown signaling, and memory ownership must remain isolated per instance. Shared infrastructure such as provider adapters, stores, and tool registries may be reused when their contracts support concurrent use.
-
-HAgent must not require a single global execution loop or a host-specific scheduler.
-
-Host scheduling remains optional and external. HAgent may provide focused scheduling primitives for admission control without taking ownership of the host's timing model.
+Shared infrastructure such as provider adapters, stores, and tool registries may be reused when their contracts support concurrent use. HAgent must not require a single global execution loop or host-specific scheduler.
 
 ## Persistence
 
-Runtime-state persistence is optional.
+Runtime-state persistence is optional. When enabled, it may persist generic runtime identity/lifecycle metadata and runtime-only capability overrides through `IAgentRuntimeStateStore`. It must not silently convert runtime state into the persistent profile.
 
-When enabled, HAgent may persist generic runtime identity and lifecycle metadata through `IAgentRuntimeStateStore`. Host-owned domain state remains outside HAgent's runtime-state contract unless explicitly represented through a generic host extension boundary.
+## Management and discoverability
 
-Persisted runtime identity must remain distinct from:
-
-```text
-persistent agent profile
-runtime instance
-individual execution
-host correlation identity
-host domain state
-```
+HAgent's management layer can inspect the effective resource inventory of an agent or runtime. The inventory is extensible so known resource types can have specialized presentation while future/unknown types remain visible through generic resource/type identifiers.
 
 ## Integration principle
 
@@ -176,12 +164,13 @@ The generic integration surface should remain small:
 Host
   -> AgentExecutionRequest
   -> AgentRuntimeInstance
+  -> effective capability/memory/knowledge context
   -> HAgentClient.ExecuteAsync(...)
   -> AgentExecution
   -> host-owned result handling / side effects
 ```
 
-Everything the host needs to express about its own environment should cross this boundary as generic data or explicit host-owned adapters. HAgent should provide the reusable LLM cognition/execution infrastructure instead of becoming an application framework.
+HAgent provides reusable LLM cognition/execution infrastructure rather than becoming an application framework.
 
 ## Non-goals
 

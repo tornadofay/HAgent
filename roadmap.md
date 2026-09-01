@@ -232,10 +232,10 @@ Make live agents first-class runtime objects separate from reusable agent profil
 5. [x] Support multiple runtime instances executing concurrently.
 6. [x] Expose asynchronous scheduling, cancellation, timeout, correlation, and stale-result protection.
 7. [x] Define explicit active/retired/shutdown lifecycle behavior.
-8. [ ] Keep dynamically created agents out of persistent configuration by default.
-9. [ ] Add optional runtime-state persistence for recovery, collaboration, or multi-process deployments.
+8. [x] Keep dynamically created agents out of persistent configuration by default.
+9. [x] Add optional runtime-state persistence for recovery, collaboration, or multi-process deployments.
 10. [x] Verify the runtime contract with deterministic Example coverage.
-11. [ ] Add the first HWorld adapter verification at this boundary.
+11. [ ] Add an external HWorld consumer verification at this boundary.
 
 ## Runtime rule
 
@@ -251,11 +251,13 @@ Retirement and shutdown are separate lifecycle operations. Retirement prevents n
 
 `IAgentExecutionScheduler` and the default `AgentExecutionScheduler` provide an optional host-controlled admission boundary with a configurable concurrency limit. The scheduler does not own application timing or replace runtime execution semantics. Its deterministic Example verification confirms the configured concurrency limit and queued caller cancellation behavior.
 
-The runtime contract is covered by deterministic Example verification for runtime instance identity, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, scheduling, and shutdown lifecycle. No external provider is required for those tests.
+The runtime contract is covered by deterministic Example verification for runtime instance identity, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, scheduling, shutdown lifecycle, and optional runtime-state persistence. No external provider is required for those tests.
+
+Dynamically created runtime instances are not persisted as `AiAgent` profile records by default. Optional runtime-state persistence is a separate host-controlled capability using the HAgent-owned runtime-state store; persisted state contains identity/scope/lifecycle metadata only and does not persist prompts, runtime context, secrets, or execution history.
 
 ## HWorld gate
 
-HWorld can begin consuming HAgent when the runtime exposes independent agent instances, asynchronous execution, caller-supplied observation/context, structured tool requests, cancellation/timeout, and stale-result protection. HWorld remains responsible for world state and action validation.
+HWorld can consume HAgent by referencing the normal HAgent library and creating `AgentRuntimeInstance` objects through the public API. HAgent does not contain an HWorld-specific adapter, dependency, type, or simulation logic. An external consumer verification remains the only pending 0.9 gate.
 
 ## Exit criterion
 

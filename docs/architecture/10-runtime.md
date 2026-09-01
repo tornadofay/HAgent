@@ -28,6 +28,14 @@ Scheduling is host-controlled and optional. `IAgentExecutionScheduler` and `Agen
 
 The scheduler is not a second execution engine and does not alter provider routing, timeout, cancellation, correlation, stale-result, or runtime-instance semantics. Hosts may use their own scheduler instead.
 
+## Runtime state persistence
+
+Runtime-state persistence is a separate optional boundary from `IAiStore`. `IAgentRuntimeStateStore` persists only runtime identity and lifecycle metadata: instance ID, reusable profile ID, host instance ID, user ID, workspace ID, session ID, scope, state, and timestamps. Runtime prompts, context, secrets, provider credentials, and execution history are not persisted by this store.
+
+`AgentRuntimeStatePersistence` provides explicit save, restore, and delete operations. Restore requires the corresponding persistent `AiAgent` profile and verifies that the persisted profile ID matches before recreating the live runtime instance. Runtime creation remains non-persistent by default; a host must explicitly opt into this state store.
+
+File stores runtime state in an HAgent-owned JSONL file. SQL Server and MySQL/MariaDB use HAgent-owned `HAgentRuntimeInstances` tables with schema-versioned migrations. Runtime-state persistence may be used for recovery, collaboration, or multi-process coordination, but the live in-memory runtime lifecycle remains owned by the host process.
+
 Runtime instances must support:
 
 - concurrent independent execution;

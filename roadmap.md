@@ -14,13 +14,13 @@ The roadmap is the ordered implementation path toward the HAgent master plan. It
 - 0.5 — tool foundation complete; hardening remains
 - 0.6 — safety/permission foundation complete; broader authorization remains
 - 0.7 — WinForms UI Context + Data Discovery complete and locally verified
-- 0.8 — Data Access + Authorization **active**
-- 0.9 — Runtime Agent Instances
-- 0.10 — Workspaces, Routing + Chat
+- 0.8 — Data Access + Authorization + Internal Storage foundations substantially implemented; Skills/Wiki and remaining internal-repository parity are deferred
+- 0.9 — Runtime Agent Instances foundations complete and locally verified
+- 0.10 — Workspaces, Routing + Chat **active**
 - 1.0 — Collaboration + Workflows
 - Later — provider ecosystem, extensibility, developer platform, release hardening
 
-The sequence is intentional: secure host/data capabilities come before rich autonomous collaboration. HWorld can begin integration at the 0.9 runtime-instance boundary; it does not need the business-application chat layers.
+The sequence is intentional: secure host/data capabilities come before rich autonomous collaboration. HWorld can consume HAgent at the 0.9 runtime-instance boundary by referencing the normal HAgent library; HAgent does not contain an HWorld-specific dependency or adapter.
 
 ## Foundations — 0.1 through 0.7
 

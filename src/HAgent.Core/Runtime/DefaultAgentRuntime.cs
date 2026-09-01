@@ -64,7 +64,6 @@ namespace HAgent.Runtime
                     Messages = new List<AIMessage> { new AIMessage("user", message) }.AsReadOnly(),
                     HostCorrelationId = options == null ? string.Empty : options.HostCorrelationId,
                     HostContext = options == null ? null : new Dictionary<string, string>(options.HostContext ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
-                    StructuredOutput = options == null ? null : options.StructuredOutput,
                     Options = options ?? new AgentExecutionOptions()
                 },
                 cancellationToken);

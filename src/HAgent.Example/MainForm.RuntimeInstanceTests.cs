@@ -62,6 +62,16 @@ namespace HAgent.Example
                 "Canonical host request",
                 "Uses only a local adapter; no external provider is contacted.");
 
+            AddApiTab(
+                "RUNTIME INSTANCE REQUEST",
+                "Run instance + request test",
+                "Verifies that a long-lived runtime instance can execute the canonical AgentExecutionRequest without losing host context, correlation, structured output, or instance identity.",
+                "The runtime instance must supply runtime ownership while the request supplies execution input, and a mismatched profile ID must be rejected.",
+                "0.95 runtime-instance request composition verification.",
+                TestRuntimeInstanceRequestAsync,
+                "Instance + canonical request",
+                "Uses only a local adapter; no external provider is contacted.");
+
             AddRuntimeSchedulingTab();
             AddRuntimeTerminalStateTab();
             AddProviderNativeStructuredOutputTab();
@@ -117,6 +127,119 @@ namespace HAgent.Example
                 "Profile remained reusable: yes.");
 
             return Task.CompletedTask;
+        }
+
+        private async Task TestRuntimeInstanceRequestAsync(string message)
+        {
+            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
+            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
+            var profile = GetSelectedAgent();
+            if (profile == null)
+                throw new InvalidOperationException("Select an agent first.");
+
+            var adapter = new RuntimeInstanceRequestTestAdapter();
+            var client = new HAgentClient(store, secrets, new[] { adapter });
+            var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Session);
+            var hostContext = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["operation"] = "runtime-instance-request-42",
+                ["resource"] = "resource-42"
+            };
+            var request = new AgentExecutionRequest
+            {
+                AgentId = profile.Id,
+                Messages = new List<AIMessage>
+                {
+                    new AIMessage("user", "instance-request-42")
+                }.AsReadOnly(),
+                HostCorrelationId = "host-instance-request-42",
+                HostContext = hostContext,
+                Options = new AgentExecutionOptions
+                {
+                    Timeout = TimeSpan.FromSeconds(5),
+                    MaxProviderAttempts = 1,
+                    MaxRetriesPerProvider = 0
+                }
+            };
+
+            var execution = await client.ExecuteAsync(instance, request, CancellationToken.None).ConfigureAwait(true);
+            if (!string.Equals(execution.RuntimeInstanceId, instance.InstanceId, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The execution did not retain the supplied runtime-instance identity.");
+            if (execution.RuntimeInstanceRevision <= 0)
+                throw new InvalidOperationException("The runtime-instance execution did not capture a positive revision.");
+            if (!string.Equals(execution.HostCorrelationId, request.HostCorrelationId, StringComparison.Ordinal))
+                throw new InvalidOperationException("The canonical request host correlation was not preserved through the runtime instance.");
+            if (!string.Equals(execution.Snapshot.HostContext["operation"], "runtime-instance-request-42", StringComparison.Ordinal) ||
+                !string.Equals(execution.Snapshot.HostContext["resource"], "resource-42", StringComparison.Ordinal))
+                throw new InvalidOperationException("The canonical request host context was not preserved through the runtime instance.");
+            if (execution.State != AgentExecutionState.Succeeded)
+                throw new InvalidOperationException("The runtime-instance canonical request execution did not succeed.");
+            if (!string.Equals(adapter.ObservedAgentId, profile.Id, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The provider request resolved against the runtime instance's profile.");
+            if (adapter.ObservedMessageCount != 1)
+                throw new InvalidOperationException("The provider request did not preserve the canonical request messages.");
+
+            var mismatched = new AgentExecutionRequest
+            {
+                AgentId = "different-profile-42",
+                Messages = request.Messages,
+                Options = request.Options
+            };
+            var rejected = false;
+            try
+            {
+                await client.ExecuteAsync(instance, mismatched, CancellationToken.None).ConfigureAwait(true);
+            }
+            catch (ArgumentException)
+            {
+                rejected = true;
+            }
+
+            if (!rejected)
+                throw new InvalidOperationException("A canonical request targeting another profile was not rejected.");
+
+            Write("RUNTIME INSTANCE REQUEST",
+                "Contract test succeeded." + Environment.NewLine +
+                "Profile: " + profile.Id + Environment.NewLine +
+                "Runtime instance: " + instance.InstanceId + Environment.NewLine +
+                "Runtime scope: " + instance.Scope + Environment.NewLine +
+                "Execution: " + execution.Id + Environment.NewLine +
+                "Execution revision: " + execution.RuntimeInstanceRevision + Environment.NewLine +
+                "Host correlation preserved: yes" + Environment.NewLine +
+                "Host context preserved: yes" + Environment.NewLine +
+                "Canonical messages preserved: yes" + Environment.NewLine +
+                "Mismatched profile request rejected: yes" + Environment.NewLine +
+                "Runtime instance + canonical request composition: verified.");
+        }
+
+        private sealed class RuntimeInstanceRequestTestAdapter : IAiProviderAdapter
+        {
+            public string Kind { get { return "RuntimeInstanceRequestTest"; } }
+            public string DisplayName { get { return "Runtime Instance Request Test Adapter"; } }
+            public string ObservedAgentId { get; private set; }
+            public int ObservedMessageCount { get; private set; }
+
+            public bool CanHandle(AiProvider provider)
+            {
+                return provider != null;
+            }
+
+            public Task<AIResponse> SendAsync(
+                ProviderExecutionRequest request,
+                CancellationToken cancellationToken)
+            {
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request));
+
+                ObservedAgentId = request.Agent == null ? string.Empty : request.Agent.Id;
+                ObservedMessageCount = request.Messages == null ? 0 : request.Messages.Count;
+
+                return Task.FromResult(new AIResponse
+                {
+                    Text = "RUNTIME-INSTANCE-REQUEST-OK",
+                    ProviderId = request.Provider == null ? string.Empty : request.Provider.Id
+                });
+            }
         }
 
         private async Task TestRuntimeStaleResultsAsync(string message)

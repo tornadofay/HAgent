@@ -327,7 +327,7 @@ Provide bounded structured data contracts while making HAgent's persistence an e
 
 ### Independent database connection profiles
 
-HAgent stores independent SQL Server and MySQL connection profiles so changing the selected backend does not overwrite or erase the other backend's server, port, username, or secret identity. Switching the Storage type swaps the visible profile in the settings UI.
+HAgent stores independent SQL Server and MySQL connection profiles so changing the selected backend does not overwrite or erase the other backend's server, port, username, or secret identity. Switching the selected backend swaps the visible profile in the settings UI.
 
 Database passwords use backend-specific secret IDs. Password values are never displayed in the settings UI and never stored in ordinary storage configuration.
 

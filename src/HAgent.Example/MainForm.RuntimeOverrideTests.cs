@@ -162,17 +162,15 @@ namespace HAgent.Example
             }
 
             public Task<AIResponse> SendAsync(
-                AiProvider provider,
-                AiAgent agent,
-                string apiKey,
-                string systemPrompt,
-                IReadOnlyList<AIMessage> messages,
+                ProviderExecutionRequest request,
                 CancellationToken cancellationToken)
             {
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request));
                 return Task.FromResult(new AIResponse
                 {
                     Text = "RUNTIME-OVERRIDE-OK",
-                    ProviderId = provider == null ? string.Empty : provider.Id
+                    ProviderId = request.Provider == null ? string.Empty : request.Provider.Id
                 });
             }
         }

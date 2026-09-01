@@ -77,7 +77,9 @@ optional streaming progress sink
 
 This separation allows the host-facing contract and provider transport contract to evolve independently. Provider-native capabilities can be added to `ProviderExecutionRequest` without forcing host callers to understand transport details, while HAgent can still validate normalized results centrally.
 
-For structured output, the provider request can carry the host schema so an adapter can use provider-native constrained generation when supported. HAgent still performs provider-neutral post-response validation; provider claims are never treated as sufficient authority for correctness.
+For structured output, the provider request carries the host schema so an adapter can use provider-native constrained generation when supported. HAgent still performs provider-neutral post-response validation; provider claims are never treated as sufficient authority for correctness.
+
+The current OpenAI-compatible adapter sends the native OpenAI-compatible `response_format`/JSON Schema shape when structured output is requested. If the endpoint explicitly reports that this feature is unsupported, the adapter falls back to the ordinary completion request and returns metadata identifying the fallback. The host contract remains unchanged and HAgent validation remains mandatory in either case.
 
 ## Runtime identity and lifetime
 
@@ -126,7 +128,7 @@ Execution must support both caller cancellation and configured timeout.
 
 Cancellation and timeout are execution outcomes, not prompt instructions.
 
-A provider may complete late when cancellation is cooperative. HAgent must protect the execution state machine so that once a terminal outcome has won, a late provider completion cannot publish a conflicting result.
+A provider may complete late when cancellation is cooperative. HAgent must protect the execution state machine so that once a terminal outcome has won, a late provider completion cannot publish a conflicting result. HAgent may finish caller-visible cancellation or timeout before a non-cooperative provider task returns; detached late provider faults are observed and cannot change the terminal execution state.
 
 ## Learning and authority
 
@@ -177,7 +179,7 @@ Shared infrastructure such as provider adapters, stores, and tool registries may
 
 ## Persistence
 
-Runtime-state persistence is optional. When enabled, it may persist generic runtime identity/lifecycle metadata and runtime-only capability overrides through `IAgentRuntimeStateStore`. It must not silently convert runtime state into the persistent profile.
+Runtime-state persistence is optional. When enabled, it may persist generic runtime identity/lifecycle metadata and the explicit runtime-state fields defined by `IAgentRuntimeStateStore`. It must not silently convert runtime state into the persistent profile.
 
 ## Management and discoverability
 

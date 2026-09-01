@@ -14,11 +14,13 @@ namespace HAgent.Models
         {
             Agent = CloneAgent(agent ?? throw new ArgumentNullException(nameof(agent)), overrides);
             Providers = CloneProviders(providers ?? throw new ArgumentNullException(nameof(providers)));
+            RuntimeContext = CloneContext(overrides == null ? null : overrides.Context);
             CreatedAt = DateTimeOffset.UtcNow;
         }
 
         public AiAgent Agent { get; private set; }
         public IReadOnlyList<AiProvider> Providers { get; private set; }
+        public IReadOnlyDictionary<string, string> RuntimeContext { get; private set; }
         public DateTimeOffset CreatedAt { get; private set; }
 
         private static AiAgent CloneAgent(AiAgent source, AgentRuntimeOverrides overrides)
@@ -51,6 +53,17 @@ namespace HAgent.Models
             if (!string.IsNullOrWhiteSpace(overrides.SystemPrompt)) clone.SystemPrompt = overrides.SystemPrompt;
 
             return clone;
+        }
+
+        private static IReadOnlyDictionary<string, string> CloneContext(IDictionary<string, string> source)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (source != null)
+            {
+                foreach (var item in source)
+                    result[item.Key] = item.Value;
+            }
+            return new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(result);
         }
 
         private static IReadOnlyList<AiProvider> CloneProviders(IReadOnlyList<AiProvider> source)

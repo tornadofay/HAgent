@@ -19,6 +19,7 @@ namespace HAgent.Models
 
         public string Id { get; private set; }
         public string CorrelationId { get; private set; }
+        public string HostCorrelationId { get; internal set; }
         public string RuntimeInstanceId { get; internal set; }
         public long RuntimeInstanceRevision { get; internal set; }
         public AgentExecutionSnapshot Snapshot { get; private set; }

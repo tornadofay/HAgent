@@ -43,11 +43,11 @@ This boundary is intentionally separate from `AgentExecutionRequest`. Host calle
 
 The normal, tool-calling, and streaming provider adapter contracts consume `ProviderExecutionRequest`. All in-repository adapter implementations and deterministic test doubles now use the request-object contract. The current OpenAI-compatible implementation retains legacy overloads only as internal compatibility helpers; the adapter interfaces themselves use the request object.
 
-Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization. The OpenAI-compatible adapter now attempts native `response_format`/JSON Schema transport when structured output is requested; if the endpoint explicitly reports that feature as unsupported, it retries using the ordinary request shape and marks the fallback in provider metadata.
+Provider adapters must normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization. The OpenAI-compatible adapter attempts native `response_format`/JSON Schema transport when structured output is requested; if the endpoint explicitly reports that feature as unsupported, it retries using the ordinary request shape and marks the fallback in provider metadata.
 
 ### Runtime terminal outcome
 
-`AgentExecution` owns the first-terminal-outcome-wins gate. HAgent may finish caller-visible cancellation or timeout before a non-cooperative provider task returns. Such a late provider task cannot replace the terminal execution state or response, and provider faults from detached late work are observed so they do not surface as unobserved task failures.
+`AgentExecution` owns the first-terminal-outcome-wins gate. HAgent may finish caller-visible cancellation or timeout before a non-cooperative provider task returns. Such a late provider task cannot replace the terminal execution state or response, and provider faults from detached late work are observed so they do not surface as unobserved task failures. This behavior is verified by the `RUNTIME TERMINAL STATE` Example test.
 
 ### HWorld boundary
 

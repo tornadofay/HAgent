@@ -12,7 +12,7 @@ namespace HAgent.Storage.MySql
     /// </summary>
     public sealed class MySqlHAgentStorageBootstrapper
     {
-        public const int CurrentSchemaVersion = 4;
+        public const int CurrentSchemaVersion = 5;
 
         public async Task EnsureCreatedAsync(
             HAgentStorageOptions options,
@@ -41,9 +41,6 @@ namespace HAgent.Storage.MySql
             }
         }
 
-        /// <summary>
-        /// Verifies that MySQL/MariaDB accepts the supplied endpoint and credentials without creating a database or changing schema.
-        /// </summary>
         public static async Task TestConnectionAsync(
             string serverName,
             int port,
@@ -53,9 +50,7 @@ namespace HAgent.Storage.MySql
         {
             var connectionString = BuildConnectionString(serverName, port, userName, password, null);
             using (var connection = new MySqlConnection(connectionString))
-            {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            }
         }
 
         public static string BuildConnectionString(string serverName, string userName, string password, string databaseName)
@@ -137,6 +132,10 @@ WHERE NOT EXISTS (SELECT 1 FROM HAgentSchemaInfo WHERE SchemaName = 'core');";
                     case 3:
                         await MigrateV3ToV4Async(connection, cancellationToken).ConfigureAwait(false);
                         version = 4;
+                        break;
+                    case 4:
+                        await MigrateV4ToV5Async(connection, cancellationToken).ConfigureAwait(false);
+                        version = 5;
                         break;
                     default:
                         throw new InvalidOperationException("Unsupported HAgent MySQL schema version: " + version + ".");
@@ -247,6 +246,28 @@ CREATE TABLE IF NOT EXISTS HAgentExecutionAudits (
             await CreateIndexIfMissingAsync(connection, "HAgentExecutionAudits", "IX_HAgentExecutionAudits_AgentCreated", "CREATE INDEX IX_HAgentExecutionAudits_AgentCreated ON HAgentExecutionAudits(AgentId, CreatedAt);", cancellationToken).ConfigureAwait(false);
         }
 
+        private static async Task MigrateV4ToV5Async(MySqlConnection connection, CancellationToken cancellationToken)
+        {
+            await ExecuteNonQueryAsync(connection, @"
+CREATE TABLE IF NOT EXISTS HAgentRuntimeInstances (
+    InstanceId varchar(128) NOT NULL,
+    ProfileId varchar(128) NOT NULL,
+    HostInstanceId varchar(128) NULL,
+    UserId varchar(128) NULL,
+    WorkspaceId varchar(128) NULL,
+    SessionId varchar(128) NULL,
+    Scope varchar(50) NOT NULL,
+    State varchar(50) NOT NULL,
+    CreatedAt datetime(6) NOT NULL,
+    UpdatedAt datetime(6) NOT NULL,
+    PRIMARY KEY (InstanceId)
+) ENGINE=InnoDB;", cancellationToken).ConfigureAwait(false);
+
+            await CreateIndexIfMissingAsync(connection, "HAgentRuntimeInstances", "IX_HAgentRuntimeInstances_ProfileUpdated", "CREATE INDEX IX_HAgentRuntimeInstances_ProfileUpdated ON HAgentRuntimeInstances(ProfileId, UpdatedAt);", cancellationToken).ConfigureAwait(false);
+            await CreateIndexIfMissingAsync(connection, "HAgentRuntimeInstances", "IX_HAgentRuntimeInstances_HostUser", "CREATE INDEX IX_HAgentRuntimeInstances_HostUser ON HAgentRuntimeInstances(HostInstanceId, UserId, UpdatedAt);", cancellationToken).ConfigureAwait(false);
+            await CreateIndexIfMissingAsync(connection, "HAgentRuntimeInstances", "IX_HAgentRuntimeInstances_Workspace", "CREATE INDEX IX_HAgentRuntimeInstances_Workspace ON HAgentRuntimeInstances(WorkspaceId, UpdatedAt);", cancellationToken).ConfigureAwait(false);
+        }
+
         private static async Task CreateIndexIfMissingAsync(MySqlConnection connection, string tableName, string indexName, string createSql, CancellationToken cancellationToken)
         {
             const string sql = @"
@@ -270,9 +291,7 @@ WHERE TABLE_SCHEMA = DATABASE()
         private static async Task ExecuteNonQueryAsync(MySqlConnection connection, string sql, CancellationToken cancellationToken)
         {
             using (var command = new MySqlCommand(sql, connection))
-            {
                 await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
         }
 
         private static string EscapeIdentifier(string value)

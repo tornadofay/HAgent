@@ -37,7 +37,21 @@ Correlation identifies the broader operation. Causation identifies the message o
 
 `IWorkspaceRouter` performs routing decisions only. It does not invoke providers, execute agents, persist conversations, or perform host-side side effects.
 
-The base router enforces participant existence, participant kind, active lifecycle state, and explicit recipient targeting. A host may compose it with execution and persistence components later.
+The base router enforces participant existence, participant kind, active lifecycle state, and explicit recipient targeting. A host may supply an optional `IWorkspaceRolePolicy` to impose coordinator/specialist routing rules without changing the participant or runtime-agent types.
+
+## Coordinator and specialist roles
+
+Coordinator and specialist are roles over ordinary agent participants, not separate agent classes.
+
+`WorkspaceAgentRoleAssignment` can describe:
+
+- `Participant` — normal workspace agent participation;
+- `Coordinator` — an agent allowed to coordinate or delegate according to policy;
+- `Specialist` — an agent assigned a bounded responsibility or specialty description.
+
+The assignment may declare whether an agent can receive user messages and which target roles it may delegate to. `WorkspaceRolePolicy` evaluates these rules. The policy is optional; without one, the router preserves the permissive routing behavior established by the base workspace contract.
+
+A specialist's `Responsibility` is descriptive metadata only. It does not force HAgent to model a specialist as a table, record, subsystem, or domain-specific class. Hosts may use that metadata to identify whole-domain or capability responsibilities.
 
 ## Runtime relationship
 

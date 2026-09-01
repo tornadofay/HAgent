@@ -18,6 +18,8 @@ Each runtime instance also has an independent `MemoryOwnerId`, currently equal t
 
 Executing an `AgentRuntimeInstance` is exposed through `HAgentClient.ExecuteAsync(AgentRuntimeInstance, ...)`. A retired instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
 
+Each instance maintains a monotonically increasing execution revision. An instance-bound `AgentExecution` captures the instance ID and revision at execution start. Hosts can call `AgentRuntimeInstance.IsExecutionCurrent(execution)` to determine whether a result is still authoritative. A result becomes stale when a newer execution has started on that instance or when the instance is retired. Stale protection does not cancel or discard provider work; it gives the host a deterministic authority check for late results.
+
 Runtime instances must support:
 
 - concurrent independent execution;

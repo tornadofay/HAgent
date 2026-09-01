@@ -46,7 +46,8 @@ namespace HAgent.Runtime
             string toolId,
             string toolCallId,
             IReadOnlyDictionary<string, object> arguments,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default(CancellationToken),
+            string hostCorrelationId = null)
         {
             if (string.IsNullOrWhiteSpace(agentId))
                 throw new ArgumentException("Agent id is required.", nameof(agentId));
@@ -58,9 +59,9 @@ namespace HAgent.Runtime
 
             IAgentTool tool;
             if (!_toolRegistry.TryGet(toolId, out tool))
-                return CreateFailure("Tool was not found: " + toolId, correlationId, agentId, toolId, toolCallId, startedAt);
+                return CreateFailure("Tool was not found: " + toolId, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt);
             if (!tool.Definition.Enabled)
-                return CreateFailure("Tool is disabled: " + tool.Definition.Name, correlationId, agentId, toolId, toolCallId, startedAt);
+                return CreateFailure("Tool is disabled: " + tool.Definition.Name, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt);
 
             var source = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (arguments != null)
@@ -75,6 +76,7 @@ namespace HAgent.Runtime
                 return CreateFailure(
                     "Tool arguments failed schema validation: " + string.Join(" ", validation.Errors.Select(x => "[" + x + "]")),
                     correlationId,
+                    hostCorrelationId,
                     agentId,
                     toolId,
                     toolCallId,
@@ -84,6 +86,7 @@ namespace HAgent.Runtime
             var context = new ToolExecutionContext
             {
                 CorrelationId = correlationId,
+                HostCorrelationId = hostCorrelationId ?? string.Empty,
                 AgentId = agentId,
                 ToolId = toolId,
                 ToolCallId = toolCallId ?? string.Empty,
@@ -105,6 +108,7 @@ namespace HAgent.Runtime
                 result = ToolExecutionResult.Failure("Tool returned no execution result.");
 
             result.CorrelationId = correlationId;
+            result.HostCorrelationId = hostCorrelationId ?? string.Empty;
             result.AgentId = agentId;
             result.ToolId = toolId;
             result.ToolCallId = toolCallId ?? string.Empty;
@@ -116,6 +120,7 @@ namespace HAgent.Runtime
         private static ToolExecutionResult CreateFailure(
             string error,
             string correlationId,
+            string hostCorrelationId,
             string agentId,
             string toolId,
             string toolCallId,
@@ -123,6 +128,7 @@ namespace HAgent.Runtime
         {
             var result = ToolExecutionResult.Failure(error);
             result.CorrelationId = correlationId;
+            result.HostCorrelationId = hostCorrelationId ?? string.Empty;
             result.AgentId = agentId;
             result.ToolId = toolId;
             result.ToolCallId = toolCallId ?? string.Empty;

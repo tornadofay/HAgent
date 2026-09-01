@@ -20,7 +20,10 @@ Generic execution/context
 Runtime agent instances
         |
 +-- provider/model execution
-+-- memory/context
++-- skills and reusable skill sets
++-- knowledge/wiki retrieval
++-- scoped memory
++-- controlled learning and review
 +-- structured tools
 +-- structured model output
 +-- asynchronous lifecycle/cancellation
@@ -41,7 +44,16 @@ Console.WriteLine(response.Text);
 
 Plain string messaging is the convenience entry point. The architecture is moving toward a canonical generic execution request that can carry host-supplied context, host correlation, execution requirements, and optional structured-output contracts without embedding host-domain concepts in HAgent.Core.
 
-See the architecture and plan documents for runtime, memory, tools, context, authorization, storage, and multi-agent design.
+## Capability model
+
+HAgent separates four related concepts:
+
+- **Skills** are reusable executable capabilities/procedures. They are shared definitions referenced by agents, not copied into every runtime instance.
+- **Knowledge** is reusable retrievable information. A **Wiki** is one managed persistent knowledge source within the broader knowledge system.
+- **Memory** is scoped experience/state, including working, episodic, semantic, procedural, and future memory families.
+- **Learning** analyzes execution experience and creates typed candidates for memory, knowledge, or skill improvement. Promotion is controlled by `LearningMode` and policy rather than treating LLM output as automatically authoritative.
+
+Resources are scope-aware. Runtime instances inherit profile capability configuration and may apply runtime-only `Inherit`/`Enabled`/`Disabled` overrides without mutating the persistent profile.
 
 ## Current capabilities
 
@@ -61,6 +73,8 @@ The verified foundation includes:
 - application-specific File storage layout;
 - HAgent-owned SQL Server/MySQL database bootstrap foundations.
 
+Knowledge, Skills, Learning governance, and their complete management UI are the next major capability layer.
+
 ## Generic host integration target
 
 HAgent is designed to be the generic LLM cognition/execution layer for host software. The host remains authoritative for domain state, lifecycle, scheduling, persistence, authorization, and side effects.
@@ -76,7 +90,8 @@ The generic integration target includes:
 - host-owned tools and capability execution;
 - concurrent execution across independent runtime instances;
 - optional persistence of generic runtime identity and lifecycle metadata;
-- optional multi-agent coordination and workspace communication.
+- optional multi-agent coordination and workspace communication;
+- scoped knowledge, skills, memory, and controlled learning.
 
 HAgent must not require a host-specific domain object model, event system, command system, scheduler, authorization framework, or UI framework.
 
@@ -90,7 +105,7 @@ Supported storage backends are:
 - **SQL Server** — a dedicated HAgent-owned database, normally named `<application-name>-ai`;
 - **MySQL** — a dedicated HAgent-owned database, normally named `<application-name>-ai`.
 
-HAgent storage is for providers, agents, tools, memory, conversations, skills, wiki/content, runtime metadata, and other HAgent-owned records. A storage backend must never be treated as permission to inspect or modify the host application's business database.
+HAgent storage is for providers, agents, tools, memory, conversations, skills, wiki/content, learning candidates, runtime metadata, execution audit data, and other HAgent-owned records. A storage backend must never be treated as permission to inspect or modify the host application's business database.
 
 Database passwords are kept outside ordinary configuration through the secret boundary.
 
@@ -101,6 +116,28 @@ Database passwords are kept outside ordinary configuration through the secret bo
 The public concept is **UI Context / Control Adapters**, not generic form serialization.
 
 `DataTable` is optional. Native/bound sources, lazy adapters, paging, projections, and bounded extraction are preferred.
+
+## Management UI target
+
+`HAgent.WinForms` will provide administration for:
+
+```text
+Learning Review
+    pending suggestions -> inspect -> approve/reject
+
+Wiki / Knowledge Manager
+    new / edit / delete / search / relationships / used-by agents
+
+Skill Manager
+    new / edit / delete / version / relationships / used-by agents
+
+Agent Configuration
+    selected agent -> effective skills + knowledge/wiki + memories + future resource inventory
+    profile-level enable/disable
+    runtime-instance override enable/disable
+```
+
+The agent knowledge view is extensible: known resource types may have specialized panels while future/unknown resource types remain visible through a generic resource inventory contract.
 
 ## Tools
 
@@ -121,7 +158,7 @@ Tool definitions are separate from executable handlers. Handlers remain runtime-
 
 The model is a requester, not an authority.
 
-Permissions, authorization, approvals, limits, cancellation, and host-side validation remain outside model instructions. HAgent database storage is dedicated to HAgent's own persistence and does not provide implicit access to host application tables. Structured data contracts are not raw SQL access.
+Permissions, authorization, approvals, limits, cancellation, and host-side validation remain outside model instructions. HAgent database storage is dedicated to HAgent's own persistence and does not provide implicit access to host application tables. Structured data contracts are not raw SQL access. Learning promotion is likewise controlled outside the model by policy and authorization.
 
 ## Example application
 
@@ -131,9 +168,9 @@ Meaningful capabilities should have runnable Example verification using public A
 
 ## Project structure
 
-- `HAgent.Core` — provider-neutral models, runtime, context, memory, tools, and future coordination.
+- `HAgent.Core` — provider-neutral models, runtime, context, memory, knowledge, skills, learning, tools, and coordination contracts.
 - `HAgent.Providers.OpenAICompatible` — OpenAI-compatible provider transport and capabilities.
-- `HAgent.Storage.File` — file configuration, protected secrets, memory, conversations, and tool definitions.
+- `HAgent.Storage.File` — file configuration, protected secrets, memory, conversations, skills/wiki, and learning persistence.
 - `HAgent.Storage.SqlServer` — HAgent-owned SQL Server persistence and schema bootstrap.
 - `HAgent.Storage.MySql` — HAgent-owned MySQL persistence and schema bootstrap.
 - `HAgent.WinForms` — management UI and WinForms UI Context/control adapters.

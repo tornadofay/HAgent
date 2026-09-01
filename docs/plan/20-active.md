@@ -11,7 +11,7 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 
 - [x] Reusable runtime-agent profiles and live runtime instances remain separate and verified through the 0.9 runtime foundation.
 - [x] Provider-neutral workspace/routing foundation exists for later host coordination; workspace UI/execution remains deferred to Phase 0.10.
-- [x] Canonical `AgentExecutionRequest` supports multiple messages, host correlation identity, bounded host context, and normal execution options.
+- [x] Canonical `AgentExecutionRequest` supports multiple messages, host correlation identity, bounded host context, runtime overrides, and normal execution options.
 - [x] Preserve host correlation identity through relevant tool execution/correlation metadata.
 - [x] Define host-owned structured-output request and validation contract.
 - [x] Validate structured output independently of provider claims.
@@ -19,20 +19,28 @@ Complete the generic host boundary required for a broad class of LLM-driven soft
 - [ ] Verify execution snapshots fully isolate mutable runtime overrides and host context.
 - [x] Add deterministic Example verification for the generic host execution request.
 - [x] Add deterministic Example verification for structured-output schema validation.
+- [x] Define a distinct provider-facing `ProviderExecutionRequest` boundary.
+- [x] Route normal, tool-calling, and streaming provider interfaces through `ProviderExecutionRequest`.
+- [x] Add deterministic Example verification that provider-facing requests preserve host-owned structured-output requirements.
+- [ ] Use provider-facing structured-output requirements for provider-native constrained generation where supported.
 - [ ] Add deterministic concurrent external-consumer verification without introducing HWorld-specific dependencies.
 - [ ] Run the full 0.95 verification pass and close the phase only after all cross-cutting slices pass.
 
 ### Generic host boundary
 
-`AgentExecutionRequest` is the canonical provider-neutral execution request. It identifies the target reusable agent profile, carries an ordered message list, accepts a host-supplied correlation identity, carries a bounded host context dictionary, and reuses `AgentExecutionOptions` for execution policies and runtime overrides.
+`AgentExecutionRequest` is the canonical host-facing provider-neutral execution request. It identifies the target reusable agent profile, carries an ordered message list, accepts a host-supplied correlation identity, carries a bounded host context dictionary, optional structured-output requirements, and reuses `AgentExecutionOptions` for execution policies and runtime overrides.
 
 Host correlation is distinct from HAgent execution correlation and runtime-instance identity. It is never embedded into prompt text and is retained through tool execution metadata as a separate identity.
 
 Host context is copied into the immutable execution snapshot. HAgent does not assign domain meaning to the context and does not use it as an authorization mechanism.
 
-Structured output is a host-owned optional execution contract. `StructuredOutputOptions` carries the schema, and `StructuredOutputValidator` validates the normalized provider output against that schema independently of provider capability claims. The runtime rejects a response that does not satisfy the requested structured-output contract.
+### Provider boundary
 
-The existing string-based `ExecuteAsync(agentId, message, ...)` API remains a compatibility convenience and delegates to the canonical request boundary.
+`ProviderExecutionRequest` is the provider-facing contract. It contains the resolved provider, execution agent snapshot, secret material needed only for the adapter call, composed system prompt, bounded messages, optional structured-output requirement, optional tools, and optional streaming progress sink.
+
+This boundary is intentionally separate from `AgentExecutionRequest`. Host callers do not need to know provider transport details, while provider adapters can evolve their supported capabilities without expanding the host-facing model.
+
+Provider adapters must still normalize responses into `AIResponse`, and HAgent remains responsible for provider-neutral validation of host-owned structured-output contracts after normalization.
 
 ### HWorld boundary
 

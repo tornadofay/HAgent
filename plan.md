@@ -18,7 +18,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.10 Workspaces, Routing + Chat — paused after routing/role-policy foundation**
+**0.96 Capability-Aware Execution — planned next / investigation and hardening target**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -28,9 +28,11 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation and is now intentionally paused. The remaining workspace product work is deferred while earlier provider/runtime capability gaps are investigated and corrected.
+0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation and is intentionally paused. The remaining workspace product work is deferred while the provider/model capability and execution-planning layer is hardened.
 
-The next capability work should resume only after the provider/model capability model is mature enough to support heterogeneous environments safely. Knowledge + Skills + Memory Governance + Learning remains the later capability layer.
+0.96 is the next hardening target. It addresses heterogeneous capabilities, the same logical model exposed by multiple providers, provider/account/project restrictions, model/task-specific constraints, quotas, RPM/RPD/TPM/TPD and future quota dimensions, concurrency capacity, operational availability, long-running inference, capability-aware candidate selection, fallback/degradation, and proactive admission control.
+
+The later Knowledge + Skills + Memory Governance + Learning layer remains planned after the runtime capability model is mature enough to support heterogeneous environments safely.
 
 ## Verified implementation
 
@@ -66,87 +68,74 @@ Workspace visibility is always explicit: the workspace is hidden until the host 
 
 The workspace product target includes a shared Lobby, distinct user-to-agent Private Chats, agent join/leave, coordinator/specialist defaults, permitted provider/agent/model selection and runtime overrides, integrated approval requests/resolution, safe activity/statistics, unread/last-seen state, bounded presentation of tables/charts/graphs and popup/detail results, and modern WinForms presentation through a public host-facing workspace facade.
 
-Provider secrets, connection strings, live provider tasks, live `CancellationToken` state, runtime synchronization primitives, raw HTTP requests, raw provider payloads, and temporary execution objects remain outside persisted workspace state; these exclusions were established by Phase 0.95.
+Provider secrets, connection strings, live provider tasks, live `CancellationToken` state, runtime synchronization primitives, raw HTTP requests, raw provider payloads, and temporary execution objects remain outside persisted workspace state; these exclusions were established by 0.95.
 
-## Provider/model capability gap under investigation
+## Phase 0.96 capability-aware execution target
 
-HAgent must operate across heterogeneous providers, deployments, and models where capabilities and operational limits differ. A provider name alone is not sufficient to describe what an execution target can do.
-
-The architecture investigation will establish a provider-neutral capability model covering at least:
+Reusable Agent profiles remain first-class. They describe what the agent is and what capabilities it requires or prefers rather than permanently binding the agent to one provider/model transport target.
 
 ```text
-provider
-deployment/account/project policy
-model
-model version/revision
-capabilities
-request limits
-context/output limits
-rate/concurrency limits
-runtime availability
+Agent Profile
+    identity / instructions / tools / memory / knowledge / skills
+    required capabilities
+    preferred capabilities
+    preferred logical model (optional)
+    preferred provider (optional)
+    fallback / degradation policy
+
+Provider
+    service integration
+
+Provider account / project / endpoint
+    operational execution environment
+
+Model / logical model
+    provider-independent identity when reliably known
+
+Model deployment / execution target
+    concrete provider + account/project/endpoint + model deployment
+
+Execution Planner
+    selects the best currently compatible target
 ```
 
-Capabilities must be treated as request requirements rather than assumed model properties. Candidate capabilities include text generation, structured output, tool calling, reasoning, image input, image output/generation, audio input/output, embeddings, and other future modalities/features.
+The same logical model may be exposed by Groq, OpenRouter, a direct vendor endpoint, or a local OpenAI-compatible server. These are separate execution targets because capability, provider policy, limits, quota, health, latency, routing behavior, and permissions may differ.
 
-The effective capability of an execution target may be `Supported`, `Unsupported`, or `Unknown`, and must distinguish declared capability from runtime/account policy, quota, temporary availability, and request-specific constraints. HAgent should validate or select an execution target before sending provider requests and must have explicit fallback/degradation semantics when a requested capability is unavailable.
+Capability and operational state remain separate. Effective capability state is `Supported`, `Unsupported`, or `Unknown`. Separate records represent request/model constraints, account/project permission, quota/rate capacity, concurrency capacity, current availability/health, and expected latency.
 
-The next implementation investigation is provider/model capability discovery and capability-aware request planning; this is not part of the paused 0.10 workspace product.
+The capability model supports explicit input/output modalities rather than a single vision flag, including text, image, audio, video, embeddings, generation, understanding, and future task types. Native and emulated/degraded behavior remain distinguishable, especially for structured output.
 
-## Planned Knowledge / Skills / Learning layer
+Execution requests express capability requirements independently from agent identity, using required/preferred/optional/forbidden semantics. A manually selected provider/model target passes the same compatibility and policy checks as an automatically selected candidate.
 
-The next capability layer must establish one coherent model rather than treating Wiki, Skills, and Memory as unrelated features:
+The Execution Planner evaluates candidate targets against requirements, preferences, policy, current availability, limits, and operational capacity before transport. Provider adapters may supply provider-specific discovery and telemetry, but HAgent.Core must consume normalized contracts and must not hard-code Groq, Cloudflare, NVIDIA, OpenRouter, or other provider model matrices.
 
-```text
-Skills    = reusable executable capabilities
-Knowledge = reusable retrievable information
-Wiki      = managed persistent knowledge source
-Memory    = scoped experience/state
-Learning  = controlled transformation of experience into typed candidates
-```
+### Admission and quotas
 
-Learning candidates are typed as `MemoryCandidate`, `KnowledgeCandidate`, or `SkillCandidate` and retain provenance/evidence. Candidate creation does not automatically make information authoritative.
+HAgent provides proactive admission control rather than relying on retries after ordinary limit failures. Rate/quota dimensions are generic and extensible. Minimum dimensions include request count, input tokens, output tokens, total tokens, and concurrent requests, with future dimensions such as audio duration, image count, bytes, spend, or provider-specific units.
 
-`LearningMode` is configurable as:
+Windows may be per-minute, per-day, or provider-specific. Limits may apply at organization, account, project, endpoint, model/deployment, or another provider-defined scope.
 
-- `Disabled` — no learning candidates;
-- `SuggestOnly` — candidates are reviewable but not promoted automatically;
-- `AutomaticWithPolicy` — explicit policy may promote approved candidate classes/scopes;
-- `FullyAutomatic` — explicit advanced opt-in for automatic promotion.
+Concurrent executions require atomic reservation before provider transport and reconciliation with actual observed usage after execution. Provider headers, retry metadata, 429/throttling responses, and other telemetry are feedback that updates operational state rather than the sole capability-discovery mechanism.
 
-The default governance target is `SuggestOnly` unless the existing configuration model establishes a safer default during implementation.
+Capacity decisions may be `Wait`, `TryNextCandidate`, `Fail`, or an explicitly policy-permitted degraded path. Admission waiting has a bounded maximum wait.
 
-## Capability configuration target
+### Long-running providers
 
-Agent profiles provide reusable defaults. A runtime instance inherits those defaults and can apply runtime-only tri-state overrides (`Inherit`, `Enabled`, `Disabled`). The policy must support at least:
+A provider can have abundant or effectively unlimited daily quota while still having low concurrency capacity and multi-minute inference latency. HAgent must not equate quota availability with execution capacity. Long-running requests remain asynchronous, respect cancellation and timeout semantics, and do not block unrelated runtime executions. Slow targets may be valid candidates when the request's latency policy permits them.
 
-- skill capability and individual skill resources;
-- Wiki/knowledge capability and individual knowledge resources;
-- memory capability and individual memory families/types;
-- future resource types through a generic resource/type ID model.
+Cloudflare Workers AI demonstrates why task/model-specific limits, daily Neuron allocation, and distinct frontier-model limits must be modeled independently. NVIDIA's hosted model catalog demonstrates why free/downloadable endpoints, multimodal capabilities, reasoning/tool-use, rate limiting, and long-running inference must coexist in the generic target model. citeturn147698search0turn147698search2turn513772search0turn720373search0
 
-Execution snapshots capture the effective policy so configuration or runtime changes cannot alter already-running work.
+## Management UI target for 0.96
 
-## Management UI target
-
-`HAgent.WinForms` must add:
-
-- Learning Review: pending suggestions, provenance/evidence, source execution/runtime, proposed scope, approve/reject;
-- Wiki/Knowledge Manager: new/edit/delete, search/filter, relationships, and which agents use/access each resource;
-- Skill Manager: new/edit/delete, version/status, relationships, and which agents use each skill;
-- Agent Configuration knowledge view: when an agent is selected, show effective Skills, Wiki/Knowledge access, Memory families, and all other resource types exposed by the generic inventory;
-- profile-level enable/disable and runtime-instance-level overrides for skills, Wiki/knowledge, and individual memory types.
-
-The agent knowledge view must be future-proof: known types may have specialized UI, but unknown/new types remain visible through the generic resource inventory rather than requiring a new hard-coded agent property.
+Provider/model administration should eventually show execution-target identity, capabilities, constraints, quota/rate state, availability, latency observations, and compatibility with the current request. Workspace provider/model selection must consume the same planner rather than bypassing it.
 
 ## Boundaries
 
-Knowledge, skills, memory, learning, workspace state, and workspace management UI remain HAgent-owned generic infrastructure. No host-specific application or HWorld type may be introduced into Core.
-
-Storage implementations remain responsible for persistence. WinForms owns administration/presentation surfaces. The model is never the authorization authority; learning promotion, workspace approvals, and capability enforcement occur through code/policy.
+0.96 is provider-neutral runtime hardening. It does not add provider-specific model matrices to Core, replace host scheduling policy, or become the source of billing truth. It supplies generic discovery, compatibility, admission, and planning primitives that provider adapters and hosts can use.
 
 ## Active implementation
 
-The active implementation plan remains `docs/plan/20-active.md`, which currently records the paused 0.10 milestone. Provider/model capability discovery and capability-aware planning are the current investigation target before workspace implementation resumes.
+The active implementation plan remains `docs/plan/20-active.md`, but Phase 0.10 is paused. Phase 0.96 is the current investigation/planning target before workspace implementation resumes.
 
 ## Verification rule
 
@@ -161,7 +150,7 @@ Do not claim local build/test success unless it was actually performed.
 - `docs/architecture/` — stable architectural design and boundaries.
 - `docs/plan/` — master direction, current state, and active implementation only.
 - `docs/roadmap/` — ordered path from completed foundations and future phases.
-- `docs/storage.md` — persistence/backend details.
+- `docs/storage.md` — storage-specific details.
 
 The root `plan.md` and `roadmap.md` are generated from their source directories. They are views, not independent sources of truth.
 

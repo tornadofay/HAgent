@@ -4,9 +4,11 @@
 
 HAgent provides the reusable infrastructure needed to connect software to LLMs without forcing a specific application architecture or domain model. The project is intended to support any software environment that requires LLM-driven behavior, from simple conversational programs to business software, services, games, simulations, automation, developer tools, and other hosts.
 
-> Status: **0.10 Workspaces, Routing + Chat — active**
+> Status: **0.10 Workspaces, Routing + Chat — paused after routing/role-policy foundation**
 >
 > Completed foundation: **0.95 Generic External Host Integration**.
+>
+> Current investigation: **provider/model capability discovery and capability-aware request planning**.
 >
 > Targets: **.NET Framework 4.8.1 and .NET 9**.
 
@@ -54,6 +56,14 @@ HAgent separates four related concepts:
 - **Learning** analyzes execution experience and creates typed candidates for memory, knowledge, or skill improvement. Promotion is controlled by `LearningMode` and policy rather than treating LLM output as automatically authoritative.
 
 Resources are scope-aware. Runtime instances inherit profile capability configuration and may apply runtime-only `Inherit`/`Enabled`/`Disabled` overrides without mutating the persistent profile.
+
+## Provider/model capability model
+
+HAgent must not assume that a provider or model supports every feature exposed by the generic API. Execution targets can differ by provider, deployment/account policy, model/version, capabilities, context/output limits, quotas, rate limits, concurrency limits, and current availability.
+
+The capability-aware execution design treats requested features as requirements and evaluates them against the selected execution target before sending a provider request. Capabilities such as structured output, tool calling, reasoning, image input/output, audio, embeddings, and future modalities may be `Supported`, `Unsupported`, or `Unknown`, with runtime/account policy distinguished from model-declared capability.
+
+When a required capability is unavailable, HAgent must fail or apply an explicitly configured fallback/degradation policy rather than silently sending an incompatible request.
 
 ## Current capabilities
 

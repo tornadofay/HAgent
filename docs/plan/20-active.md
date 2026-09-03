@@ -2,10 +2,9 @@
 
 Only the current implementation milestone belongs here. Completed implementation history is recorded in the ordered roadmap under `docs/roadmap/`; future work does not belong here.
 
-## 0.10 Workspaces, Routing + Chat
+## 0.10 Workspaces, Routing + Chat — PAUSED
 
-### Objective
-Provide an optional shared conversation where one host user and multiple runtime agents can visibly work together while every model request is routed deliberately. Workspace state must survive UI close, application shutdown, and later restart when the host supplies the same stable user identity.
+Phase 0.10 is intentionally on hold after completion and verification of its provider-neutral workspace routing and coordinator/specialist role-policy foundation. The remaining workspace product work is deferred while earlier provider/runtime capability gaps are investigated and corrected.
 
 ### Current slices
 

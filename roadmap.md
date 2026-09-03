@@ -350,6 +350,10 @@ A host can submit a complete provider-neutral execution request with bounded con
 
 ## Phase 0.10 — Workspaces, Routing + Chat
 
+**Status: PAUSED after the provider-neutral workspace routing and role-policy foundation.**
+
+Phase 0.10 remains intentionally unfinished. The remaining workspace product work is deferred while earlier provider/runtime capability gaps are investigated and corrected.
+
 ## Goal
 Provide an optional shared conversation where one authenticated host user and multiple runtime agents can visibly work together while every model request is routed deliberately and the user's workspace state survives application restarts.
 

@@ -13,7 +13,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.10 Workspaces, Routing + Chat — active**
+**0.10 Workspaces, Routing + Chat — paused after routing/role-policy foundation**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -23,9 +23,9 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation. The current work expands this foundation into the persisted per-user workspace product, workspace execution, Lobby/private chats, approvals, presentation surfaces, and WinForms UI.
+0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation and is now intentionally paused. The remaining workspace product work is deferred while earlier provider/runtime capability gaps are investigated and corrected.
 
-The next major capability layer after 0.10 is **Knowledge + Skills + Memory Governance + Learning**, including management UI and profile/runtime capability controls.
+The next capability work should resume only after the provider/model capability model is mature enough to support heterogeneous environments safely. Knowledge + Skills + Memory Governance + Learning remains the later capability layer.
 
 ## Verified implementation
 
@@ -53,7 +53,7 @@ The repository currently contains verified foundations for:
 - provider-neutral workspace participants, message metadata, default-recipient routing, and coordinator/specialist role policy;
 - generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, verified external-consumer coverage on both supported target frameworks, and verified runtime-instance + canonical-request composition.
 
-## Active Workspace target
+## Paused Workspace target
 
 Phase 0.10 initially provides one default persisted workspace per host user. The host supplies a stable `UserId`, display identity, and `IsAdmin` identity. Database-backed persistence is partitioned by host application identity and user identity; File storage remains local to the host installation.
 
@@ -62,6 +62,30 @@ Workspace visibility is always explicit: the workspace is hidden until the host 
 The workspace product target includes a shared Lobby, distinct user-to-agent Private Chats, agent join/leave, coordinator/specialist defaults, permitted provider/agent/model selection and runtime overrides, integrated approval requests/resolution, safe activity/statistics, unread/last-seen state, bounded presentation of tables/charts/graphs and popup/detail results, and modern WinForms presentation through a public host-facing workspace facade.
 
 Provider secrets, connection strings, live provider tasks, live `CancellationToken` state, runtime synchronization primitives, raw HTTP requests, raw provider payloads, and temporary execution objects remain outside persisted workspace state; these exclusions were established by Phase 0.95.
+
+## Provider/model capability gap under investigation
+
+HAgent must operate across heterogeneous providers, deployments, and models where capabilities and operational limits differ. A provider name alone is not sufficient to describe what an execution target can do.
+
+The architecture investigation will establish a provider-neutral capability model covering at least:
+
+```text
+provider
+deployment/account/project policy
+model
+model version/revision
+capabilities
+request limits
+context/output limits
+rate/concurrency limits
+runtime availability
+```
+
+Capabilities must be treated as request requirements rather than assumed model properties. Candidate capabilities include text generation, structured output, tool calling, reasoning, image input, image output/generation, audio input/output, embeddings, and other future modalities/features.
+
+The effective capability of an execution target may be `Supported`, `Unsupported`, or `Unknown`, and must distinguish declared capability from runtime/account policy, quota, temporary availability, and request-specific constraints. HAgent should validate or select an execution target before sending provider requests and must have explicit fallback/degradation semantics when a requested capability is unavailable.
+
+The next implementation investigation is provider/model capability discovery and capability-aware request planning; this is not part of the paused 0.10 workspace product.
 
 ## Planned Knowledge / Skills / Learning layer
 
@@ -117,7 +141,7 @@ Storage implementations remain responsible for persistence. WinForms owns admini
 
 ## Active implementation
 
-The active implementation plan is `docs/plan/20-active.md`. It contains only work being implemented now. Knowledge/Skills/Learning remains planned until the 0.10 workspace layer and its dependencies are ready.
+The active implementation plan remains `docs/plan/20-active.md`, which currently records the paused 0.10 milestone. Provider/model capability discovery and capability-aware planning are the current investigation target before workspace implementation resumes.
 
 ## Verification rule
 
@@ -131,7 +155,7 @@ Do not claim local build/test success unless it was actually performed.
 - `AGENTS.md` — non-negotiable engineering and repository rules.
 - `docs/architecture/` — stable architectural design and boundaries.
 - `docs/plan/` — master direction, current state, and active implementation only.
-- `docs/roadmap/` — ordered path from completed foundations to the long-term target.
+- `docs/roadmap/` — ordered path from completed foundations and future phases.
 - `docs/storage.md` — persistence/backend details.
 
 The root `plan.md` and `roadmap.md` are generated from their source directories. They are views, not independent sources of truth.

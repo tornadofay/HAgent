@@ -345,6 +345,116 @@ Add deterministic Example coverage for:
 12. [ ] Two independent cognitive runtimes can operate concurrently without state or memory leakage.
 13. [ ] The same cognitive runtime model works with a business-style event host and a simulation-style event host using only public generic APIs.
 
+## Architectural additions and explicit contracts
+
+The following contracts are first-class architectural concepts even when their initial implementations are deliberately small:
+
+### DecisionContext
+
+`DecisionContext` is the bounded, immutable-at-decision-time cognitive input shared by reactive policies, planners, and LLM-backed policies. It should be assembled from current working state, attended events, active goals/intentions, current plan state, relevant retrieved resources, available capabilities, constraints, and execution requirements.
+
+```text
+DecisionContext
+├── current situation
+├── attended events / observations
+├── active goals
+├── active intention
+├── current plan
+├── relevant Memory resources
+├── relevant Knowledge resources
+├── applicable Skills
+├── available capabilities
+├── constraints / permissions
+└── execution requirements
+```
+
+The context builder must not automatically include all stored memory, Wiki/Knowledge, Skills, or conversation history. Retrieval and context budgets determine the working set.
+
+### DecisionPolicy
+
+The cognitive runtime should expose a provider-neutral decision-policy boundary rather than embedding decision logic directly in the runtime loop.
+
+Conceptually:
+
+```text
+IDecisionPolicy
+├── ReactivePolicy
+├── UtilityPolicy
+├── LlmPolicy
+├── HybridPolicy
+└── future policy implementations
+```
+
+A policy consumes `DecisionContext` and returns a provider-neutral decision result or a bounded request for deliberation. Policies remain host-neutral; domain-specific authority stays with the host.
+
+### Planner
+
+A `Plan` is state/data. A `Planner` creates or revises plans. Keep these concepts separate so future planning strategies can be added without changing plan storage or execution semantics.
+
+Conceptually:
+
+```text
+IPlanner
+├── DeterministicPlanner
+├── UtilityPlanner
+├── LlmPlanner
+├── HybridPlanner
+└── future planner implementations
+```
+
+Initial implementations may be minimal. The architectural contract should exist before advanced planning is implemented.
+
+### Cognitive planning versus execution planning
+
+These are deliberately separate:
+
+```text
+Cognitive Planner
+    Question: "What should the agent do?"
+    Input: DecisionContext + goals + knowledge + skills
+    Output: Decision / Plan
+
+Execution Planner
+    Question: "Where/how should required inference execute?"
+    Input: AgentExecutionRequest + capability requirements
+    Output: ExecutionTargetAssessment + selected target
+```
+
+The cognitive planner must never directly inspect provider-specific rate-limit or transport state. It expresses inference requirements; Phase 0.96 decides the concrete execution target.
+
+### Retrieval and relevance
+
+Resource retrieval must be a reusable subsystem rather than an LLM-only behavior.
+
+Conceptually:
+
+```text
+DecisionContext / RetrievalQuery
+        |
+        v
+Resource eligibility filtering
+        |
+        v
+Candidate retrieval
+        |
+        v
+Relevance ranking
+        |
+        v
+Bounded top-K resources
+        |
+        v
+DecisionContext
+```
+
+Relevance should remain composable. Initial ranking may use resource type, scope, tags, lexical similarity, goal/task metadata, recency, importance, and other deterministic signals. Optional semantic/vector retrieval or model-assisted ranking can be added later without making it mandatory for Core.
+
+Attention and relevance are different operations: **attention determines what matters now; retrieval/relevance determines what information is useful about it.**
+
+### Validation boundary
+
+Decisions and plans must remain subject to explicit validation before consequential execution. A provider/model response, even when structurally valid, is not authorization. HAgent permissions, tool capability, budgets, and host authorization remain enforcement boundaries.
+
 ## Exit criterion
 
 A host can create a long-lived cognitive runtime for a runtime agent, feed it events/observations, maintain persistent goals and plans, selectively retrieve memory/knowledge/skills, handle routine situations without an LLM, activate deliberation only when justified, execute through the existing provider-neutral HAgent execution engine, recover safely after restart, and observe the full cognitive lifecycle — without HAgent gaining ownership of host-domain state or side effects.

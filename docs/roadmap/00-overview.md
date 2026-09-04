@@ -23,9 +23,21 @@ Phase 0.11 converts existing memory/skill/wiki foundations into a coherent scope
 
 Phase 0.95 is a completed cross-cutting runtime/API hardening phase. It established the generic execution boundary for arbitrary hosts: host input/context, host correlation, structured output contracts and validation, provider-facing request isolation, execution terminality, tool identity propagation, runtime snapshot isolation, provider-native structured-output transport, and external-consumer verification. It does not introduce any host-specific domain dependency.
 
-Phase 0.96 makes execution-target selection and admission capability-aware. It must complete before the persistent cognitive layer depends on heterogeneous-provider routing, quota/capacity management, and long-running execution semantics.
+Phase 0.96 makes execution-target selection and admission capability-aware. It must complete before the persistent cognitive layer depends on heterogeneous-provider routing, quota/capacity management, and long-running execution semantics. It defines the Execution Planner as the execution-side planner: it selects and admits a concrete provider/model/deployment target for an already-formed inference request and exposes a normalized target assessment.
 
-Phase 0.97 adds the missing higher-level runtime above individual executions: a long-lived cognitive runtime that owns persistent cognitive state, receives environment events, manages attention, goals, intentions and plans, decides when reactive handling is sufficient, and activates deliberative executions only when needed. It is generic and must not contain HWorld- or business-application-specific domain logic.
+Phase 0.97 adds the missing higher-level runtime above individual executions: a long-lived cognitive runtime that owns persistent cognitive state, receives environment events, manages attention, goals, intentions and plans, selects relevant resources, applies decision policies, decides when reactive handling is sufficient, creates or revises plans, and activates deliberative executions only when needed. It is generic and must not contain HWorld- or business-application-specific domain logic.
+
+The roadmap explicitly distinguishes two kinds of planning:
+
+```text
+Cognitive Planner
+    = what should the agent do?
+
+Execution Planner
+    = where/how should the required inference execute?
+```
+
+Phase 0.97 also establishes `DecisionContext`, `DecisionPolicy`, and `Planner` as explicit provider-neutral architectural concepts. Resource retrieval and relevance ranking remain separate from attention: attention determines what matters now, while retrieval/relevance determines which Memory, Knowledge, Skills, or other resources are useful about it.
 
 The roadmap distinguishes feature phases from generic runtime hardening. Higher-level features may continue later, but they must consume the generic contracts rather than create project-specific exceptions.
 

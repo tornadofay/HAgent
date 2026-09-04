@@ -402,6 +402,8 @@ Execution Planner
     = selects the best currently compatible execution target
 ```
 
+**Architectural terminology rule:** the **Execution Planner** is not the cognitive planner. The Execution Planner answers *where/how should an already-requested inference execute?* The cognitive **Planner** in Phase 0.97 answers *what should the agent do?* These layers must remain independent even when both perform candidate selection and scoring.
+
 ## Requirements
 
 1. [ ] Remove permanent provider/model binding from reusable Agent profiles. Existing provider/model configuration must be migrated to preference/requirement semantics without losing backward compatibility unnecessarily.
@@ -516,6 +518,29 @@ Latency
 
 A target may therefore be capable but temporarily unavailable, or available but incompatible with a required feature.
 
+## Execution-target assessment
+
+The planner should expose a normalized assessment for every candidate considered:
+
+```text
+ExecutionTargetAssessment
+    Target identity
+    Compatible / incompatible
+    Capability evidence
+    Constraint checks
+    Permission state
+    Quota state
+    Capacity state
+    Health / availability
+    Estimated latency
+    Wait-until (optional)
+    Degradation available (optional)
+    Score / ranking information
+    Decision reason
+```
+
+This assessment is diagnostic data, not merely logging. It allows hosts and management UI to explain why an execution target was accepted, rejected, delayed, or degraded without knowing provider-specific implementation details.
+
 ## Rate limiting and admission
 
 Rate limiting is proactive admission control, not merely retry logic.
@@ -601,6 +626,33 @@ This phase does not make HAgent responsible for provider pricing truth, billing,
 ## Exit criterion
 
 A reusable Agent profile can run unchanged across materially different provider environments. For each execution, HAgent can discover or evaluate candidate targets, determine whether required capabilities are supported, enforce request-specific constraints and policy, account for quota/rate/concurrency capacity, wait or select another compatible target when appropriate, tolerate long-running inference, preserve cancellation/timeout/stale-result safety, and explain the final execution-target decision. The same logical model may be exposed by multiple providers without collapsing their operational identities.
+
+## Architectural additions for Phase 0.97 compatibility
+
+0.96 establishes the execution-side planner only. It must expose contracts that 0.97 can consume without coupling cognitive reasoning to provider infrastructure.
+
+The boundary should remain conceptually:
+
+```text
+Cognitive Policy / Planner
+        |
+        | "I need an inference execution with these requirements"
+        v
+AgentExecutionRequest
+        |
+        v
+Execution Planner
+        |
+        v
+ExecutionTargetAssessment
+        |
+        v
+ProviderExecutionRequest
+```
+
+The cognitive layer must not select or depend directly on provider-specific rate-limit implementations. It expresses requirements/preferences; the Execution Planner handles concrete target selection and admission.
+
+The planner should therefore treat execution requirements as data, not as model/provider names embedded in cognitive policies. This allows a future `LlmPolicy` or `LlmPlanner` to request, for example, `StructuredOutput + ToolCalling + LowLatency`, while 0.96 independently decides which concrete deployment can satisfy that request.
 
 ## Phase 0.97 — Persistent Cognitive Runtime
 

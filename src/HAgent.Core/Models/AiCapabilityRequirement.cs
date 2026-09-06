@@ -52,6 +52,21 @@ namespace HAgent.Models
             Add(capability, CapabilityRequirementStrength.Forbidden);
         }
 
+        public AiCapabilityRequirements Clone()
+        {
+            var clone = new AiCapabilityRequirements();
+            foreach (var item in Items)
+            {
+                if (item == null) continue;
+                clone.Items.Add(new AiCapabilityRequirement
+                {
+                    Capability = item.Capability,
+                    Strength = item.Strength
+                });
+            }
+            return clone;
+        }
+
         private void Add(AiCapability capability, CapabilityRequirementStrength strength)
         {
             if (capability == AiCapability.None)

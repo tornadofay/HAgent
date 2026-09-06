@@ -123,23 +123,7 @@ namespace HAgent.Example
             }
         }
 
-        private sealed class EmptySecretStore : ISecretStore
-        {
-            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                return Task.CompletedTask;
-            }
 
-            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                return Task.FromResult(string.Empty);
-            }
-
-            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                return Task.CompletedTask;
-            }
-        }
 
         private static AiExecutionTarget FindTarget(IReadOnlyList<AiExecutionTarget> targets, string targetId)
         {

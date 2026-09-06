@@ -51,9 +51,9 @@ Host
 
 Execution identity remains distinct from `AgentExecution.Id`, `AgentExecution.CorrelationId`, `HostCorrelationId`, and `AgentRuntimeInstance.InstanceId`.
 
-## Scope model
+## Resource scope and ownership
 
-Identity and resource scope are related but not interchangeable.
+Identity and resource scope are related but not interchangeable. HAgent now defines a canonical `AgentResourceScope` contract with these scopes:
 
 ```text
 Global
@@ -65,13 +65,30 @@ Runtime
 Execution
 ```
 
-A resource may be visible at one scope while its authorization decision uses another identity dimension. HAgent must not assume that `UserId == PrincipalId`, that every deployment is multi-tenant, or that every execution belongs to a workspace.
+`AgentResourceOwnership.GetOwnerId(...)` derives a deterministic `OwnerId` for HAgent-owned resources. Existing stores can continue using their current string `OwnerId` field; the ownership contract defines how that value is derived rather than introducing a second storage model.
+
+The derived key follows these rules:
+
+- Global resources are deployment-scoped.
+- Tenant resources require `TenantId`.
+- User resources require `UserId` and include the tenant boundary when one is supplied, so the same user ID cannot collide across tenants.
+- Workspace resources require `WorkspaceId` and include the tenant boundary when one is supplied.
+- Agent, runtime, and execution resources require an explicit HAgent resource ID and retain deployment/tenant partition context.
+- Resource scope is explicit; an execution ID is never treated as a user ID, and a runtime instance ID is not treated as a tenant ID.
+
+A single-tenant host may leave `TenantId` empty. A multi-tenant host should supply `TenantId` for tenant-, user-, workspace-, agent-, runtime-, and execution-partitioned resources.
 
 ## Multi-tenant behavior
 
-Tenancy is optional. Single-tenant applications should not need to create artificial tenants. Multi-tenant hosts may supply `TenantId` and use it to partition or authorize HAgent-owned resources through the applicable policy and storage contracts.
+Tenancy is optional. Single-tenant applications should not need to create artificial tenants. Multi-tenant hosts may supply `TenantId` and use the ownership contract to partition HAgent-owned resources and the applicable policy to authorize access.
+
+The owner key is a partitioning primitive, not an authorization grant. A store query that omits `OwnerId` may still return multiple records if the caller explicitly performs an unrestricted query. Private-resource access must therefore combine the expected owner key with the applicable HAgent/host authorization policy rather than relying on storage filtering alone.
 
 HAgent storage remains HAgent-owned. Tenant/user identity can partition HAgent records, but it must never turn HAgent storage into implicit access to the host application's business database.
+
+## Private runtime memory
+
+`AgentRuntimeInstance.MemoryOwnerId` remains the runtime instance ID for runtime-private memory. The identity ownership contract can be used alongside this runtime owner when a resource needs both HAgent runtime identity and deployment/tenant partitioning. One user may own multiple runtime instances, and runtime identity continues to distinguish those instances from the user identity.
 
 ## Runtime state
 
@@ -86,7 +103,7 @@ Identity provides context; it does not grant authority.
 ```text
 Identity
     + requested operation
-    + resource scope
+    + resource scope / owner
     + policy
         -> authorization decision
 ```
@@ -115,4 +132,4 @@ Each subsystem should consume only the identity dimensions it actually needs.
 
 ## Architectural rule
 
-Identity is context, not authentication, authorization, or application-domain state. HAgent provides the propagation contract; the host remains authoritative for identity verification and host-specific account semantics.
+Identity is context, not authentication, authorization, or application-domain state. HAgent provides the propagation and ownership contracts; the host remains authoritative for identity verification and host-specific account semantics.

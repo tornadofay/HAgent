@@ -75,7 +75,7 @@ namespace HAgent.Runtime
                     var candidateWait = firstReleasable != null
                         ? firstReleasable.At + limit.Window
                         : timestamp + limit.Window;
-                    if (!waitUntil.HasValue || candidateWait < waitUntil.Value)
+                    if (!waitUntil.HasValue || candidateWait > waitUntil.Value)
                         waitUntil = candidateWait;
                 }
 
@@ -125,8 +125,8 @@ namespace HAgent.Runtime
 
             state.Entries.RemoveAll(entry =>
             {
-                var limit = policy.Limits.FirstOrDefault(x => x.Dimension == entry.Dimension);
-                return limit != null && entry.At + limit.Window <= now;
+                var limits = policy.Limits.Where(x => x.Dimension == entry.Dimension).ToList();
+                return limits.Count > 0 && limits.All(x => entry.At + x.Window <= now);
             });
         }
 
@@ -138,6 +138,12 @@ namespace HAgent.Runtime
         {
             if (actualUsage == null)
                 throw new ArgumentNullException(nameof(actualUsage));
+
+            foreach (var pair in actualUsage)
+            {
+                if (pair.Value < 0L)
+                    throw new ArgumentOutOfRangeException(nameof(actualUsage), "Actual usage cannot be negative.");
+            }
 
             lock (state.Sync)
             {

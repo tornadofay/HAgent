@@ -67,28 +67,32 @@ Resources are shared/reusable by default; ownership and access are explicit thro
 32. [ ] Add profile-level capability switches for Skills, Wiki/Knowledge, Memory, and memory types.
 33. [ ] Add runtime-instance-level override controls using `Inherit`/`Enabled`/`Disabled`.
 34. [ ] Keep known types specialized while rendering unknown/future resource types through the generic inventory view.
-35. [ ] Follow existing HAgent.WinForms conventions: `HMessage`, shared `Header`, `HButton`, and preserve existing layouts unless this phase requires a targeted change.
+35. [ ] Expose Learning Mode in Agent Configuration and make its relationship to Learning Policy explicit. At minimum present `Disabled`, `Suggest Only`, `Automatic with Policy`, and `Fully Automatic` as user-facing choices; Learning Mode must remain separate from resource/capability enablement.
+36. [ ] Follow existing HAgent.WinForms conventions: `HMessage`, shared `Header`, `HButton`, and preserve existing layouts unless this phase requires a targeted change.
+37. [ ] Make the Agent Configuration overview explain inherited versus overridden versus effective state for major policies/resources so administrators can understand why an agent has access to a capability.
+38. [ ] Allow Agent Configuration to show the effective AI selection/cost policy established by Phase 0.96 without duplicating provider/model discovery logic.
 
 ## Storage
 
-36. [ ] Add HAgent-owned storage migrations for candidates, knowledge resources, skill relationships/versioning, capability assignments/overrides, and memory-type policy where required.
-37. [ ] Keep File, SQL Server, and MySQL behavior aligned through provider-specific migrations.
-38. [ ] Keep learning/review metadata secret-safe and bounded.
+39. [ ] Add HAgent-owned storage migrations for candidates, knowledge resources, skill relationships/versioning, capability assignments/overrides, and memory-type policy where required.
+40. [ ] Keep File, SQL Server, and MySQL behavior aligned through provider-specific migrations.
+41. [ ] Keep learning/review metadata secret-safe and bounded.
 
 ## Runtime integration
 
-39. [ ] Bind effective knowledge/skill/memory policy into the runtime execution snapshot.
-40. [ ] Capture execution outcomes/observations as learning input without mutating runtime identity.
-41. [ ] Preserve runtime-instance isolation, execution correlation, cancellation, timeout, stale-result protection, and concurrent execution behavior.
-42. [ ] Ensure runtime-only overrides never write back to the persistent profile.
+42. [ ] Bind effective knowledge/skill/memory policy into the runtime execution snapshot.
+43. [ ] Capture execution outcomes/observations as learning input without mutating runtime identity.
+44. [ ] Preserve runtime-instance isolation, execution correlation, cancellation, timeout, stale-result protection, and concurrent execution behavior.
+45. [ ] Ensure runtime-only overrides never write back to the persistent profile.
 
 ## Verification
 
-43. [ ] Add deterministic Example verification for scope isolation, inherited/overridden capability state, memory types, knowledge retrieval, skill binding, and learning candidates.
-44. [ ] Add Example verification for SuggestOnly review and approval/rejection.
-45. [ ] Add tests that a candidate cannot bypass authorization or directly mutate a published Wiki/Skill.
-46. [ ] Add tests for future/unknown resource types surviving inventory and UI projection.
-47. [ ] Add tests that existing executions retain immutable capability/skill snapshots after later edits.
+46. [ ] Add deterministic Example verification for scope isolation, inherited/overridden capability state, memory types, knowledge retrieval, skill binding, and learning candidates.
+47. [ ] Add Example verification for SuggestOnly review and approval/rejection.
+48. [ ] Add tests that a candidate cannot bypass authorization or directly mutate a published Wiki/Skill.
+49. [ ] Add tests for future/unknown resource types surviving inventory and UI projection.
+50. [ ] Add tests that existing executions retain immutable capability/skill snapshots after later edits.
+51. [ ] Add UI verification that Agent Configuration displays effective resource/capability state, Learning Mode, and AI/cost-policy inheritance without mutating persistent profiles.
 
 ## Exit criterion
 

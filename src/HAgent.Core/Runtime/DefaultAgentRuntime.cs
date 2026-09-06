@@ -15,6 +15,7 @@ namespace HAgent.Runtime
         private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
         private readonly IProviderRouter _router;
         private readonly IProviderErrorClassifier _errorClassifier;
+        private readonly IExecutionPlanner _executionPlanner;
         private readonly IExecutionAuditStore _auditStore;
         private readonly ExecutionAuditOptions _auditOptions;
 
@@ -25,7 +26,7 @@ namespace HAgent.Runtime
             IProviderRouter router = null,
             IProviderErrorClassifier errorClassifier = null,
             IExecutionAuditStore auditStore = null)
-            : this(store, secrets, adapters, router, errorClassifier, auditStore, null)
+            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null)
         {
         }
 
@@ -36,13 +37,15 @@ namespace HAgent.Runtime
             IProviderRouter router,
             IProviderErrorClassifier errorClassifier,
             IExecutionAuditStore auditStore,
-            ExecutionAuditOptions auditOptions)
+            ExecutionAuditOptions auditOptions,
+            IExecutionPlanner executionPlanner = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters))).ToList().AsReadOnly();
             _router = router ?? new DefaultProviderRouter();
             _errorClassifier = errorClassifier ?? new DefaultProviderErrorClassifier();
+            _executionPlanner = executionPlanner ?? new DefaultExecutionPlanner();
             _auditStore = auditStore;
             _auditOptions = auditOptions ?? new ExecutionAuditOptions();
             _auditOptions.Validate();
@@ -108,12 +111,39 @@ namespace HAgent.Runtime
                 var token = linkedCts.Token;
                 try
                 {
-                    var candidates = _router.OrderProviders(snapshot.Agent, snapshot.Providers);
+                    var selectionPolicy = request.ExecutionSelection == null
+                        ? (snapshot.Agent.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : snapshot.Agent.ExecutionSelection.Clone())
+                        : request.ExecutionSelection.Clone();
+                    var requirements = request.CapabilityRequirements == null
+                        ? (snapshot.Agent.CapabilityRequirements == null ? new AiCapabilityRequirements() : snapshot.Agent.CapabilityRequirements.Clone())
+                        : request.CapabilityRequirements.Clone();
+
+                    if (request.StructuredOutput != null)
+                        requirements.Require(AiCapability.StructuredOutput);
+
+                    selectionPolicy.Validate();
+                    var targets = BuildExecutionTargets(snapshot.Providers, snapshot.Agent);
+                    var plan = _executionPlanner.Plan(targets, requirements, selectionPolicy);
+                    if (!plan.HasSelection)
+                    {
+                        throw new InvalidOperationException(
+                            "No compatible execution target was selected for agent '" + snapshot.Agent.Name + "'. " +
+                            BuildPlannerFailureSummary(plan));
+                    }
+
+                    var selectedTarget = plan.SelectedTarget;
+                    var candidates = _router
+                        .OrderProviders(snapshot.Agent, snapshot.Providers)
+                        .Where(x => string.Equals(x.Id, selectedTarget.ProviderId, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    if (candidates.Count == 0)
+                        throw new InvalidOperationException("The selected execution target references a provider that is not available: " + selectedTarget.ProviderId);
+
                     var attempts = 0;
                     Exception lastError = null;
                     ProviderErrorKind lastErrorKind = ProviderErrorKind.Unknown;
                     string lastProviderName = string.Empty;
-                    string lastModel = string.Empty;
+                    string lastModel = selectedTarget.ModelId;
 
                     foreach (var provider in candidates)
                     {
@@ -139,7 +169,6 @@ namespace HAgent.Runtime
                                     : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
                                 var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent, options.SystemPromptLayers);
                                 lastProviderName = provider.Name;
-                                lastModel = string.IsNullOrWhiteSpace(snapshot.Agent.Model) ? provider.DefaultModel : snapshot.Agent.Model;
 
                                 var providerRequest = new ProviderExecutionRequest
                                 {
@@ -225,7 +254,7 @@ namespace HAgent.Runtime
                     }
 
                     var finalFailure = lastError ?? new InvalidOperationException(
-                        "No enabled and compatible provider could handle agent: " + snapshot.Agent.Name);
+                        "Execution planner selected no executable provider target for agent: " + snapshot.Agent.Name);
                     if (execution.TryCompleteFailed(
                         finalFailure,
                         execution.FailureKind,
@@ -313,6 +342,57 @@ namespace HAgent.Runtime
             }
         }
 
+        private static IReadOnlyList<AiExecutionTarget> BuildExecutionTargets(
+            IReadOnlyList<AiProvider> providers,
+            AiAgent agent)
+        {
+            var targets = new List<AiExecutionTarget>();
+            if (providers == null) return targets.AsReadOnly();
+
+            foreach (var provider in providers)
+            {
+                if (provider == null || !provider.Enabled) continue;
+                var modelId = string.Empty;
+                if (agent != null && string.Equals(provider.Id, agent.ProviderId, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(agent.Model))
+                    modelId = agent.Model;
+                if (string.IsNullOrWhiteSpace(modelId))
+                    modelId = provider.DefaultModel;
+                if (string.IsNullOrWhiteSpace(modelId)) continue;
+
+                var target = new AiExecutionTarget
+                {
+                    Id = provider.Id + "::" + modelId,
+                    ProviderId = provider.Id,
+                    ModelId = modelId,
+                    LogicalModelId = modelId,
+                    DeploymentId = provider.Id + "::" + modelId,
+                    Capabilities = new AiModelCapabilities(),
+                    Cost = AiCostStatus.Unknown,
+                    Availability = AiAvailabilityState.Unknown
+                };
+                target.Validate();
+                targets.Add(target);
+            }
+
+            return targets.AsReadOnly();
+        }
+
+        private static string BuildPlannerFailureSummary(AiExecutionPlan plan)
+        {
+            if (plan == null || plan.Evaluations == null || plan.Evaluations.Count == 0)
+                return "No execution candidates were available.";
+
+            var rejected = plan.Evaluations
+                .Where(x => x != null)
+                .Select(x => string.Join("; ", x.Reasons ?? new List<string>()))
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Take(3)
+                .ToArray();
+            return rejected.Length == 0
+                ? "All candidates were rejected."
+                : "Candidate diagnostics: " + string.Join(" | ", rejected);
+        }
+
         private static async Task<AIResponse> AwaitProviderResponseAsync(Task<AIResponse> providerTask, CancellationToken cancellationToken)
         {
             if (providerTask == null) throw new ArgumentNullException(nameof(providerTask));
@@ -361,7 +441,6 @@ namespace HAgent.Runtime
             }
             catch
             {
-                // Audit persistence must not change the execution outcome.
             }
         }
 

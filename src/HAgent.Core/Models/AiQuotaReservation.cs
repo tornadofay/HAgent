@@ -33,12 +33,14 @@ namespace HAgent.Models
         private bool _completed;
 
         internal AiQuotaReservation(
+            Guid reservationId,
             string targetId,
             DateTimeOffset createdAt,
             IReadOnlyDictionary<AiQuotaDimension, long> reserved,
             Action<AiQuotaReservation, IReadOnlyDictionary<AiQuotaDimension, long>> commit,
             Action<AiQuotaReservation> release)
         {
+            ReservationId = reservationId;
             TargetId = targetId;
             CreatedAt = createdAt;
             Reserved = reserved;
@@ -46,6 +48,7 @@ namespace HAgent.Models
             _release = release;
         }
 
+        internal Guid ReservationId { get; private set; }
         public string TargetId { get; private set; }
         public DateTimeOffset CreatedAt { get; private set; }
         public IReadOnlyDictionary<AiQuotaDimension, long> Reserved { get; private set; }

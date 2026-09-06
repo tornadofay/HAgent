@@ -44,6 +44,20 @@ namespace HAgent.Models
         public string PreferredLogicalModelId { get; set; }
         public TimeSpan MaxQueueWait { get; set; }
 
+        public AiExecutionSelectionPolicy Clone()
+        {
+            return new AiExecutionSelectionPolicy
+            {
+                Mode = Mode,
+                Fallback = Fallback,
+                CostPolicy = CostPolicy,
+                PreferredProviderId = PreferredProviderId,
+                PreferredTargetId = PreferredTargetId,
+                PreferredLogicalModelId = PreferredLogicalModelId,
+                MaxQueueWait = MaxQueueWait
+            };
+        }
+
         public void Validate()
         {
             if (MaxQueueWait < TimeSpan.Zero)

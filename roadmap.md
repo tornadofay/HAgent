@@ -1726,3 +1726,434 @@ These capabilities follow the core runtime, data, and collaboration milestones. 
 - [ ] Documentation and migration guidance.
 
 `.NET 10` remains a future target after the development environment and compatibility policy are ready.
+
+## Phase 0.951 — Identity, Tenancy, and User Context
+
+## Status
+
+**Planned architectural foundation before Phase 0.96.**
+
+## Goal
+
+Define provider-neutral identity and context contracts that allow HAgent to distinguish deployment, tenant, user, session, workspace, agent profile, runtime instance, execution, and related principals without implementing authentication itself.
+
+## Requirements
+
+1. [ ] Define a provider-neutral `Principal`/identity contract suitable for authorization, audit, evaluation, memory, knowledge, and runtime context.
+2. [ ] Distinguish deployment/application identity from tenant, user, session, workspace, agent profile, runtime-instance, and execution identity.
+3. [ ] Define optional tenancy so single-tenant hosts remain simple while multi-tenant hosts can isolate HAgent resources.
+4. [ ] Define identity propagation through execution, tools, memory, knowledge, learning, policy, events, audit, tracing, and evaluation where applicable.
+5. [ ] Keep authentication and credential verification outside HAgent unless exposed through generic host-owned contracts.
+6. [ ] Define stable scope semantics for global, tenant, user, workspace, agent, runtime, and execution resources.
+7. [ ] Ensure private runtime memory and other private resources can be isolated by explicit owner identity.
+8. [ ] Make identity context immutable within an execution snapshot.
+9. [ ] Define safe behavior when host identity information is absent.
+10. [ ] Add deterministic Example verification for single-user, multi-user, and multi-tenant identity propagation and isolation.
+
+## Architectural outcome
+
+```text
+Deployment
+  -> Tenant (optional)
+      -> User / Principal
+          -> Session
+              -> Workspace (optional)
+                  -> Agent Profile
+                      -> Runtime Instance
+                          -> Execution
+```
+
+HAgent consumes identity context; the host remains responsible for authentication and authoritative user/account lifecycle.
+
+## Phase 0.952 — Event Subsystem
+
+## Status
+
+**Planned architectural foundation before Phase 0.96 and Phase 0.97.**
+
+## Goal
+
+Make events a first-class provider-neutral HAgent concept so hosts, tools, runtimes, workflows, and the future Persistent Cognitive Runtime can use one generic event model.
+
+## Requirements
+
+1. [ ] Define `EventEnvelope` with stable event ID, type, source, timestamp, correlation/causation metadata, optional importance, and bounded payload/context.
+2. [ ] Define event source and scope semantics without assuming a specific host domain.
+3. [ ] Support user, application, timer, tool, provider, memory, goal, agent-message, and external events through the same generic contract.
+4. [ ] Define bounded event queues, retention, expiration, and deduplication semantics.
+5. [ ] Define an asynchronous event dispatch boundary with cancellation and backpressure.
+6. [ ] Preserve event provenance and correlation into runtime decisions and executions.
+7. [ ] Support event filtering/routing without making the event subsystem a domain-specific message bus.
+8. [ ] Define persistence as optional and keep live queues/process-local handlers separate from durable event records.
+9. [ ] Ensure event delivery is safe under concurrent producers and consumers.
+10. [ ] Add deterministic Example verification for publishing, filtering, deduplication, expiration, bounded queues, cancellation, and correlation propagation.
+
+## Architectural outcome
+
+```text
+Host / Provider / Tool / Runtime
+            |
+            v
+      EventEnvelope
+            |
+      Event Dispatcher
+       /           \
+   reactive      cognitive
+    handler       runtime
+```
+
+The subsystem provides generic event infrastructure; it does not become a replacement for a host's enterprise message broker.
+
+## Phase 0.953 — Unified Policy Engine
+
+## Status
+
+**Planned architectural foundation before capability-aware execution, persistent cognition, and autonomous features.**
+
+## Goal
+
+Unify HAgent's growing permission, capability, cost, learning, approval, resource, and execution rules behind a coherent provider-neutral policy model.
+
+## Requirements
+
+1. [ ] Define generic policy, rule, scope, evaluation context, and decision contracts.
+2. [ ] Represent at least `Allow`, `Deny`, `RequireApproval`, `Defer/Wait`, and `NotApplicable` outcomes where meaningful.
+3. [ ] Support policy scopes such as system, tenant, user, workspace, agent, runtime, execution, resource, tool, and provider/target where applicable.
+4. [ ] Integrate existing permission/authorization concepts without replacing host-owned authorization.
+5. [ ] Integrate cost policy (`FreeOnly`, `FreePreferred`, `NoRestriction`) through the policy system.
+6. [ ] Integrate learning promotion policy and approval requirements.
+7. [ ] Integrate capability/resource enablement and runtime tri-state overrides.
+8. [ ] Support explicit policy precedence and conflict resolution.
+9. [ ] Preserve policy provenance so diagnostics can explain which rule produced a decision.
+10. [ ] Make policy evaluation deterministic where inputs are deterministic and safe to cache when policy versions permit.
+11. [ ] Capture effective policy state in execution/runtime snapshots.
+12. [ ] Prevent prompt content from serving as the policy enforcement mechanism.
+13. [ ] Add deterministic Example verification for policy precedence, inherited settings, denial, approval, cost restrictions, learning promotion, resource access, and runtime overrides.
+
+## Architectural rule
+
+The policy engine decides what HAgent is permitted or configured to do. It does not become an authentication provider or replace host authority over application side effects.
+
+## Phase 0.954 — Prompt and Instruction Governance
+
+## Status
+
+**Planned architectural foundation before persistent cognition and advanced learning.**
+
+## Goal
+
+Define trusted instruction layers and provenance so HAgent can safely combine system policy, agent instructions, Skills, Knowledge, Memory, tools, runtime context, user input, and externally retrieved content.
+
+## Requirements
+
+1. [ ] Define normalized instruction/source records with source type, authority/trust level, provenance, scope, and lifecycle metadata.
+2. [ ] Define deterministic instruction composition and precedence rules.
+3. [ ] Distinguish trusted policy/instructions from untrusted retrieved content and ordinary user/model-generated text.
+4. [ ] Prevent lower-authority content from silently overriding higher-authority policy.
+5. [ ] Ensure prompts never substitute for authorization, permissions, approval, or other code-enforced controls.
+6. [ ] Track the instruction sources contributing to an execution snapshot.
+7. [ ] Support Skill, Knowledge, Memory, tool-description, runtime, and host-context instructions without creating provider-specific prompt formats in Core.
+8. [ ] Define handling for instruction conflicts, unsafe/invalid sources, disabled resources, and unavailable source content.
+9. [ ] Keep secrets and sensitive host data out of diagnostic instruction traces by default.
+10. [ ] Add deterministic Example verification for precedence, untrusted-content handling, conflicts, disabled resources, and execution-snapshot provenance.
+
+## Architectural outcome
+
+```text
+System / Policy
+      ↓
+Agent instructions
+      ↓
+Skills / trusted resources
+      ↓
+Knowledge / Memory / tool descriptions
+      ↓
+Runtime + host context
+      ↓
+User / external content
+      ↓
+Provider request
+```
+
+The exact precedence rules are implementation-defined, but authority and provenance must remain explicit.
+
+## Phase 0.955 — Context Engineering
+
+## Status
+
+**Planned architectural foundation before advanced persistent cognition.**
+
+## Goal
+
+Make context assembly a first-class HAgent subsystem that selects, ranks, bounds, compresses, and explains the information sent to an execution instead of treating prompt construction as string concatenation.
+
+## Requirements
+
+1. [ ] Define provider-neutral context items with source, type, provenance, trust, importance, freshness, scope, and estimated size.
+2. [ ] Define context budgets for tokens/characters/items and other applicable resource dimensions.
+3. [ ] Separate context retrieval from context assembly and from cognitive attention.
+4. [ ] Support relevance ranking using goal relevance, attention, recency, importance, trust, redundancy, and estimated cost where available.
+5. [ ] Support bounded memory, knowledge, skill, conversation, host-context, tool-description, and instruction retrieval.
+6. [ ] Support compaction, summarization, deduplication, and truncation strategies without silently discarding required policy or provenance.
+7. [ ] Preserve source/provenance metadata for assembled context and expose safe diagnostics explaining inclusion/exclusion.
+8. [ ] Support reusable and cacheable context components when configuration/version rules permit.
+9. [ ] Keep provider-specific tokenization behind optional adapters; Core must not require a particular tokenizer.
+10. [ ] Ensure context assembly respects policy, permissions, disabled resources, and instruction authority.
+11. [ ] Capture the resulting bounded context in immutable execution snapshots.
+12. [ ] Add deterministic Example verification for budgets, ranking, prioritization, compaction, source provenance, cache reuse, and policy-enforced exclusion.
+
+## Architectural outcome
+
+```text
+Available information
+        ↓
+Policy + permissions
+        ↓
+Attention / relevance
+        ↓
+Retrieval
+        ↓
+Ranking / deduplication
+        ↓
+Compression / compaction
+        ↓
+Bounded Context
+        ↓
+Execution Request
+```
+
+Context engineering remains distinct from cognitive decision making: cognition decides what matters; context engineering constructs the bounded evidence supplied to an execution.
+
+## Phase 0.956 — Observability and Distributed Tracing
+
+## Status
+
+**Planned architectural foundation before capability-aware execution and persistent cognition.**
+
+## Goal
+
+Turn HAgent execution, resource use, policy decisions, cognition, tools, provider activity, and lifecycle changes into a coherent structured trace that can be correlated across operations and processes.
+
+## Requirements
+
+1. [ ] Define provider-neutral trace/span concepts for HAgent operations.
+2. [ ] Correlate deployment, tenant, user/session, workspace, agent, runtime, execution, tool-call, provider-target, event, policy, and evaluation activity where applicable.
+3. [ ] Represent operation start/end, duration, status, parent relationship, decision reason, and safe metadata.
+4. [ ] Trace context assembly, resource retrieval, policy evaluation, candidate selection, admission, provider execution, tool execution, learning, and cognitive transitions.
+5. [ ] Support configurable redaction of prompts, responses, arguments, host context, and other sensitive data.
+6. [ ] Keep secrets, credentials, raw connection strings, and sensitive payloads out of traces by default.
+7. [ ] Support local/in-memory tracing plus host-integrated sinks without forcing one telemetry vendor or transport.
+8. [ ] Define bounded trace retention and sampling controls.
+9. [ ] Preserve cross-process correlation for network/database-backed deployments where identity is available.
+10. [ ] Make stale-result rejection, policy denial, fallback, waiting, retry, and recovery decisions observable.
+11. [ ] Provide a safe human-readable diagnostic projection for management UI.
+12. [ ] Add deterministic Example verification for trace hierarchy, correlation propagation, redaction, sampling, failures, cancellation, and fallback paths.
+
+## Architectural outcome
+
+```text
+Event / Request
+      ↓
+Trace
+ ├── Policy
+ ├── Context
+ ├── Planning
+ ├── Admission
+ ├── Provider
+ ├── Tools
+ ├── Memory/Knowledge
+ └── Outcome
+```
+
+Tracing is observability, not authorization and not transcript storage.
+
+## Phase 0.957 — Evaluation and Quality Measurement
+
+## Status
+
+**Planned architectural foundation for reliable agent behavior and later optimization.**
+
+## Goal
+
+Give HAgent a provider-neutral way to measure whether executions, tool use, plans, learning changes, and agent outcomes achieved their intended quality or task goals.
+
+## Requirements
+
+1. [ ] Define evaluation contracts independent of any specific LLM vendor or grading service.
+2. [ ] Support evaluation targets including execution, response, tool outcome, goal outcome, plan outcome, memory/knowledge usefulness, and learning candidate quality.
+3. [ ] Support deterministic evaluators such as schema validity, required-field checks, policy compliance, tool success, latency, cost, and task completion signals.
+4. [ ] Support externally supplied human/application ratings and labels.
+5. [ ] Support model-assisted evaluators without treating evaluator-model output as unquestionable truth.
+6. [ ] Preserve evaluation provenance, evaluator identity/type, input references, timestamp, and confidence where meaningful.
+7. [ ] Correlate evaluations with execution/runtime/agent/goal/plan/trace identities.
+8. [ ] Keep evaluation data separate from authoritative agent state; an evaluation does not automatically mutate configuration, memory, skill, or knowledge.
+9. [ ] Support repeated test cases and regression suites for provider/model/agent comparisons.
+10. [ ] Support aggregate metrics such as success rate, quality score, latency, cost, fallback frequency, tool success, and plan completion.
+11. [ ] Add deterministic Example verification for evaluation creation, aggregation, human rating, failed evaluations, and comparison of alternative execution targets.
+
+## Architectural outcome
+
+```text
+Execution / Goal / Plan
+        ↓
+    Evaluation
+        ↓
+ score / label / evidence
+        ↓
+  metrics / regression
+```
+
+Evaluation measures behavior; it does not become a hidden decision-maker for authorization.
+
+## Phase 0.958 — Agent Lifecycle and Health Management
+
+## Status
+
+**Planned architectural foundation before persistent cognitive runtime.**
+
+## Goal
+
+Make agent/runtime lifecycle and health explicit, observable, recoverable, and controllable for both request-oriented and persistent agents.
+
+## Requirements
+
+1. [ ] Define normalized lifecycle states for runtime agents and persistent cognitive agents.
+2. [ ] Distinguish lifecycle state from health state and execution state.
+3. [ ] Support at least active, sleeping/idle, waiting, blocked, deliberating, executing, degraded, failed, retired, recovering, and shutdown semantics where applicable.
+4. [ ] Define health/status reasons and safe transitions rather than exposing only a Boolean healthy flag.
+5. [ ] Prevent retired/shutdown agents from originating new executions.
+6. [ ] Support suspension/resume without deleting durable state.
+7. [ ] Expose lifecycle and health changes through events and tracing.
+8. [ ] Define heartbeat/progress or equivalent signals for long-running persistent runtimes where needed.
+9. [ ] Detect stalled or repeatedly failing progress without confusing slow legitimate inference with failure.
+10. [ ] Support operator-visible diagnostics explaining why an agent is blocked, waiting, degraded, or recovering.
+11. [ ] Add deterministic Example verification for lifecycle transitions, suspension/resume, unhealthy/degraded states, stalled work, and shutdown safety.
+
+## Architectural rule
+
+Lifecycle state answers "what is the agent doing?" Health state answers "is the agent operating normally?" Execution state answers "what is this specific operation doing?" These concerns remain separate.
+
+## Phase 0.959 — Human-in-the-Loop and Intervention
+
+## Status
+
+**Planned architectural foundation for safe persistent and autonomous agents.**
+
+## Goal
+
+Allow authorized humans or host applications to inspect, pause, resume, approve, reject, redirect, or intervene in agent behavior without bypassing the HAgent execution and policy model.
+
+## Requirements
+
+1. [ ] Define a provider-neutral intervention/approval request and lifecycle model.
+2. [ ] Support inspect, approve, reject, pause, resume, cancel, retire, and shutdown actions where applicable.
+3. [ ] Allow intervention at execution, tool, plan-step, goal, learning-candidate, and consequential-action boundaries.
+4. [ ] Preserve who requested and who approved/rejected an intervention through identity and trace metadata.
+5. [ ] Make intervention policy-driven rather than prompt-driven.
+6. [ ] Ensure an intervention cannot bypass permissions, authorization, budgets, capability requirements, or host-side validation.
+7. [ ] Define behavior when intervention arrives while work is executing, waiting, or completing concurrently.
+8. [ ] Support operator comments/reasons as bounded metadata without treating them as trusted executable instructions.
+9. [ ] Expose intervention state through management UI and diagnostics.
+10. [ ] Add deterministic Example verification for approval, rejection, pause/resume, cancellation, concurrent intervention, and stale intervention requests.
+
+## Architectural outcome
+
+```text
+Agent Runtime
+     ↕
+Intervention Boundary
+     ↕
+Human / Authorized Host
+```
+
+Intervention controls agent operation; it does not become a second execution engine.
+
+## Phase 0.960 — Goal/Plan Persistence and Recovery
+
+## Status
+
+**Planned foundation before and alongside the Persistent Cognitive Runtime.**
+
+## Goal
+
+Make long-lived agent goals, intentions, plans, checkpoints, and recovery state durable without making transient executions or provider sessions part of persistent cognitive state.
+
+## Requirements
+
+1. [ ] Define durable Goal, Intention, Plan, PlanStep, checkpoint, and recovery metadata contracts.
+2. [ ] Separate durable cognitive state from live execution tasks, cancellation tokens, provider sessions, HTTP state, and synchronization primitives.
+3. [ ] Define plan revision/version semantics so stale executions cannot overwrite newer goals or plans.
+4. [ ] Support partial plan execution and explicit step states.
+5. [ ] Define checkpoint boundaries and durable progress records.
+6. [ ] Define idempotency semantics for retried plan steps and externally observable actions.
+7. [ ] Distinguish safe retry, unknown outcome, and completed outcome states.
+8. [ ] Support recovery after process restart, crash, timeout, cancellation, or provider failure.
+9. [ ] Reconcile in-flight executions during recovery and invalidate obsolete execution authority.
+10. [ ] Support plan suspension, resumption, replacement, abandonment, and rollback/compensation metadata where applicable.
+11. [ ] Keep host side effects authoritative; HAgent may persist intent and requested action state but must not claim external side effects occurred without evidence.
+12. [ ] Support optional persistence backends through the HAgent storage abstraction.
+13. [ ] Add deterministic Example verification for checkpoints, restart recovery, stale revisions, duplicate/retry handling, unknown outcomes, and plan supersession.
+
+## Architectural outcome
+
+```text
+Goal / Intention
+      ↓
+     Plan
+      ↓
+ checkpoints / revisions
+      ↓
+ Execution
+      ↓
+ outcome evidence
+      ↓
+ durable progress / recovery state
+```
+
+Durability provides recovery semantics; it does not guarantee exactly-once execution of arbitrary host side effects.
+
+## Phase 0.961 — Provider Ecosystem and Adapter Lifecycle
+
+## Status
+
+**Planned provider-platform foundation before and alongside Phase 0.96.**
+
+## Goal
+
+Mature the provider adapter boundary so HAgent can support many providers, API variants, models, modalities, discovery mechanisms, and provider API versions without leaking provider-specific behavior into HAgent.Core.
+
+## Requirements
+
+1. [ ] Define a complete provider adapter lifecycle including registration, validation, initialization, refresh, health, disablement, replacement, and retirement.
+2. [ ] Separate transport capability from discovery, usage, quota/rate, health, and other provider-specific data sources.
+3. [ ] Define normalized adapter contracts for model discovery, capability discovery, usage, rate/quota information, health, and supported execution features where available.
+4. [ ] Allow one provider integration to expose multiple models and task families without hard-coded model assumptions in Core.
+5. [ ] Preserve provider-native identifiers, API versions, deployment identifiers, and endpoint metadata alongside normalized identities.
+6. [ ] Support partial provider implementations: a provider may support execution while exposing incomplete discovery or quota telemetry.
+7. [ ] Represent unavailable/unknown provider features explicitly instead of manufacturing defaults.
+8. [ ] Define adapter version/compatibility metadata so provider API changes can be handled deliberately.
+9. [ ] Support provider deprecation/retirement without corrupting persisted agent configuration or historical execution records.
+10. [ ] Keep provider-specific retry, response, streaming, authentication, and error handling inside adapters where appropriate.
+11. [ ] Ensure adapter instances are safe for concurrent use or explicitly scoped when they are not.
+12. [ ] Ensure provider credentials are supplied through the current simple encrypted provider-configuration mechanism; this phase must not introduce a separate secret-vault architecture.
+13. [ ] Add deterministic fake-provider verification for complete discovery, partial discovery, unsupported operations, provider/API version changes, adapter replacement, health changes, and concurrent usage.
+
+## Architectural outcome
+
+```text
+Provider Configuration
+        ↓
+Provider Adapter
+ ├── execution
+ ├── discovery
+ ├── capabilities
+ ├── usage/quota
+ ├── health
+ └── provider-specific metadata
+        ↓
+Normalized HAgent contracts
+        ↓
+Execution Planner / Runtime
+```
+
+HAgent.Core remains provider-neutral; provider-specific knowledge stays behind adapter boundaries.

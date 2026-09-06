@@ -279,36 +279,36 @@ namespace HAgent.WinForms.Helpers
                 _cachedIcon = new Bitmap(_headerIcon, _iconSize, _iconSize);
         }
 
-        [Category("HHeader")]
+        [Category("HHeader"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public string Title
         {
             get { return _title; }
             set { _title = value ?? string.Empty; Text = _title; Invalidate(); }
         }
 
-        [Category("HHeader")]
+        [Category("HHeader"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public string Subtitle
         {
             get { return _subtitle; }
             set { _subtitle = value ?? string.Empty; Invalidate(); }
         }
 
-        [Category("HHeader")]
+        [Category("HHeader"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool AllowMove { get; set; } = true;
 
-        [Category("HHeader Buttons")]
+        [Category("HHeader Buttons"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool AllowClose { get; set; } = true;
 
-        [Category("HHeader Buttons")]
+        [Category("HHeader Buttons"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool AllowMinimize { get; set; }
 
-        [Category("HHeader Buttons")]
+        [Category("HHeader Buttons"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool AllowHelp { get; set; }
 
-        [Category("HHeader")]
+        [Category("HHeader"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Control DragTarget { get; set; }
 
-        [Category("HHeader")]
+        [Category("HHeader"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public int HeaderHeight
         {
             get { return _headerHeight; }
@@ -321,53 +321,53 @@ namespace HAgent.WinForms.Helpers
             }
         }
 
-        [Category("HHeader Image")]
+        [Category("HHeader Image"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Image HeaderIcon
         {
             get { return _headerIcon; }
             set { _headerIcon = value; UpdateCachedIcon(); Invalidate(); }
         }
 
-        [Category("HHeader Image")]
+        [Category("HHeader Image"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public int IconSize
         {
             get { return _iconSize; }
             set { _iconSize = Math.Max(1, value); UpdateCachedIcon(); Invalidate(); }
         }
 
-        [Category("HHeader Image")]
+        [Category("HHeader Image"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public int IconMargin
         {
             get { return _iconMargin; }
             set { _iconMargin = Math.Max(0, value); Invalidate(); }
         }
 
-        [Category("HHeader")]
+        [Category("HHeader"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public int TextMargin
         {
             get { return _textMargin; }
             set { _textMargin = Math.Max(0, value); Invalidate(); }
         }
 
-        [Category("HHeader Color")]
+        [Category("HHeader Color"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color BackGroundColor1 { get { return _background1; } set { _background1 = value; Invalidate(); } }
 
-        [Category("HHeader Color")]
+        [Category("HHeader Color"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color BackGroundColor2 { get { return _background2; } set { _background2 = value; Invalidate(); } }
 
-        [Category("HHeader Color")]
+        [Category("HHeader Color"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color ForeColor1 { get { return _foreground; } set { _foreground = value; Invalidate(); } }
 
-        [Category("HHeader Color")]
+        [Category("HHeader Color"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color SubtitleColor { get { return _subtitleForeground; } set { _subtitleForeground = value; Invalidate(); } }
 
-        [Category("HHeader Color")]
+        [Category("HHeader Color"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color ButtonHoverColor { get { return _buttonHover; } set { _buttonHover = value; Invalidate(); } }
 
-        [Category("HHeader Color")]
+        [Category("HHeader Color"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color ButtonPressedColor { get { return _buttonPressed; } set { _buttonPressed = value; Invalidate(); } }
 
-        [Category("HHeader Color")]
+        [Category("HHeader Color"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color CloseHoverColor { get { return _closeHover; } set { _closeHover = value; Invalidate(); } }
     }
 }

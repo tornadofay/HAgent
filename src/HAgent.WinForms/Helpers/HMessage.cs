@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -2662,6 +2663,7 @@ namespace HAgent.WinForms.Helpers
             UpdateResources();
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public HMessagePalette Palette
         {
             get { return _palette; }
@@ -2678,6 +2680,7 @@ namespace HAgent.WinForms.Helpers
             }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public HMessageType MessageType
         {
             get { return _messageType; }
@@ -2693,6 +2696,7 @@ namespace HAgent.WinForms.Helpers
             }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color AccentColor
         {
             get { return _accentColor; }
@@ -3113,7 +3117,7 @@ namespace HAgent.WinForms.Helpers
         }
 
 
-
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public HMessagePalette Palette
         {
             get { return _palette; }
@@ -3125,6 +3129,7 @@ namespace HAgent.WinForms.Helpers
             }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Color AccentColor
         {
             get { return _accent; }
@@ -3147,6 +3152,7 @@ namespace HAgent.WinForms.Helpers
             }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public HMessageButtonKind ButtonKind
         {
             get { return _buttonKind; }

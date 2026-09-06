@@ -152,7 +152,7 @@ namespace HAgent.WinForms.Helpers.Button
         protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); _state.FocusGained(); }
         protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); _state.FocusLost(); }
         protected override void OnResize(EventArgs e) { base.OnResize(e); UpdateRegion(); InvalidateGeometry(); }
- 
+
 
 
         private const int WM_SIZE = 0x0005;
@@ -183,56 +183,56 @@ namespace HAgent.WinForms.Helpers.Button
 
             if (m.Msg == WM_MOUSEMOVE) { if (!_isTracking) { var tme = new TRACKMOUSEEVENT { cbSize = Marshal.SizeOf(typeof(TRACKMOUSEEVENT)), dwFlags = TME_LEAVE, hwndTrack = Handle }; TrackMouseEvent(ref tme); _isTracking = true; _state.MouseEnter(); } }
             else if (m.Msg == WM_MOUSELEAVE) { _isTracking = false; _state.MouseLeave(); }
-           
-        }
 
+        }
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public IHButtonRenderer Renderer
         {
             get => _renderer ?? (_renderer = new HButtonClassicRenderer(_resourceProvider.GetOrCreate<ClassicRendererResources>()));
             set { var next = value ?? new HButtonClassicRenderer(_resourceProvider.GetOrCreate<ClassicRendererResources>()); if (ReferenceEquals(_renderer, next)) return; _renderer?.Dispose(); _renderer = next; InvalidateGeometry(); }
         }
 
-        [Category("HControls © Round")] public bool RoundButton { get => _roundButton; set { if (_roundButton != value) { _roundButton = value; UpdateRegion(); InvalidateVisual(); } } }
-        [Category("HControls © Border")] public int Edge { get => _edge; set { if (_edge != value) { _edge = value == 0 ? 1 : value; UpdateRegion(); InvalidateVisual(); } } }
-        [Category("HControls © Image"), Localizable(true)] public Image Image { get => _image; set { if (_image != value) { _image = value; InvalidateGeometry(); } } }
-        [Category("HControls © Image")] public int ImageWidth { get => _imageWidth; set { if (_imageWidth != value) { _imageWidth = value; InvalidateGeometry(); } } }
-        [Category("HControls © Image")] public int ImageHeight { get => _imageHeight; set { if (_imageHeight != value) { _imageHeight = value; InvalidateGeometry(); } } }
-        [Category("HControls © Image")] public int ImageMargin { get => _imageMargin; set { if (_imageMargin != value) { _imageMargin = value; InvalidateGeometry(); } } }
-        [Category("HControls © Text")] public int TextMargin { get => _textMargin; set { if (_textMargin != value) { _textMargin = value; InvalidateGeometry(); } } }
-        [Category("HControls © Alignment"), Localizable(true)] public ContentAlignment ImageAlign { get => _imageAlign; set { if (_imageAlign != value) { _imageAlign = value; InvalidateGeometry(); } } }
-        [Category("HControls © Alignment"), Localizable(true)] public ContentAlignment TextAlign { get => _textAlign; set { if (_textAlign != value) { _textAlign = value; InvalidateGeometry(); } } }
-        [Category("HControls © Alignment"), Localizable(true)] public AlignmentType AlignmentMode { get => _alignmentMode; set { if (_alignmentMode != value) { _alignmentMode = value; InvalidateGeometry(); } } }
+        [Category("HControls © Round"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public bool RoundButton { get => _roundButton; set { if (_roundButton != value) { _roundButton = value; UpdateRegion(); InvalidateVisual(); } } }
+        [Category("HControls © Border"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public int Edge { get => _edge; set { if (_edge != value) { _edge = value == 0 ? 1 : value; UpdateRegion(); InvalidateVisual(); } } }
+        [Category("HControls © Image"), Localizable(true), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Image Image { get => _image; set { if (_image != value) { _image = value; InvalidateGeometry(); } } }
+        [Category("HControls © Image"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public int ImageWidth { get => _imageWidth; set { if (_imageWidth != value) { _imageWidth = value; InvalidateGeometry(); } } }
+        [Category("HControls © Image"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public int ImageHeight { get => _imageHeight; set { if (_imageHeight != value) { _imageHeight = value; InvalidateGeometry(); } } }
+        [Category("HControls © Image"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public int ImageMargin { get => _imageMargin; set { if (_imageMargin != value) { _imageMargin = value; InvalidateGeometry(); } } }
+        [Category("HControls © Text"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public int TextMargin { get => _textMargin; set { if (_textMargin != value) { _textMargin = value; InvalidateGeometry(); } } }
+        [Category("HControls © Alignment"), Localizable(true), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public ContentAlignment ImageAlign { get => _imageAlign; set { if (_imageAlign != value) { _imageAlign = value; InvalidateGeometry(); } } }
+        [Category("HControls © Alignment"), Localizable(true), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public ContentAlignment TextAlign { get => _textAlign; set { if (_textAlign != value) { _textAlign = value; InvalidateGeometry(); } } }
+        [Category("HControls © Alignment"), Localizable(true), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public AlignmentType AlignmentMode { get => _alignmentMode; set { if (_alignmentMode != value) { _alignmentMode = value; InvalidateGeometry(); } } }
 
         public override RightToLeft RightToLeft { get => base.RightToLeft; set { if (base.RightToLeft != value) { base.RightToLeft = value; InvalidateGeometry(); } } }
         [Category("HControls © Text"), Browsable(true)]
         public override string Text { get => base.Text; set { if (base.Text != value) { base.Text = value; InvalidateGeometry(); } } }
         public override Font Font { get => base.Font; set { if (base.Font != value) { base.Font = value; InvalidateGeometry(); } } }
 
-        [Category("HControls © Color Leave")] public Color ButtonLeaveBackGroundColor1 { get => _leaveBg1; set { if (_leaveBg1 != value) { _leaveBg1 = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Leave")] public Color ButtonLeaveBackGroundColor2 { get => _leaveBg2; set { if (_leaveBg2 != value) { _leaveBg2 = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Leave")] public Color ButtonLeaveForeColor { get => _leaveFore; set { if (_leaveFore != value) { _leaveFore = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Leave")] public Color ButtonLeaveBorderColor { get => _leaveBorder; set { if (_leaveBorder != value) { _leaveBorder = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Leave"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonLeaveBackGroundColor1 { get => _leaveBg1; set { if (_leaveBg1 != value) { _leaveBg1 = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Leave"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonLeaveBackGroundColor2 { get => _leaveBg2; set { if (_leaveBg2 != value) { _leaveBg2 = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Leave"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonLeaveForeColor { get => _leaveFore; set { if (_leaveFore != value) { _leaveFore = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Leave"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonLeaveBorderColor { get => _leaveBorder; set { if (_leaveBorder != value) { _leaveBorder = value; InvalidateVisual(); } } }
 
-        [Category("HControls © Color Enter")] public Color ButtonEnterBackGroundColor1 { get => _enterBg1; set { if (_enterBg1 != value) { _enterBg1 = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Enter")] public Color ButtonEnterBackGroundColor2 { get => _enterBg2; set { if (_enterBg2 != value) { _enterBg2 = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Enter")] public Color ButtonEnterForeColor { get => _enterFore; set { if (_enterFore != value) { _enterFore = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Enter")] public Color ButtonEnterBorderColor { get => _enterBorder; set { if (_enterBorder != value) { _enterBorder = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Enter"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonEnterBackGroundColor1 { get => _enterBg1; set { if (_enterBg1 != value) { _enterBg1 = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Enter"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonEnterBackGroundColor2 { get => _enterBg2; set { if (_enterBg2 != value) { _enterBg2 = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Enter"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonEnterForeColor { get => _enterFore; set { if (_enterFore != value) { _enterFore = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Enter"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonEnterBorderColor { get => _enterBorder; set { if (_enterBorder != value) { _enterBorder = value; InvalidateVisual(); } } }
 
-        [Category("HControls © Color Down")] public Color ButtonDownBackGroundColor1 { get => _downBg1; set { if (_downBg1 != value) { _downBg1 = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Down")] public Color ButtonDownBackGroundColor2 { get => _downBg2; set { if (_downBg2 != value) { _downBg2 = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Down")] public Color ButtonDownForeColor { get => _downFore; set { if (_downFore != value) { _downFore = value; InvalidateVisual(); } } }
-        [Category("HControls © Color Down")] public Color ButtonDownBorderColor { get => _downBorder; set { if (_downBorder != value) { _downBorder = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Down"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonDownBackGroundColor1 { get => _downBg1; set { if (_downBg1 != value) { _downBg1 = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Down"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonDownBackGroundColor2 { get => _downBg2; set { if (_downBg2 != value) { _downBg2 = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Down"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonDownForeColor { get => _downFore; set { if (_downFore != value) { _downFore = value; InvalidateVisual(); } } }
+        [Category("HControls © Color Down"), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color ButtonDownBorderColor { get => _downBorder; set { if (_downBorder != value) { _downBorder = value; InvalidateVisual(); } } }
 
         // Original BackGroundColor1 / ForeColor / BorderColor properties preserved
-        [Category("HControls © Color"), Description("BackGround Color1.")] public Color BackGroundColor1 { get => _leaveBg1; set { if (_leaveBg1 != value) { _leaveBg1 = value; InvalidateVisual(); } } }
-        [Category("HControls © Color"), Description("BackGround Color2.")] public Color BackGroundColor2 { get => _leaveBg2; set { if (_leaveBg2 != value) { _leaveBg2 = value; InvalidateVisual(); } } }
-        [Category("HControls © Color"), Description("Fore Color.")] public override Color ForeColor { get => base.ForeColor; set { if (base.ForeColor != value) { base.ForeColor = value; _leaveFore = value; InvalidateVisual(); } } }
-        [Category("HControls © Color"), Description("Button Border Color.")] public Color BorderColor { get => _leaveBorder; set { if (_leaveBorder != value) { _leaveBorder = value; InvalidateVisual(); } } }
+        [Category("HControls © Color"), Description("BackGround Color1."), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color BackGroundColor1 { get => _leaveBg1; set { if (_leaveBg1 != value) { _leaveBg1 = value; InvalidateVisual(); } } }
+        [Category("HControls © Color"), Description("BackGround Color2."), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color BackGroundColor2 { get => _leaveBg2; set { if (_leaveBg2 != value) { _leaveBg2 = value; InvalidateVisual(); } } }
+        [Category("HControls © Color"), Description("Fore Color."), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public override Color ForeColor { get => base.ForeColor; set { if (base.ForeColor != value) { base.ForeColor = value; _leaveFore = value; InvalidateVisual(); } } }
+        [Category("HControls © Color"), Description("Button Border Color."), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)] public Color BorderColor { get => _leaveBorder; set { if (_leaveBorder != value) { _leaveBorder = value; InvalidateVisual(); } } }
 
 
 
         private bool _roundStyle = false;
-        [Category("HControls © Round"), Description("Use Radial/Elliptical Gradient instead of Linear.")]
+        [Category("HControls © Round"), Description("Use Radial/Elliptical Gradient instead of Linear."), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool RoundStyle
         {
             get => _roundStyle;
@@ -241,7 +241,7 @@ namespace HAgent.WinForms.Helpers.Button
 
         private ImageSizeMode _imageSizeMode = ImageSizeMode.Normal;
 
-        [Category("HControls © Image"), Description("How the image is sized within the button.")]
+        [Category("HControls © Image"), Description("How the image is sized within the button."), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public ImageSizeMode ImageSizeMode
         {
             get => _imageSizeMode;

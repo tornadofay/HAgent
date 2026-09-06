@@ -12,6 +12,7 @@ namespace HAgent.Models
         public string AgentId { get; set; }
         public string ToolId { get; set; }
         public string ToolCallId { get; set; }
+        public AgentIdentityContext Identity { get; set; }
         public IReadOnlyDictionary<string, object> Arguments { get; set; }
         public CancellationToken CancellationToken { get; set; }
 
@@ -22,6 +23,7 @@ namespace HAgent.Models
             AgentId = string.Empty;
             ToolId = string.Empty;
             ToolCallId = string.Empty;
+            Identity = new AgentIdentityContext();
             Arguments = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         }
     }
@@ -36,6 +38,7 @@ namespace HAgent.Models
         public string AgentId { get; set; }
         public string ToolId { get; set; }
         public string ToolCallId { get; set; }
+        public AgentIdentityContext Identity { get; set; }
         public DateTimeOffset StartedAt { get; set; }
         public DateTimeOffset? CompletedAt { get; set; }
         public TimeSpan? Duration
@@ -52,6 +55,7 @@ namespace HAgent.Models
             AgentId = string.Empty;
             ToolId = string.Empty;
             ToolCallId = string.Empty;
+            Identity = new AgentIdentityContext();
             StartedAt = DateTimeOffset.UtcNow;
         }
 

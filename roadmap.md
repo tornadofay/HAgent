@@ -419,7 +419,7 @@ Execution Planner
 
 ## Requirements
 
-1. [ ] Remove permanent provider/model binding from reusable Agent profiles. Existing provider/model configuration must be migrated to preference/requirement semantics without losing backward compatibility unnecessarily.
+1. [ ] Remove permanent provider/model binding from reusable Agent profiles. Replace the obsolete binding with preference/requirement semantics in the new Agent model; do not add compatibility fields solely to preserve the retired design.
 2. [ ] Preserve Agent profiles as first-class configuration containing identity, instructions, tools, memory/knowledge/skills policy, capability requirements, execution preferences, and fallback/degradation policy.
 3. [ ] Represent Provider independently from Model and from concrete execution endpoint/account/project/deployment.
 4. [ ] Introduce provider-independent logical model identity where reliably known, while preserving provider-native model identifiers and deployment identity.
@@ -748,76 +748,26 @@ Candidate discovery/filtering
 Policy/preferences scoring
       |
       v
-Cost policy
+Admission / reservation
       |
-      v
-Quota/rate/concurrency admission
+      +---- available -> ProviderExecutionRequest
       |
-      +---- wait
-      +---- try another candidate
-      +---- fail
+      +---- wait -> bounded queue/wait
       |
-      v
-ProviderExecutionRequest
-      |
-      v
-Provider
-      |
-      v
-Observed usage / limits / retry metadata
-      |
-      v
-Reconcile planner state
+      +---- unavailable -> next candidate / fail / permitted degradation
 ```
 
-Concurrent requests must reserve capacity atomically before transport. Actual usage then reconciles the reservation. Provider-specific headers and errors are evidence used to improve operational state.
+The planner and admission layer must remain provider-neutral while provider adapters may contribute provider-specific metadata needed to normalize limits and responses.
 
-## Long-running execution
+## Storage and configuration relationship
 
-A provider with high or effectively uncapped daily quota is not necessarily a high-throughput provider. HAgent must allow:
+Phase 0.96 depends on the storage evolution defined in `docs/roadmap/38-configuration-storage-and-portability.md`.
 
-```text
-Daily quota: abundant
-Concurrent capacity: 1
-Typical latency: 2-5 minutes
-```
+The capability-aware planner requires persistence for providers, logical models, concrete execution targets, discovery metadata, capability evidence, constraints, operational quota/rate/capacity state, cost state, Agent selection policies, global cost policy, and configuration versioning. The storage model must use the new contracts directly rather than adding legacy compatibility columns for the retired Agent provider/model binding.
 
-without incorrectly retrying, timing out, or flooding the provider.
+Provider credentials are persisted with provider configuration and encrypted at rest. HAgent does not require a separate secret-reference or secret-vault architecture.
 
-Long-running execution must remain asynchronous to the host. Cancellation and timeout policy remain host/runtime execution concerns. Slow inference must not block unrelated agent/runtime executions, while concurrency admission prevents excessive in-flight work against a slow target.
-
-## External provider examples
-
-The design intentionally covers providers with substantially different operating models.
-
-Cloudflare Workers AI exposes multiple task families with task/model-specific limits and a daily Neuron allocation, while some frontier models have distinct per-account/per-model limits. HAgent must therefore model task capability, per-target constraints, quota units, and scope rather than assuming generic LLM RPM/TPM semantics.
-
-NVIDIA's current model catalog includes free/downloadable endpoints and multimodal/reasoning/tool-use models, while hosted inference may still encounter rate limiting. A free or high-quota endpoint can therefore be represented as a normal execution target with its own capacity, latency, and observed operational state rather than being treated as unlimited throughput.
-
-OpenRouter or another routing provider may itself route across upstream providers. HAgent should treat it as an execution provider/endpoint with its own capabilities and operational limits; HAgent must not assume that its upstream model route is identical to a direct provider deployment.
-
-## Provider implementation boundary
-
-Provider adapters may implement provider-specific discovery and telemetry:
-
-```text
-IProviderCapabilitySource
-IProviderUsageSource
-IProviderRateLimitSource
-IProviderModelCatalogSource
-```
-
-or equivalent provider contracts as the implementation requires. HAgent.Core consumes normalized model, capability, constraint, quota, availability, and cost records.
-
-No provider-specific model matrix belongs in Core.
-
-## Non-goals
-
-This phase does not make HAgent responsible for provider pricing truth, billing, or host scheduling policy. It does provide normalized planning/admission primitives so HAgent can prevent avoidable incompatible or over-limit executions while leaving final application policy with the host/runtime.
-
-## Exit criterion
-
-A reusable Agent profile can run unchanged across materially different provider environments. For each execution, HAgent can discover or evaluate candidate targets, determine whether required capabilities are supported, enforce request-specific constraints and policy, account for quota/rate/concurrency capacity and applicable cost policy, wait or select another compatible target when appropriate, tolerate long-running inference, preserve cancellation/timeout/stale-result safety, and explain the final execution-target decision. The same logical model may be exposed by multiple providers without collapsing their operational identities. Normal provider setup remains lightweight and discovery-first, while manual metadata overrides are available only when automatic discovery cannot establish required information.
+Configuration export/import is part of the platform foundation: portable configuration must include the new model/target/policy/resource graph, while executable process state and active executions remain non-portable.
 
 ## Phase 0.97 — Persistent Cognitive Runtime
 

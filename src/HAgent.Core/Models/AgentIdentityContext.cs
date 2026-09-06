@@ -8,37 +8,42 @@ namespace HAgent.Models
     /// </summary>
     public sealed class AgentIdentityContext
     {
-        public AgentIdentityContext()
+        public AgentIdentityContext(
+            string deploymentId = null,
+            string tenantId = null,
+            string principalId = null,
+            string displayName = null,
+            string userId = null,
+            string sessionId = null,
+            string workspaceId = null)
         {
-            DeploymentId = string.Empty;
-            TenantId = string.Empty;
-            PrincipalId = string.Empty;
-            DisplayName = string.Empty;
-            UserId = string.Empty;
-            SessionId = string.Empty;
-            WorkspaceId = string.Empty;
+            DeploymentId = Normalize(deploymentId);
+            TenantId = Normalize(tenantId);
+            PrincipalId = Normalize(principalId);
+            DisplayName = Normalize(displayName);
+            UserId = Normalize(userId);
+            SessionId = Normalize(sessionId);
+            WorkspaceId = Normalize(workspaceId);
         }
 
-        public string DeploymentId { get; set; }
-        public string TenantId { get; set; }
-        public string PrincipalId { get; set; }
-        public string DisplayName { get; set; }
-        public string UserId { get; set; }
-        public string SessionId { get; set; }
-        public string WorkspaceId { get; set; }
+        public string DeploymentId { get; private set; }
+        public string TenantId { get; private set; }
+        public string PrincipalId { get; private set; }
+        public string DisplayName { get; private set; }
+        public string UserId { get; private set; }
+        public string SessionId { get; private set; }
+        public string WorkspaceId { get; private set; }
 
         public AgentIdentityContext Clone()
         {
-            return new AgentIdentityContext
-            {
-                DeploymentId = DeploymentId ?? string.Empty,
-                TenantId = TenantId ?? string.Empty,
-                PrincipalId = PrincipalId ?? string.Empty,
-                DisplayName = DisplayName ?? string.Empty,
-                UserId = UserId ?? string.Empty,
-                SessionId = SessionId ?? string.Empty,
-                WorkspaceId = WorkspaceId ?? string.Empty
-            };
+            return new AgentIdentityContext(
+                DeploymentId,
+                TenantId,
+                PrincipalId,
+                DisplayName,
+                UserId,
+                SessionId,
+                WorkspaceId);
         }
 
         internal void Validate()
@@ -50,6 +55,11 @@ namespace HAgent.Models
             ValidateValue(UserId, nameof(UserId));
             ValidateValue(SessionId, nameof(SessionId));
             ValidateValue(WorkspaceId, nameof(WorkspaceId));
+        }
+
+        private static string Normalize(string value)
+        {
+            return value == null ? string.Empty : value.Trim();
         }
 
         private static void ValidateValue(string value, string name)

@@ -20,18 +20,30 @@ namespace HAgent.Providers.OpenAICompatible
             providerRequest.Validate();
 
             if (providerRequest.StructuredOutput == null)
+            {
+                if (providerRequest.ExecutionTarget == null)
+                    return await SendAsync(
+                        providerRequest.Provider,
+                        providerRequest.Agent,
+                        providerRequest.ApiKey,
+                        providerRequest.SystemPrompt,
+                        providerRequest.Messages,
+                        cancellationToken).ConfigureAwait(false);
+
+                var executionAgent = CloneAgentWithModel(providerRequest.Agent, providerRequest.ExecutionTarget.ModelId);
                 return await SendAsync(
                     providerRequest.Provider,
-                    providerRequest.Agent,
+                    executionAgent,
                     providerRequest.ApiKey,
                     providerRequest.SystemPrompt,
                     providerRequest.Messages,
                     cancellationToken).ConfigureAwait(false);
+            }
 
             var url = NormalizeEndpoint(providerRequest.Provider.BaseUrl);
-            var requestModel = string.IsNullOrWhiteSpace(providerRequest.Agent.Model)
-                ? providerRequest.Provider.DefaultModel
-                : providerRequest.Agent.Model;
+            var requestModel = providerRequest.ExecutionTarget == null || string.IsNullOrWhiteSpace(providerRequest.ExecutionTarget.ModelId)
+                ? (string.IsNullOrWhiteSpace(providerRequest.Agent.Model) ? providerRequest.Provider.DefaultModel : providerRequest.Agent.Model)
+                : providerRequest.ExecutionTarget.ModelId;
             var transportRequest = new ChatCompletionRequest
             {
                 Model = requestModel,
@@ -65,9 +77,12 @@ namespace HAgent.Providers.OpenAICompatible
                     {
                         if (IsNativeStructuredOutputUnsupported(responseBody))
                         {
+                            var fallbackAgent = providerRequest.ExecutionTarget == null
+                                ? providerRequest.Agent
+                                : CloneAgentWithModel(providerRequest.Agent, providerRequest.ExecutionTarget.ModelId);
                             var fallback = await SendAsync(
                                 providerRequest.Provider,
-                                providerRequest.Agent,
+                                fallbackAgent,
                                 providerRequest.ApiKey,
                                 providerRequest.SystemPrompt,
                                 providerRequest.Messages,
@@ -133,6 +148,16 @@ namespace HAgent.Providers.OpenAICompatible
                     };
                 }
             }
+        }
+
+        private static AiAgent CloneAgentWithModel(AiAgent source, string modelId)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (string.IsNullOrWhiteSpace(modelId)) throw new ArgumentException("Execution target model id is required.", nameof(modelId));
+
+            var clone = source.Clone();
+            clone.Model = modelId;
+            return clone;
         }
 
         private static bool IsNativeStructuredOutputUnsupported(string responseBody)

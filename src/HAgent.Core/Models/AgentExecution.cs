@@ -40,6 +40,14 @@ namespace HAgent.Models
             get { return StartedAt.HasValue && CompletedAt.HasValue ? CompletedAt.Value - StartedAt.Value : (TimeSpan?)null; }
         }
 
+        /// <summary>
+        /// Identity context captured when the execution snapshot was created.
+        /// </summary>
+        public AgentIdentityContext Identity
+        {
+            get { return Snapshot == null ? new AgentIdentityContext() : Snapshot.Identity; }
+        }
+
         public bool IsCompleted
         {
             get

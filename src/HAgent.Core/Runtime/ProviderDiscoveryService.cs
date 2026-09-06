@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -10,25 +11,80 @@ namespace HAgent.Runtime
 {
     /// <summary>
     /// Provider-neutral discovery orchestrator. Discovery failures produce explicit unknown/partial state
-    /// instead of inventing model metadata.
+    /// instead of inventing model metadata. Results are cached in-memory for the configured TTL.
     /// </summary>
     public sealed class ProviderDiscoveryService
     {
-        private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
+        private sealed class CacheEntry
+        {
+            public DateTimeOffset ExpiresAt;
+            public Task<ProviderDiscoveryResult> Task;
+        }
 
-        public ProviderDiscoveryService(IEnumerable<IAiProviderAdapter> adapters)
+        private readonly IReadOnlyList<IAiProviderAdapter> _adapters;
+        private readonly TimeSpan _cacheDuration;
+        private readonly ConcurrentDictionary<string, CacheEntry> _cache = new ConcurrentDictionary<string, CacheEntry>(StringComparer.OrdinalIgnoreCase);
+
+        public ProviderDiscoveryService(IEnumerable<IAiProviderAdapter> adapters, TimeSpan? cacheDuration = null)
         {
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters))).ToList().AsReadOnly();
+            _cacheDuration = cacheDuration ?? TimeSpan.FromMinutes(15);
+            if (_cacheDuration < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(cacheDuration), "Discovery cache duration cannot be negative.");
         }
 
         public async Task<ProviderDiscoveryResult> DiscoverAsync(
             AiProvider provider,
             string apiKey,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default(CancellationToken),
+            bool forceRefresh = false)
         {
             if (provider == null) throw new ArgumentNullException(nameof(provider));
             cancellationToken.ThrowIfCancellationRequested();
 
+            var cacheKey = BuildCacheKey(provider);
+            if (!forceRefresh && _cacheDuration > TimeSpan.Zero)
+            {
+                CacheEntry cached;
+                if (_cache.TryGetValue(cacheKey, out cached) && cached != null && cached.ExpiresAt > DateTimeOffset.UtcNow)
+                {
+                    var cachedResult = await cached.Task.ConfigureAwait(false);
+                    return CloneResult(cachedResult);
+                }
+            }
+
+            if (_cacheDuration > TimeSpan.Zero)
+            {
+                var entry = new CacheEntry
+                {
+                    ExpiresAt = DateTimeOffset.UtcNow.Add(_cacheDuration)
+                };
+                entry.Task = DiscoverUncachedAsync(provider, apiKey, cancellationToken);
+                _cache[cacheKey] = entry;
+                var result = await entry.Task.ConfigureAwait(false);
+                return CloneResult(result);
+            }
+
+            return await DiscoverUncachedAsync(provider, apiKey, cancellationToken).ConfigureAwait(false);
+        }
+
+        public void Invalidate(AiProvider provider)
+        {
+            if (provider == null) return;
+            CacheEntry ignored;
+            _cache.TryRemove(BuildCacheKey(provider), out ignored);
+        }
+
+        public void ClearCache()
+        {
+            _cache.Clear();
+        }
+
+        private async Task<ProviderDiscoveryResult> DiscoverUncachedAsync(
+            AiProvider provider,
+            string apiKey,
+            CancellationToken cancellationToken)
+        {
             var adapter = _adapters.FirstOrDefault(x => x != null && x.CanHandle(provider));
             if (adapter == null)
             {
@@ -112,12 +168,42 @@ namespace HAgent.Runtime
             }
         }
 
+        private static string BuildCacheKey(AiProvider provider)
+        {
+            return string.Join("|", new[]
+            {
+                provider.Kind ?? string.Empty,
+                provider.Id ?? string.Empty,
+                provider.BaseUrl ?? string.Empty,
+                provider.SecretId ?? string.Empty
+            });
+        }
+
+        private static ProviderDiscoveryResult CloneResult(ProviderDiscoveryResult source)
+        {
+            var clone = new ProviderDiscoveryResult
+            {
+                Succeeded = source != null && source.Succeeded,
+                IsPartial = source != null && source.IsPartial,
+                Message = source == null ? string.Empty : source.Message
+            };
+
+            if (source != null)
+            {
+                foreach (var model in source.Models ?? new List<AiModelMetadata>())
+                    clone.Models.Add(model == null ? null : model.Clone());
+            }
+
+            return clone;
+        }
+
         private static void Normalize(ProviderDiscoveryResult result, string providerId)
         {
             var unique = new Dictionary<string, AiModelMetadata>(StringComparer.OrdinalIgnoreCase);
-            foreach (var metadata in result.Models ?? new List<AiModelMetadata>())
+            foreach (var sourceMetadata in result.Models ?? new List<AiModelMetadata>())
             {
-                if (metadata == null) continue;
+                if (sourceMetadata == null) continue;
+                var metadata = sourceMetadata.Clone();
                 metadata.ProviderId = providerId;
                 if (string.IsNullOrWhiteSpace(metadata.ModelId)) continue;
                 if (string.IsNullOrWhiteSpace(metadata.LogicalModelId)) metadata.LogicalModelId = metadata.ModelId;

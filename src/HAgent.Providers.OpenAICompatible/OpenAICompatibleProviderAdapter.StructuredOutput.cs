@@ -30,7 +30,7 @@ namespace HAgent.Providers.OpenAICompatible
                         providerRequest.Messages,
                         cancellationToken).ConfigureAwait(false);
 
-                var executionAgent = CloneAgentWithModel(providerRequest.Agent, providerRequest.ExecutionTarget.ModelId);
+                var executionAgent = CreateTransportAgent(providerRequest.Agent, providerRequest.ExecutionTarget.ModelId);
                 return await SendAsync(
                     providerRequest.Provider,
                     executionAgent,
@@ -79,7 +79,7 @@ namespace HAgent.Providers.OpenAICompatible
                         {
                             var fallbackAgent = providerRequest.ExecutionTarget == null
                                 ? providerRequest.Agent
-                                : CloneAgentWithModel(providerRequest.Agent, providerRequest.ExecutionTarget.ModelId);
+                                : CreateTransportAgent(providerRequest.Agent, providerRequest.ExecutionTarget.ModelId);
                             var fallback = await SendAsync(
                                 providerRequest.Provider,
                                 fallbackAgent,
@@ -150,14 +150,18 @@ namespace HAgent.Providers.OpenAICompatible
             }
         }
 
-        private static AiAgent CloneAgentWithModel(AiAgent source, string modelId)
+        private static AiAgent CreateTransportAgent(AiAgent source, string modelId)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (string.IsNullOrWhiteSpace(modelId)) throw new ArgumentException("Execution target model id is required.", nameof(modelId));
 
-            var clone = source.Clone();
-            clone.Model = modelId;
-            return clone;
+            return new AiAgent
+            {
+                Id = source.Id,
+                Model = modelId,
+                Temperature = source.Temperature,
+                MaxOutputTokens = source.MaxOutputTokens
+            };
         }
 
         private static bool IsNativeStructuredOutputUnsupported(string responseBody)

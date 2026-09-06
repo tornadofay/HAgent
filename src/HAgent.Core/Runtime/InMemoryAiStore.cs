@@ -26,12 +26,14 @@ namespace HAgent.Runtime
 
         public Task SaveProviderAsync(AiProvider provider, CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (provider == null) throw new ArgumentNullException(nameof(provider));
             lock (_sync) _providers[provider.Id] = Clone(provider);
             return Task.CompletedTask;
         }
 
         public Task SaveAgentAsync(AiAgent agent, CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (agent == null) throw new ArgumentNullException(nameof(agent));
             lock (_sync) _agents[agent.Id] = Clone(agent);
             return Task.CompletedTask;
         }
@@ -56,17 +58,31 @@ namespace HAgent.Runtime
 
         private static AiProvider Clone(AiProvider x) => new AiProvider
         {
-            Id = x.Id, Name = x.Name, Kind = x.Kind, BaseUrl = x.BaseUrl, DefaultModel = x.DefaultModel,
-            DefaultSystemPrompt = x.DefaultSystemPrompt, SecretId = x.SecretId, Enabled = x.Enabled
+            Id = x.Id,
+            Name = x.Name,
+            Kind = x.Kind,
+            BaseUrl = x.BaseUrl,
+            DefaultModel = x.DefaultModel,
+            DefaultSystemPrompt = x.DefaultSystemPrompt,
+            SecretId = x.SecretId,
+            Enabled = x.Enabled
         };
 
         private static AiAgent Clone(AiAgent x) => new AiAgent
         {
-            Id = x.Id, Name = x.Name, ProviderId = x.ProviderId,
+            Id = x.Id,
+            Name = x.Name,
+            ProviderId = x.ProviderId,
             ProviderIds = x.ProviderIds == null ? new List<string>() : new List<string>(x.ProviderIds),
-            Model = x.Model, SystemPrompt = x.SystemPrompt,
-            UseProviderSystemPrompt = x.UseProviderSystemPrompt, Temperature = x.Temperature,
-            MaxOutputTokens = x.MaxOutputTokens, ToolIds = x.ToolIds == null ? new List<string>() : new List<string>(x.ToolIds), Enabled = x.Enabled
+            Model = x.Model,
+            SystemPrompt = x.SystemPrompt,
+            UseProviderSystemPrompt = x.UseProviderSystemPrompt,
+            Temperature = x.Temperature,
+            MaxOutputTokens = x.MaxOutputTokens,
+            ToolIds = x.ToolIds == null ? new List<string>() : new List<string>(x.ToolIds),
+            Enabled = x.Enabled,
+            ExecutionSelection = x.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : x.ExecutionSelection.Clone(),
+            CapabilityRequirements = x.CapabilityRequirements == null ? new AiCapabilityRequirements() : x.CapabilityRequirements.Clone()
         };
     }
 }

@@ -14,6 +14,12 @@ namespace HAgent.Models
         public string Model { get; set; }
         public string LastProviderId { get; set; }
         public string LastProviderName { get; set; }
+        public string DeploymentId { get; set; }
+        public string TenantId { get; set; }
+        public string PrincipalId { get; set; }
+        public string UserId { get; set; }
+        public string SessionId { get; set; }
+        public string WorkspaceId { get; set; }
         public Runtime.AgentExecutionState State { get; set; }
         public AgentExecutionFailureKind FailureKind { get; set; }
         public ProviderErrorKind ProviderErrorKind { get; set; }
@@ -41,6 +47,7 @@ namespace HAgent.Models
             }
 
             var agent = execution.Snapshot == null ? null : execution.Snapshot.Agent;
+            var identity = execution.Identity ?? new AgentIdentityContext();
             return new AgentExecutionAuditRecord
             {
                 ExecutionId = execution.Id ?? string.Empty,
@@ -50,6 +57,12 @@ namespace HAgent.Models
                 Model = agent == null ? string.Empty : agent.Model,
                 LastProviderId = execution.LastProviderId ?? string.Empty,
                 LastProviderName = providerName,
+                DeploymentId = identity.DeploymentId ?? string.Empty,
+                TenantId = identity.TenantId ?? string.Empty,
+                PrincipalId = identity.PrincipalId ?? string.Empty,
+                UserId = identity.UserId ?? string.Empty,
+                SessionId = identity.SessionId ?? string.Empty,
+                WorkspaceId = identity.WorkspaceId ?? string.Empty,
                 State = execution.State,
                 FailureKind = execution.FailureKind,
                 ProviderErrorKind = execution.ProviderErrorKind,

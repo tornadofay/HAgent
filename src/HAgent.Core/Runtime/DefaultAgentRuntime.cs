@@ -16,6 +16,7 @@ namespace HAgent.Runtime
         private readonly IProviderRouter _router;
         private readonly IProviderErrorClassifier _errorClassifier;
         private readonly IExecutionPlanner _executionPlanner;
+        private readonly IExecutionTargetCatalog _executionTargetCatalog;
         private readonly IExecutionAuditStore _auditStore;
         private readonly ExecutionAuditOptions _auditOptions;
 
@@ -26,7 +27,7 @@ namespace HAgent.Runtime
             IProviderRouter router = null,
             IProviderErrorClassifier errorClassifier = null,
             IExecutionAuditStore auditStore = null)
-            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null)
+            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null, null)
         {
         }
 
@@ -38,7 +39,8 @@ namespace HAgent.Runtime
             IProviderErrorClassifier errorClassifier,
             IExecutionAuditStore auditStore,
             ExecutionAuditOptions auditOptions,
-            IExecutionPlanner executionPlanner = null)
+            IExecutionPlanner executionPlanner = null,
+            IExecutionTargetCatalog executionTargetCatalog = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -46,6 +48,9 @@ namespace HAgent.Runtime
             _router = router ?? new DefaultProviderRouter();
             _errorClassifier = errorClassifier ?? new DefaultProviderErrorClassifier();
             _executionPlanner = executionPlanner ?? new DefaultExecutionPlanner();
+            _executionTargetCatalog = executionTargetCatalog ?? new DefaultExecutionTargetCatalog(
+                new ProviderDiscoveryService(_adapters),
+                _secrets);
             _auditStore = auditStore;
             _auditOptions = auditOptions ?? new ExecutionAuditOptions();
             _auditOptions.Validate();
@@ -122,7 +127,9 @@ namespace HAgent.Runtime
                         requirements.Require(AiCapability.StructuredOutput);
 
                     selectionPolicy.Validate();
-                    var targets = BuildExecutionTargets(snapshot.Providers, snapshot.Agent);
+                    var targets = await _executionTargetCatalog
+                        .GetTargetsAsync(snapshot.Providers, snapshot.Agent, token)
+                        .ConfigureAwait(false);
                     var plan = _executionPlanner.Plan(targets, requirements, selectionPolicy);
                     if (!plan.HasSelection)
                     {
@@ -174,6 +181,7 @@ namespace HAgent.Runtime
                                 {
                                     Provider = provider,
                                     Agent = snapshot.Agent,
+                                    ExecutionTarget = selectedTarget,
                                     ApiKey = apiKey,
                                     SystemPrompt = systemPrompt,
                                     Messages = execution.Messages,
@@ -340,41 +348,6 @@ namespace HAgent.Runtime
                     throw;
                 }
             }
-        }
-
-        private static IReadOnlyList<AiExecutionTarget> BuildExecutionTargets(
-            IReadOnlyList<AiProvider> providers,
-            AiAgent agent)
-        {
-            var targets = new List<AiExecutionTarget>();
-            if (providers == null) return targets.AsReadOnly();
-
-            foreach (var provider in providers)
-            {
-                if (provider == null || !provider.Enabled) continue;
-                var modelId = string.Empty;
-                if (agent != null && string.Equals(provider.Id, agent.ProviderId, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(agent.Model))
-                    modelId = agent.Model;
-                if (string.IsNullOrWhiteSpace(modelId))
-                    modelId = provider.DefaultModel;
-                if (string.IsNullOrWhiteSpace(modelId)) continue;
-
-                var target = new AiExecutionTarget
-                {
-                    Id = provider.Id + "::" + modelId,
-                    ProviderId = provider.Id,
-                    ModelId = modelId,
-                    LogicalModelId = modelId,
-                    DeploymentId = provider.Id + "::" + modelId,
-                    Capabilities = new AiModelCapabilities(),
-                    Cost = AiCostStatus.Unknown,
-                    Availability = AiAvailabilityState.Unknown
-                };
-                target.Validate();
-                targets.Add(target);
-            }
-
-            return targets.AsReadOnly();
         }
 
         private static string BuildPlannerFailureSummary(AiExecutionPlan plan)

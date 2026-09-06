@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — core identity context and execution propagation implemented first.**
+**In progress — core identity context and execution propagation implemented; Example verification remains.**
 
 ## Goal
 
@@ -10,10 +10,10 @@ Define provider-neutral identity and context contracts that allow HAgent to dist
 
 ## Requirements
 
-1. [ ] Define a provider-neutral `Principal`/identity contract suitable for authorization, audit, evaluation, memory, knowledge, and runtime context.
+1. [x] Define a provider-neutral identity context suitable for authorization, audit, evaluation, memory, knowledge, and runtime context. A separate `Principal` object is not required when the shared identity context is sufficient.
 2. [x] Distinguish deployment/application identity from tenant, user, session, workspace, agent profile, runtime-instance, and execution identity through a shared `AgentIdentityContext` and existing runtime/execution identities.
 3. [ ] Define optional tenancy so single-tenant hosts remain simple while multi-tenant hosts can isolate HAgent resources.
-4. [x] Begin identity propagation through execution snapshots and public execution results; extend the same context to tools, memory, knowledge, learning, policy, events, audit, tracing, and evaluation in their respective phases.
+4. [x] Propagate the shared identity context through execution snapshots and public execution results, with tool-execution and audit projections now carrying the same identity context. Extend the same context to memory, knowledge, learning, policy, events, tracing, and evaluation in their respective phases.
 5. [x] Keep authentication and credential verification outside HAgent; the identity contract is host-supplied context only.
 6. [ ] Define stable scope semantics for global, tenant, user, workspace, agent, runtime, and execution resources.
 7. [ ] Ensure private runtime memory and other private resources can be isolated by explicit owner identity.
@@ -31,6 +31,9 @@ AgentExecutionRequest.Identity
 AgentExecutionSnapshot.Identity
         ↓
 AgentExecution.Identity
+        ├── ToolExecutionContext.Identity
+        ├── ToolExecutionResult.Identity
+        └── AgentExecutionAuditRecord identity projection
 ```
 
 `AgentIdentityContext` is provider-neutral and currently carries:
@@ -45,7 +48,7 @@ SessionId
 WorkspaceId
 ```
 
-The identity object is immutable after construction. The execution snapshot keeps its own copy so caller-owned request state cannot mutate the identity of an active execution.
+The execution snapshot keeps its own copy so caller-owned request state cannot mutate the identity associated with an active execution. Tool execution receives the same captured context, and audit projections retain identity dimensions without storing sensitive payloads.
 
 This is deliberately a foundation, not a requirement that every host implement tenants, users, or workspaces.
 
@@ -60,6 +63,7 @@ Deployment
                   -> Agent Profile
                       -> Runtime Instance
                           -> Execution
+                              -> Tools / Audit / downstream subsystems
 ```
 
 HAgent consumes identity context; the host remains responsible for authentication and authoritative user/account lifecycle.

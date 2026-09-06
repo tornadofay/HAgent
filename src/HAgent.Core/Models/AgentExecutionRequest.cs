@@ -5,7 +5,7 @@ using System.Collections.ObjectModel;
 namespace HAgent.Models
 {
     /// <summary>
-    /// Canonical provider-neutral execution request supplied by a host application.
+    /// Canonical provider-neutral host execution request.
     /// </summary>
     public sealed class AgentExecutionRequest
     {
@@ -17,6 +17,8 @@ namespace HAgent.Models
             HostContext = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
             Identity = new AgentIdentityContext();
             Options = new AgentExecutionOptions();
+            ExecutionSelection = null;
+            CapabilityRequirements = null;
         }
 
         public string AgentId { get; set; }
@@ -30,6 +32,16 @@ namespace HAgent.Models
         public AgentIdentityContext Identity { get; set; }
 
         public AgentExecutionOptions Options { get; set; }
+
+        /// <summary>
+        /// Optional host/runtime execution-selection override. When null, the agent policy is used.
+        /// </summary>
+        public AiExecutionSelectionPolicy ExecutionSelection { get; set; }
+
+        /// <summary>
+        /// Optional host/runtime capability requirements. When null, the agent requirements are used.
+        /// </summary>
+        public AiCapabilityRequirements CapabilityRequirements { get; set; }
 
         /// <summary>
         /// Optional host-owned structured-output contract for this execution.
@@ -64,6 +76,9 @@ namespace HAgent.Models
 
             if (Options == null)
                 Options = new AgentExecutionOptions();
+
+            if (ExecutionSelection != null)
+                ExecutionSelection.Validate();
 
             if (StructuredOutput != null)
                 StructuredOutput.Validate();

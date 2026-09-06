@@ -6,8 +6,7 @@ namespace HAgent.Models
 {
     /// <summary>
     /// Canonical provider-facing execution request.
-    /// This is intentionally separate from AgentExecutionRequest so provider transport
-    /// details can evolve without leaking into the host-facing contract.
+    /// The selected execution target is authoritative for transport model/deployment selection.
     /// </summary>
     public sealed class ProviderExecutionRequest
     {
@@ -15,7 +14,7 @@ namespace HAgent.Models
         {
             Provider = null;
             Agent = null;
-            ExecutionTarget = null;
+            Target = null;
             ApiKey = string.Empty;
             SystemPrompt = string.Empty;
             Messages = new ReadOnlyCollection<AIMessage>(new List<AIMessage>());
@@ -26,11 +25,7 @@ namespace HAgent.Models
 
         public AiProvider Provider { get; set; }
         public AiAgent Agent { get; set; }
-        /// <summary>
-        /// Concrete execution target selected by the execution planner when this request
-        /// originates from the HAgent runtime. Direct provider operations may omit it.
-        /// </summary>
-        public AiExecutionTarget ExecutionTarget { get; set; }
+        public AiExecutionTarget Target { get; set; }
         public string ApiKey { get; set; }
         public string SystemPrompt { get; set; }
         public IReadOnlyList<AIMessage> Messages { get; set; }
@@ -44,13 +39,15 @@ namespace HAgent.Models
                 throw new ArgumentNullException(nameof(Provider));
             if (Agent == null)
                 throw new ArgumentNullException(nameof(Agent));
+            if (Target == null)
+                throw new ArgumentNullException(nameof(Target));
+            if (!string.Equals(Target.ProviderId, Provider.Id, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("ProviderExecutionRequest target provider does not match the selected provider.");
+            Target.Validate();
             if (Messages == null || Messages.Count == 0)
                 throw new ArgumentException("At least one provider message is required.", nameof(Messages));
             if (Messages.Count > 128)
                 throw new ArgumentOutOfRangeException(nameof(Messages), "A maximum of 128 messages is supported per provider request.");
-
-            if (ExecutionTarget != null)
-                ExecutionTarget.Validate();
 
             if (StructuredOutput != null)
                 StructuredOutput.Validate();

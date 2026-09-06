@@ -60,6 +60,16 @@ namespace HAgent.Example
                 TestIdentityToolAsync,
                 "Tool boundary",
                 "This verifies the identity-aware ExecuteToolAsync overload and keeps host authentication outside HAgent.");
+
+            AddApiTab(
+                "Identity Isolation",
+                "Run isolation test",
+                "Derives canonical resource ownership keys from two users and two tenants, then verifies user-scoped memory remains isolated when the storage backend contains records for multiple principals.",
+                "Different users must receive different owner keys; the same user ID in different tenants must remain isolated; each user query must return only its own memory; runtime and execution scopes must remain distinct.",
+                "No AI request is sent by this example.",
+                TestIdentityIsolationAsync,
+                "Ownership boundary",
+                "Storage continues to use the existing OwnerId contract. Ownership keys provide deterministic partition identity; authorization remains the policy boundary.");
         }
 
         private Task TestIdentitySnapshotAsync(string unused)

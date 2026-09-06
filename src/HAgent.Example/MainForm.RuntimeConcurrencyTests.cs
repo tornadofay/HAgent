@@ -1,13 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
-using HAgent.Storage.File;
 
 namespace HAgent.Example
 {
@@ -18,32 +15,47 @@ namespace HAgent.Example
             AddApiTab(
                 "RUNTIME CONCURRENCY",
                 "Run runtime concurrency test",
-                "Runs two independent runtime instances concurrently against a local adapter and verifies their execution identities and results remain isolated.",
+                "Runs two independent runtime instances concurrently against a deterministic local adapter and verifies their execution identities and results remain isolated.",
                 "Both executions should overlap, complete successfully, and retain distinct instance/execution/correlation identities.",
                 "Runtime concurrency verification.",
                 TestRuntimeConcurrencyAsync,
                 "Two independent instances",
-                "Uses only a local adapter. No external provider is contacted.");
+                "Uses only an in-memory store and local adapter. No external provider is contacted.");
         }
 
         private async Task TestRuntimeConcurrencyAsync(string message)
         {
-            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            var profile = GetSelectedAgent();
-            if (profile == null)
-                throw new InvalidOperationException("Select an agent first.");
+            var store = new InMemoryAiStore();
+            var provider = new AiProvider
+            {
+                Id = "runtime-concurrency-provider-42",
+                Name = "Runtime Concurrency Provider",
+                Kind = "RuntimeConcurrencyTest",
+                BaseUrl = "https://runtime-concurrency.test/v1",
+                DefaultModel = "runtime-concurrency-model-42",
+                Enabled = true
+            };
+            var profile = new AiAgent
+            {
+                Id = "runtime-concurrency-profile-42",
+                Name = "Runtime Concurrency Test Profile",
+                ProviderId = provider.Id,
+                Model = provider.DefaultModel,
+                ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = AiSelectionMode.Auto,
+                    Fallback = AiFallbackMode.TryNextCandidate,
+                    CostPolicy = AiCostPolicy.NoRestriction
+                },
+                CapabilityRequirements = new AiCapabilityRequirements(),
+                Enabled = true
+            };
 
-            var provider = (await store.GetProvidersAsync().ConfigureAwait(true))
-                .FirstOrDefault(x => string.Equals(x.Id, profile.ProviderId, StringComparison.OrdinalIgnoreCase));
-            if (provider == null)
-                throw new InvalidOperationException("The selected agent's primary provider could not be found.");
+            await store.SaveProviderAsync(provider).ConfigureAwait(true);
+            await store.SaveAgentAsync(profile).ConfigureAwait(true);
 
             var adapter = new RuntimeConcurrencyTestAdapter();
-            var client = new HAgentClient(
-                store,
-                secrets,
-                new[] { adapter });
+            var client = new HAgentClient(store, new NullSecretStore(), new[] { adapter });
 
             var registry = new AgentRuntimeInstanceRegistry();
             var first = registry.Create(profile, AgentRuntimeScope.Session);
@@ -53,7 +65,8 @@ namespace HAgent.Example
             {
                 Timeout = TimeSpan.FromSeconds(5),
                 MaxProviderAttempts = 1,
-                MaxRetriesPerProvider = 0
+                MaxRetriesPerProvider = 0,
+                HostCorrelationId = string.Empty
             };
 
             var firstTask = client.ExecuteAsync(
@@ -106,6 +119,24 @@ namespace HAgent.Example
                 "Instance isolation after retire: yes");
         }
 
+        private sealed class NullSecretStore : ISecretStore
+        {
+            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.FromResult(string.Empty);
+            }
+
+            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.CompletedTask;
+            }
+
+            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.CompletedTask;
+            }
+        }
+
         private sealed class RuntimeConcurrencyTestAdapter : IAiProviderAdapter
         {
             private int _activeCalls;
@@ -117,7 +148,7 @@ namespace HAgent.Example
 
             public bool CanHandle(AiProvider provider)
             {
-                return provider != null;
+                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
             }
 
             public async Task<AIResponse> SendAsync(
@@ -135,7 +166,8 @@ namespace HAgent.Example
                     return new AIResponse
                     {
                         Text = "RUNTIME-CONCURRENT-OK",
-                        ProviderId = request.Provider == null ? string.Empty : request.Provider.Id
+                        ProviderId = request.Provider == null ? string.Empty : request.Provider.Id,
+                        Model = request.Agent == null ? string.Empty : request.Agent.Model
                     };
                 }
                 finally

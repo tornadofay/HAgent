@@ -20,8 +20,8 @@ namespace HAgent.Example
             AddApiTab(
                 "PROVIDER DISCOVERY",
                 "Run discovery test",
-                "Verifies discovery-first behavior with complete discovery, partial catalog discovery, cache reuse, refresh, and unsupported adapters.",
-                "Known metadata should be preserved; partial discovery must leave unavailable facts as Unknown; cached metadata must be reusable without repeating discovery; unsupported providers must not invent model information.",
+                "Verifies discovery-first behavior with complete discovery, partial catalog discovery, cache reuse, refresh, target materialization, and unsupported adapters.",
+                "Known metadata should be preserved; partial discovery must leave unavailable facts as Unknown; cached metadata must be reusable without repeating discovery; discovered metadata must become concrete execution targets; unsupported providers must not invent model information.",
                 "Uses only deterministic local adapters.",
                 TestProviderDiscoveryAsync,
                 "Discovery boundary",
@@ -88,6 +88,26 @@ namespace HAgent.Example
             if (partial.Models[0].Cost != AiCostStatus.Unknown || partial.Models[1].Cost != AiCostStatus.Unknown)
                 throw new InvalidOperationException("Unavailable cost metadata was not kept Unknown.");
 
+            var catalog = new DefaultExecutionTargetCatalog(service, new EmptySecretStore());
+            var targets = await catalog.GetTargetsAsync(
+                new[] { provider, partialProvider },
+                new AiAgent
+                {
+                    ProviderId = provider.Id,
+                    Model = "discovery-model-42"
+                },
+                CancellationToken.None).ConfigureAwait(true);
+
+            var discoveredTarget = FindTarget(targets, provider.Id + "::discovery-model-42");
+            if (discoveredTarget.Cost != AiCostStatus.Free ||
+                discoveredTarget.Capabilities.Get(AiCapability.Chat) != CapabilitySupport.Supported)
+                throw new InvalidOperationException("Discovered model metadata was not materialized into the execution target.");
+
+            var partialTarget = FindTarget(targets, partialProvider.Id + "::catalog-model-1");
+            if (partialTarget.Cost != AiCostStatus.Unknown ||
+                partialTarget.Capabilities.Get(AiCapability.Chat) != CapabilitySupport.Unknown)
+                throw new InvalidOperationException("Partial discovery metadata was incorrectly promoted beyond known evidence.");
+
             var unsupported = new ProviderDiscoveryService(new IAiProviderAdapter[] { new UnsupportedTestAdapter() });
             var unsupportedResult = await unsupported.DiscoverAsync(
                 new AiProvider { Id = "unsupported-provider-42", Kind = "unsupported-test" },
@@ -104,6 +124,7 @@ namespace HAgent.Example
                 "Unknown unavailable metadata: verified." + Environment.NewLine +
                 "Discovery cache reuse: verified." + Environment.NewLine +
                 "Forced refresh and invalidation: verified." + Environment.NewLine +
+                "Discovery → execution target materialization: verified." + Environment.NewLine +
                 "Unsupported provider remains explicit: verified." + Environment.NewLine +
                 "Complete discovered model: " + complete.Models[0].ModelId);
         }
@@ -167,6 +188,35 @@ namespace HAgent.Example
             {
                 return Task.FromResult(new AIResponse { Text = "unused" });
             }
+        }
+
+        private sealed class EmptySecretStore : ISecretStore
+        {
+            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.CompletedTask;
+            }
+
+            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.FromResult(string.Empty);
+            }
+
+            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        private static AiExecutionTarget FindTarget(IReadOnlyList<AiExecutionTarget> targets, string targetId)
+        {
+            foreach (var target in targets)
+            {
+                if (string.Equals(target.Id, targetId, StringComparison.OrdinalIgnoreCase))
+                    return target;
+            }
+
+            throw new InvalidOperationException("Execution target was not materialized: " + targetId);
         }
     }
 }

@@ -101,11 +101,15 @@ namespace HAgent.Runtime
                     });
                 }
 
+                var reserved = new Dictionary<AiQuotaDimension, long>();
+                foreach (var pair in requestedUsage)
+                    reserved[pair.Key] = pair.Value;
+
                 var reservation = new AiQuotaReservation(
                     reservationId,
                     target.Id,
                     timestamp,
-                    new Dictionary<AiQuotaDimension, long>(requestedUsage),
+                    reserved,
                     (r, actual) => Commit(state, policy, r, actual),
                     r => Release(state, r));
 

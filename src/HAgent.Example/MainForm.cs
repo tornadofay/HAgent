@@ -82,6 +82,7 @@ namespace HAgent.Example
             AddWorkspaceRoleTab();
             AddEventFeatureTabs();
             AddExecutionPlannerTabs();
+            AddQuotaAdmissionTabs();
             Shown += async delegate
             {
                 try

@@ -7,28 +7,45 @@ namespace HAgent.Models
     public sealed class AgentExecutionSnapshot
     {
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers)
-            : this(agent, providers, null, null)
+            : this(agent, providers, null, null, null)
         {
         }
 
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides)
-            : this(agent, providers, overrides, null)
+            : this(agent, providers, overrides, null, null)
         {
         }
 
-        public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides, IReadOnlyDictionary<string, string> hostContext)
+        public AgentExecutionSnapshot(
+            AiAgent agent,
+            IReadOnlyList<AiProvider> providers,
+            AgentRuntimeOverrides overrides,
+            IReadOnlyDictionary<string, string> hostContext)
+            : this(agent, providers, overrides, hostContext, null)
+        {
+        }
+
+        public AgentExecutionSnapshot(
+            AiAgent agent,
+            IReadOnlyList<AiProvider> providers,
+            AgentRuntimeOverrides overrides,
+            IReadOnlyDictionary<string, string> hostContext,
+            AgentIdentityContext identity)
         {
             Agent = CloneAgent(agent ?? throw new ArgumentNullException(nameof(agent)), overrides);
             Providers = CloneProviders(providers ?? throw new ArgumentNullException(nameof(providers)));
             RuntimeContext = CloneContext(overrides == null ? null : overrides.Context);
             HostContext = CloneContext(hostContext);
+            Identity = identity == null ? new AgentIdentityContext() : identity.Clone();
             CreatedAt = DateTimeOffset.UtcNow;
+            Identity.Validate();
         }
 
         public AiAgent Agent { get; private set; }
         public IReadOnlyList<AiProvider> Providers { get; private set; }
         public IReadOnlyDictionary<string, string> RuntimeContext { get; private set; }
         public IReadOnlyDictionary<string, string> HostContext { get; private set; }
+        public AgentIdentityContext Identity { get; private set; }
         public DateTimeOffset CreatedAt { get; private set; }
 
         private static AiAgent CloneAgent(AiAgent source, AgentRuntimeOverrides overrides)

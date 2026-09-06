@@ -247,6 +247,11 @@ Known types such as Skills, Wiki, Episodic Memory, Semantic Memory, and Procedur
 When an administrator selects an agent profile, the management surface should show its effective knowledge/capability view, including:
 
 ```text
+AI selection / Cost Policy
+    effective selection mode (Auto / Preferred / Fixed)
+    effective cost policy inherited from system/agent/runtime policy
+    selected/preferred provider/model where applicable
+
 Skills
     assigned, inherited, available, disabled, and usage relationships
 
@@ -255,6 +260,9 @@ Knowledge / Wiki
 
 Memory
     enabled memory families, effective scopes, counts/metadata where available
+
+Learning
+    effective Learning Mode and access to pending review suggestions
 
 Other knowledge resources
     generic inventory entries for future resource types
@@ -273,14 +281,28 @@ Runtime A
     Skills: inherit
     Wiki: disabled
     Episodic Memory: enabled
+    Cost Policy: inherit
 
 Runtime B
     Skills: disabled
     Wiki: inherit
     Semantic Memory: disabled
+    Cost Policy: FreeOnly
 ```
 
 These overrides are runtime state. They must not mutate the persistent `AiAgent` profile and must be captured in the execution snapshot used by an execution.
+
+Where the UI exposes an override, it should show both the source and effective value:
+
+```text
+Cost Policy
+    Global: FreePreferred
+    Agent: Inherit
+    Runtime: Inherit
+    Effective: FreePreferred
+```
+
+This same source/effective presentation should be used for resource and capability inheritance where practical.
 
 ## Review and approval
 
@@ -330,14 +352,19 @@ Learning Review
     approve / reject
     provenance and evidence
 
-Agent Configuration > Knowledge
+Agent Configuration
+    Overview / General / AI / Skills / Knowledge / Memory / Learning / Advanced
+    effective AI selection and cost policy
     effective skills
     wiki/knowledge access
     memory families
+    learning mode
     generic future resource inventory
     profile-level enable/disable
-    instance-level override visibility/editing
+    runtime-instance override visibility/editing
 ```
+
+The `AI` panel is responsible for agent-specific selection mode and requirements/preferences, while provider/model discovery remains in the top-level Providers and Models administration surfaces. The agent editor must not duplicate the provider model catalog.
 
 All WinForms dialogs follow the existing HAgent UI conventions, including `HMessage`, `Header`, and `HButton`.
 

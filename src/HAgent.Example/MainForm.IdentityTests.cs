@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
@@ -10,6 +11,24 @@ namespace HAgent.Example
 {
     internal sealed partial class MainForm
     {
+        static MainForm()
+        {
+            Application.Idle += OnExampleIdentityModuleIdle;
+        }
+
+        private static void OnExampleIdentityModuleIdle(object sender, EventArgs e)
+        {
+            for (var i = 0; i < Application.OpenForms.Count; i++)
+            {
+                var form = Application.OpenForms[i] as MainForm;
+                if (form == null) continue;
+
+                Application.Idle -= OnExampleIdentityModuleIdle;
+                form.AddIdentityFeatureTabs();
+                return;
+            }
+        }
+
         private void AddIdentityFeatureTabs()
         {
             AddApiTab(

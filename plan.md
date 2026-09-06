@@ -561,7 +561,7 @@ host
 
 without replacing HAgent or introducing application-specific types into `HAgent.Core`.
 
-## Phase 0.96 Implementation — Execution Planning Foundation
+## Phase 0.96 Implementation — Capability-Aware Execution Foundation
 
 ## Current slice
 
@@ -578,15 +578,20 @@ This slice establishes the provider-neutral decision boundary needed before capa
 - Independent FreeOnly / FreePreferred / NoRestriction cost policy.
 - `IExecutionPlanner` and deterministic `DefaultExecutionPlanner`.
 - `AiExecutionPlan` plus per-target diagnostics for acceptance/rejection and score reasons.
-- Example verification covering multiple providers for one logical model, required/preferred/forbidden capabilities, known free/paid/unknown cost, Preferred selection, and Fixed capability enforcement.
+- Generic quota/rate dimensions for request count, token usage, concurrency, audio duration, image count, bytes, and spend.
+- `AiQuotaLimit` / `AiQuotaPolicy` for arbitrary rolling windows.
+- `InMemoryAiQuotaAdmission` with atomic target-scoped reservations and release/actual-usage reconciliation.
+- Deterministic Example verification for execution planning and quota admission.
 
-## Deliberate non-goals for this slice
+## Deliberate non-goals for the current slice
 
-This slice does not yet send provider requests, reserve quota, infer rate limits, perform provider discovery, or remove the obsolete provider/model properties from `AiAgent`. Those changes will be made as one coherent runtime/configuration integration rather than through compatibility shims.
+Provider transport, provider discovery, persistent/shared admission, provider-enforced scope reconciliation, operational 429 feedback, long-running execution policy, and capability-aware runtime integration are not yet wired into the execution path.
+
+The obsolete provider/model properties on `AiAgent` are also not being preserved through compatibility wrappers. They will be replaced as part of the single coherent runtime/configuration integration step.
 
 ## Next slice
 
-Integrate the planner with the canonical `AgentExecutionRequest` boundary, replace the reusable `AiAgent` provider/model binding with `AiExecutionSelectionPolicy` plus requirements, and make runtime/provider transport consume the selected `AiExecutionTarget`. Then add normalized quota/rate/capacity admission before transport.
+Integrate the planner with the canonical `AgentExecutionRequest` boundary, replace reusable `AiAgent` provider/model binding with execution-selection policy plus capability requirements, and make runtime/provider transport consume the selected `AiExecutionTarget`. Then connect admission to that path and add provider discovery, capability evidence refresh, operational capacity, and 429 feedback.
 
 ## Active implementation plan
 

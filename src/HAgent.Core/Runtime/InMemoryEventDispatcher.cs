@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +13,6 @@ namespace HAgent.Runtime
         private sealed class PendingEvent
         {
             public EventEnvelope Envelope;
-            public TaskCompletionSource<EventPublishResult> Completion;
         }
 
         private sealed class Subscription : IEventSubscription
@@ -45,7 +43,7 @@ namespace HAgent.Runtime
         private readonly ConcurrentDictionary<string, Subscription> _subscriptions = new ConcurrentDictionary<string, Subscription>(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<string, DateTimeOffset> _dedupe = new ConcurrentDictionary<string, DateTimeOffset>(StringComparer.OrdinalIgnoreCase);
         private readonly CancellationTokenSource _shutdown = new CancellationTokenSource();
-        private readonly List<Task> _workers = new List<Task>();
+        private readonly System.Collections.Generic.List<Task> _workers = new System.Collections.Generic.List<Task>();
         private int _disposed;
 
         public InMemoryEventDispatcher(EventDispatcherOptions options = null)
@@ -82,6 +80,8 @@ namespace HAgent.Runtime
         {
             ThrowIfDisposed();
             if (envelope == null) throw new ArgumentNullException(nameof(envelope));
+            cancellationToken.ThrowIfCancellationRequested();
+
             var copy = envelope.Clone();
             copy.Validate();
 
@@ -94,26 +94,40 @@ namespace HAgent.Runtime
             if (_options.Retention <= now - copy.OccurredAt)
                 return new EventPublishResult(EventPublishStatus.Expired, copy.Id);
 
-            if (_options.Overflow == EventOverflowBehavior.Reject)
+            var reserved = false;
+            try
             {
-                if (!_slots.Wait(0))
-                    return new EventPublishResult(EventPublishStatus.RejectedFull, copy.Id);
-            }
-            else
-            {
-                await _slots.WaitAsync(cancellationToken).ConfigureAwait(false);
-            }
+                if (_options.Overflow == EventOverflowBehavior.Reject)
+                {
+                    if (!_slots.Wait(0))
+                        return new EventPublishResult(EventPublishStatus.RejectedFull, copy.Id);
+                    reserved = true;
+                }
+                else
+                {
+                    await _slots.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    reserved = true;
+                }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            _dedupe[copy.Id] = now;
-            _queue.Enqueue(new PendingEvent
-            {
-                Envelope = copy,
-                Completion = new TaskCompletionSource<EventPublishResult>(TaskCreationOptions.RunContinuationsAsynchronously)
-            });
-            _items.Release();
+                cancellationToken.ThrowIfCancellationRequested();
 
-            return await Task.FromResult(new EventPublishResult(EventPublishStatus.Accepted, copy.Id)).ConfigureAwait(false);
+                // Atomic reservation prevents concurrent publishers from accepting the same event ID.
+                if (_options.DeduplicationWindow > TimeSpan.Zero &&
+                    !_dedupe.TryAdd(copy.Id, now))
+                {
+                    return new EventPublishResult(EventPublishStatus.RejectedDuplicate, copy.Id);
+                }
+
+                _queue.Enqueue(new PendingEvent { Envelope = copy });
+                _items.Release();
+                reserved = false;
+                return new EventPublishResult(EventPublishStatus.Accepted, copy.Id);
+            }
+            finally
+            {
+                if (reserved)
+                    _slots.Release();
+            }
         }
 
         private async Task ProcessLoopAsync()

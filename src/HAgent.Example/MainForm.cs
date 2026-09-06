@@ -42,11 +42,7 @@ namespace HAgent.Example
         private CancellationTokenSource _streamingCts;
 
         public MainForm()
-            : base(
-                "HAgent Example",
-                "Manual integration and feature-verification host",
-                new Size(1280, 820),
-                new Size(1000, 680))
+            : base("HAgent Example", "Manual integration and feature-verification host", new Size(1280, 820), new Size(1000, 680))
         {
             ShowInTaskbar = true;
             StartPosition = FormStartPosition.CenterScreen;
@@ -59,11 +55,8 @@ namespace HAgent.Example
 
             GetActionsPanel().Controls.Add(new Label
             {
-                Text = "Agent:",
-                AutoSize = true,
-                ForeColor = Text,
-                Font = new Font("Segoe UI", 9.1f, FontStyle.Bold),
-                Margin = new Padding(8, 11, 5, 0)
+                Text = "Agent:", AutoSize = true, ForeColor = Text,
+                Font = new Font("Segoe UI", 9.1f, FontStyle.Bold), Margin = new Padding(8, 11, 5, 0)
             });
             ConfigureAgentSelector();
 
@@ -83,12 +76,10 @@ namespace HAgent.Example
             AddEventFeatureTabs();
             AddExecutionPlannerTabs();
             AddQuotaAdmissionTabs();
+            AddProviderDiscoveryTabs();
             Shown += async delegate
             {
-                try
-                {
-                    await RefreshExampleAgentsAsync();
-                }
+                try { await RefreshExampleAgentsAsync(); }
                 catch (Exception ex)
                 {
                     _globalStatus.Text = "Storage unavailable";
@@ -96,11 +87,9 @@ namespace HAgent.Example
                     Write("STORAGE", "HAgent could not open the configured internal storage backend." + Environment.NewLine +
                                       "Open Configuration → Storage to review the settings and repair the selected backend." + Environment.NewLine +
                                       "Detail: " + ex.Message);
-                    HMessage.ShowException(
-                        this,
+                    HMessage.ShowException(this,
                         "HAgent could not open the configured internal storage backend. Review Configuration → Storage to repair the selected backend.",
-                        "HAgent Storage",
-                        ex);
+                        "HAgent Storage", ex);
                     SetButtonsEnabled(true);
                 }
             };
@@ -120,11 +109,8 @@ namespace HAgent.Example
             BodyPanel.Padding = new Padding(22);
             var root = new TableLayoutPanel
             {
-                Dock = DockStyle.Fill,
-                ColumnCount = 1,
-                RowCount = 4,
-                BackColor = Surface,
-                Padding = new Padding(0)
+                Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4,
+                BackColor = Surface, Padding = new Padding(0)
             };
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 12));
@@ -134,11 +120,8 @@ namespace HAgent.Example
 
             var promptPanel = new TableLayoutPanel
             {
-                Dock = DockStyle.Fill,
-                ColumnCount = 4,
-                RowCount = 2,
-                BackColor = Surface,
-                Padding = new Padding(0, 4, 0, 4)
+                Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 2,
+                BackColor = Surface, Padding = new Padding(0, 4, 0, 4)
             };
             promptPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
             promptPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
@@ -151,15 +134,11 @@ namespace HAgent.Example
             promptPanel.Controls.Add(CreateReadOnlyPromptBox(_providerPrompt), 1, 0);
             promptPanel.Controls.Add(CreatePromptFieldLabel("Agent system prompt"), 2, 0);
             promptPanel.Controls.Add(CreateReadOnlyPromptBox(_agentPrompt), 3, 0);
-
             promptPanel.Controls.Add(new Label
             {
-                Text = "System prompt used:",
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = Muted,
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-                Padding = new Padding(0, 0, 4, 0)
+                Text = "System prompt used:", Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft, ForeColor = Muted,
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Padding = new Padding(0, 0, 4, 0)
             }, 0, 1);
             _promptResolution.Dock = DockStyle.Fill;
             _promptResolution.TextAlign = ContentAlignment.MiddleLeft;
@@ -171,85 +150,48 @@ namespace HAgent.Example
 
             var actions = new FlowLayoutPanel
             {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                Padding = new Padding(0, 3, 0, 0),
-                BackColor = Surface
+                Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false, Padding = new Padding(0, 3, 0, 0), BackColor = Surface
             };
+            _globalStatus.Text = "Ready"; _globalStatus.AutoSize = true; _globalStatus.ForeColor = Muted;
+            _globalStatus.Margin = new Padding(12, 11, 0, 0); actions.Controls.Add(_globalStatus);
 
-            _globalStatus.Text = "Ready";
-            _globalStatus.AutoSize = true;
-            _globalStatus.ForeColor = Muted;
-            _globalStatus.Margin = new Padding(12, 11, 0, 0);
-            actions.Controls.Add(_globalStatus);
-
-            _tabs.Dock = DockStyle.Fill;
-            _tabs.Font = new Font("Segoe UI", 9f);
-            _tabs.Padding = new Point(12, 5);
-
+            _tabs.Dock = DockStyle.Fill; _tabs.Font = new Font("Segoe UI", 9f); _tabs.Padding = new Point(12, 5);
             var outputPanel = new TableLayoutPanel
             {
-                Dock = DockStyle.Fill,
-                ColumnCount = 1,
-                RowCount = 2,
-                BackColor = Color.FromArgb(236, 234, 245),
-                Padding = new Padding(10)
+                Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2,
+                BackColor = Color.FromArgb(236, 234, 245), Padding = new Padding(10)
             };
             outputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             outputPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
             outputPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             outputPanel.Controls.Add(new Label
             {
-                Text = "Global output",
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
-                ForeColor = Heading,
-                Margin = new Padding(0)
+                Text = "Global output", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), ForeColor = Heading, Margin = new Padding(0)
             }, 0, 0);
 
-            _output.Dock = DockStyle.Fill;
-            _output.Multiline = true;
-            _output.ReadOnly = true;
-            _output.ScrollBars = ScrollBars.Both;
-            _output.Font = new Font("Consolas", 9f);
-            _output.BackColor = Color.White;
-            _output.BorderStyle = BorderStyle.FixedSingle;
-            _output.WordWrap = false;
+            _output.Dock = DockStyle.Fill; _output.Multiline = true; _output.ReadOnly = true;
+            _output.ScrollBars = ScrollBars.Both; _output.Font = new Font("Consolas", 9f);
+            _output.BackColor = Color.White; _output.BorderStyle = BorderStyle.FixedSingle; _output.WordWrap = false;
             outputPanel.Controls.Add(_output, 0, 1);
 
-            root.Controls.Add(promptPanel, 0, 0);
-            root.Controls.Add(actions, 0, 1);
-            root.Controls.Add(_tabs, 0, 2);
-            root.Controls.Add(outputPanel, 0, 3);
+            root.Controls.Add(promptPanel, 0, 0); root.Controls.Add(actions, 0, 1);
+            root.Controls.Add(_tabs, 0, 2); root.Controls.Add(outputPanel, 0, 3);
             BodyPanel.Controls.Add(root);
         }
 
         private static Label CreatePromptFieldLabel(string text)
         {
-            return new Label
-            {
-                Text = text,
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = Muted,
-                Font = new Font("Segoe UI", 8.4f, FontStyle.Bold),
-                Padding = new Padding(0, 0, 4, 0)
-            };
+            return new Label { Text = text, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Muted, Font = new Font("Segoe UI", 8.4f, FontStyle.Bold), Padding = new Padding(0, 0, 4, 0) };
         }
 
         private static TextBox CreateReadOnlyPromptBox(TextBox box)
         {
-            box.ReadOnly = true;
-            box.Multiline = true;
-            box.ScrollBars = ScrollBars.Vertical;
-            box.Dock = DockStyle.Fill;
-            box.Font = new Font("Segoe UI", 8.3f);
-            box.BackColor = Color.White;
-            box.BorderStyle = BorderStyle.FixedSingle;
-            box.Margin = new Padding(0, 1, 4, 2);
-            return box;
+            box.ReadOnly = true; box.Multiline = true; box.ScrollBars = ScrollBars.Vertical; box.Dock = DockStyle.Fill;
+            box.Font = new Font("Segoe UI", 8.3f); box.BackColor = Color.White; box.BorderStyle = BorderStyle.FixedSingle;
+            box.Margin = new Padding(0, 1, 4, 2); return box;
         }
 
         private FlowLayoutPanel GetActionsPanel()
@@ -260,10 +202,8 @@ namespace HAgent.Example
 
         private void ConfigureAgentSelector()
         {
-            _agentSelector.Width = 240;
-            _agentSelector.Height = 30;
-            _agentSelector.DropDownStyle = ComboBoxStyle.DropDownList;
-            _agentSelector.Font = new Font("Segoe UI", 9.1f);
+            _agentSelector.Width = 240; _agentSelector.Height = 30;
+            _agentSelector.DropDownStyle = ComboBoxStyle.DropDownList; _agentSelector.Font = new Font("Segoe UI", 9.1f);
             _agentSelector.Margin = new Padding(0, 5, 8, 0);
             _agentSelector.SelectedIndexChanged += delegate { _ = UpdateSelectedAgentAsync(); };
             GetActionsPanel().Controls.Add(_agentSelector);

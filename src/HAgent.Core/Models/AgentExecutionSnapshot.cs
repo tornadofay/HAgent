@@ -62,7 +62,9 @@ namespace HAgent.Models
                 MaxOutputTokens = source.MaxOutputTokens,
                 Enabled = source.Enabled,
                 ProviderIds = source.ProviderIds == null ? new List<string>() : new List<string>(source.ProviderIds),
-                ToolIds = source.ToolIds == null ? new List<string>() : new List<string>(source.ToolIds)
+                ToolIds = source.ToolIds == null ? new List<string>() : new List<string>(source.ToolIds),
+                ExecutionSelection = source.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : source.ExecutionSelection.Clone(),
+                CapabilityRequirements = source.CapabilityRequirements == null ? new AiCapabilityRequirements() : source.CapabilityRequirements.Clone()
             };
 
             if (overrides == null) return clone;

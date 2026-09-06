@@ -80,6 +80,7 @@ namespace HAgent.Example
             AddRuntimeLifecycleTab();
             AddWorkspaceRoutingTab();
             AddWorkspaceRoleTab();
+            AddEventFeatureTabs();
             Shown += async delegate
             {
                 try

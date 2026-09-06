@@ -14,13 +14,38 @@ The database name defaults from the host application name using the pattern `<ap
 
 ## Configuration
 
-`HAgentStorageOptions` contains the storage backend and non-secret connection metadata. Server name, username, database name, and application name are configuration values. Database passwords are not part of ordinary persisted configuration and remain in the secret/runtime connection boundary.
+`HAgentStorageOptions` contains the storage backend and non-secret connection metadata. Server name, username, database name, and application name are configuration values. Database passwords are part of the runtime connection configuration and should not be written into ordinary HAgent configuration records.
 
-The configured backend is intended to become the backing store for HAgent's internal repositories: providers, agents, tools, memory, conversations, skills, wiki/content, learning candidates/review state, capability assignments/overrides, runtime metadata, execution audit data, and future HAgent-owned records.
+The configured backend is intended to become the backing store for HAgent's internal repositories: global settings, providers, models, execution targets, discovery metadata, capability evidence/overrides, quota/rate/capacity state, agents, tools, memory, conversations, skills, knowledge/wiki, learning candidates/review state, permissions, runtime metadata, execution audit data, configuration-portability metadata, and future HAgent-owned records.
 
-SQL Server and MySQL retain independent connection profiles. Switching the selected backend does not overwrite the other backend's server, port, username, or secret identity.
+SQL Server and MySQL retain independent connection profiles. Switching the selected backend does not overwrite the other backend's server, port, username, or connection secret.
 
 The database name is derived by HAgent from the host application identity and is not an editable storage setting.
+
+## Provider credentials
+
+Provider API keys are intentionally stored as part of the persisted provider configuration rather than through a separate secret-reference subsystem.
+
+A provider record conceptually contains:
+
+```text
+Provider
+    Id
+    Name
+    Kind
+    BaseUrl
+    ApiKey
+    Enabled
+    ...discovery/configuration fields...
+```
+
+API keys must be **encrypted at rest** before being persisted to the database or configuration file. HAgent should use one simple, documented encryption mechanism for stored credentials. The implementation must not require a separate vault, external secret service, secret-reference graph, or centralized secret-provider architecture.
+
+The same persisted provider configuration is therefore usable by all HAgent processes that are intentionally connected to the same HAgent database. This supports a normal network deployment in which multiple machines consume the same provider/model configuration without requiring every machine to configure the provider again.
+
+Decrypted API keys are used only at the provider execution boundary and must remain excluded from normal diagnostics, audit records, planner diagnostics, and other non-secret output.
+
+Credential replacement/revocation is configuration management: updating or removing the stored API key is sufficient to stop future use of the old credential once the active configuration snapshot is refreshed.
 
 ## File backend
 
@@ -29,10 +54,14 @@ The File backend uses an application-specific root beneath the executable direct
 ```text
 HAgentData/
   configuration/
+    general/
     providers/
+    models/
     agents/
     tools/
     skills/
+    knowledge/
+    permissions/
   memory/
   conversations/
   wiki/
@@ -41,6 +70,7 @@ HAgentData/
   cache/
   logs/
   audit/
+  export/
 ```
 
 The layout is created on demand. Existing individual file stores can continue to use focused repository files while the common storage configuration establishes one consistent application-local root.
@@ -53,16 +83,11 @@ Database schema changes are versioned through `HAgentSchemaInfo`. Bootstrap esta
 
 The MySQL bootstrap executes schema statements and migrations as separate commands rather than depending on multi-statement execution. This keeps the bootstrap compatible with MariaDB deployments as well as MySQL Connector implementations.
 
-Current relational schema versions are:
-
-- SQL Server: version `3`; v1→v2 adds idempotent indexes for bounded memory and conversation retrieval, and v2→v3 adds execution-audit persistence.
-- MySQL: version `4`; v1→v2 preserves the legacy `HAgentTools.ToolType` compatibility migration, v2→v3 adds idempotent indexes for bounded memory and conversation retrieval, and v3→v4 adds execution-audit persistence.
-
-Phase 0.11 will add later migrations as required for learning candidates/review state, knowledge/skill relationships and versions, capability assignments/overrides, and extensible memory-type policy. These migrations remain HAgent-owned and provider-specific where SQL syntax differs.
+The relational schema must evolve to persist the new configuration model introduced by capability-aware execution and persistent cognition. At minimum this includes global settings, normalized model/execution-target records, discovery/capability evidence, operational limits and state, new agent selection policies, resource relationships, and configuration-portability metadata. Provider-specific migrations remain separate where SQL syntax differs.
 
 All migrations operate only on HAgent-owned tables and indexes.
 
-Initial internal schema areas include providers, agents, tools, memory entries, conversations, skills, wiki documents/chunks, execution audits, and schema metadata. Additional HAgent-owned tables are introduced through ordered migrations.
+Initial internal schema areas include providers, models, execution targets, agents, tools, memory entries, conversations, skills, knowledge/wiki documents and chunks, execution audits, settings, permissions, and schema metadata. Additional HAgent-owned tables are introduced through ordered migrations.
 
 Conversation snapshots are persisted through `IConversationStore`. File storage keeps one JSON file per session; SQL Server and MySQL store the serialized message list in the HAgent-owned `HAgentConversations` table. Session identity and agent identity remain part of the persisted snapshot.
 
@@ -97,17 +122,41 @@ Runtime agent instances, workspaces, and other live collaboration state are not 
 
 When persisted, runtime records must distinguish the host instance, user/session, workspace, agent profile ID, and runtime instance ID. Persisted runtime capability overrides remain runtime metadata and never silently modify the profile.
 
-## Audit and observability
+## Configuration export and import
 
-`AgentExecutionAuditRecord` is the provider-neutral, payload-free projection used for persistent execution audit metadata. Its correlation ID is distinct from execution ID and tool-call IDs and provides a stable runtime anchor across a terminal execution.
+Configuration portability is a first-class HAgent capability. A configuration package represents HAgent-owned configuration independently from the selected storage backend so a configuration can be moved between File, SQL Server, and MySQL deployments.
 
-`IExecutionAuditStore` is intentionally append/search oriented. Search is bounded and may target an execution ID, correlation ID, or agent ID.
+The export/import contract should cover, as applicable:
 
-## Secrets
+```text
+General/system settings
+Providers and provider configuration
+Models and discovered execution targets
+Agents and their policies
+Skills and skill versions
+Knowledge / Wiki resources
+Memory configuration and policy
+Learning configuration/policy
+Tools and tool definitions
+Permissions and capability assignments
+Other HAgent-owned configuration resources
+```
 
-`ISecretStore` owns credentials/secrets. Secrets must not be stored in ordinary provider, agent, tool, learning, or storage-option records and must not appear in normal diagnostics.
+Executable tool handlers, live runtime objects, active executions, synchronization primitives, transient HTTP state, and other process-local runtime objects are not serialized as portable configuration.
 
-`HAgent.Storage.File` currently keeps secrets separate and protects local secrets with Windows DPAPI `CurrentUser`.
+The package format must be versioned and must carry enough metadata for HAgent to validate compatibility before import. Import must have explicit conflict behavior for existing resources rather than silently overwriting unrelated configuration.
+
+API keys may be included in an export when the user explicitly chooses a credential-bearing export. Such credentials remain encrypted inside the package and are protected by a basic export-package encryption/password mechanism. A normal export should omit credentials unless the user explicitly enables their inclusion.
+
+Import of an encrypted credential-bearing package restores the provider API keys into the normal encrypted-at-rest provider configuration used by the selected storage backend.
+
+Portability must not create a second configuration model: the package serializes the same authoritative HAgent configuration contracts that are persisted by the selected backend.
+
+## Secrets and diagnostics
+
+HAgent does not expose a separate secret-reference architecture. Provider credentials are ordinary provider configuration values with encryption-at-rest requirements and strict redaction rules.
+
+API keys, database passwords, and export-package passwords must never be emitted in normal logs, execution audits, planner diagnostics, discovery evidence, exceptions, or UI diagnostic dumps.
 
 ## Tool handlers
 

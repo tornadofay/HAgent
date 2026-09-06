@@ -33,7 +33,8 @@ HAgent owns generic cognition/execution capabilities:
 - structured model output contracts;
 - workspace and agent-to-agent coordination primitives;
 - execution correlation and observability;
-- cancellation, timeout, and stale-result protection.
+- cancellation, timeout, and stale-result protection;
+- provider/model discovery and normalized execution-target assessment.
 
 HAgent must not require the host to adopt any particular domain object, event model, command model, scheduler, persistence mechanism, or authorization framework.
 
@@ -117,6 +118,70 @@ For structured output, the provider request carries the host schema so an adapte
 
 The current OpenAI-compatible adapter sends the native OpenAI-compatible `response_format`/JSON Schema shape when structured output is requested. If the endpoint explicitly reports that this feature is unsupported, the adapter falls back to the ordinary completion request and returns metadata identifying the fallback. The host contract remains unchanged and HAgent validation remains mandatory in either case.
 
+## Provider/model discovery and configuration
+
+Provider setup is discovery-first. A normal provider configuration supplies only connection and identity information such as provider/API type, base URL where applicable, credentials/secrets, and account/project information where applicable. HAgent should discover the model catalog and as much technical metadata as the provider exposes rather than requiring the administrator to manually enter every model, capability, modality, limit, quota, rate, or operational property.
+
+Providers can expose complete model discovery, partial discovery, documentation-based information, controlled probe information, or no reliable catalog at all. HAgent must represent missing information explicitly as `Unknown` rather than inventing values or forcing a large metadata form. Manual metadata values are overrides for exceptional cases, not normal setup requirements.
+
+A normalized model catalog contains logical-model identity when it can be established plus concrete execution-target identity. The same logical model may therefore appear through several providers without collapsing their operational identities.
+
+Commercial state is separate from capability. HAgent should represent at least:
+
+```text
+Free
+FreeWithinQuota
+Paid
+Unknown
+```
+
+and associate that state with the applicable provider/account/plan/execution target. A model is not intrinsically free or paid independent of how and where it is accessed.
+
+The model catalog and execution-target assessment should expose evidence source, verification time, availability, capabilities, constraints, quota/rate/capacity state, and cost state wherever available.
+
+## Cost policy
+
+HAgent supports a system-wide cost-selection policy that is independent of provider configuration. At minimum:
+
+```text
+FreeOnly
+FreePreferred
+NoRestriction
+```
+
+`FreeOnly` restricts candidate selection to targets whose applicable commercial state is known to be allowed as free under the policy. Unknown cost does not silently qualify as free. The target must still satisfy capability, permission, constraint, quota/capacity, health, and other requirements.
+
+`FreePreferred` expresses a preference for free/free-within-policy targets. Paid fallback requires an explicit higher-level policy decision. `NoRestriction` imposes no cost filter.
+
+Cost policy follows the same inheritance direction as other configuration policy:
+
+```text
+Global General default
+    -> Agent profile
+        -> Runtime/host override
+            -> Execution Planner
+```
+
+Global settings are defaults, not silent mutations of agent profiles.
+
+## Agent AI selection
+
+A reusable Agent profile supports three selection modes:
+
+```text
+Auto
+Preferred
+Fixed
+```
+
+`Auto` lets the Execution Planner select the best compatible target according to requirements, policy, capabilities, cost, availability, quota/capacity, latency, and preferences.
+
+`Preferred` lets the administrator express a strong provider/model/deployment preference while allowing explicit fallback behavior when the preference cannot run.
+
+`Fixed` lets the administrator deliberately select one concrete target, such as always using a particular high-end model. Fixed selection still passes through capability, authorization, constraint, quota, capacity, health, and other enforcement checks. If the target is unavailable or incompatible, HAgent follows the configured explicit fallback behavior; it must never silently bypass enforcement.
+
+Preference policies such as highest quality, lowest latency, lowest cost, and balanced are distinct from Fixed target selection. They influence planner ranking without creating a permanent transport dependency.
+
 ## Runtime identity and lifetime
 
 `AgentRuntimeInstance` is the long-lived execution identity created from a reusable `AiAgent` profile.
@@ -135,9 +200,9 @@ Enabled
 Disabled
 ```
 
-The policy applies to Skills, Knowledge/Wiki, Memory families/types, individual resources, and future resource types. The effective policy is captured in each execution snapshot.
+The policy applies to Skills, Knowledge/Wiki, Memory families/types, individual resources, future resource types, and other explicitly governed configuration dimensions such as cost policy where the applicable policy scope permits it.
 
-This allows two runtime instances from the same profile to use different capability sets without creating duplicate profiles or mutating shared configuration.
+The effective policy is captured in each execution snapshot. This allows two runtime instances from the same profile to use different capability/resource/cost-policy sets without creating duplicate profiles or mutating shared configuration.
 
 ## Execution identity and correlation
 
@@ -221,6 +286,25 @@ Runtime-state persistence is optional. When enabled, it may persist generic runt
 
 HAgent's management layer can inspect the effective resource inventory of an agent or runtime. The inventory is extensible so known resource types can have specialized presentation while future/unknown types remain visible through generic resource/type identifiers.
 
+The WinForms configuration surface is organized around user responsibilities:
+
+```text
+Overview
+General
+Providers
+Models
+Agents
+Tools
+Permissions
+Storage
+Storage Test
+About
+```
+
+`General` contains system-wide defaults such as Cost Policy, default AI selection/fallback behavior, learning defaults, and provider/model discovery refresh behavior. `Providers` remains focused on lightweight connection setup and discovery status. `Models` is the discovered model catalog and shows provider/execution-target identity, capabilities, cost state, limits, availability, evidence, and verification state. `Agents` contains the user-facing AI selection modes and the effective Skills, Knowledge, Memory, Learning, Tools, and policy overview.
+
+The management UI must not require administrators to understand the Execution Planner. Advanced views may expose candidate assessments and reasons when troubleshooting why a model was selected, rejected, delayed, or degraded.
+
 ## Integration principle
 
 The generic integration surface should remain small:
@@ -239,6 +323,7 @@ The provider boundary remains behind HAgent:
 ```text
 AgentExecutionRequest + runtime-derived state
     -> HAgent runtime resolution
+    -> capability/cost/admission planning
     -> ProviderExecutionRequest
     -> provider adapter
     -> normalized AIResponse

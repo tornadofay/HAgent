@@ -15,6 +15,7 @@ namespace HAgent.Models
             Messages = new ReadOnlyCollection<AIMessage>(new List<AIMessage>());
             HostCorrelationId = string.Empty;
             HostContext = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+            Identity = new AgentIdentityContext();
             Options = new AgentExecutionOptions();
         }
 
@@ -22,6 +23,12 @@ namespace HAgent.Models
         public IReadOnlyList<AIMessage> Messages { get; set; }
         public string HostCorrelationId { get; set; }
         public IReadOnlyDictionary<string, string> HostContext { get; set; }
+
+        /// <summary>
+        /// Optional host-supplied identity and tenancy context. Authentication remains host-owned.
+        /// </summary>
+        public AgentIdentityContext Identity { get; set; }
+
         public AgentExecutionOptions Options { get; set; }
 
         /// <summary>
@@ -51,6 +58,9 @@ namespace HAgent.Models
                         throw new ArgumentException("Host context values must be at most 4096 characters.", nameof(HostContext));
                 }
             }
+
+            if (Identity != null)
+                Identity.Validate();
 
             if (Options == null)
                 Options = new AgentExecutionOptions();

@@ -2,7 +2,11 @@
 
 ## Profile
 
-`AiAgent` is persistent reusable configuration: identity, provider preferences, model, system prompt, generation settings, capability references, and learning/memory policy defaults.
+`AiAgent` is persistent reusable configuration: identity, provider preferences, model preferences/selection policy, system prompt, generation settings, capability references, and learning/memory policy defaults.
+
+Agent transport configuration is not required to be a permanent provider/model binding. Phase 0.96 defines an AI selection mode of `Auto`, `Preferred`, or `Fixed`. Auto lets the execution planner choose a compatible target. Preferred expresses a strong provider/model/deployment preference with explicit fallback behavior. Fixed deliberately selects a concrete target while still enforcing authorization, capability, constraints, quota, capacity, health, and fallback policy.
+
+The profile may also inherit or define cost policy such as `FreeOnly`, `FreePreferred`, or `NoRestriction`, according to the global/default policy model. Cost is a selection/admission constraint, not a replacement for capability or authorization checks.
 
 ## Runtime instance
 
@@ -12,7 +16,7 @@ Creating or retiring a runtime instance never mutates the reusable `AiAgent` pro
 
 Runtime-instance identity is intentionally separate from `AgentExecution.Id` and host correlation identity. An instance may own many executions over its lifetime, while each execution retains its own immutable execution identity and host correlation when supplied.
 
-Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only values applied to a cloned execution snapshot and never written back to the persistent profile. Runtime capability overrides follow tri-state inheritance (`Inherit`, `Enabled`, `Disabled`) so an instance can selectively change Skills, Knowledge/Wiki, Memory, individual resources, or individual memory types without copying the complete profile.
+Runtime instances may carry `AgentRuntimeOverrides`. These are runtime-only values applied to a cloned execution snapshot and never written back to the persistent profile. Runtime capability overrides follow tri-state inheritance (`Inherit`, `Enabled`, `Disabled`) so an instance can selectively change Skills, Knowledge/Wiki, Memory, individual resources, or individual memory types without copying the complete profile. Where policy permits, runtime/host overrides may also refine cost policy and AI target selection without mutating the profile.
 
 Each runtime instance also has an independent `MemoryOwnerId`, currently equal to its `InstanceId`. Instance-created sessions and explicit memory operations use that owner so multiple runtime instances created from the same persistent profile cannot collide in private agent-scoped memory.
 
@@ -45,20 +49,20 @@ Each instance maintains a monotonically increasing execution revision. An instan
 
 `AgentRuntimeInstance.Shutdown()` is terminal for the instance. It prevents new execution and requests cancellation of outstanding instance-bound work. Retirement stops new execution and invalidates result authority without cancelling already-running work.
 
-## Effective capability snapshot
+## Effective configuration and capability snapshot
 
-Before provider execution, HAgent resolves the effective capability policy from host/system policy, the persistent profile, and runtime overrides, then captures it in the immutable execution snapshot.
+Before provider execution, HAgent resolves the effective policy from host/system defaults, the persistent profile, and runtime overrides, then captures it in the immutable execution snapshot.
 
 ```text
-host/system policy
-    -> profile defaults
-        -> runtime override
+system/global defaults
+    -> profile
+        -> runtime/host override
             -> execution snapshot
 ```
 
-The snapshot determines which Skills, Knowledge/Wiki resources, Memory families, and future resource types are available to the execution. Later edits to the profile or runtime instance cannot change an execution already in progress.
+The snapshot determines AI selection mode/target preferences, applicable cost policy, Skills, Knowledge/Wiki resources, Memory families, and future resource types available to the execution. Later edits to the profile or runtime instance cannot change an execution already in progress.
 
-Capability policy is enforced by code before retrieval or invocation. Prompt text is not used as authorization.
+Capability and cost policy are enforced by code before candidate execution and before retrieval/invocation where applicable. Prompt text is not used as authorization.
 
 ## Generic execution request
 
@@ -118,7 +122,7 @@ System prompts are additive layers, not replacement values. A lower layer may ad
 
 ## Execution model
 
-The host supplies a canonical execution request and, when needed, a long-lived runtime instance. Runtime resolves the profile/provider, applies runtime-only overrides, resolves the effective capability snapshot, composes applicable prompt layers, retrieves only permitted knowledge/memory, binds only enabled skills/tools, invokes the provider, normalizes the response, validates structured output when requested, captures configured memory/observations, optionally invokes learning, and reports lifecycle/usage metadata.
+The host supplies a canonical execution request and, when needed, a long-lived runtime instance. Runtime resolves the profile/provider/model policy, applies runtime-only overrides, resolves the effective AI selection and cost policy, resolves the effective capability snapshot, composes applicable prompt layers, retrieves only permitted knowledge/memory, binds only enabled skills/tools, invokes the capability-aware execution planner and provider, normalizes the response, validates structured output when requested, captures configured memory/observations, optionally invokes learning, and reports lifecycle/usage metadata.
 
 ## Design invariant
 

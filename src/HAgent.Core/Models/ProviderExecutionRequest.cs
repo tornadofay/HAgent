@@ -15,6 +15,7 @@ namespace HAgent.Models
         {
             Provider = null;
             Agent = null;
+            ExecutionTarget = null;
             ApiKey = string.Empty;
             SystemPrompt = string.Empty;
             Messages = new ReadOnlyCollection<AIMessage>(new List<AIMessage>());
@@ -25,6 +26,11 @@ namespace HAgent.Models
 
         public AiProvider Provider { get; set; }
         public AiAgent Agent { get; set; }
+        /// <summary>
+        /// Concrete execution target selected by the execution planner when this request
+        /// originates from the HAgent runtime. Direct provider operations may omit it.
+        /// </summary>
+        public AiExecutionTarget ExecutionTarget { get; set; }
         public string ApiKey { get; set; }
         public string SystemPrompt { get; set; }
         public IReadOnlyList<AIMessage> Messages { get; set; }
@@ -42,6 +48,9 @@ namespace HAgent.Models
                 throw new ArgumentException("At least one provider message is required.", nameof(Messages));
             if (Messages.Count > 128)
                 throw new ArgumentOutOfRangeException(nameof(Messages), "A maximum of 128 messages is supported per provider request.");
+
+            if (ExecutionTarget != null)
+                ExecutionTarget.Validate();
 
             if (StructuredOutput != null)
                 StructuredOutput.Validate();

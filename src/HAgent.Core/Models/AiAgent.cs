@@ -14,6 +14,8 @@ namespace HAgent.Models
         public int? MaxOutputTokens { get; set; }
         public List<string> ToolIds { get; set; }
         public bool Enabled { get; set; }
+        public AiExecutionSelectionPolicy ExecutionSelection { get; set; }
+        public AiCapabilityRequirements CapabilityRequirements { get; set; }
 
         public AiAgent()
         {
@@ -28,6 +30,8 @@ namespace HAgent.Models
             MaxOutputTokens = null;
             ToolIds = new List<string>();
             Enabled = true;
+            ExecutionSelection = new AiExecutionSelectionPolicy();
+            CapabilityRequirements = new AiCapabilityRequirements();
         }
     }
 }

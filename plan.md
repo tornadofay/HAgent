@@ -172,10 +172,15 @@ The host remains authoritative over real domain state, lifecycle, scheduling, ho
 
 ```text
 Provider profile
-    -> connection/model configuration
+    -> connection/account/endpoint configuration
+
+Model catalog
+    -> discovered logical models and concrete execution targets
+    -> capabilities / constraints / availability / cost metadata
 
 Agent profile
     -> reusable behavior + capability policy defaults
+    -> AI requirements/preferences/selection mode
 
 Runtime agent instance
     -> one live agent identity created from a profile
@@ -202,7 +207,44 @@ Execution
     -> bounded asynchronous model/tool work with lifecycle and correlation
 ```
 
+Provider and model configuration is discovery-first. Users normally configure credentials, endpoints, and provider-specific connection information; HAgent discovers model catalogs and technical metadata when the provider exposes them. Manual metadata overrides are exception paths for unknown/unavailable information, not mandatory setup fields.
+
+Commercial state is treated separately from technical capability. A concrete execution target may be `Free`, `FreeWithinQuota`, `Paid`, or `Unknown` depending on provider/account/plan. The same logical model can therefore be free through one provider and paid or unknown through another.
+
 The distinction between persistent profiles and runtime instances remains fundamental. One profile can produce many independent runtime instances. Shared resources are referenced; private runtime state is not copied across instances.
+
+## Cost policy and AI selection
+
+HAgent provides system-wide policy defaults and more specific overrides.
+
+```text
+Global General settings
+    -> Agent profile
+        -> Runtime/host override
+            -> Execution Planner
+```
+
+The global **Cost Policy** is at least:
+
+```text
+FreeOnly
+FreePreferred
+NoRestriction
+```
+
+`FreeOnly` does not simply filter a model list. The selected target must still satisfy capabilities, permissions, constraints, quota/capacity, health, and other policy. Unknown cost is never treated as free implicitly.
+
+Agents have an AI selection mode:
+
+```text
+Auto
+Preferred
+Fixed
+```
+
+`Auto` lets HAgent select a compatible target according to policy, capabilities, cost, availability, capacity, latency, and preferences. `Preferred` expresses a strong model/provider preference while allowing explicit fallback according to policy. `Fixed` lets an administrator deliberately select a concrete target, such as always using a particular high-end model, while still enforcing capability, permission, quota, capacity, health, and fallback rules.
+
+Preference policies such as highest quality, lowest latency, lowest cost, or balanced are distinct from Fixed target selection and remain planner-owned.
 
 ## Knowledge, Skills, Memory, and Learning
 
@@ -295,6 +337,104 @@ A host may define its own schema. HAgent carries it through provider invocation,
 
 Tool definitions describe what may be requested; trusted runtime handlers define what executes. Handler delegates are never serialized. Tool execution preserves execution/runtime/host correlation for authorization and telemetry.
 
+## Configuration and management UI target
+
+`HAgent.WinForms` is organized around user responsibilities rather than execution-planner terminology.
+
+Top-level configuration tabs:
+
+```text
+Overview
+General
+Providers
+Models
+Agents
+Tools
+Permissions
+Storage
+Storage Test
+About
+```
+
+### General
+
+System-wide defaults and policies live here, including at minimum:
+
+```text
+Execution Defaults
+    Cost Policy: FreeOnly / FreePreferred / NoRestriction
+    Default AI Selection: Auto
+    Default Fallback Policy
+    Default timeout/concurrency policies where appropriate
+
+Learning Defaults
+    Default Learning Mode
+
+Discovery
+    Automatically discover models: On/Off
+    Automatically refresh provider metadata: On/Off
+```
+
+These are defaults, not forced values. More specific configuration may inherit or override them where policy permits.
+
+### Providers
+
+Provider setup is intentionally lightweight. A normal provider form asks for only what is necessary to connect:
+
+```text
+Provider name/type
+Base URL where applicable
+Credentials/secrets
+Account/project information where applicable
+
+[ Test Connection ]
+[ Save ]
+```
+
+HAgent should discover model catalogs, capabilities, modalities, constraints, operational limits, availability, and cost metadata when possible. Providers that expose only partial information remain valid; unknown values are shown as unknown rather than forcing a large manual form.
+
+### Models
+
+Models is a first-class configuration tab between Providers and Agents. It displays the discovered HAgent model catalog.
+
+It should surface:
+
+```text
+Logical model / display name
+Provider / execution target
+Availability
+Cost: Free / FreeWithinQuota / Paid / Unknown
+Capabilities
+Constraints/limits
+Quota/rate/capacity state where available
+Last verified / evidence source
+```
+
+The UI may group matching logical models across providers while keeping concrete execution targets separate. It should make it obvious that the same model can have different capabilities, cost, quota, or availability depending on provider/deployment.
+
+### Agents
+
+Agent Configuration should answer practical questions: what is this agent, which AI should it use, what can it access, what does it know, what does it remember, and how does it learn?
+
+The Agent Editor should include:
+
+```text
+Overview
+General
+AI
+Skills
+Knowledge
+Memory
+Learning
+Advanced
+```
+
+The AI section includes `Auto`, `Preferred`, and `Fixed` selection modes plus requirements/preferences and explicit fallback behavior. The selected agent overview shows effective AI selection, Skills, Knowledge, Memory, Learning, Tools, and Cost Policy with inherited/overridden/effective values where applicable.
+
+The Knowledge section shows accessible Wiki/knowledge resources and relationships. The Skills section shows assigned/inherited/disabled skills and usage relationships. The Memory section shows enabled memory families/types and effective scope. Learning exposes Learning Mode and links to Learning Review. Future/unknown resource types remain visible through the generic resource inventory.
+
+The configuration model is reference-based: resources remain in their own stores and are not copied into the agent profile merely to appear in the overview.
+
 ## Learning and management UI target
 
 `HAgent.WinForms` must provide:
@@ -318,9 +458,11 @@ Skill Manager
     which agents use it
 
 Agent Configuration
-    selected agent -> effective skills
+    selected agent -> effective AI selection + cost policy
+                     -> effective skills
                      -> knowledge/wiki access
                      -> memory families
+                     -> learning mode/policy
                      -> any future resource types
     profile enable/disable
     runtime-instance overrides

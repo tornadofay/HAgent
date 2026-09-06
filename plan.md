@@ -18,7 +18,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.96 Capability-Aware Execution — planned next / investigation and hardening target**
+**0.951–0.9592 Foundational Architecture Hardening — planned before 0.96 Capability-Aware Execution**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -28,11 +28,15 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation and is intentionally paused. The remaining workspace product work is deferred while the provider/model capability and execution-planning layer is hardened.
+The build/architecture phase now inserts foundational hardening before capability-aware execution. Planned phases are: 0.951 Identity/Tenancy/User Context; 0.952 First-Class Events; 0.953 Unified Policy Engine; 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
 
-0.96 is the next hardening target. It addresses heterogeneous capabilities, the same logical model exposed by multiple providers, provider/account/project restrictions, model/task-specific constraints, quotas, RPM/RPD/TPM/TPD and future quota dimensions, concurrency capacity, operational availability, long-running inference, capability-aware candidate selection, fallback/degradation, and proactive admission control.
+0.96 Capability-Aware Execution follows these foundations and addresses heterogeneous capabilities, the same logical model exposed by multiple providers, provider/account/project restrictions, model/task-specific constraints, quotas, rate limits and future quota dimensions, concurrency capacity, operational availability, long-running inference, capability-aware candidate selection, fallback/degradation, and proactive admission control.
 
-The later Knowledge + Skills + Memory Governance + Learning layer remains planned after the runtime capability model is mature enough to support heterogeneous environments safely.
+0.97 Persistent Cognitive Runtime builds the long-lived cognitive layer above the execution engine after the generic event, identity, policy, context, lifecycle, recovery, and provider foundations are established.
+
+0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation and remains intentionally paused until the generic foundations required by the new architecture are mature.
+
+The later Knowledge + Skills + Memory Governance + Learning layer remains planned as a platform feature layer and must consume the new policy, identity, event, context, lifecycle, evaluation, and persistent-runtime contracts rather than create parallel project-specific systems.
 
 ## Verified implementation
 
@@ -45,7 +49,7 @@ The repository currently contains verified foundations for:
 - streaming contracts and live streaming;
 - tool definitions, registry, schema validation, provider transport, bounded tool loops, persistence, and per-agent assignment;
 - WinForms UI Context with Form/UserControl attachment;
-- semantic control and bound/native data-source discovery;
+- semantic and bound/native data-source discovery;
 - CurrencyManager/current-item/source relationships;
 - control-to-source relationship discovery;
 - convention-based custom control adaptation;
@@ -59,6 +63,50 @@ The repository currently contains verified foundations for:
 - runtime-instance identity, scope, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, host-controlled scheduling, shutdown semantics, and optional runtime-state persistence;
 - provider-neutral workspace participants, message metadata, default-recipient routing, and coordinator/specialist role policy;
 - generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, verified external-consumer coverage on both supported target frameworks, and verified runtime-instance + canonical-request composition.
+
+## Foundational architecture hardening before 0.96
+
+The next architectural work establishes common infrastructure required by both capability-aware execution and persistent cognition:
+
+```text
+0.951 Identity / Tenancy / User Context
+        ↓
+0.952 Event subsystem
+        ↓
+0.953 Unified Policy Engine
+        ↓
+0.954 Prompt / Instruction Governance
+        ↓
+0.955 Context Engineering
+        ↓
+0.956 Observability / Tracing
+        ↓
+0.957 Evaluation / Quality Measurement
+        ↓
+0.958 Agent Lifecycle / Health
+        ↓
+0.959 Human-in-the-Loop / Intervention
+        ↓
+0.9591 Goal / Plan Persistence / Recovery
+        ↓
+0.9592 Provider Ecosystem / Adapter Lifecycle
+        ↓
+0.96 Capability-Aware Execution
+        ↓
+0.97 Persistent Cognitive Runtime
+```
+
+These phases are architectural foundations, not commitments that every feature must be fully completed before any implementation can begin. A later phase may consume a stable contract from an earlier phase while implementation continues iteratively.
+
+### Storage implications
+
+The foundational phases consume the storage evolution defined in `docs/roadmap/38-configuration-storage-and-portability.md`. The persistence model must directly support the new configuration architecture rather than preserve retired Agent provider/model fields.
+
+Provider API keys are persisted with provider configuration and encrypted at rest. There is no separate provider secret-reference or vault architecture. Shared SQL Server/MySQL configuration can therefore be used by multiple authorized HAgent processes/machines. Configuration export/import is planned as a versioned portable representation with optional encrypted credential inclusion.
+
+### Deferred exclusions
+
+The roadmap does not introduce a separate distributed-coordination subsystem and does not introduce a sophisticated external secret-management architecture. Distributed behavior is handled through the existing storage/runtime contracts where required, while provider credentials use the project's intentionally simple fixed encryption/decryption mechanism.
 
 ## Paused Workspace target
 
@@ -123,11 +171,9 @@ Capacity decisions may be `Wait`, `TryNextCandidate`, `Fail`, or an explicitly p
 
 A provider can have abundant or effectively unlimited daily quota while still having low concurrency capacity and multi-minute inference latency. HAgent must not equate quota availability with execution capacity. Long-running requests remain asynchronous, respect cancellation and timeout semantics, and do not block unrelated runtime executions. Slow targets may be valid candidates when the request's latency policy permits them.
 
-Cloudflare Workers AI demonstrates why task/model-specific limits, daily Neuron allocation, and distinct frontier-model limits must be modeled independently. NVIDIA's hosted model catalog demonstrates why free/downloadable endpoints, multimodal capabilities, reasoning/tool-use, rate limiting, and long-running inference must coexist in the generic target model. citeturn147698search0turn147698search2turn513772search0turn720373search0
-
 ## Management UI target for 0.96
 
-Provider/model administration should eventually show execution-target identity, capabilities, constraints, quota/rate state, availability, latency observations, and compatibility with the current request. Workspace provider/model selection must consume the same planner rather than bypassing it.
+Provider/model administration should eventually show execution-target identity, capabilities, constraints, quota/rate state, availability, latency observations, and compatibility with the current request. Workspace provider/model selection must consume the same planner rather than bypass it.
 
 ## Boundaries
 
@@ -135,7 +181,7 @@ Provider/model administration should eventually show execution-target identity, 
 
 ## Active implementation
 
-The active implementation plan remains `docs/plan/20-active.md`, but Phase 0.10 is paused. Phase 0.96 is the current investigation/planning target before workspace implementation resumes.
+The active implementation plan remains `docs/plan/20-active.md`. The architectural foundation phases 0.951–0.9592 now precede Phase 0.96 in the roadmap. Phase 0.10 remains paused while the generic foundations are hardened.
 
 ## Verification rule
 

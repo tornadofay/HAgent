@@ -12,8 +12,6 @@ Real provider testing exposed that a provider may expose many models with differ
 
 ## Core model
 
-The phase separates these concepts:
-
 ```text
 Agent Profile
     = what the agent is, what it requires, and what it prefers
@@ -41,6 +39,9 @@ Quota / Rate Limit
 
 Availability / Health
     = whether the target can accept work now
+
+Cost / Billing Mode
+    = free allocation, free-within-quota, paid, or unknown for the applicable provider/account/target
 
 Execution Planner
     = selects the best currently compatible execution target
@@ -97,27 +98,198 @@ Execution Planner
 45. [ ] Add deterministic Example verification for identical logical models exposed through multiple providers, required/preferred/optional capabilities, unknown capabilities, incompatible manual selection, structured-output native vs fallback behavior, proactive rate limiting, daily quota, token windows, atomic concurrent reservations, 429 feedback, long-running requests, cancellation, timeout, stale-result protection, and candidate fallback.
 46. [ ] Update management UI targets so provider/model selection shows effective capabilities, constraints, quota/rate state, availability, and compatibility with the active request rather than only listing model names.
 47. [ ] Ensure the Workspace/provider/model selection planned for Phase 0.10 consumes this capability planner rather than bypassing it.
+48. [ ] Define provider/model discovery as **discovery-first**: users normally configure credentials, endpoint/account/project information, and optional provider-specific connection settings; HAgent discovers model catalogs, capabilities, constraints, operational limits, availability, and other metadata whenever the provider exposes them.
+49. [ ] Support providers that expose complete model catalogs, partial catalogs, no catalog API, or arbitrary OpenAI-compatible endpoints. Discovery failure must degrade to explicit `Unknown` information rather than requiring a large mandatory manual metadata form.
+50. [ ] Define model metadata provenance so each discovered fact can identify whether it came from provider metadata, discovery, documentation, controlled probe, successful execution, response metadata, host-supplied override, or unknown source.
+51. [ ] Model commercial state separately from technical capability. Cost status must support at least `Free`, `FreeWithinQuota`, `Paid`, and `Unknown`, and must be associated with the applicable provider/account/plan/execution target rather than treated as an intrinsic property of a logical model.
+52. [ ] Support a system-wide **Cost Policy** with at least `FreeOnly`, `FreePreferred`, and `NoRestriction` behavior. Cost policy is a selection/admission policy and must not be implemented as a simple model list filter.
+53. [ ] Allow agents and approved runtime/host scopes to inherit or override cost policy without mutating the global default or persistent agent profile unexpectedly.
+54. [ ] Ensure `FreeOnly` considers only targets whose applicable commercial state is known to be free/free-within-policy; `Unknown` cost must not silently qualify as free.
+55. [ ] Define agent AI selection mode with at least `Auto`, `Preferred`, and `Fixed`.
+56. [ ] In `Auto`, HAgent selects a compatible execution target according to capabilities, policy, availability, cost, quota/capacity, latency, and preferences.
+57. [ ] In `Preferred`, HAgent attempts the configured provider/model/deployment preference but may use another compatible target according to the configured fallback policy.
+58. [ ] In `Fixed`, HAgent uses the selected target when permitted and compatible; it must still enforce authorization, required capabilities, constraints, quota/capacity, and health. If unavailable or incompatible, behavior follows an explicit fallback policy and must never silently bypass enforcement.
+59. [ ] Distinguish a specific fixed target from a preference such as highest quality, lowest latency, lowest cost, or balanced. Preference scoring remains planner-owned rather than being encoded as a hard provider/model dependency.
+60. [ ] Add deterministic Example verification for provider discovery success/partial failure, unknown metadata, free-only selection, free-preferred fallback, paid-only targets under restriction, same model with different cost status across providers, Auto/Preferred/Fixed agent selection, fixed-target incompatibility, and explicit fallback behavior.
 
-## Agent configuration direction
+## Management UI direction
 
-A reusable Agent profile remains first-class. Its execution configuration becomes requirements and preferences rather than a permanent transport binding:
+The HAgent.WinForms configuration surface should be organized around user responsibilities rather than internal planner terminology.
+
+Top-level configuration tabs:
 
 ```text
-Agent
-    Identity / instructions
-    Tools
-    Memory / Knowledge / Skills policy
-
-    Required capabilities
-    Preferred capabilities
-
-    Preferred logical model (optional)
-    Preferred provider (optional)
-
-    Fallback / degradation policy
+Overview
+General
+Providers
+Models
+Agents
+Tools
+Permissions
+Storage
+Storage Test
+About
 ```
 
-A host or runtime may explicitly choose a provider/model/deployment for one execution, but HAgent validates compatibility before transport. Runtime and conversation overrides do not mutate the persistent profile.
+### General
+
+`General` contains system-wide defaults and policies that apply across providers and agents unless overridden by a more specific scope.
+
+At minimum it should contain:
+
+```text
+Execution Defaults
+    Cost Policy: FreeOnly / FreePreferred / NoRestriction
+    Default AI Selection: Auto
+    Default Fallback Policy
+    Default timeout/concurrency policies where appropriate
+
+Learning Defaults
+    Default Learning Mode
+
+Discovery
+    Automatically discover models: On/Off
+    Automatically refresh provider metadata: On/Off
+```
+
+Global settings are defaults, not forced values. Agent and approved runtime/host configuration can explicitly inherit or override them according to policy.
+
+### Providers
+
+The normal provider setup experience should be lightweight:
+
+```text
+Provider
+    Name
+    Provider/API type
+    Base URL where applicable
+    Credentials/secrets
+    Account/project information where applicable
+
+[ Test Connection ]
+[ Save ]
+```
+
+A provider should not require the user to manually enter every model, capability, modality, quota, rate limit, or technical restriction when those values can be discovered or observed. Provider-specific advanced/manual overrides may exist for information that cannot be discovered, but these are exception paths.
+
+The provider surface should also expose discovery status, last refresh, connection status, and a way to refresh/retest discovered metadata.
+
+### Models
+
+`Models` is a first-class top-level management surface between Providers and Agents. It displays the HAgent model catalog built from discovered provider information and normalized runtime observations.
+
+The catalog should support at least:
+
+```text
+Model / logical model
+Provider / execution target
+Availability
+Cost status: Free / FreeWithinQuota / Paid / Unknown
+Capabilities
+Constraints/limits
+Quota/rate/capacity state where available
+Last verified / evidence source
+```
+
+The UI should group the same logical model across multiple providers when their identities can be correlated, while keeping each concrete execution target distinct. A model may therefore appear as free at one provider and paid/unknown at another.
+
+When a provider cannot expose complete metadata, the Models surface must show `Unknown` rather than inventing a value and offer appropriate refresh/probe/manual-override actions where supported.
+
+### Agents
+
+Agent Configuration must make agent intent clear without requiring the administrator to understand execution-planner internals.
+
+The Agent Editor should include at least:
+
+```text
+Overview
+General
+AI
+Skills
+Knowledge
+Memory
+Learning
+Advanced
+```
+
+#### AI selection
+
+The AI section should support:
+
+```text
+Selection Mode
+    Auto
+    Preferred
+    Fixed
+
+Provider
+    Auto or selected provider
+
+Model
+    Auto or selected logical/concrete model
+
+Required capabilities
+    capabilities this agent must have
+
+Preferred capabilities/preferences
+    capabilities/quality/latency/cost preferences
+
+Fallback policy
+    explicit behavior when preferred/fixed selection cannot run
+```
+
+`Auto` is the normal default. `Preferred` expresses a strong preference without turning the profile into a permanent transport binding. `Fixed` gives administrators explicit control when they intentionally want one concrete target, such as always using a particular high-end model. Fixed selection never bypasses capability, authorization, quota, capacity, or health enforcement.
+
+The agent UI should describe Fixed as a deliberate override and make the failure/fallback behavior visible rather than silently substituting another model.
+
+#### Effective configuration overview
+
+The selected agent should show an understandable summary of the effective state:
+
+```text
+AI selection
+Skills
+Knowledge
+Memory
+Learning
+Tools
+Cost Policy
+```
+
+Where a value is inherited, the UI should show the source and effective value. For example:
+
+```text
+Cost Policy
+    Global: FreePreferred
+    Agent: Inherit
+    Effective: FreePreferred
+```
+
+This same pattern should be usable for runtime overrides where runtime configuration is exposed.
+
+## Cost policy and free-model behavior
+
+Cost policy is global by default but may be overridden at agent/runtime/host scopes where policy permits.
+
+The intended behavior is:
+
+```text
+Global Cost Policy
+      ↓
+Agent Cost Policy
+      ↓
+Runtime/Host Override
+      ↓
+Execution Planner
+      ↓
+compatible execution targets
+```
+
+`FreeOnly` does not mean "pick any model labeled free." HAgent must still enforce capability requirements, permissions, constraints, quota/capacity, health, and other policy. A free target that cannot perform the requested task is not eligible.
+
+`FreePreferred` prefers free/free-within-policy targets but can use paid targets only when the active higher-level policy explicitly permits paid fallback. `NoRestriction` does not impose a cost filter.
+
+Unknown commercial status is never treated as free implicitly.
 
 ## Same model, multiple providers
 
@@ -126,9 +298,9 @@ The same logical model may appear through different providers:
 ```text
 Logical Model: M
 
-Groq       -> Deployment A
-OpenRouter -> Deployment B
-Local      -> Deployment C
+Groq       -> Deployment A -> FreeWithinQuota
+OpenRouter -> Deployment B -> Free
+Local      -> Deployment C -> Unknown
 ```
 
 The deployments are separate execution targets because they may differ in capabilities, limits, pricing, routing, permissions, latency, availability, and operational state. HAgent may use the logical model as a preference while selecting among compatible concrete deployments.
@@ -156,11 +328,14 @@ Concurrency / Capacity
 Availability / Health
     Is the target currently usable?
 
+Cost
+    Is this target free, free-within-policy, paid, or unknown?
+
 Latency
     How long may the operation reasonably take?
 ```
 
-A target may therefore be capable but temporarily unavailable, or available but incompatible with a required feature.
+A target may therefore be capable but temporarily unavailable, available but incompatible with a required feature, or free but unusable because the needed capability or quota is unavailable.
 
 ## Execution-target assessment
 
@@ -176,6 +351,7 @@ ExecutionTargetAssessment
     Quota state
     Capacity state
     Health / availability
+    Cost state
     Estimated latency
     Wait-until (optional)
     Degradation available (optional)
@@ -202,6 +378,9 @@ Candidate discovery/filtering
       |
       v
 Policy/preferences scoring
+      |
+      v
+Cost policy
       |
       v
 Quota/rate/concurrency admission
@@ -257,9 +436,10 @@ Provider adapters may implement provider-specific discovery and telemetry:
 IProviderCapabilitySource
 IProviderUsageSource
 IProviderRateLimitSource
+IProviderModelCatalogSource
 ```
 
-or equivalent provider contracts as the implementation requires. HAgent.Core consumes normalized capability, constraint, quota, and availability records.
+or equivalent provider contracts as the implementation requires. HAgent.Core consumes normalized model, capability, constraint, quota, availability, and cost records.
 
 No provider-specific model matrix belongs in Core.
 
@@ -269,31 +449,4 @@ This phase does not make HAgent responsible for provider pricing truth, billing,
 
 ## Exit criterion
 
-A reusable Agent profile can run unchanged across materially different provider environments. For each execution, HAgent can discover or evaluate candidate targets, determine whether required capabilities are supported, enforce request-specific constraints and policy, account for quota/rate/concurrency capacity, wait or select another compatible target when appropriate, tolerate long-running inference, preserve cancellation/timeout/stale-result safety, and explain the final execution-target decision. The same logical model may be exposed by multiple providers without collapsing their operational identities.
-
-## Architectural additions for Phase 0.97 compatibility
-
-0.96 establishes the execution-side planner only. It must expose contracts that 0.97 can consume without coupling cognitive reasoning to provider infrastructure.
-
-The boundary should remain conceptually:
-
-```text
-Cognitive Policy / Planner
-        |
-        | "I need an inference execution with these requirements"
-        v
-AgentExecutionRequest
-        |
-        v
-Execution Planner
-        |
-        v
-ExecutionTargetAssessment
-        |
-        v
-ProviderExecutionRequest
-```
-
-The cognitive layer must not select or depend directly on provider-specific rate-limit implementations. It expresses requirements/preferences; the Execution Planner handles concrete target selection and admission.
-
-The planner should therefore treat execution requirements as data, not as model/provider names embedded in cognitive policies. This allows a future `LlmPolicy` or `LlmPlanner` to request, for example, `StructuredOutput + ToolCalling + LowLatency`, while 0.96 independently decides which concrete deployment can satisfy that request.
+A reusable Agent profile can run unchanged across materially different provider environments. For each execution, HAgent can discover or evaluate candidate targets, determine whether required capabilities are supported, enforce request-specific constraints and policy, account for quota/rate/concurrency capacity and applicable cost policy, wait or select another compatible target when appropriate, tolerate long-running inference, preserve cancellation/timeout/stale-result safety, and explain the final execution-target decision. The same logical model may be exposed by multiple providers without collapsing their operational identities. Normal provider setup remains lightweight and discovery-first, while manual metadata overrides are available only when automatic discovery cannot establish required information.

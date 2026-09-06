@@ -8,7 +8,7 @@ This repository is designed to be worked on by human developers and coding agent
 2. Never put WinForms types in Core.
 3. Never put SQL Server/MySQL implementation details in Core.
 4. Provider-specific transport belongs in provider adapter assemblies.
-5. Secrets belong to `ISecretStore`; never add secrets to ordinary persistent provider/agent/tool models.
+5. Provider credentials may be part of persisted provider configuration, but must be encrypted at rest and redacted from diagnostics. Do not introduce a separate secret-reference/vault subsystem unless a future requirement explicitly demands it.
 6. A provider describes connection/transport concerns. An agent profile describes reusable behavior/configuration.
 7. Keep agent profile identity separate from runtime agent instance identity.
 8. Runtime scope is a binding concept, not a separate agent class.
@@ -44,62 +44,65 @@ This repository is designed to be worked on by human developers and coding agent
 38. Effective capability state must be resolved into an execution snapshot. Later profile/runtime edits must not alter an already-running execution.
 39. Resource/type identity must be extensible so future knowledge types can be inventoried and shown without adding hard-coded Agent properties.
 40. Learning promotion must preserve provenance, source execution/runtime identity, proposed scope, and evidence/confidence when available.
+41. Configuration portability must serialize authoritative HAgent configuration rather than creating a second configuration model. Export/import must work across supported File, SQL Server, and MySQL storage backends.
+42. Configuration packages must be versioned, compatibility-checked, and explicit about conflicts. Executable handlers, live runtimes, active executions, and transient process state are not portable configuration.
+43. Credential-bearing exports are opt-in. Included provider API keys must remain encrypted inside the package and protected by the package's basic encryption/password mechanism.
 
 ## Context rules
 
-41. WinForms integration belongs in `HAgent.WinForms`, not Core.
-42. The public WinForms concept is **UI Context / Control Adapters**, not generic form serialization.
-43. UI adapters should prefer native/bound data sources and bounded projections over scraping visible control state.
-44. `DataTable` is optional, not the mandatory data representation.
-45. Application-owned objects may be attached as live runtime context and inspected through bounded, non-executable discovery.
-46. Discovery describes evidence; it never grants authorization or invents business meaning.
-47. Explicit developer semantics/authorization may override or enrich automatic discovery.
-48. Generic context may represent observations, state snapshots, events, records, objects, resources, or other host information without HAgent assigning domain meaning.
+44. WinForms integration belongs in `HAgent.WinForms`, not Core.
+45. The public WinForms concept is **UI Context / Control Adapters**, not generic form serialization.
+46. UI adapters should prefer native/bound data sources and bounded projections over scraping visible control state.
+47. `DataTable` is optional, not the mandatory data representation.
+48. Application-owned objects may be attached as live runtime context and inspected through bounded, non-executable discovery.
+49. Discovery describes evidence; it never grants authorization or invents business meaning.
+50. Explicit developer semantics/authorization may override or enrich automatic discovery.
+51. Generic context may represent observations, state snapshots, events, records, objects, resources, or other host information without HAgent assigning domain meaning.
 
 ## Multi-agent rules
 
-49. A workspace is a communication context, not an instruction to broadcast every message.
-50. Unaddressed user messages go only to the configured workspace default recipient.
-51. Direct user messages and agent delegation target explicit runtime participants.
-52. Visible agent-to-agent dialogue is a real workspace message stream when the host enables it.
-53. Coordinator and specialist are roles over the same generic runtime agent model.
-54. Specialists may represent a whole domain, table, subsystem, or capability; they are not inherently tied to one record.
-55. Dynamically created runtime agents come from reusable profiles and do not become permanent configuration entries by default.
-56. Runtime retirement is explicit or follows host shutdown/lifecycle policy.
-57. Runtime persistence, when enabled, must distinguish host instance, user/session, workspace, profile ID, and runtime instance ID.
-58. Private memory belongs to runtime ownership; shared memory requires explicit scope and authorization.
+52. A workspace is a communication context, not an instruction to broadcast every message.
+53. Unaddressed user messages go only to the configured workspace default recipient.
+54. Direct user messages and agent delegation target explicit runtime participants.
+55. Visible agent-to-agent dialogue is a real workspace message stream when the host enables it.
+56. Coordinator and specialist are roles over the same generic runtime agent model.
+57. Specialists may represent a whole domain, table, subsystem, or capability; they are not inherently tied to one record.
+58. Dynamically created runtime agents come from reusable profiles and do not become permanent configuration entries by default.
+59. Runtime retirement is explicit or follows host shutdown/lifecycle policy.
+60. Runtime persistence, when enabled, must distinguish host instance, user/session, workspace, profile ID, and runtime instance ID.
+61. Private memory belongs to runtime ownership; shared memory requires explicit scope and authorization.
 
 ## External consumers
 
-59. External hosts consume HAgent through provider-neutral public contracts and do not require host-specific dependencies in Core.
-60. HAgent must not contain host-specific physics, rendering, simulation time, application state, domain actions, or other domain rules.
-61. External hosts remain authoritative for their state and side effects. HAgent supplies generic agent execution, context, tools, memory integrations, coordination, structured output, and telemetry.
+62. External hosts consume HAgent through provider-neutral public contracts and do not require host-specific dependencies in Core.
+63. HAgent must not contain host-specific physics, rendering, simulation time, application state, domain actions, or other domain rules.
+64. External hosts remain authoritative for their state and side effects. HAgent supplies generic agent execution, context, tools, memory integrations, coordination, structured output, and telemetry.
 
 ## WinForms UI conventions
 
-62. Do not use `System.Windows.Forms.MessageBox` directly in `HAgent.WinForms`.
-63. Use `HMessage.ShowDelete`, `ShowQuestion`, `ShowInformation`, `ShowError`, and `ShowException` for dialogs.
-64. Use the shared HAgent `Header` for HAgent form chrome.
-65. Use `HButton` for HAgent action buttons.
-66. Preserve existing UI/layout work unless a task explicitly requests UI changes.
-67. Knowledge/Skill/Learning management UI must use the shared HAgent conventions and must expose effective agent configuration, not only persisted profile references.
+65. Do not use `System.Windows.Forms.MessageBox` directly in `HAgent.WinForms`.
+66. Use `HMessage.ShowDelete`, `ShowQuestion`, `ShowInformation`, `ShowError`, and `ShowException` for dialogs.
+67. Use the shared HAgent `Header` for HAgent form chrome.
+68. Use `HButton` for HAgent action buttons.
+69. Preserve existing UI/layout work unless a task explicitly requests UI changes.
+70. Knowledge/Skill/Learning management UI must use the shared HAgent conventions and must expose effective agent configuration, not only persisted profile references.
 
 ## Example and testing rules
 
-68. `HAgent.Example` is the manual developer/verification host; it is not `HAgent.Tests`.
-69. Every meaningful completed capability requires a matching Example verification using public APIs.
-70. Keep Example code split across focused partial files/components.
-71. Example snippets must be reproducible and explain required setup or shared setup.
-72. Do not claim build/test success unless it was actually executed.
-73. Network-provider automated tests must use fakes/local test infrastructure rather than a real vendor.
+71. `HAgent.Example` is the manual developer/verification host; it is not `HAgent.Tests`.
+72. Every meaningful completed capability requires a matching Example verification using public APIs.
+73. Keep Example code split across focused partial files/components.
+74. Example snippets must be reproducible and explain required setup or shared setup.
+75. Do not claim build/test success unless it was actually executed.
+76. Network-provider automated tests must use fakes/local test infrastructure rather than a real vendor.
 
 ## Documentation rules
 
-74. `README.md` is the public introduction and quick start.
-75. `docs/architecture/` is the authoritative stable architecture description.
-76. `docs/plan/` is implementation state: master direction, current state, and active implementation only.
-77. `docs/roadmap/` is the ordered implementation path, including completed foundation history and future phases.
-78. `docs/storage.md` contains storage-specific details.
-79. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them except to synchronize a generated view when automation has not yet run.
-80. When implementation changes architecture or milestone state, update the authoritative source document in the same change.
-81. Do not duplicate architectural decisions across multiple source documents when a referenced authoritative document can own the decision.
+77. `README.md` is the public introduction and quick start.
+78. `docs/architecture/` is the authoritative stable architecture description.
+79. `docs/plan/` is implementation state: master direction, current state, and active implementation only.
+80. `docs/roadmap/` is the ordered implementation path, including completed foundation history and future phases.
+81. `docs/storage.md` contains storage-specific details.
+82. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them except to synchronize a generated view when automation has not yet run.
+83. When implementation changes architecture or milestone state, update the authoritative source document in the same change.
+84. Do not duplicate architectural decisions across multiple source documents when a referenced authoritative document can own the decision.

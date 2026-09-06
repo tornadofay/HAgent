@@ -48,7 +48,7 @@ namespace HAgent.Runtime
                 CacheEntry cached;
                 if (_cache.TryGetValue(cacheKey, out cached) && cached != null && cached.ExpiresAt > DateTimeOffset.UtcNow)
                 {
-                    var cachedResult = await cached.Task.ConfigureAwait(false);
+                    var cachedResult = await AwaitWithCancellationAsync(cached.Task, cancellationToken).ConfigureAwait(false);
                     return CloneResult(cachedResult);
                 }
             }
@@ -59,9 +59,9 @@ namespace HAgent.Runtime
                 {
                     ExpiresAt = DateTimeOffset.UtcNow.Add(_cacheDuration)
                 };
-                entry.Task = DiscoverUncachedAsync(provider, apiKey, cancellationToken);
+                entry.Task = DiscoverUncachedAsync(provider, apiKey, CancellationToken.None);
                 _cache[cacheKey] = entry;
-                var result = await entry.Task.ConfigureAwait(false);
+                var result = await AwaitWithCancellationAsync(entry.Task, cancellationToken).ConfigureAwait(false);
                 return CloneResult(result);
             }
 
@@ -166,6 +166,27 @@ namespace HAgent.Runtime
                     Message = "Model catalog discovery failed: " + ex.Message
                 };
             }
+        }
+
+        private static Task<ProviderDiscoveryResult> AwaitWithCancellationAsync(
+            Task<ProviderDiscoveryResult> task,
+            CancellationToken cancellationToken)
+        {
+            if (task == null) throw new ArgumentNullException(nameof(task));
+            if (!cancellationToken.CanBeCanceled || task.IsCompleted)
+                return task;
+            return AwaitWithCancellationCoreAsync(task, cancellationToken);
+        }
+
+        private static async Task<ProviderDiscoveryResult> AwaitWithCancellationCoreAsync(
+            Task<ProviderDiscoveryResult> task,
+            CancellationToken cancellationToken)
+        {
+            var cancellationTask = Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            var completed = await Task.WhenAny(task, cancellationTask).ConfigureAwait(false);
+            if (completed != task)
+                throw new OperationCanceledException(cancellationToken);
+            return await task.ConfigureAwait(false);
         }
 
         private static string BuildCacheKey(AiProvider provider)

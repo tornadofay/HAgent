@@ -7,7 +7,7 @@ using HAgent.Models;
 namespace HAgent.Runtime
 {
     /// <summary>
-    /// Process-local admission state. It is intentionally independent from provider transport.
+    /// Process-local target-scoped admission state. It is deliberately independent from provider transport.
     /// </summary>
     public sealed class InMemoryAiQuotaAdmission
     {
@@ -39,6 +39,12 @@ namespace HAgent.Runtime
             target.Validate();
             policy.Validate();
 
+            foreach (var pair in requestedUsage)
+            {
+                if (pair.Value < 0L)
+                    throw new ArgumentOutOfRangeException(nameof(requestedUsage), "Requested usage cannot be negative.");
+            }
+
             var timestamp = now ?? DateTimeOffset.UtcNow;
             var state = _states.GetOrAdd(target.Id, key => new TargetState());
             var reservationId = Guid.NewGuid();
@@ -55,26 +61,22 @@ namespace HAgent.Runtime
                         continue;
 
                     var used = state.Entries
-                        .Where(x => x.Dimension == limit.Dimension && string.Equals(GetScope(x), limit.Scope, StringComparison.OrdinalIgnoreCase))
+                        .Where(x => x.Dimension == limit.Dimension)
                         .Sum(x => x.Amount);
 
                     if (requested + used <= limit.Maximum)
                         continue;
 
-                    var candidate = state.Entries
-                        .Where(x => x.Dimension == limit.Dimension && string.Equals(GetScope(x), limit.Scope, StringComparison.OrdinalIgnoreCase))
+                    var firstReleasable = state.Entries
+                        .Where(x => x.Dimension == limit.Dimension)
                         .OrderBy(x => x.At)
                         .FirstOrDefault();
-                    if (candidate != null)
-                    {
-                        var candidateWait = candidate.At + limit.Window;
-                        if (!waitUntil.HasValue || candidateWait > waitUntil.Value)
-                            waitUntil = candidateWait;
-                    }
-                    else
-                    {
-                        waitUntil = timestamp + limit.Window;
-                    }
+
+                    var candidateWait = firstReleasable != null
+                        ? firstReleasable.At + limit.Window
+                        : timestamp + limit.Window;
+                    if (!waitUntil.HasValue || candidateWait < waitUntil.Value)
+                        waitUntil = candidateWait;
                 }
 
                 if (waitUntil.HasValue)
@@ -100,6 +102,7 @@ namespace HAgent.Runtime
                 }
 
                 var reservation = new AiQuotaReservation(
+                    reservationId,
                     target.Id,
                     timestamp,
                     new Dictionary<AiQuotaDimension, long>(requestedUsage),
@@ -109,7 +112,7 @@ namespace HAgent.Runtime
                 return new AiQuotaAdmissionResult
                 {
                     Decision = AiAdmissionDecision.Admitted,
-                    Reason = "Requested usage admitted under all configured limits.",
+                    Reason = "Requested usage admitted under all configured target-scoped limits.",
                     Reservation = reservation
                 };
             }
@@ -117,7 +120,9 @@ namespace HAgent.Runtime
 
         private static void Cleanup(TargetState state, AiQuotaPolicy policy, DateTimeOffset now)
         {
-            if (policy.Limits.Count == 0) return;
+            if (policy.Limits.Count == 0)
+                return;
+
             state.Entries.RemoveAll(entry =>
             {
                 var limit = policy.Limits.FirstOrDefault(x => x.Dimension == entry.Dimension);
@@ -131,10 +136,12 @@ namespace HAgent.Runtime
             AiQuotaReservation reservation,
             IReadOnlyDictionary<AiQuotaDimension, long> actualUsage)
         {
+            if (actualUsage == null)
+                throw new ArgumentNullException(nameof(actualUsage));
+
             lock (state.Sync)
             {
-                foreach (var entry in state.Entries.Where(x => x.ReservationId == GetReservationId(reservation)).ToList())
-                    state.Entries.Remove(entry);
+                state.Entries.RemoveAll(x => x.ReservationId == reservation.ReservationId);
 
                 var now = DateTimeOffset.UtcNow;
                 foreach (var pair in actualUsage)
@@ -157,19 +164,8 @@ namespace HAgent.Runtime
         {
             lock (state.Sync)
             {
-                state.Entries.RemoveAll(x => x.ReservationId == GetReservationId(reservation));
+                state.Entries.RemoveAll(x => x.ReservationId == reservation.ReservationId);
             }
-        }
-
-        private static Guid GetReservationId(AiQuotaReservation reservation)
-        {
-            var field = typeof(AiQuotaReservation).GetField("_commit", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            return reservation.GetHashCode() == 0 ? Guid.Empty : Guid.Empty;
-        }
-
-        private static string GetScope(UsageEntry entry)
-        {
-            return string.Empty;
         }
     }
 }

@@ -41,13 +41,32 @@ namespace HAgent.Runtime
             return _toolRegistry.TryGet(toolId, out tool);
         }
 
-        public async Task<ToolExecutionResult> ExecuteToolAsync(
+        public Task<ToolExecutionResult> ExecuteToolAsync(
             string agentId,
             string toolId,
             string toolCallId,
             IReadOnlyDictionary<string, object> arguments,
             CancellationToken cancellationToken = default(CancellationToken),
             string hostCorrelationId = null)
+        {
+            return ExecuteToolAsync(
+                agentId,
+                toolId,
+                toolCallId,
+                arguments,
+                cancellationToken,
+                hostCorrelationId,
+                null);
+        }
+
+        public async Task<ToolExecutionResult> ExecuteToolAsync(
+            string agentId,
+            string toolId,
+            string toolCallId,
+            IReadOnlyDictionary<string, object> arguments,
+            CancellationToken cancellationToken,
+            string hostCorrelationId,
+            AgentIdentityContext identity)
         {
             if (string.IsNullOrWhiteSpace(agentId))
                 throw new ArgumentException("Agent id is required.", nameof(agentId));
@@ -56,12 +75,14 @@ namespace HAgent.Runtime
 
             var correlationId = Guid.NewGuid().ToString("N");
             var startedAt = DateTimeOffset.UtcNow;
+            var effectiveIdentity = identity == null ? new AgentIdentityContext() : identity.Clone();
+            effectiveIdentity.Validate();
 
             IAgentTool tool;
             if (!_toolRegistry.TryGet(toolId, out tool))
-                return CreateFailure("Tool was not found: " + toolId, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt);
+                return CreateFailure("Tool was not found: " + toolId, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt, effectiveIdentity);
             if (!tool.Definition.Enabled)
-                return CreateFailure("Tool is disabled: " + tool.Definition.Name, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt);
+                return CreateFailure("Tool is disabled: " + tool.Definition.Name, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt, effectiveIdentity);
 
             var source = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (arguments != null)
@@ -80,7 +101,8 @@ namespace HAgent.Runtime
                     agentId,
                     toolId,
                     toolCallId,
-                    startedAt);
+                    startedAt,
+                    effectiveIdentity);
             }
 
             var context = new ToolExecutionContext
@@ -90,6 +112,7 @@ namespace HAgent.Runtime
                 AgentId = agentId,
                 ToolId = toolId,
                 ToolCallId = toolCallId ?? string.Empty,
+                Identity = effectiveIdentity,
                 Arguments = validation.Arguments,
                 CancellationToken = cancellationToken
             };
@@ -112,6 +135,7 @@ namespace HAgent.Runtime
             result.AgentId = agentId;
             result.ToolId = toolId;
             result.ToolCallId = toolCallId ?? string.Empty;
+            result.Identity = effectiveIdentity;
             result.StartedAt = startedAt;
             result.CompletedAt = DateTimeOffset.UtcNow;
             return result;
@@ -124,7 +148,8 @@ namespace HAgent.Runtime
             string agentId,
             string toolId,
             string toolCallId,
-            DateTimeOffset startedAt)
+            DateTimeOffset startedAt,
+            AgentIdentityContext identity)
         {
             var result = ToolExecutionResult.Failure(error);
             result.CorrelationId = correlationId;
@@ -132,6 +157,7 @@ namespace HAgent.Runtime
             result.AgentId = agentId;
             result.ToolId = toolId;
             result.ToolCallId = toolCallId ?? string.Empty;
+            result.Identity = identity == null ? new AgentIdentityContext() : identity.Clone();
             result.StartedAt = startedAt;
             result.CompletedAt = DateTimeOffset.UtcNow;
             return result;

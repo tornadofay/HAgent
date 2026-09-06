@@ -77,6 +77,7 @@ namespace HAgent.Example
             AddExecutionPlannerTabs();
             AddQuotaAdmissionTabs();
             AddProviderDiscoveryTabs();
+            AddExecutionTargetCatalogTabs();
             Shown += async delegate
             {
                 try { await RefreshExampleAgentsAsync(); }

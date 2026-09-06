@@ -565,7 +565,7 @@ without replacing HAgent or introducing application-specific types into `HAgent.
 
 ## Current slice
 
-This slice establishes the provider-neutral decision boundary needed before capability-aware transport admission is integrated into the runtime.
+This slice establishes and begins integrating the provider-neutral execution decision boundary before capability-aware transport admission is fully wired into provider discovery and operational state.
 
 ### Implemented
 
@@ -581,17 +581,28 @@ This slice establishes the provider-neutral decision boundary needed before capa
 - Generic quota/rate dimensions for request count, token usage, concurrency, audio duration, image count, bytes, and spend.
 - `AiQuotaLimit` / `AiQuotaPolicy` for arbitrary rolling windows.
 - `InMemoryAiQuotaAdmission` with atomic target-scoped reservations and release/actual-usage reconciliation.
-- Deterministic Example verification for execution planning and quota admission.
+- `AgentExecutionRequest` support for execution selection and capability requirements.
+- `AgentExecutionSnapshot` cloning of execution policy and capability requirements so runtime execution does not share mutable policy state.
+- `DefaultAgentRuntime` planner invocation before provider transport.
+- Structured-output requests automatically requiring the `StructuredOutput` capability.
+- `InMemoryAiStore` cloning of execution selection and capability requirements.
+- Deterministic Example verification for execution planning, quota admission, and runtime concurrency through the new execution-planner path.
 
-## Deliberate non-goals for the current slice
+### Verified by user
 
-Provider transport, provider discovery, persistent/shared admission, provider-enforced scope reconciliation, operational 429 feedback, long-running execution policy, and capability-aware runtime integration are not yet wired into the execution path.
+- Execution target planning contract test passed.
+- Quota admission contract test passed.
+- Runtime instance lifecycle/isolation contract test passed.
 
-The obsolete provider/model properties on `AiAgent` are also not being preserved through compatibility wrappers. They will be replaced as part of the single coherent runtime/configuration integration step.
+## Current correction
 
-## Next slice
+The original runtime concurrency Example was configuration-dependent: it selected the currently configured UI agent and assumed its legacy primary provider fields remained the execution source. That is no longer a valid verification strategy for the redesigned runtime.
 
-Integrate the planner with the canonical `AgentExecutionRequest` boundary, replace reusable `AiAgent` provider/model binding with execution-selection policy plus capability requirements, and make runtime/provider transport consume the selected `AiExecutionTarget`. Then connect admission to that path and add provider discovery, capability evidence refresh, operational capacity, and 429 feedback.
+The test has been changed to construct an explicit in-memory provider and agent and execute two independent runtime instances concurrently through `DefaultAgentRuntime` and the new planner boundary. This keeps the test deterministic and independent of user configuration.
+
+## Remaining 0.96 work
+
+Provider discovery, capability evidence refresh, concrete target catalog persistence, operational permission/capacity state, proactive admission integration into the real provider execution path, provider 429 feedback, long-running request policy, stale-result handling across planner retries/fallbacks, complete removal of obsolete reusable-agent provider/model binding, and management UI integration remain to be completed.
 
 ## Active implementation plan
 

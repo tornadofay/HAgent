@@ -6,7 +6,7 @@ namespace HAgent.Models
 {
     /// <summary>
     /// Canonical provider-facing execution request.
-    /// The selected execution target is authoritative for transport model/deployment selection.
+    /// Runtime-selected execution target is authoritative when supplied by the runtime.
     /// </summary>
     public sealed class ProviderExecutionRequest
     {
@@ -14,7 +14,7 @@ namespace HAgent.Models
         {
             Provider = null;
             Agent = null;
-            Target = null;
+            ExecutionTarget = null;
             ApiKey = string.Empty;
             SystemPrompt = string.Empty;
             Messages = new ReadOnlyCollection<AIMessage>(new List<AIMessage>());
@@ -25,7 +25,7 @@ namespace HAgent.Models
 
         public AiProvider Provider { get; set; }
         public AiAgent Agent { get; set; }
-        public AiExecutionTarget Target { get; set; }
+        public AiExecutionTarget ExecutionTarget { get; set; }
         public string ApiKey { get; set; }
         public string SystemPrompt { get; set; }
         public IReadOnlyList<AIMessage> Messages { get; set; }
@@ -39,11 +39,12 @@ namespace HAgent.Models
                 throw new ArgumentNullException(nameof(Provider));
             if (Agent == null)
                 throw new ArgumentNullException(nameof(Agent));
-            if (Target == null)
-                throw new ArgumentNullException(nameof(Target));
-            if (!string.Equals(Target.ProviderId, Provider.Id, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("ProviderExecutionRequest target provider does not match the selected provider.");
-            Target.Validate();
+            if (ExecutionTarget != null)
+            {
+                if (!string.Equals(ExecutionTarget.ProviderId, Provider.Id, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("ProviderExecutionRequest execution target provider does not match the selected provider.");
+                ExecutionTarget.Validate();
+            }
             if (Messages == null || Messages.Count == 0)
                 throw new ArgumentException("At least one provider message is required.", nameof(Messages));
             if (Messages.Count > 128)

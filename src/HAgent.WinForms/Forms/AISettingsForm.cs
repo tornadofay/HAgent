@@ -264,9 +264,17 @@ namespace HAgent.WinForms.Forms
             list.Columns.Add("Status", 90);
             foreach (var a in _agents)
             {
-                var provider = _providers.FirstOrDefault(p => p.Id == a.ProviderId);
-                var toolCount = a.ToolIds == null ? 0 : a.ToolIds.Count;
-                var item = new ListViewItem(new[] { a.Name, provider == null ? "Missing provider" : provider.Name, string.IsNullOrWhiteSpace(a.Model) ? (provider == null ? "" : provider.DefaultModel) : a.Model, toolCount.ToString(), a.Enabled ? "Enabled" : "Disabled" });
+                var providerId = GetPreferredProviderId(a);
+                var provider = _providers.FirstOrDefault(p => string.Equals(p.Id, providerId, StringComparison.OrdinalIgnoreCase));
+                var model = GetPreferredModelId(a);
+                var item = new ListViewItem(new[]
+                {
+                    a.Name,
+                    provider == null ? (string.IsNullOrWhiteSpace(providerId) ? "Auto" : "Missing provider") : provider.Name,
+                    string.IsNullOrWhiteSpace(model) ? "Auto" : model,
+                    a.ToolIds == null ? "0" : a.ToolIds.Count.ToString(),
+                    a.Enabled ? "Enabled" : "Disabled"
+                });
                 item.Tag = a;
                 list.Items.Add(item);
             }
@@ -346,11 +354,44 @@ namespace HAgent.WinForms.Forms
             return new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, HideSelection = false, GridLines = false, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 9f) };
         }
 
+        private static string GetPreferredProviderId(AiAgent agent)
+        {
+            if (agent == null || agent.ExecutionSelection == null) return string.Empty;
+            var selection = agent.ExecutionSelection;
+            if (!string.IsNullOrWhiteSpace(selection.PreferredProviderId))
+                return selection.PreferredProviderId;
+            return GetProviderIdFromTargetId(selection.PreferredTargetId);
+        }
+
+        private static string GetPreferredModelId(AiAgent agent)
+        {
+            if (agent == null || agent.ExecutionSelection == null) return string.Empty;
+            var selection = agent.ExecutionSelection;
+            var targetModel = GetModelIdFromTargetId(selection.PreferredTargetId);
+            if (!string.IsNullOrWhiteSpace(targetModel)) return targetModel;
+            return selection.PreferredLogicalModelId ?? string.Empty;
+        }
+
+        private static string GetProviderIdFromTargetId(string targetId)
+        {
+            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
+            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
+            return separator <= 0 ? string.Empty : targetId.Substring(0, separator);
+        }
+
+        private static string GetModelIdFromTargetId(string targetId)
+        {
+            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
+            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
+            return separator < 0 || separator + 2 >= targetId.Length ? string.Empty : targetId.Substring(separator + 2);
+        }
+
         private static bool UsesProvider(AiAgent agent, string providerId)
         {
-            if (agent == null || string.IsNullOrWhiteSpace(providerId)) return false;
-            if (string.Equals(agent.ProviderId, providerId, StringComparison.OrdinalIgnoreCase)) return true;
-            return agent.ProviderIds != null && agent.ProviderIds.Any(x => string.Equals(x, providerId, StringComparison.OrdinalIgnoreCase));
+            if (agent == null || string.IsNullOrWhiteSpace(providerId) || agent.ExecutionSelection == null) return false;
+            var selection = agent.ExecutionSelection;
+            if (string.Equals(selection.PreferredProviderId, providerId, StringComparison.OrdinalIgnoreCase)) return true;
+            return string.Equals(GetProviderIdFromTargetId(selection.PreferredTargetId), providerId, StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task DeleteProviderAsync(AiProvider provider)

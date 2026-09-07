@@ -141,7 +141,7 @@ namespace HAgent.Example
                 ReceivedRequest = true;
                 ReceivedMessages = request.Messages == null ? 0 : request.Messages.Count;
                 ReceivedStructuredSchema = request.StructuredOutput == null ? string.Empty : request.StructuredOutput.SchemaJson;
-                ReceivedModel = request.Target == null ? string.Empty : request.Target.ModelId;
+                ReceivedModel = request.ExecutionTarget == null ? string.Empty : request.ExecutionTarget.ModelId;
                 Started.TrySetResult(true);
 
                 var cancellationTask = Task.Delay(Timeout.Infinite, cancellationToken);
@@ -153,7 +153,7 @@ namespace HAgent.Example
                 {
                     AgentId = request.Agent.Id,
                     ProviderId = request.Provider.Id,
-                    Model = request.Target == null ? string.Empty : request.Target.ModelId,
+                    Model = request.ExecutionTarget == null ? string.Empty : request.ExecutionTarget.ModelId,
                     Text = "GENERIC-HOST-OK",
                     StructuredOutputJson = "{\"status\":\"ok\"}"
                 };

@@ -28,7 +28,6 @@ namespace HAgent.Runtime
 
         public async Task<IReadOnlyList<AiExecutionTarget>> GetTargetsAsync(
             IReadOnlyList<AiProvider> providers,
-            AiAgent agent,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             var targets = new List<AiExecutionTarget>();

@@ -104,13 +104,27 @@ HAgent exposes a generic capability/resource inventory with resource ID, type ID
 
 The selected-agent management view should therefore expose the agent's effective Skills, Knowledge/Wiki access, Memory families, and any other future resource types without requiring a new hard-coded agent model for every new type.
 
+## Research Foundations
+
+HAgent's cognitive-runtime design is informed by established cognitive-architecture and modern language-agent research. The research mapping, adaptation decisions, and recommended architectural changes are documented in:
+
+- `docs/architecture/15-research-foundations.md` — research lineage and direct mapping of HAgent concepts to BDI, SOAR, ACT-R, CoALA, Generative Agents, Global Workspace/LIDA, ReAct, Reflexion, MemGPT, Voyager, and recent persistent-agent research.
+- `docs/research/2026-09-persistent-cognitive-runtime-comparison.md` — comprehensive comparison and recommended evolution of the HAgent Persistent Cognitive Runtime.
+
+These documents are architectural guidance, not claims that HAgent invented the underlying cognitive concepts. They are intended to prevent accidental reinvention, make research-derived decisions explicit, and identify the parts of the architecture that should remain HAgent-specific.
+
 ## Architecture references
 
+- `docs/architecture/05-identity.md` — identity, tenancy, ownership, and user context.
+- `docs/architecture/06-events.md` — first-class provider-neutral event infrastructure.
+- `docs/architecture/07-execution-planning.md` — capability-aware execution planning.
 - `docs/architecture/10-runtime.md` — runtime agents and execution.
+- `docs/architecture/15-research-foundations.md` — research foundations and cognitive-architecture mapping.
 - `docs/architecture/20-context.md` — bounded host context.
 - `docs/architecture/30-tools.md` — structured tools.
 - `docs/architecture/40-security.md` — authorization and guardrails.
 - `docs/architecture/50-workspaces.md` — workspace communication.
 - `docs/architecture/70-external-host-integration.md` — generic host integration.
 - `docs/architecture/80-knowledge-memory-learning.md` — detailed knowledge, skills, memory, learning, capability policy, and management architecture.
+- `docs/research/2026-09-persistent-cognitive-runtime-comparison.md` — detailed research comparison and recommended HAgent changes.
 - `docs/storage.md` — persistence and storage boundaries.

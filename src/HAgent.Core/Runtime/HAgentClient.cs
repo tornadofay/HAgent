@@ -41,9 +41,12 @@ namespace HAgent.Runtime
             : this(store, secrets, adapters, router, memory, conversations, contextOptions, memoryPolicy, null, null) { }
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions, IConversationMemoryPolicy memoryPolicy, IExecutionAuditStore auditStore)
-            : this(store, secrets, adapters, router, memory, conversations, contextOptions, memoryPolicy, auditStore, null) { }
+            : this(store, secrets, adapters, router, memory, conversations, contextOptions, memoryPolicy, auditStore, null, null) { }
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions, IConversationMemoryPolicy memoryPolicy, IExecutionAuditStore auditStore, ExecutionAuditOptions auditOptions)
+            : this(store, secrets, adapters, router, memory, conversations, contextOptions, memoryPolicy, auditStore, auditOptions, null) { }
+
+        public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions, IConversationMemoryPolicy memoryPolicy, IExecutionAuditStore auditStore, ExecutionAuditOptions auditOptions, IAiPolicyEngine policyEngine)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -65,7 +68,8 @@ namespace HAgent.Runtime
                 auditStore,
                 auditOptions,
                 _executionPlanner,
-                _executionTargetCatalog);
+                _executionTargetCatalog,
+                policyEngine);
         }
 
         public ConversationContextOptions ContextOptions { get { return _contextBuilder.Options; } }

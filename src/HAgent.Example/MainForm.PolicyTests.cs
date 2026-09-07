@@ -31,7 +31,8 @@ namespace HAgent.Example
         private async Task TestPolicyEngineAsync(string unused)
         {
             var policy = new AiPolicySet { Version = "policy-contract-42" };
-            policy.Rules.Add(new AiPolicyRule
+
+            var systemDefaultAllow = new AiPolicyRule
             {
                 Id = "system-default-allow",
                 Name = "System default",
@@ -39,8 +40,10 @@ namespace HAgent.Example
                 Priority = 1,
                 Outcome = AiPolicyOutcome.Allow,
                 Reason = "System default allows this operation."
-            });
-            policy.Rules.Add(new AiPolicyRule
+            };
+            policy.Rules.Add(systemDefaultAllow);
+
+            var tenantDenyTool = new AiPolicyRule
             {
                 Id = "tenant-deny-tool",
                 Name = "Tenant tool restriction",
@@ -48,10 +51,12 @@ namespace HAgent.Example
                 ScopeId = "tenant-42",
                 Priority = 5,
                 Outcome = AiPolicyOutcome.Deny,
-                Reason = "Tenant policy blocks the tool operation.",
-                Operations = new List<string> { "tool.invoke" }
-            });
-            policy.Rules.Add(new AiPolicyRule
+                Reason = "Tenant policy blocks the tool operation."
+            };
+            tenantDenyTool.Operations.Add("tool.invoke");
+            policy.Rules.Add(tenantDenyTool);
+
+            var agentApproval = new AiPolicyRule
             {
                 Id = "agent-approval",
                 Name = "Agent approval",
@@ -59,10 +64,11 @@ namespace HAgent.Example
                 ScopeId = "agent-42",
                 Priority = 20,
                 Outcome = AiPolicyOutcome.RequireApproval,
-                Reason = "The selected agent requires approval for the operation.",
-                Operations = new List<string> { "tool.invoke" },
-                ToolIds = new List<string> { "tool-sensitive" }
-            });
+                Reason = "The selected agent requires approval for the operation."
+            };
+            agentApproval.Operations.Add("tool.invoke");
+            agentApproval.ToolIds.Add("tool-sensitive");
+            policy.Rules.Add(agentApproval);
 
             var engine = new DefaultAiPolicyEngine(policy);
             var context = new AiPolicyEvaluationContext
@@ -116,22 +122,27 @@ namespace HAgent.Example
                 throw new InvalidOperationException("FreePreferred incorrectly denied a non-free target.");
 
             var tiePolicy = new AiPolicySet { Version = "tie-42" };
-            tiePolicy.Rules.Add(new AiPolicyRule
+
+            var tieB = new AiPolicyRule
             {
                 Id = "tie-b",
                 Scope = AiPolicyScopeKind.System,
                 Priority = 5,
-                Outcome = AiPolicyOutcome.Allow,
-                Operations = new List<string> { "tie.test" }
-            });
-            tiePolicy.Rules.Add(new AiPolicyRule
+                Outcome = AiPolicyOutcome.Allow
+            };
+            tieB.Operations.Add("tie.test");
+            tiePolicy.Rules.Add(tieB);
+
+            var tieA = new AiPolicyRule
             {
                 Id = "tie-a",
                 Scope = AiPolicyScopeKind.System,
                 Priority = 5,
-                Outcome = AiPolicyOutcome.Deny,
-                Operations = new List<string> { "tie.test" }
-            });
+                Outcome = AiPolicyOutcome.Deny
+            };
+            tieA.Operations.Add("tie.test");
+            tiePolicy.Rules.Add(tieA);
+
             var tieContext = new AiPolicyEvaluationContext { Operation = "tie.test" };
             var tieDecision = new DefaultAiPolicyEngine(tiePolicy).Evaluate(tieContext);
             if (tieDecision.RuleId != "tie-a" || !tieDecision.IsDenied)
@@ -178,7 +189,7 @@ namespace HAgent.Example
             }).ConfigureAwait(true);
 
             var policy = new AiPolicySet { Version = "runtime-policy-42" };
-            policy.Rules.Add(new AiPolicyRule
+            var providerDenial = new AiPolicyRule
             {
                 Id = "deny-policy-runtime-provider",
                 Name = "Runtime provider denial",
@@ -187,7 +198,8 @@ namespace HAgent.Example
                 Priority = 100,
                 Outcome = AiPolicyOutcome.Deny,
                 Reason = "This deterministic runtime test blocks provider execution."
-            });
+            };
+            policy.Rules.Add(providerDenial);
 
             var adapter = new PolicyRuntimeTestAdapter();
             var runtime = new DefaultAgentRuntime(

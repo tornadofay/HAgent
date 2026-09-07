@@ -160,7 +160,7 @@ namespace HAgent.Example
                 {
                     Text = "RUNTIME-OVERRIDE-OK",
                     ProviderId = request.Provider == null ? string.Empty : request.Provider.Id,
-                    Model = request.Target == null ? string.Empty : request.Target.ModelId
+                    Model = request.ExecutionTarget == null ? string.Empty : request.ExecutionTarget.ModelId
                 });
             }
         }

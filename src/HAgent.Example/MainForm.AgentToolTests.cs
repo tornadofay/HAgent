@@ -29,8 +29,6 @@ namespace HAgent.Example
             {
                 Id = "example-assignment-agent",
                 Name = "Assignment Example Agent",
-                ProviderId = "example-provider",
-                Model = "example-model",
                 ToolIds = new List<string> { tool.Id },
                 Enabled = true
             };

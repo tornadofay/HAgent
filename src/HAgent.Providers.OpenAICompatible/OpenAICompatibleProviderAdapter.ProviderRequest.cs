@@ -22,6 +22,7 @@ namespace HAgent.Providers.OpenAICompatible
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
             request.Validate();
+            var model = request.ExecutionTarget == null ? request.Provider.DefaultModel : request.ExecutionTarget.ModelId;
             return SendWithToolsAsync(
                 request.Provider,
                 request.Agent,
@@ -29,6 +30,7 @@ namespace HAgent.Providers.OpenAICompatible
                 request.SystemPrompt,
                 request.Messages,
                 request.Tools,
+                model,
                 cancellationToken);
         }
 
@@ -38,6 +40,7 @@ namespace HAgent.Providers.OpenAICompatible
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
             request.Validate();
+            var model = request.ExecutionTarget == null ? request.Provider.DefaultModel : request.ExecutionTarget.ModelId;
             return SendStreamingAsync(
                 request.Provider,
                 request.Agent,
@@ -45,6 +48,7 @@ namespace HAgent.Providers.OpenAICompatible
                 request.SystemPrompt,
                 request.Messages,
                 request.Progress,
+                model,
                 cancellationToken);
         }
     }

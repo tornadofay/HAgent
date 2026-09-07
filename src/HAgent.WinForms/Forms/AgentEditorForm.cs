@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
+using HAgent.Runtime;
 using HAgent.WinForms;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.Helpers;
@@ -23,8 +24,12 @@ namespace HAgent.WinForms.Forms
         private readonly IReadOnlyList<AiTool> _tools;
         private readonly TableLayoutPanel _layout = new TableLayoutPanel();
         private readonly TextBox _name = new TextBox();
+        private readonly ComboBox _selectionMode = new ComboBox();
         private readonly ComboBox _provider = new ComboBox();
         private readonly ComboBox _model = new ComboBox();
+        private readonly ComboBox _logicalModel = new ComboBox();
+        private readonly ComboBox _costPolicy = new ComboBox();
+        private readonly ComboBox _fallback = new ComboBox();
         private readonly TextBox _prompt = new TextBox();
         private readonly CheckBox _inherit = new CheckBox();
         private readonly CheckBox _enabled = new CheckBox();
@@ -33,6 +38,7 @@ namespace HAgent.WinForms.Forms
         private readonly CheckedListBox _toolList = new CheckedListBox();
         private readonly HButton _test = new HButton();
         private readonly Label _status = new Label();
+        private readonly Label _selectionDescription = new Label();
 
         public AgentEditorForm(
             AiAgent agent,
@@ -40,7 +46,7 @@ namespace HAgent.WinForms.Forms
             ISecretStore secrets,
             IEnumerable<IAiProviderAdapter> adapters,
             IEnumerable<AiTool> tools = null)
-            : base("Agent behavior", "Define this agent's role, provider/model preferences, tools, and runtime settings", new Size(860, 790), new Size(720, 680))
+            : base("Agent behavior", "Define this agent's role, AI selection policy, tools, and runtime settings", new Size(900, 900), new Size(760, 760))
         {
             Agent = agent ?? new AiAgent();
             _providers = providers ?? new List<AiProvider>();
@@ -55,42 +61,59 @@ namespace HAgent.WinForms.Forms
             BodyPanel.Padding = new Padding(24);
             _layout.Dock = DockStyle.Fill;
             _layout.ColumnCount = 2;
-            _layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 195));
+            _layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 205));
             _layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            _layout.RowCount = 8;
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
+            _layout.RowCount = 12;
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
             _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
             _layout.BackColor = Color.FromArgb(248, 248, 252);
 
             AddField(0, "Name", "How this agent appears in your application.", _name);
-            AddField(1, "Provider", "The preferred provider. Provider IDs can also be extended for future fallback/routing.", _provider);
-            AddField(2, "Model", "Choose from models reported by the selected provider, or type one manually.", _model);
-            AddField(3, "System instruction", "Define role, rules, output style, and task-specific behavior.", _prompt);
-            AddCheckField(4, "Instruction inheritance", "Also include the selected provider's shared instruction.", _inherit);
-            AddField(5, "Temperature", "Optional sampling control. Empty keeps the provider/model default.", _temperature);
-            AddField(6, "Max output tokens", "Optional upper limit for generated output.", _tokens);
-            AddToolField(7);
+            AddField(1, "AI selection", "Choose automatic selection or constrain the execution planner to a preferred or fixed target.", _selectionMode);
+            AddField(2, "Preferred provider", "Optional provider preference. Leave automatic selection unconstrained when empty.", _provider);
+            AddField(3, "Preferred target", "Concrete discovered execution target selected by the planner when preferred/fixed selection is used.", _model);
+            AddField(4, "Logical model", "Optional logical-model preference used when several concrete targets represent the same model family.", _logicalModel);
+            AddField(5, "Cost policy", "Controls whether free targets are required, preferred, or unrestricted.", _costPolicy);
+            AddField(6, "System instruction", "Define role, rules, output style, and task-specific behavior.", _prompt);
+            AddCheckField(7, "Instruction inheritance", "Also include the selected provider's shared instruction when a provider is selected.", _inherit);
+            AddField(8, "Fallback", "Defines what happens when the preferred target cannot execute.", _fallback);
+            AddField(9, "Temperature", "Optional sampling control. Empty keeps the agent default.", _temperature);
+            AddField(10, "Max output tokens", "Optional upper limit for generated output.", _tokens);
+            AddToolField(11);
 
             _name.Text = Agent.Name;
             _prompt.Text = Agent.SystemPrompt;
             _prompt.Multiline = true;
             _prompt.ScrollBars = ScrollBars.Vertical;
             _prompt.Height = 126;
+
+            ConfigureEnumCombo(_selectionMode, typeof(AiSelectionMode));
+            ConfigureEnumCombo(_costPolicy, typeof(AiCostPolicy));
+            ConfigureEnumCombo(_fallback, typeof(AiFallbackMode));
+            _selectionMode.SelectedItem = Agent.ExecutionSelection == null ? AiSelectionMode.Auto : Agent.ExecutionSelection.Mode;
+            _costPolicy.SelectedItem = Agent.ExecutionSelection == null ? AiCostPolicy.NoRestriction : Agent.ExecutionSelection.CostPolicy;
+            _fallback.SelectedItem = Agent.ExecutionSelection == null ? AiFallbackMode.TryNextCandidate : Agent.ExecutionSelection.Fallback;
+            _selectionMode.SelectedIndexChanged += delegate { UpdateSelectionDescription(); };
+
             _provider.DropDownStyle = ComboBoxStyle.DropDownList;
             foreach (var provider in _providers) _provider.Items.Add(new ProviderItem(provider));
-            var selected = _providers.FirstOrDefault(p => p.Id == Agent.ProviderId);
-            if (selected != null) SelectProvider(selected.Id);
+            var selection = Agent.ExecutionSelection ?? new AiExecutionSelectionPolicy();
+            if (!string.IsNullOrWhiteSpace(selection.PreferredProviderId)) SelectProvider(selection.PreferredProviderId);
             else if (_provider.Items.Count > 0) _provider.SelectedIndex = 0;
-            _provider.SelectedIndexChanged += async delegate { await LoadModelsAsync(); };
+            _provider.SelectedIndexChanged += async delegate { await LoadTargetsAsync(); };
 
-            _model.DropDownStyle = ComboBoxStyle.DropDown;
-            _model.Text = Agent.Model;
+            _model.DropDownStyle = ComboBoxStyle.DropDownList;
+            _logicalModel.DropDownStyle = ComboBoxStyle.DropDownList;
             _temperature.DecimalPlaces = 2;
             _temperature.Increment = .05m;
             _temperature.Minimum = 0;
@@ -102,12 +125,13 @@ namespace HAgent.WinForms.Forms
             _inherit.Text = "Also use the provider's shared instruction";
             _inherit.Checked = Agent.UseProviderSystemPrompt;
             _inherit.AutoSize = true;
+            UpdateSelectionDescription();
 
             var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 52, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = Color.FromArgb(248, 248, 252) };
             var save = CreateButton("Save agent", 130, 36);
             save.Margin = new Padding(8, 4, 0, 0);
             save.Click += delegate { Save(); };
-            ConfigureButton(_test, "Test agent", 110, 36);
+            ConfigureButton(_test, "Test provider", 120, 36);
             _test.Margin = new Padding(8, 4, 0, 0);
             _test.Click += async delegate { await TestAsync(); };
             _status.AutoSize = true;
@@ -124,7 +148,24 @@ namespace HAgent.WinForms.Forms
 
             BodyPanel.Controls.Add(_layout);
             BodyPanel.Controls.Add(footer);
-            Shown += async delegate { await LoadModelsAsync(); };
+            Shown += async delegate { await LoadTargetsAsync(); };
+        }
+
+        private static void ConfigureEnumCombo(ComboBox combo, Type enumType)
+        {
+            combo.DropDownStyle = ComboBoxStyle.DropDownList;
+            foreach (var value in Enum.GetValues(enumType)) combo.Items.Add(value);
+        }
+
+        private void UpdateSelectionDescription()
+        {
+            var mode = _selectionMode.SelectedItem is AiSelectionMode ? (AiSelectionMode)_selectionMode.SelectedItem : AiSelectionMode.Auto;
+            if (mode == AiSelectionMode.Auto)
+                _selectionDescription.Text = "Automatic: the planner chooses the best compatible execution target.";
+            else if (mode == AiSelectionMode.Preferred)
+                _selectionDescription.Text = "Preferred: the planner favors the configured provider/target/logical model but may use another compatible target.";
+            else
+                _selectionDescription.Text = "Fixed: execution requires the selected concrete target.";
         }
 
         private static HButton CreateButton(string text, int width, int height)
@@ -164,6 +205,14 @@ namespace HAgent.WinForms.Forms
             control.Height = 30;
             host.Controls.Add(control);
             _layout.Controls.Add(host, 1, row);
+            if (row == 1)
+            {
+                _selectionDescription.Dock = DockStyle.Top;
+                _selectionDescription.Height = 28;
+                _selectionDescription.ForeColor = Color.FromArgb(100, 92, 120);
+                _selectionDescription.Font = new Font("Segoe UI", 8.2f);
+                host.Controls.Add(_selectionDescription);
+            }
         }
 
         private void AddCheckField(int row, string title, string description, CheckBox control)
@@ -176,7 +225,7 @@ namespace HAgent.WinForms.Forms
 
         private void AddToolField(int row)
         {
-            _layout.Controls.Add(CreateLabelPanel("Tools", "Select the capabilities this agent is allowed to request. Assignment controls availability; handler registration controls execution."), 0, row);
+            _layout.Controls.Add(CreateLabelPanel("Tools", "Select the tools this agent is allowed to request. Tool handler registration remains application-owned."), 0, row);
             var host = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 6, 0, 0) };
             _toolList.Dock = DockStyle.Fill;
             _toolList.BorderStyle = BorderStyle.FixedSingle;
@@ -184,14 +233,12 @@ namespace HAgent.WinForms.Forms
             _toolList.Font = new Font("Segoe UI", 8.8f);
             _toolList.BackColor = Color.White;
             _toolList.ForeColor = Color.FromArgb(68, 62, 88);
-
             var assigned = new HashSet<string>(Agent.ToolIds ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
             foreach (var tool in _tools.OrderBy(x => x.Name))
             {
                 var index = _toolList.Items.Add(new ToolItem(tool));
                 _toolList.SetItemChecked(index, assigned.Contains(tool.Id));
             }
-
             host.Controls.Add(_toolList);
             _layout.Controls.Add(host, 1, row);
         }
@@ -227,41 +274,79 @@ namespace HAgent.WinForms.Forms
             return await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(true);
         }
 
-        private async Task LoadModelsAsync()
+        private async Task LoadTargetsAsync()
         {
             try
             {
                 var provider = SelectedProvider;
-                var adapter = FindAdapter(provider);
-                var catalog = adapter as IProviderModelCatalog;
-                if (catalog == null) return;
-                var selectedText = _model.Text;
-                var models = await catalog.GetModelsAsync(provider, await GetApiKeyAsync(provider), CancellationToken.None).ConfigureAwait(true);
                 _model.Items.Clear();
-                foreach (var model in models) _model.Items.Add(model);
-                _model.Text = selectedText;
-                if (models.Count > 0) _status.Text = models.Count + " model(s) available";
-                await ShowCapabilitiesAsync(provider, adapter, _model.Text).ConfigureAwait(true);
+                _logicalModel.Items.Clear();
+                if (provider == null) return;
+
+                var catalog = new DefaultExecutionTargetCatalog(
+                    new ProviderDiscoveryService(_adapters),
+                    _secrets);
+                var targets = await catalog.GetTargetsAsync(new[] { provider }, CancellationToken.None).ConfigureAwait(true);
+                foreach (var target in targets.Where(x => x != null))
+                {
+                    _model.Items.Add(new TargetItem(target));
+                    if (!string.IsNullOrWhiteSpace(target.LogicalModelId))
+                        AddLogicalModel(target.LogicalModelId);
+                }
+
+                var selection = Agent.ExecutionSelection ?? new AiExecutionSelectionPolicy();
+                if (!string.IsNullOrWhiteSpace(selection.PreferredTargetId))
+                {
+                    for (var i = 0; i < _model.Items.Count; i++)
+                    {
+                        var item = _model.Items[i] as TargetItem;
+                        if (item != null && string.Equals(item.Target.Id, selection.PreferredTargetId, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _model.SelectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+                if (_model.SelectedIndex < 0 && _model.Items.Count > 0 && (selection.Mode == AiSelectionMode.Fixed || selection.Mode == AiSelectionMode.Preferred))
+                    _model.SelectedIndex = 0;
+                SelectLogicalModel(selection.PreferredLogicalModelId);
+                _status.Text = targets.Count + " execution target(s) discovered";
+                await ShowCapabilitiesAsync(provider, _model.SelectedItem as TargetItem).ConfigureAwait(true);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _status.Text = "Discovery unavailable";
+                _status.ForeColor = Color.FromArgb(185, 28, 28);
+                HMessage.ShowException(this, "Execution target discovery failed.", "Agent AI selection", ex);
+            }
         }
 
-        private async Task ShowCapabilitiesAsync(AiProvider provider, IAiProviderAdapter adapter, string model)
+        private void AddLogicalModel(string value)
         {
-            var capabilityAdapter = adapter as IProviderModelCapabilities;
-            if (capabilityAdapter == null)
+            if (string.IsNullOrWhiteSpace(value)) return;
+            for (var i = 0; i < _logicalModel.Items.Count; i++)
+                if (string.Equals(Convert.ToString(_logicalModel.Items[i]), value, StringComparison.OrdinalIgnoreCase)) return;
+            _logicalModel.Items.Add(value);
+        }
+
+        private void SelectLogicalModel(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return;
+            for (var i = 0; i < _logicalModel.Items.Count; i++)
+                if (string.Equals(Convert.ToString(_logicalModel.Items[i]), value, StringComparison.OrdinalIgnoreCase)) { _logicalModel.SelectedIndex = i; return; }
+        }
+
+        private async Task ShowCapabilitiesAsync(AiProvider provider, TargetItem selectedTarget)
+        {
+            if (provider == null || selectedTarget == null)
             {
-                _status.Text = "Capabilities: unavailable";
+                _status.Text = "Capabilities: select a discovered target";
                 return;
             }
-            if (string.IsNullOrWhiteSpace(model))
-            {
-                _status.Text = "Capabilities: select a model";
-                return;
-            }
-            var capabilities = await capabilityAdapter.GetCapabilitiesAsync(provider, model.Trim(), await GetApiKeyAsync(provider), CancellationToken.None).ConfigureAwait(true);
+            var capabilities = selectedTarget.Target.Capabilities;
             _status.Text = CapabilityDisplay.BuildSummary(capabilities);
             CapabilityDisplay.AttachToolTip(_status, capabilities);
+            await Task.CompletedTask;
         }
 
         private async Task TestAsync()
@@ -269,27 +354,21 @@ namespace HAgent.WinForms.Forms
             try
             {
                 var provider = SelectedProvider;
-                if (provider == null) throw new InvalidOperationException("Select a provider.");
+                if (provider == null) throw new InvalidOperationException("Select a preferred provider for connection testing.");
                 var adapter = FindAdapter(provider);
                 var tester = adapter as IProviderConnectionTester;
                 if (tester == null) throw new InvalidOperationException("This provider adapter does not support connection testing.");
                 _test.Enabled = false;
                 _status.Text = "Testing…";
                 await tester.TestConnectionAsync(provider, await GetApiKeyAsync(provider), CancellationToken.None).ConfigureAwait(true);
-                var catalog = adapter as IProviderModelCatalog;
-                if (catalog != null && !string.IsNullOrWhiteSpace(_model.Text))
-                {
-                    var models = await catalog.GetModelsAsync(provider, await GetApiKeyAsync(provider), CancellationToken.None).ConfigureAwait(true);
-                    if (models.Count > 0 && !models.Any(x => string.Equals(x, _model.Text.Trim(), StringComparison.OrdinalIgnoreCase)))
-                        throw new InvalidOperationException("The provider connection is valid, but model '" + _model.Text.Trim() + "' was not returned by its model catalog.");
-                }
-                await ShowCapabilitiesAsync(provider, adapter, _model.Text).ConfigureAwait(true);
+                await LoadTargetsAsync().ConfigureAwait(true);
+                _status.Text = "Provider connection succeeded";
             }
             catch (Exception ex)
             {
                 _status.Text = "Test failed";
                 _status.ForeColor = Color.FromArgb(185, 28, 28);
-                HMessage.ShowException(this, "The agent test failed.", "Agent test", ex);
+                HMessage.ShowException(this, "The provider test failed.", "Agent provider test", ex);
             }
             finally { _test.Enabled = true; }
         }
@@ -299,18 +378,35 @@ namespace HAgent.WinForms.Forms
             try
             {
                 if (string.IsNullOrWhiteSpace(_name.Text)) throw new InvalidOperationException("Agent name is required.");
-                var provider = SelectedProvider;
-                if (provider == null) throw new InvalidOperationException("Select a provider.");
+                var mode = _selectionMode.SelectedItem is AiSelectionMode ? (AiSelectionMode)_selectionMode.SelectedItem : AiSelectionMode.Auto;
+                var cost = _costPolicy.SelectedItem is AiCostPolicy ? (AiCostPolicy)_costPolicy.SelectedItem : AiCostPolicy.NoRestriction;
+                var fallback = _fallback.SelectedItem is AiFallbackMode ? (AiFallbackMode)_fallback.SelectedItem : AiFallbackMode.TryNextCandidate;
+                var selectedProvider = SelectedProvider;
+                var selectedTarget = _model.SelectedItem as TargetItem;
+                var preferredTargetId = selectedTarget == null ? string.Empty : selectedTarget.Target.Id;
+                var preferredLogicalModelId = Convert.ToString(_logicalModel.SelectedItem) ?? string.Empty;
+
+                if (mode == AiSelectionMode.Fixed && string.IsNullOrWhiteSpace(preferredTargetId))
+                    throw new InvalidOperationException("Fixed selection requires a discovered execution target.");
+
                 Agent.Name = _name.Text.Trim();
-                Agent.ProviderId = provider.Id;
-                if (Agent.ProviderIds == null) Agent.ProviderIds = new List<string>();
-                Agent.ProviderIds.RemoveAll(x => string.Equals(x, provider.Id, StringComparison.OrdinalIgnoreCase));
-                Agent.Model = _model.Text.Trim();
                 Agent.SystemPrompt = _prompt.Text;
                 Agent.UseProviderSystemPrompt = _inherit.Checked;
                 Agent.Temperature = _temperature.Value == 0 ? (double?)null : (double)_temperature.Value;
                 Agent.MaxOutputTokens = _tokens.Value == 0 ? (int?)null : (int)_tokens.Value;
                 Agent.Enabled = _enabled.Checked;
+                Agent.ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = mode,
+                    CostPolicy = cost,
+                    Fallback = fallback,
+                    PreferredProviderId = selectedProvider == null ? string.Empty : selectedProvider.Id,
+                    PreferredTargetId = preferredTargetId,
+                    PreferredLogicalModelId = preferredLogicalModelId,
+                    MaxQueueWait = Agent.ExecutionSelection == null ? TimeSpan.Zero : Agent.ExecutionSelection.MaxQueueWait
+                };
+                Agent.ExecutionSelection.Validate();
+
                 Agent.ToolIds = new List<string>();
                 foreach (var item in _toolList.CheckedItems)
                 {
@@ -328,6 +424,13 @@ namespace HAgent.WinForms.Forms
             public ProviderItem(AiProvider provider) { Provider = provider; }
             public AiProvider Provider { get; private set; }
             public override string ToString() { return Provider.Name; }
+        }
+
+        private sealed class TargetItem
+        {
+            public TargetItem(AiExecutionTarget target) { Target = target; }
+            public AiExecutionTarget Target { get; private set; }
+            public override string ToString() { return string.IsNullOrWhiteSpace(Target.ModelId) ? Target.Id : Target.ModelId + "  —  " + Target.Id; }
         }
 
         private sealed class ToolItem

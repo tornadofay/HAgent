@@ -12,7 +12,6 @@ namespace HAgent.Abstractions
     {
         Task<IReadOnlyList<AiExecutionTarget>> GetTargetsAsync(
             IReadOnlyList<AiProvider> providers,
-            AiAgent agent,
             CancellationToken cancellationToken = default(CancellationToken));
     }
 }

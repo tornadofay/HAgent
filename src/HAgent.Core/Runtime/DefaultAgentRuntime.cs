@@ -19,6 +19,7 @@ namespace HAgent.Runtime
         private readonly IExecutionTargetCatalog _executionTargetCatalog;
         private readonly IExecutionAuditStore _auditStore;
         private readonly ExecutionAuditOptions _auditOptions;
+        private readonly IAiPolicyEngine _policyEngine;
 
         public DefaultAgentRuntime(
             IAiStore store,
@@ -27,7 +28,7 @@ namespace HAgent.Runtime
             IProviderRouter router = null,
             IProviderErrorClassifier errorClassifier = null,
             IExecutionAuditStore auditStore = null)
-            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null, null)
+            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null, null, null)
         {
         }
 
@@ -40,7 +41,8 @@ namespace HAgent.Runtime
             IExecutionAuditStore auditStore,
             ExecutionAuditOptions auditOptions,
             IExecutionPlanner executionPlanner = null,
-            IExecutionTargetCatalog executionTargetCatalog = null)
+            IExecutionTargetCatalog executionTargetCatalog = null,
+            IAiPolicyEngine policyEngine = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -54,6 +56,7 @@ namespace HAgent.Runtime
             _auditStore = auditStore;
             _auditOptions = auditOptions ?? new ExecutionAuditOptions();
             _auditOptions.Validate();
+            _policyEngine = policyEngine ?? new DefaultAiPolicyEngine();
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
@@ -141,6 +144,35 @@ namespace HAgent.Runtime
                     }
 
                     var selectedTarget = plan.SelectedTarget;
+                    var policyContext = new AiPolicyEvaluationContext
+                    {
+                        Operation = "model.invoke",
+                        ResourceType = "execution-target",
+                        ResourceId = selectedTarget.Id,
+                        AgentProfileId = snapshot.Agent.Id,
+                        RuntimeInstanceId = execution.RuntimeInstanceId ?? string.Empty,
+                        ExecutionId = execution.Id,
+                        ProviderId = selectedTarget.ProviderId,
+                        ExecutionTargetId = selectedTarget.Id,
+                        CostStatus = selectedTarget.Cost,
+                        RequestedCostPolicy = selectionPolicy.CostPolicy,
+                        Identity = execution.Identity == null ? new AgentIdentityContext() : execution.Identity.Clone()
+                    };
+                    var policyDecision = _policyEngine.Evaluate(policyContext);
+                    execution.PolicyDecision = policyDecision;
+
+                    if (policyDecision.IsDenied || policyDecision.RequiresApproval || policyDecision.IsDeferred)
+                    {
+                        var outcome = policyDecision.Outcome == AiPolicyOutcome.Deny
+                            ? "denied"
+                            : policyDecision.Outcome == AiPolicyOutcome.RequireApproval
+                                ? "requires approval"
+                                : "deferred";
+                        throw new InvalidOperationException(
+                            "Execution policy " + outcome + ". " +
+                            (string.IsNullOrWhiteSpace(policyDecision.Reason) ? "No additional policy detail was provided." : policyDecision.Reason));
+                    }
+
                     var candidates = _router
                         .OrderProviders(snapshot.Agent, snapshot.Providers)
                         .Where(x => string.Equals(x.Id, selectedTarget.ProviderId, StringComparison.OrdinalIgnoreCase))

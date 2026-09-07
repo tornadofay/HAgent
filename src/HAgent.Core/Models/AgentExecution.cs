@@ -16,6 +16,7 @@ namespace HAgent.Models
             State = Runtime.AgentExecutionState.Created;
             FailureKind = AgentExecutionFailureKind.None;
             ProviderErrorKind = ProviderErrorKind.Unknown;
+            PolicyDecision = new AiPolicyDecision();
             CreatedAt = DateTimeOffset.UtcNow;
         }
 
@@ -31,6 +32,7 @@ namespace HAgent.Models
         public Runtime.AgentExecutionState State { get; internal set; }
         public AgentExecutionFailureKind FailureKind { get; internal set; }
         public ProviderErrorKind ProviderErrorKind { get; internal set; }
+        public AiPolicyDecision PolicyDecision { get; internal set; }
         public string LastProviderId { get; internal set; }
         public DateTimeOffset CreatedAt { get; private set; }
         public DateTimeOffset? StartedAt { get; internal set; }

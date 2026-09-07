@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -161,21 +160,6 @@ namespace HAgent.Example
                 "Audit records: 3" + Environment.NewLine +
                 "Provider network calls: none." + Environment.NewLine +
                 "Audit payload: metadata only.");
-        }
-
-        private static string GetPreferredProviderId(AiAgent agent)
-        {
-            if (agent == null || agent.ExecutionSelection == null) return string.Empty;
-            if (!string.IsNullOrWhiteSpace(agent.ExecutionSelection.PreferredProviderId))
-                return agent.ExecutionSelection.PreferredProviderId;
-            return GetProviderIdFromTargetId(agent.ExecutionSelection.PreferredTargetId);
-        }
-
-        private static string GetProviderIdFromTargetId(string targetId)
-        {
-            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
-            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
-            return separator > 0 ? targetId.Substring(0, separator) : string.Empty;
         }
 
         private enum LocalAuditAdapterMode

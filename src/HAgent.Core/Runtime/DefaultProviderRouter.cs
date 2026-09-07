@@ -13,23 +13,12 @@ namespace HAgent.Runtime
             if (agent == null) throw new ArgumentNullException(nameof(agent));
             if (providers == null) throw new ArgumentNullException(nameof(providers));
 
-            var ids = new List<string>();
-            if (!string.IsNullOrWhiteSpace(agent.ProviderId)) ids.Add(agent.ProviderId);
-            if (agent.ProviderIds != null)
-            {
-                foreach (var id in agent.ProviderIds)
-                    if (!string.IsNullOrWhiteSpace(id) && !ids.Any(x => string.Equals(x, id, StringComparison.OrdinalIgnoreCase)))
-                        ids.Add(id);
-            }
-
-            var ordered = new List<AiProvider>();
-            foreach (var id in ids)
-            {
-                var provider = providers.FirstOrDefault(x => x != null && string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
-                if (provider != null && provider.Enabled) ordered.Add(provider);
-            }
-
-            return ordered.AsReadOnly();
+            // Provider ordering is no longer derived from agent-owned provider IDs.
+            // Agent selection is resolved by the execution planner from concrete targets.
+            return providers
+                .Where(x => x != null && x.Enabled)
+                .ToList()
+                .AsReadOnly();
         }
     }
 }

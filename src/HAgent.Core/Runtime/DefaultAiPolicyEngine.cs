@@ -89,7 +89,7 @@ namespace HAgent.Runtime
         private static bool Matches(AiPolicyRule rule, AiPolicyEvaluationContext context)
         {
             if (!ScopeMatches(rule, context)) return false;
-            if (!MatchesValues(rule.Operations, context.Operation, true)) return false;
+            if (!MatchesValues(rule.Operations, context.Operation, false)) return false;
             if (!MatchesValues(rule.ResourceTypes, context.ResourceType, false)) return false;
             if (!MatchesValues(rule.ResourceIds, context.ResourceId, false)) return false;
             if (!MatchesValues(rule.ToolIds, context.ToolId, false)) return false;

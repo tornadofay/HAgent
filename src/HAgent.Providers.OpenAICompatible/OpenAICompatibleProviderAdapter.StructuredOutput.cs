@@ -19,31 +19,21 @@ namespace HAgent.Providers.OpenAICompatible
         {
             providerRequest.Validate();
 
-            if (providerRequest.StructuredOutput == null)
-            {
-                if (providerRequest.ExecutionTarget == null)
-                    return await SendAsync(
-                        providerRequest.Provider,
-                        providerRequest.Agent,
-                        providerRequest.ApiKey,
-                        providerRequest.SystemPrompt,
-                        providerRequest.Messages,
-                        cancellationToken).ConfigureAwait(false);
+            var requestModel = providerRequest.ExecutionTarget == null || string.IsNullOrWhiteSpace(providerRequest.ExecutionTarget.ModelId)
+                ? providerRequest.Provider.DefaultModel
+                : providerRequest.ExecutionTarget.ModelId;
 
-                var executionAgent = CreateTransportAgent(providerRequest.Agent, providerRequest.ExecutionTarget.ModelId);
+            if (providerRequest.StructuredOutput == null)
                 return await SendAsync(
                     providerRequest.Provider,
-                    executionAgent,
+                    providerRequest.Agent,
                     providerRequest.ApiKey,
                     providerRequest.SystemPrompt,
                     providerRequest.Messages,
+                    requestModel,
                     cancellationToken).ConfigureAwait(false);
-            }
 
             var url = NormalizeEndpoint(providerRequest.Provider.BaseUrl);
-            var requestModel = providerRequest.ExecutionTarget == null || string.IsNullOrWhiteSpace(providerRequest.ExecutionTarget.ModelId)
-                ? (string.IsNullOrWhiteSpace(providerRequest.Agent.Model) ? providerRequest.Provider.DefaultModel : providerRequest.Agent.Model)
-                : providerRequest.ExecutionTarget.ModelId;
             var transportRequest = new ChatCompletionRequest
             {
                 Model = requestModel,
@@ -77,15 +67,13 @@ namespace HAgent.Providers.OpenAICompatible
                     {
                         if (IsNativeStructuredOutputUnsupported(responseBody))
                         {
-                            var fallbackAgent = providerRequest.ExecutionTarget == null
-                                ? providerRequest.Agent
-                                : CreateTransportAgent(providerRequest.Agent, providerRequest.ExecutionTarget.ModelId);
                             var fallback = await SendAsync(
                                 providerRequest.Provider,
-                                fallbackAgent,
+                                providerRequest.Agent,
                                 providerRequest.ApiKey,
                                 providerRequest.SystemPrompt,
                                 providerRequest.Messages,
+                                requestModel,
                                 cancellationToken).ConfigureAwait(false);
                             if (fallback != null)
                             {
@@ -150,26 +138,11 @@ namespace HAgent.Providers.OpenAICompatible
             }
         }
 
-        private static AiAgent CreateTransportAgent(AiAgent source, string modelId)
-        {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (string.IsNullOrWhiteSpace(modelId)) throw new ArgumentException("Execution target model id is required.", nameof(modelId));
-
-            return new AiAgent
-            {
-                Id = source.Id,
-                Model = modelId,
-                Temperature = source.Temperature,
-                MaxOutputTokens = source.MaxOutputTokens
-            };
-        }
-
         private static bool IsNativeStructuredOutputUnsupported(string responseBody)
         {
             if (string.IsNullOrWhiteSpace(responseBody)) return false;
             var value = responseBody.ToLowerInvariant();
             if (!value.Contains("response_format")) return false;
-
             return value.Contains("not supported") ||
                    value.Contains("unsupported") ||
                    value.Contains("unknown parameter") ||

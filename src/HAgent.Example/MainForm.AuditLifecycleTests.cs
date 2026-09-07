@@ -36,9 +36,10 @@ namespace HAgent.Example
             if (agent == null)
                 throw new InvalidOperationException("Select an agent first.");
 
-            var provider = providers.FirstOrDefault(x => string.Equals(x.Id, agent.ProviderId, StringComparison.OrdinalIgnoreCase));
+            var providerId = GetPreferredProviderId(agent);
+            var provider = providers.FirstOrDefault(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
             if (provider == null)
-                throw new InvalidOperationException("The selected agent's primary provider could not be found.");
+                throw new InvalidOperationException("The selected agent's preferred provider could not be found.");
 
             var modes = new[]
             {
@@ -160,6 +161,21 @@ namespace HAgent.Example
                 "Audit records: 3" + Environment.NewLine +
                 "Provider network calls: none." + Environment.NewLine +
                 "Audit payload: metadata only.");
+        }
+
+        private static string GetPreferredProviderId(AiAgent agent)
+        {
+            if (agent == null || agent.ExecutionSelection == null) return string.Empty;
+            if (!string.IsNullOrWhiteSpace(agent.ExecutionSelection.PreferredProviderId))
+                return agent.ExecutionSelection.PreferredProviderId;
+            return GetProviderIdFromTargetId(agent.ExecutionSelection.PreferredTargetId);
+        }
+
+        private static string GetProviderIdFromTargetId(string targetId)
+        {
+            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
+            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
+            return separator > 0 ? targetId.Substring(0, separator) : string.Empty;
         }
 
         private enum LocalAuditAdapterMode

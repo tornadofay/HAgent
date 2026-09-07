@@ -621,13 +621,13 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.953 Unified Policy Engine — CURRENT
 
-Phase 0.953 is the current foundational slice. HAgent now has provider-neutral policy contracts and deterministic evaluation; subsequent work will connect policy to runtime enforcement, persistence, learning, resource enablement, and human approval.
+Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, and pre-transport runtime enforcement. The remaining work completes policy integration across persistence, authorization, resources, learning, approvals, and effective snapshots.
 
 ### Objective
 
 Create one coherent policy boundary for HAgent decisions without making the model, prompt, authentication provider, or host business authorization responsible for enforcement.
 
-### Implemented
+### Completed in this milestone so far
 
 - Versioned `AiPolicySet` and scoped `AiPolicyRule` contracts.
 - `Allow`, `Deny`, `RequireApproval`, `Defer`, and `NotApplicable` outcomes.
@@ -635,19 +635,21 @@ Create one coherent policy boundary for HAgent decisions without making the mode
 - Deterministic rule precedence and conflict resolution.
 - Decision provenance including policy version and selected rule.
 - Built-in `FreeOnly` cost enforcement; unknown cost is never assumed free.
-- Deterministic Example verification for precedence, approval, denial, scope matching, cost restrictions, provenance, and tie-breaking.
+- `AgentExecution.PolicyDecision` capture.
+- Runtime policy enforcement after execution-target selection and before provider transport.
+- Deterministic Example verification for engine behavior and provider-call prevention under denial.
 
-### Next slices
+### Next implementation slices
 
-- Integrate host authorization callbacks at HAgent enforcement boundaries without replacing host authority.
-- Add effective policy state to execution/runtime snapshots.
-- Persist policy sets through HAgent File, SQL Server, and MySQL storage.
-- Apply policy to tool invocation and provider/execution-target admission.
-- Add resource enablement and runtime `Inherit` / `Enabled` / `Disabled` policy integration.
-- Add learning-promotion policy and approval requirements.
-- Add bounded human approval/defer workflow integration.
-- Add management UI for policy scope, precedence, provenance, and effective decisions.
-- Add deterministic Example coverage for inherited policy, resource access, runtime overrides, persisted policies, tool denial, approval flow, and runtime enforcement.
+1. Capture an immutable effective policy state/version in the execution snapshot, including the policy inputs that governed the run.
+2. Persist policy configuration through File, SQL Server, and MySQL without mixing it into provider/agent transport configuration.
+3. Integrate host authorization callbacks at HAgent enforcement boundaries without replacing host authority.
+4. Apply policy to tool invocation and resource access before side effects occur.
+5. Integrate resource enablement and runtime `Inherit` / `Enabled` / `Disabled` semantics.
+6. Add learning-promotion policy, review requirements, and typed approval transitions.
+7. Add bounded human approval/defer workflow integration.
+8. Add management UI for policy rules, scope, precedence, provenance, and effective decisions.
+9. Expand deterministic Example coverage for inheritance, resource access, runtime overrides, persistence, tool denial, approval, and recovery.
 
 ### Architectural boundaries
 

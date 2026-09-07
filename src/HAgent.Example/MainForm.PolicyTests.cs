@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 
@@ -19,15 +20,15 @@ namespace HAgent.Example
             AddApiTab(
                 "Unified Policy",
                 "Run policy contract test",
-                "Verifies deterministic policy outcomes, scope/priority precedence, provenance, resource/tool/provider matching, and the built-in FreeOnly cost boundary.",
-                "A policy decision must be reproducible from the same inputs and explain the exact rule or built-in guard that produced it.",
-                "No provider or external service is used.",
+                "Verifies deterministic policy outcomes, runtime enforcement before provider transport, provenance, scoped matching, and cost restrictions.",
+                "A policy decision must be reproducible from the same inputs and must block prohibited provider execution before transport is invoked.",
+                "Uses only local deterministic adapters and in-memory state.",
                 TestPolicyEngineAsync,
                 "Policy boundary",
                 "Policy is enforcement metadata, not prompt text. Host authentication and business authorization remain host-owned.");
         }
 
-        private Task TestPolicyEngineAsync(string unused)
+        private async Task TestPolicyEngineAsync(string unused)
         {
             var policy = new AiPolicySet { Version = "policy-contract-42" };
             policy.Rules.Add(new AiPolicyRule
@@ -58,19 +59,9 @@ namespace HAgent.Example
                 ScopeId = "agent-42",
                 Priority = 20,
                 Outcome = AiPolicyOutcome.RequireApproval,
-                Reason = "The selected agent requires approval for this operation.",
+                Reason = "The selected agent requires approval for the operation.",
                 Operations = new List<string> { "tool.invoke" },
                 ToolIds = new List<string> { "tool-sensitive" }
-            });
-            policy.Rules.Add(new AiPolicyRule
-            {
-                Id = "execution-allow",
-                Name = "Execution-specific allowance",
-                Scope = AiPolicyScopeKind.Execution,
-                ScopeId = "execution-42",
-                Priority = 10,
-                Outcome = AiPolicyOutcome.Allow,
-                Reason = "Execution-specific allowance."
             });
 
             var engine = new DefaultAiPolicyEngine(policy);
@@ -105,7 +96,7 @@ namespace HAgent.Example
             context.Operation = "memory.read";
             var systemDecision = engine.Evaluate(context);
             if (systemDecision.Outcome != AiPolicyOutcome.Allow || systemDecision.RuleId != "system-default-allow")
-                throw new InvalidOperationException("Unmatched operations did not fall back to the applicable system policy.");
+                throw new InvalidOperationException("Unrestricted system policy did not apply to the unmatched operation.");
 
             context.Operation = "model.invoke";
             context.CostStatus = AiCostStatus.Paid;
@@ -146,6 +137,8 @@ namespace HAgent.Example
             if (tieDecision.RuleId != "tie-a" || !tieDecision.IsDenied)
                 throw new InvalidOperationException("Policy tie-breaking is not deterministic.");
 
+            await TestRuntimePolicyEnforcementAsync().ConfigureAwait(true);
+
             Write(
                 "UNIFIED POLICY",
                 "Policy engine contract test succeeded." + Environment.NewLine +
@@ -156,9 +149,113 @@ namespace HAgent.Example
                 "FreeOnly paid/unknown cost denial: verified." + Environment.NewLine +
                 "FreePreferred behavior: verified." + Environment.NewLine +
                 "Deterministic tie-breaking: verified." + Environment.NewLine +
+                "Runtime provider-execution enforcement: verified." + Environment.NewLine +
+                "Provider transport calls under denial: 0." + Environment.NewLine +
                 "Selected rule: " + decision.RuleId);
+        }
 
-            return Task.CompletedTask;
+        private async Task TestRuntimePolicyEnforcementAsync()
+        {
+            const string providerId = "policy-runtime-provider-42";
+            const string agentId = "policy-runtime-agent-42";
+
+            var store = new InMemoryAiStore();
+            await store.SaveProviderAsync(new AiProvider
+            {
+                Id = providerId,
+                Name = "Policy Runtime Provider",
+                Kind = "PolicyRuntimeTest",
+                BaseUrl = "https://invalid.local/",
+                DefaultModel = "policy-model-42",
+                Enabled = true
+            }).ConfigureAwait(true);
+
+            await store.SaveAgentAsync(new AiAgent
+            {
+                Id = agentId,
+                Name = "Policy Runtime Agent",
+                Enabled = true
+            }).ConfigureAwait(true);
+
+            var policy = new AiPolicySet { Version = "runtime-policy-42" };
+            policy.Rules.Add(new AiPolicyRule
+            {
+                Id = "deny-policy-runtime-provider",
+                Name = "Runtime provider denial",
+                Scope = AiPolicyScopeKind.Provider,
+                ScopeId = providerId,
+                Priority = 100,
+                Outcome = AiPolicyOutcome.Deny,
+                Reason = "This deterministic runtime test blocks provider execution."
+            });
+
+            var adapter = new PolicyRuntimeTestAdapter();
+            var runtime = new DefaultAgentRuntime(
+                store,
+                new EmptySecretStore(),
+                new IAiProviderAdapter[] { adapter },
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new DefaultAiPolicyEngine(policy));
+
+            AgentExecution terminal = null;
+            runtime.ExecutionChanged += delegate(object sender, AgentExecutionEventArgs args)
+            {
+                if (args != null && args.Execution != null && args.Execution.IsCompleted)
+                    terminal = args.Execution;
+            };
+
+            try
+            {
+                await runtime.ExecuteAsync(
+                    agentId,
+                    "Policy enforcement request.",
+                    new AgentExecutionOptions
+                    {
+                        Timeout = TimeSpan.FromSeconds(5),
+                        MaxProviderAttempts = 1,
+                        MaxRetriesPerProvider = 0
+                    },
+                    CancellationToken.None).ConfigureAwait(true);
+
+                throw new InvalidOperationException("The denied runtime execution unexpectedly completed successfully.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                if (ex.Message.IndexOf("Execution policy denied", StringComparison.OrdinalIgnoreCase) < 0)
+                    throw;
+            }
+
+            if (terminal == null)
+                throw new InvalidOperationException("Runtime policy denial did not produce a terminal execution.");
+            if (terminal.PolicyDecision == null || !terminal.PolicyDecision.IsDenied)
+                throw new InvalidOperationException("Runtime execution did not capture the denying policy decision.");
+            if (terminal.PolicyDecision.RuleId != "deny-policy-runtime-provider")
+                throw new InvalidOperationException("Runtime execution captured the wrong policy provenance.");
+            if (adapter.SendCount != 0)
+                throw new InvalidOperationException("Provider transport was invoked despite a denying policy decision.");
+        }
+
+        private sealed class PolicyRuntimeTestAdapter : IAiProviderAdapter
+        {
+            public int SendCount { get; private set; }
+            public string Kind { get { return "PolicyRuntimeTest"; } }
+            public string DisplayName { get { return "Policy Runtime Test Adapter"; } }
+
+            public bool CanHandle(AiProvider provider)
+            {
+                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
+            }
+
+            public Task<AIResponse> SendAsync(ProviderExecutionRequest request, CancellationToken cancellationToken)
+            {
+                SendCount++;
+                return Task.FromResult(new AIResponse { Text = "UNEXPECTED-POLICY-RESPONSE" });
+            }
         }
     }
 }

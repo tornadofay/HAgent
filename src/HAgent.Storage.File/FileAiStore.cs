@@ -68,9 +68,9 @@ namespace HAgent.Storage.File
         {
             lock (_sync)
             {
-                if (_data.Agents.Any(x => string.Equals(x.ProviderId, providerId, StringComparison.OrdinalIgnoreCase) ||
-                                          (x.ProviderIds != null && x.ProviderIds.Any(id => string.Equals(id, providerId, StringComparison.OrdinalIgnoreCase)))))
-                    throw new InvalidOperationException("Provider cannot be deleted while an agent references it.");
+                if (_data.Agents.Any(x => x.ExecutionSelection != null &&
+                                          string.Equals(x.ExecutionSelection.PreferredProviderId, providerId, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException("Provider cannot be deleted while an agent explicitly prefers it.");
                 _data.Providers.RemoveAll(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
                 Persist();
             }

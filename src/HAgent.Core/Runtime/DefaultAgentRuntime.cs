@@ -128,7 +128,7 @@ namespace HAgent.Runtime
 
                     selectionPolicy.Validate();
                     var targets = await _executionTargetCatalog
-                        .GetTargetsAsync(snapshot.Providers, snapshot.Agent, token)
+                        .GetTargetsAsync(snapshot.Providers, token)
                         .ConfigureAwait(false);
                     var plan = _executionPlanner.Plan(targets, requirements, selectionPolicy);
                     if (!plan.HasSelection)
@@ -249,18 +249,6 @@ namespace HAgent.Runtime
                                 ? AgentExecutionFailureKind.ProviderFailed
                                 : AgentExecutionFailureKind.Unknown;
 
-                    if (lastError != null)
-                    {
-                        var actionable = ProviderErrorAdvisor.GetActionableMessage(
-                            lastErrorKind,
-                            lastProviderName,
-                            lastModel,
-                            lastError.Message);
-
-                        if (!string.Equals(actionable, lastError.Message, StringComparison.Ordinal))
-                            throw new InvalidOperationException(actionable, lastError);
-                    }
-
                     var finalFailure = lastError ?? new InvalidOperationException(
                         "Execution planner selected no executable provider target for agent: " + snapshot.Agent.Name);
                     if (execution.TryCompleteFailed(
@@ -279,18 +267,9 @@ namespace HAgent.Runtime
                     var cancellationFailureKind = cancellationToken.IsCancellationRequested
                         ? AgentExecutionFailureKind.Cancelled
                         : AgentExecutionFailureKind.Timeout;
-                    Exception cancellationError;
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        cancellationError = new OperationCanceledException(
-                            "Agent execution was cancelled by the caller.",
-                            cancellationToken);
-                    }
-                    else
-                    {
-                        cancellationError = new TimeoutException(
-                            "Agent execution exceeded its configured timeout.");
-                    }
+                    Exception cancellationError = cancellationToken.IsCancellationRequested
+                        ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
+                        : new TimeoutException("Agent execution exceeded its configured timeout.");
 
                     if (execution.TryCompleteCancelled(
                         cancellationError,
@@ -309,18 +288,9 @@ namespace HAgent.Runtime
                         var cancellationFailureKind = cancellationToken.IsCancellationRequested
                             ? AgentExecutionFailureKind.Cancelled
                             : AgentExecutionFailureKind.Timeout;
-                        Exception cancellationError;
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            cancellationError = new OperationCanceledException(
-                                "Agent execution was cancelled by the caller.",
-                                cancellationToken);
-                        }
-                        else
-                        {
-                            cancellationError = new TimeoutException(
-                                "Agent execution exceeded its configured timeout.");
-                        }
+                        Exception cancellationError = cancellationToken.IsCancellationRequested
+                            ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
+                            : new TimeoutException("Agent execution exceeded its configured timeout.");
 
                         if (execution.TryCompleteCancelled(
                             cancellationError,
@@ -378,10 +348,7 @@ namespace HAgent.Runtime
                 return await providerTask.ConfigureAwait(false);
 
             providerTask.ContinueWith(
-                task =>
-                {
-                    var ignored = task.Exception;
-                },
+                task => { var ignored = task.Exception; },
                 CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
@@ -392,14 +359,10 @@ namespace HAgent.Runtime
 
         private static void ValidateOptions(AgentExecutionOptions options)
         {
-            if (options.Timeout <= TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(options.Timeout), "Timeout must be greater than zero.");
-            if (options.MaxProviderAttempts <= 0)
-                throw new ArgumentOutOfRangeException(nameof(options.MaxProviderAttempts), "MaxProviderAttempts must be greater than zero.");
-            if (options.MaxRetriesPerProvider < 0)
-                throw new ArgumentOutOfRangeException(nameof(options.MaxRetriesPerProvider), "MaxRetriesPerProvider cannot be negative.");
-            if (options.RetryBaseDelay < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(options.RetryBaseDelay), "RetryBaseDelay cannot be negative.");
+            if (options.Timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(options.Timeout), "Timeout must be greater than zero.");
+            if (options.MaxProviderAttempts <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxProviderAttempts), "MaxProviderAttempts must be greater than zero.");
+            if (options.MaxRetriesPerProvider < 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRetriesPerProvider), "MaxRetriesPerProvider cannot be negative.");
+            if (options.RetryBaseDelay < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(options.RetryBaseDelay), "RetryBaseDelay cannot be negative.");
         }
 
         private async Task PersistAuditAsync(AgentExecution execution)
@@ -407,14 +370,10 @@ namespace HAgent.Runtime
             if (_auditStore == null || !_auditOptions.Enabled) return;
             try
             {
-                await _auditStore.AppendAsync(
-                    AgentExecutionAuditRecord.FromExecution(execution),
-                    CancellationToken.None).ConfigureAwait(false);
+                await _auditStore.AppendAsync(AgentExecutionAuditRecord.FromExecution(execution), CancellationToken.None).ConfigureAwait(false);
                 await _auditStore.TrimAsync(_auditOptions.GetEffectiveMaxRecords(), CancellationToken.None).ConfigureAwait(false);
             }
-            catch
-            {
-            }
+            catch { }
         }
 
         private ProviderErrorKind ClassifyProviderError(Exception exception)
@@ -424,16 +383,13 @@ namespace HAgent.Runtime
                 message.IndexOf("requires terms acceptance", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 message.IndexOf("terms acceptance", StringComparison.OrdinalIgnoreCase) >= 0)
                 return ProviderErrorKind.ModelTermsRequired;
-
             if (message.IndexOf("model_not_found", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 message.IndexOf("model not found", StringComparison.OrdinalIgnoreCase) >= 0)
                 return ProviderErrorKind.ModelNotFound;
-
             if (message.IndexOf("permission_denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 message.IndexOf("permission denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 message.IndexOf("does not have access", StringComparison.OrdinalIgnoreCase) >= 0)
                 return ProviderErrorKind.PermissionDenied;
-
             return _errorClassifier.Classify(exception);
         }
 
@@ -442,8 +398,7 @@ namespace HAgent.Runtime
             if (baseDelay <= TimeSpan.Zero) return TimeSpan.Zero;
             var multiplier = Math.Pow(2, Math.Max(0, retryNumber - 1));
             if (rateLimited) multiplier *= 2;
-            var milliseconds = Math.Min(baseDelay.TotalMilliseconds * multiplier, 30000d);
-            return TimeSpan.FromMilliseconds(milliseconds);
+            return TimeSpan.FromMilliseconds(Math.Min(baseDelay.TotalMilliseconds * multiplier, 30000d));
         }
 
         private static string BuildSystemPrompt(AiProvider provider, AiAgent agent, IEnumerable<SystemPromptLayer> executionLayers)
@@ -451,21 +406,16 @@ namespace HAgent.Runtime
             var layers = new List<SystemPromptLayer>();
             if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))
                 layers.Add(new SystemPromptLayer("provider", "Provider", provider.DefaultSystemPrompt, 100));
-
             if (!string.IsNullOrWhiteSpace(agent.SystemPrompt))
                 layers.Add(new SystemPromptLayer("agent", "Agent", agent.SystemPrompt, 200));
-
-            if (executionLayers != null)
-                layers.AddRange(executionLayers);
-
+            if (executionLayers != null) layers.AddRange(executionLayers);
             return SystemPromptComposer.Compose(layers);
         }
 
         private void Notify(AgentExecution execution)
         {
             var handler = ExecutionChanged;
-            if (handler != null)
-                handler(this, new AgentExecutionEventArgs(execution));
+            if (handler != null) handler(this, new AgentExecutionEventArgs(execution));
         }
     }
 }

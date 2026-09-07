@@ -27,7 +27,6 @@ namespace HAgent.Example
             };
             var runtimeOverrides = new AgentRuntimeOverrides
             {
-                Model = profile.Model,
                 Temperature = 0.23d,
                 MaxOutputTokens = 64
             };
@@ -59,7 +58,6 @@ namespace HAgent.Example
 
             hostContext["host-operation"] = "host-operation-mutated";
             hostContext["late-entry"] = "must-not-appear";
-            runtimeOverrides.Model = "runtime-model-mutated";
             runtimeOverrides.Temperature = 0.91d;
             runtimeOverrides.MaxOutputTokens = 999;
             runtimeOverrides.Context["runtime-key"] = "runtime-value-mutated";
@@ -77,12 +75,12 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Host context resource identity was not isolated in the execution snapshot.");
             if (execution.Snapshot.HostContext.ContainsKey("late-entry"))
                 throw new InvalidOperationException("Host context mutated after execution start leaked into the execution snapshot.");
-            if (!string.Equals(execution.Snapshot.Agent.Model, profile.Model, StringComparison.Ordinal))
-                throw new InvalidOperationException("Runtime model override snapshot was not isolated from later mutation.");
             if (execution.Snapshot.Agent.Temperature != 0.23d)
                 throw new InvalidOperationException("Runtime temperature override snapshot was not isolated from later mutation.");
             if (execution.Snapshot.Agent.MaxOutputTokens != 64)
                 throw new InvalidOperationException("Runtime output-token override snapshot was not isolated from later mutation.");
+            if (execution.Snapshot.Agent.ExecutionSelection == null)
+                throw new InvalidOperationException("Execution selection policy was lost from the canonical execution snapshot.");
 
             if (execution.Response == null || !string.Equals(execution.Response.StructuredOutputJson, "{\"status\":\"ok\"}", StringComparison.Ordinal))
                 throw new InvalidOperationException("Provider-facing request did not produce the expected structured response for validation.");
@@ -92,6 +90,8 @@ namespace HAgent.Example
                 throw new InvalidOperationException("ProviderExecutionRequest did not preserve the canonical message count.");
             if (!string.Equals(adapter.ReceivedStructuredSchema, request.StructuredOutput.SchemaJson, StringComparison.Ordinal))
                 throw new InvalidOperationException("Structured-output requirements were not propagated to the provider-facing request.");
+            if (string.IsNullOrWhiteSpace(adapter.ReceivedModel))
+                throw new InvalidOperationException("The selected execution target model was not propagated to the provider request.");
             if (execution.State != AgentExecutionState.Succeeded)
                 throw new InvalidOperationException("Canonical generic host execution did not succeed.");
             if (!string.Equals(profile.Id, execution.Snapshot.Agent.Id, StringComparison.Ordinal))
@@ -104,6 +104,7 @@ namespace HAgent.Example
                 "Host correlation: " + execution.HostCorrelationId + Environment.NewLine +
                 "Host context: host-operation=generic-host-execution-42; resource-id=resource-42" + Environment.NewLine +
                 "Provider request object: verified" + Environment.NewLine +
+                "Selected execution target model: " + adapter.ReceivedModel + Environment.NewLine +
                 "Structured output requirement propagated: yes" + Environment.NewLine +
                 "Execution correlation: " + execution.CorrelationId + Environment.NewLine +
                 "Snapshot context immutable: verified" + Environment.NewLine +
@@ -117,6 +118,7 @@ namespace HAgent.Example
             public bool ReceivedRequest { get; private set; }
             public int ReceivedMessages { get; private set; }
             public string ReceivedStructuredSchema { get; private set; }
+            public string ReceivedModel { get; private set; }
             public readonly TaskCompletionSource<bool> Started = new TaskCompletionSource<bool>();
             public readonly TaskCompletionSource<bool> Release = new TaskCompletionSource<bool>();
 
@@ -139,6 +141,7 @@ namespace HAgent.Example
                 ReceivedRequest = true;
                 ReceivedMessages = request.Messages == null ? 0 : request.Messages.Count;
                 ReceivedStructuredSchema = request.StructuredOutput == null ? string.Empty : request.StructuredOutput.SchemaJson;
+                ReceivedModel = request.Target == null ? string.Empty : request.Target.ModelId;
                 Started.TrySetResult(true);
 
                 var cancellationTask = Task.Delay(Timeout.Infinite, cancellationToken);
@@ -150,7 +153,7 @@ namespace HAgent.Example
                 {
                     AgentId = request.Agent.Id,
                     ProviderId = request.Provider.Id,
-                    Model = request.Agent.Model ?? string.Empty,
+                    Model = request.Target == null ? string.Empty : request.Target.ModelId,
                     Text = "GENERIC-HOST-OK",
                     StructuredOutputJson = "{\"status\":\"ok\"}"
                 };

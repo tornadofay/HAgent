@@ -32,21 +32,32 @@ namespace HAgent.Example
                 Name = "Native Structured Output Test",
                 Kind = OpenAICompatibleProviderAdapter.ProviderKind,
                 BaseUrl = "https://hagent-native-structured-output.test/v1",
-                DefaultModel = "native-model-42"
+                DefaultModel = "native-model-42",
+                Enabled = true
             };
             var agent = new AiAgent
             {
                 Id = "native-agent-42",
                 Name = "Native Structured Output Agent",
-                ProviderId = provider.Id,
-                Model = provider.DefaultModel,
                 Temperature = 0.2d,
-                MaxOutputTokens = 64
+                MaxOutputTokens = 64,
+                Enabled = true
             };
+            var target = new AiExecutionTarget
+            {
+                Id = provider.Id + "::native-model-42",
+                ProviderId = provider.Id,
+                ModelId = "native-model-42",
+                LogicalModelId = "native-logical-model-42",
+                Capabilities = new AiModelCapabilities()
+            };
+            target.Capabilities.Set(AiCapability.Chat, CapabilitySupport.Supported, CapabilitySource.UserConfigured, 1d);
+            target.Capabilities.Set(AiCapability.StructuredOutput, CapabilitySupport.Supported, CapabilitySource.UserConfigured, 1d);
             var request = new ProviderExecutionRequest
             {
                 Provider = provider,
                 Agent = agent,
+                ExecutionTarget = target,
                 Messages = new[] { new AIMessage("user", "return structured output") },
                 StructuredOutput = new StructuredOutputOptions
                 {
@@ -65,6 +76,8 @@ namespace HAgent.Example
                     throw new InvalidOperationException("The native provider request did not contain the expected response_format/json_schema payload.");
                 if (!string.Equals(nativeHandler.SchemaJson, schema, StringComparison.Ordinal))
                     throw new InvalidOperationException("The native provider request did not preserve the exact host schema.");
+                if (!string.Equals(nativeHandler.ModelId, target.ModelId, StringComparison.Ordinal))
+                    throw new InvalidOperationException("The selected execution target model was not propagated to the provider transport.");
                 if (response == null || !string.Equals(response.StructuredOutputJson, "{\"status\":\"active\"}", StringComparison.Ordinal))
                     throw new InvalidOperationException("The native structured-output response was not normalized as expected.");
                 if (!HasBooleanMetadata(response, "structured_output_native", true))
@@ -83,6 +96,8 @@ namespace HAgent.Example
                     throw new InvalidOperationException("The initial fallback request did not attempt native response_format transport.");
                 if (!fallbackHandler.FallbackRequestObservedWithoutResponseFormat)
                     throw new InvalidOperationException("The fallback request still contained response_format.");
+                if (!string.Equals(fallbackHandler.ModelId, target.ModelId, StringComparison.Ordinal))
+                    throw new InvalidOperationException("The fallback request lost the selected execution target model.");
                 if (response == null || !string.Equals(response.StructuredOutputJson, "{\"status\":\"active\"}", StringComparison.Ordinal))
                     throw new InvalidOperationException("The fallback response was not normalized as expected.");
                 if (!HasBooleanMetadata(response, "structured_output_native", false) ||
@@ -95,6 +110,7 @@ namespace HAgent.Example
                 "Native response_format observed: yes" + Environment.NewLine +
                 "Response format type: json_schema" + Environment.NewLine +
                 "Schema preserved: yes" + Environment.NewLine +
+                "Selected execution target: " + target.Id + Environment.NewLine +
                 "Native structured output normalized: yes" + Environment.NewLine +
                 "Unsupported native feature fallback: verified" + Environment.NewLine +
                 "Fallback request removed response_format: yes" + Environment.NewLine +
@@ -115,24 +131,20 @@ namespace HAgent.Example
         {
             private readonly bool _rejectNative;
 
-            public NativeStructuredOutputHttpHandler(bool rejectNative)
-            {
-                _rejectNative = rejectNative;
-            }
-
+            public NativeStructuredOutputHttpHandler(bool rejectNative) { _rejectNative = rejectNative; }
             public bool RequestReceived { get; private set; }
             public int RequestCount { get; private set; }
             public bool NativeResponseFormatObserved { get; private set; }
             public bool FallbackRequestObservedWithoutResponseFormat { get; private set; }
             public string SchemaJson { get; private set; }
+            public string ModelId { get; private set; }
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 RequestReceived = true;
                 RequestCount++;
-                var body = request.Content == null
-                    ? string.Empty
-                    : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var body = request.Content == null ? string.Empty : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+                ModelId = ExtractStringValue(body, "\"model\":");
 
                 var hasResponseFormat = body.IndexOf("\"response_format\"", StringComparison.Ordinal) >= 0;
                 var isNative = hasResponseFormat &&
@@ -144,26 +156,40 @@ namespace HAgent.Example
                 {
                     SchemaJson = ExtractJsonValue(body, "\"schema\":");
                     if (_rejectNative)
-                    {
-                        return CreateResponse(HttpStatusCode.BadRequest,
-                            "{\"error\":{\"message\":\"response_format json_schema is not supported\"}}");
-                    }
+                        return CreateResponse(HttpStatusCode.BadRequest, "{\"error\":{\"message\":\"response_format json_schema is not supported\"}}");
                 }
                 else if (_rejectNative && RequestCount == 2)
                 {
                     FallbackRequestObservedWithoutResponseFormat = !hasResponseFormat;
                 }
 
-                return CreateResponse(HttpStatusCode.OK,
-                    "{\"id\":\"native-response-42\",\"choices\":[{\"message\":{\"content\":\"{\\\"status\\\":\\\"active\\\"}\"}}]}");
+                return CreateResponse(HttpStatusCode.OK, "{\"id\":\"native-response-42\",\"choices\":[{\"message\":{\"content\":\"{\\\"status\\\":\\\"active\\\"}\"}}]}");
             }
 
             private static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string content)
             {
-                return new HttpResponseMessage(statusCode)
+                return new HttpResponseMessage(statusCode) { Content = new StringContent(content, System.Text.Encoding.UTF8, "application/json") };
+            }
+
+            private static string ExtractStringValue(string text, string marker)
+            {
+                var markerIndex = text.IndexOf(marker, StringComparison.Ordinal);
+                if (markerIndex < 0) return string.Empty;
+                var start = markerIndex + marker.Length;
+                while (start < text.Length && char.IsWhiteSpace(text[start])) start++;
+                if (start >= text.Length || text[start] != '"') return string.Empty;
+                start++;
+                var builder = new System.Text.StringBuilder();
+                var escaped = false;
+                for (var i = start; i < text.Length; i++)
                 {
-                    Content = new StringContent(content, System.Text.Encoding.UTF8, "application/json")
-                };
+                    var ch = text[i];
+                    if (escaped) { builder.Append(ch); escaped = false; continue; }
+                    if (ch == '\\') { escaped = true; continue; }
+                    if (ch == '"') return builder.ToString();
+                    builder.Append(ch);
+                }
+                return string.Empty;
             }
 
             private static string ExtractJsonValue(string text, string marker)
@@ -189,8 +215,7 @@ namespace HAgent.Example
                     else if (ch == '}' || ch == ']')
                     {
                         depth--;
-                        if (depth == 0)
-                            return text.Substring(start, i - start + 1);
+                        if (depth == 0) return text.Substring(start, i - start + 1);
                     }
                 }
                 return string.Empty;

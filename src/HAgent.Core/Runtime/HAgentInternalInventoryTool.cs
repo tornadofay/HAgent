@@ -7,15 +7,10 @@ using HAgent.Models;
 
 namespace HAgent.Runtime
 {
-    /// <summary>
-    /// Read-only trusted tool for inspecting bounded HAgent-owned inventory metadata.
-    /// It never exposes provider secrets or arbitrary storage records and has no write operation.
-    /// </summary>
     public sealed class HAgentInternalInventoryTool : IAgentTool
     {
         private const int DefaultMaxItems = 50;
         private const int MaximumMaxItems = 100;
-
         private readonly IAiStore _aiStore;
         private readonly IToolStore _toolStore;
 
@@ -23,7 +18,6 @@ namespace HAgent.Runtime
         {
             if (aiStore == null) throw new ArgumentNullException(nameof(aiStore));
             if (toolStore == null) throw new ArgumentNullException(nameof(toolStore));
-
             _aiStore = aiStore;
             _toolStore = toolStore;
             Definition = CreateDefinition();
@@ -34,14 +28,11 @@ namespace HAgent.Runtime
         public async Task<ToolExecutionResult> ExecuteAsync(ToolExecutionContext context)
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
-
             context.CancellationToken.ThrowIfCancellationRequested();
-
             var maxItems = ResolveMaxItems(context.Arguments);
             var providers = await _aiStore.GetProvidersAsync(context.CancellationToken).ConfigureAwait(false);
             var agents = await _aiStore.GetAgentsAsync(context.CancellationToken).ConfigureAwait(false);
             var tools = await _toolStore.GetToolsAsync(context.CancellationToken).ConfigureAwait(false);
-
             var result = new StringBuilder();
             result.AppendLine("HAgent internal inventory");
             result.AppendLine("Max items per category: " + maxItems);
@@ -51,29 +42,17 @@ namespace HAgent.Runtime
             AppendAgents(result, agents, maxItems, context);
             result.AppendLine("Tools: " + tools.Count);
             AppendTools(result, tools, maxItems, context);
-
             return ToolExecutionResult.Success(result.ToString().TrimEnd());
         }
 
         private static int ResolveMaxItems(IReadOnlyDictionary<string, object> arguments)
         {
             object rawValue;
-            if (arguments == null || !arguments.TryGetValue("maxItems", out rawValue) || rawValue == null)
-                return DefaultMaxItems;
-
+            if (arguments == null || !arguments.TryGetValue("maxItems", out rawValue) || rawValue == null) return DefaultMaxItems;
             int value;
-            try
-            {
-                value = Convert.ToInt32(rawValue);
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException("maxItems must be an integer between 1 and " + MaximumMaxItems + ".", nameof(arguments), ex);
-            }
-
-            if (value < 1 || value > MaximumMaxItems)
-                throw new ArgumentOutOfRangeException(nameof(arguments), "maxItems must be between 1 and " + MaximumMaxItems + ".");
-
+            try { value = Convert.ToInt32(rawValue); }
+            catch (Exception ex) { throw new ArgumentException("maxItems must be an integer between 1 and " + MaximumMaxItems + ".", nameof(arguments), ex); }
+            if (value < 1 || value > MaximumMaxItems) throw new ArgumentOutOfRangeException(nameof(arguments), "maxItems must be between 1 and " + MaximumMaxItems + ".");
             return value;
         }
 
@@ -96,9 +75,17 @@ namespace HAgent.Runtime
             {
                 context.CancellationToken.ThrowIfCancellationRequested();
                 var agent = agents[i];
-                result.AppendLine("Agent | " + Safe(agent.Id) + " | " + Safe(agent.Name) + " | Provider=" + Safe(agent.ProviderId) + " | Enabled=" + agent.Enabled);
+                var selection = agent.ExecutionSelection;
+                var provider = selection == null ? string.Empty : selection.PreferredProviderId;
+                var target = selection == null ? string.Empty : selection.PreferredTargetId;
+                result.AppendLine("Agent | " + Safe(agent.Id) + " | " + Safe(agent.Name) + " | Selection=" + selectionMode(selection) + " | Provider=" + Safe(provider) + " | Target=" + Safe(target) + " | Enabled=" + agent.Enabled);
             }
             AppendTruncated(result, agents.Count, count);
+        }
+
+        private static string selectionMode(AiExecutionSelectionPolicy selection)
+        {
+            return selection == null ? AiSelectionMode.Auto.ToString() : selection.Mode.ToString();
         }
 
         private static void AppendTools(StringBuilder result, IReadOnlyList<AiTool> tools, int maxItems, ToolExecutionContext context)
@@ -115,8 +102,7 @@ namespace HAgent.Runtime
 
         private static void AppendTruncated(StringBuilder result, int total, int returned)
         {
-            if (returned < total)
-                result.AppendLine("Returned: " + returned + " of " + total + " (bounded by maxItems).");
+            if (returned < total) result.AppendLine("Returned: " + returned + " of " + total + " (bounded by maxItems).");
         }
 
         private static AiTool CreateDefinition()

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -102,34 +101,12 @@ namespace HAgent.Example
             }
         }
 
-        private static string GetPreferredProviderId(AiAgent agent)
-        {
-            if (agent == null || agent.ExecutionSelection == null) return string.Empty;
-            if (!string.IsNullOrWhiteSpace(agent.ExecutionSelection.PreferredProviderId))
-                return agent.ExecutionSelection.PreferredProviderId;
-            return GetProviderIdFromTargetId(agent.ExecutionSelection.PreferredTargetId);
-        }
-
         private static string GetPreferredModelDisplay(AiAgent agent, AiProvider provider)
         {
             var model = agent == null || agent.ExecutionSelection == null
                 ? string.Empty
                 : GetModelIdFromTargetId(agent.ExecutionSelection.PreferredTargetId);
             return string.IsNullOrWhiteSpace(model) ? (provider == null ? string.Empty : provider.DefaultModel) : model;
-        }
-
-        private static string GetProviderIdFromTargetId(string targetId)
-        {
-            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
-            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
-            return separator > 0 ? targetId.Substring(0, separator) : string.Empty;
-        }
-
-        private static string GetModelIdFromTargetId(string targetId)
-        {
-            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
-            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
-            return separator >= 0 && separator + 2 < targetId.Length ? targetId.Substring(separator + 2) : string.Empty;
         }
 
         private static AiProvider CloneProvider(AiProvider source)

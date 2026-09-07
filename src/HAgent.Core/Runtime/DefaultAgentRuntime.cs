@@ -71,7 +71,9 @@ namespace HAgent.Runtime
                     AgentId = agentId,
                     Messages = new List<AIMessage> { new AIMessage("user", message) }.AsReadOnly(),
                     HostCorrelationId = options == null ? string.Empty : options.HostCorrelationId,
-                    HostContext = options == null ? null : new Dictionary<string, string>(options.HostContext ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
+                    HostContext = options == null || options.HostContext == null
+                        ? null
+                        : options.HostContext.ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase),
                     Options = options ?? new AgentExecutionOptions()
                 },
                 cancellationToken);

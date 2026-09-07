@@ -21,15 +21,19 @@ namespace HAgent.Providers.OpenAICompatible
             string systemPrompt,
             IReadOnlyList<AIMessage> messages,
             IReadOnlyList<AiTool> tools,
+            string model,
             CancellationToken cancellationToken)
         {
             if (provider == null) throw new ArgumentNullException(nameof(provider));
             if (agent == null) throw new ArgumentNullException(nameof(agent));
 
+            var requestModel = string.IsNullOrWhiteSpace(model) ? provider.DefaultModel : model.Trim();
+            if (string.IsNullOrWhiteSpace(requestModel)) throw new InvalidOperationException("An execution target model is required.");
+
             var url = NormalizeEndpoint(provider.BaseUrl);
             var request = new
             {
-                model = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model,
+                model = requestModel,
                 messages = ToToolRequestMessages(messages, systemPrompt),
                 tools = BuildToolDefinitions(tools),
                 temperature = agent.Temperature,
@@ -68,7 +72,7 @@ namespace HAgent.Providers.OpenAICompatible
                     {
                         AgentId = agent.Id,
                         ProviderId = provider.Id,
-                        Model = request.model,
+                        Model = requestModel,
                         Text = content,
                         Reasoning = reasoning,
                         RawText = content,

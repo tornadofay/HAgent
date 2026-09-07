@@ -72,9 +72,9 @@ namespace HAgent.Runtime
                     continue;
                 }
 
-                // Discovery may be unavailable. Keep the configured provider/model as an
-                // explicit Unknown-metadata target rather than fabricating capabilities.
-                var fallbackModel = ResolveConfiguredModel(provider, agent);
+                // Discovery may be unavailable. Fall back only to provider-owned default
+                // model metadata and keep capabilities/cost explicitly Unknown.
+                var fallbackModel = provider.DefaultModel == null ? string.Empty : provider.DefaultModel.Trim();
                 if (string.IsNullOrWhiteSpace(fallbackModel))
                     continue;
 
@@ -117,16 +117,6 @@ namespace HAgent.Runtime
                 Cost = metadata.Cost,
                 Availability = AiAvailabilityState.Unknown
             };
-        }
-
-        private static string ResolveConfiguredModel(AiProvider provider, AiAgent agent)
-        {
-            if (agent != null &&
-                string.Equals(provider.Id, agent.ProviderId, StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(agent.Model))
-                return agent.Model.Trim();
-
-            return provider.DefaultModel == null ? string.Empty : provider.DefaultModel.Trim();
         }
     }
 }

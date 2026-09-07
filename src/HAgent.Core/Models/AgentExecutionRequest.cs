@@ -19,6 +19,10 @@ namespace HAgent.Models
             Options = new AgentExecutionOptions();
             ExecutionSelection = null;
             CapabilityRequirements = null;
+            Tools = new ReadOnlyCollection<AiTool>(new List<AiTool>());
+            Streaming = false;
+            Progress = null;
+            StructuredOutput = null;
         }
 
         public string AgentId { get; set; }
@@ -42,6 +46,21 @@ namespace HAgent.Models
         /// Optional host/runtime capability requirements. When null, the agent requirements are used.
         /// </summary>
         public AiCapabilityRequirements CapabilityRequirements { get; set; }
+
+        /// <summary>
+        /// Optional host-owned tool definitions for this execution.
+        /// </summary>
+        public IReadOnlyList<AiTool> Tools { get; set; }
+
+        /// <summary>
+        /// Requests streaming transport when true. The runtime selects a streaming-capable target.
+        /// </summary>
+        public bool Streaming { get; set; }
+
+        /// <summary>
+        /// Optional streaming progress sink owned by the host.
+        /// </summary>
+        public IProgress<AIResponseDelta> Progress { get; set; }
 
         /// <summary>
         /// Optional host-owned structured-output contract for this execution.
@@ -79,6 +98,9 @@ namespace HAgent.Models
 
             if (ExecutionSelection != null)
                 ExecutionSelection.Validate();
+
+            if (Tools != null && Tools.Count > 128)
+                throw new ArgumentOutOfRangeException(nameof(Tools), "A maximum of 128 tools is supported per execution request.");
 
             if (StructuredOutput != null)
                 StructuredOutput.Validate();

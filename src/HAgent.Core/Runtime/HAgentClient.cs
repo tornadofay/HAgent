@@ -78,61 +78,20 @@ namespace HAgent.Runtime
             if (string.IsNullOrWhiteSpace(agentId)) throw new ArgumentException("Agent id is required.", nameof(agentId));
             if (messages == null || messages.Count == 0) throw new ArgumentException("At least one message is required.", nameof(messages));
 
-            var agents = await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false);
-            var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
-            if (agent == null) throw new InvalidOperationException("Agent was not found: " + agentId);
-            if (!agent.Enabled) throw new InvalidOperationException("Agent is disabled: " + agent.Name);
-
-            options = options ?? new AgentExecutionOptions();
-
-            var providers = await _store.GetProvidersAsync(cancellationToken).ConfigureAwait(false);
-            var providerIds = new List<string>();
-            if (!string.IsNullOrWhiteSpace(agent.ProviderId)) providerIds.Add(agent.ProviderId);
-            if (agent.ProviderIds != null) providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
-
-            var failures = new List<string>();
-            var contextMessages = _contextBuilder.Build(messages);
-            foreach (var providerId in providerIds.Distinct(StringComparer.OrdinalIgnoreCase))
-            {
-                var provider = providers.FirstOrDefault(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
-                if (provider == null) { failures.Add("Provider " + providerId + ": provider was not found."); continue; }
-                if (!provider.Enabled) { failures.Add("Provider " + provider.Name + ": provider is disabled."); continue; }
-
-                var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
-                if (adapter == null) { failures.Add("Provider " + provider.Name + ": no registered adapter can handle kind '" + provider.Kind + "'."); continue; }
-
-                try
+            var execution = await _runtime.ExecuteAsync(
+                new AgentExecutionRequest
                 {
-                    var apiKey = string.IsNullOrWhiteSpace(provider.SecretId) ? string.Empty : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
-                    var selectedModel = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model;
-                    var capabilities = await GetEffectiveCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
-                    if (capabilities.Get(AiCapability.Chat) == CapabilitySupport.Unsupported)
-                    {
-                        failures.Add("Provider " + provider.Name + ": model '" + selectedModel + "' is not marked as supporting Chat.");
-                        continue;
-                    }
+                    AgentId = agentId,
+                    Messages = new List<AIMessage>(messages).AsReadOnly(),
+                    HostCorrelationId = options == null ? string.Empty : options.HostCorrelationId,
+                    HostContext = options == null ? null : options.HostContext,
+                    Options = options ?? new AgentExecutionOptions()
+                },
+                cancellationToken).ConfigureAwait(false);
 
-                    var providerRequest = new ProviderExecutionRequest
-                    {
-                        Provider = provider,
-                        Agent = agent,
-                        ApiKey = apiKey,
-                        SystemPrompt = BuildSystemPrompt(provider, agent, options.SystemPromptLayers),
-                        Messages = contextMessages,
-                        StructuredOutput = null
-                    };
-                    return await adapter.SendAsync(providerRequest, cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
-                {
-                    var kind = ProviderErrorAdvisor.InferKind(ex);
-                    var detail = ProviderErrorAdvisor.GetActionableMessage(kind, provider.Name, string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model, ex.Message);
-                    failures.Add("Provider " + provider.Name + " (" + provider.Kind + ") [" + kind + "]: " + detail);
-                }
-            }
-
-            var detailText = failures.Count == 0 ? "No provider candidates were configured for the agent." : string.Join(Environment.NewLine, failures.Select(x => "- " + x));
-            throw new InvalidOperationException("No enabled and compatible provider could handle agent '" + agent.Name + "'." + Environment.NewLine + Environment.NewLine + detailText);
+            if (execution == null || execution.Response == null)
+                throw new InvalidOperationException("Agent execution completed without a provider response.");
+            return execution.Response;
         }
 
         public Task<AgentExecution> ExecuteAsync(string agentId, string message, AgentExecutionOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -244,20 +203,5 @@ namespace HAgent.Runtime
         }
 
         private void EnsureMemoryStore() { if (_memory == null) throw new InvalidOperationException("No memory store is configured for this HAgentClient."); }
-
-        private static string BuildSystemPrompt(AiProvider provider, AiAgent agent, IEnumerable<SystemPromptLayer> executionLayers)
-        {
-            var layers = new List<SystemPromptLayer>();
-            if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))
-                layers.Add(new SystemPromptLayer("provider", "Provider", provider.DefaultSystemPrompt, 100));
-
-            if (!string.IsNullOrWhiteSpace(agent.SystemPrompt))
-                layers.Add(new SystemPromptLayer("agent", "Agent", agent.SystemPrompt, 200));
-
-            if (executionLayers != null)
-                layers.AddRange(executionLayers);
-
-            return SystemPromptComposer.Compose(layers);
-        }
     }
 }

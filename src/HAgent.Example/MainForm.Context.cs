@@ -89,22 +89,20 @@ namespace HAgent.Example
             {
                 var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
                 var providers = await store.GetProvidersAsync();
-                var providerIds = new List<string>();
-                if (!string.IsNullOrWhiteSpace(agent.ProviderId))
-                    providerIds.Add(agent.ProviderId);
-                if (agent.ProviderIds != null)
-                    providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
+                var preferredProviderId = agent.ExecutionSelection == null
+                    ? string.Empty
+                    : agent.ExecutionSelection.PreferredProviderId;
+                var provider = !string.IsNullOrWhiteSpace(preferredProviderId)
+                    ? providers.FirstOrDefault(p => string.Equals(p.Id, preferredProviderId, StringComparison.OrdinalIgnoreCase))
+                    : null;
 
-                var provider = providerIds
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .Select(id => providers.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)))
-                    .FirstOrDefault(p => p != null);
-
-                _providerPrompt.Text = provider == null ? "No configured provider." : (provider.DefaultSystemPrompt ?? string.Empty);
+                _providerPrompt.Text = provider == null ? "No preferred provider configured." : (provider.DefaultSystemPrompt ?? string.Empty);
                 _agentPrompt.Text = agent.SystemPrompt ?? string.Empty;
 
-                if (provider == null)
-                    _promptResolution.Text = "Provider prompt unavailable.";
+                if (provider == null && string.IsNullOrWhiteSpace(preferredProviderId))
+                    _promptResolution.Text = "Agent uses automatic provider selection.";
+                else if (provider == null)
+                    _promptResolution.Text = "Preferred provider is unavailable.";
                 else if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt) && !string.IsNullOrWhiteSpace(agent.SystemPrompt))
                     _promptResolution.Text = "Provider + Agent prompts are used; agent inherits the provider prompt.";
                 else if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))

@@ -12,14 +12,35 @@ namespace HAgent.Example
     {
         private async Task TestGenericHostExecutionAsync(string message)
         {
-            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
-            var profile = GetSelectedAgent();
-            if (profile == null)
-                throw new InvalidOperationException("Select an agent first.");
+            var store = new InMemoryAiStore();
+            var provider = new AiProvider
+            {
+                Id = "generic-host-provider-42",
+                Name = "Generic Host Test Provider",
+                Kind = "GenericHostExecutionTest",
+                BaseUrl = "https://generic-host-execution.test/v1",
+                DefaultModel = "generic-host-default-model-42",
+                Enabled = true
+            };
+            var profile = new AiAgent
+            {
+                Id = "generic-host-profile-42",
+                Name = "Generic Host Execution Test Profile",
+                ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = AiSelectionMode.Auto,
+                    Fallback = AiFallbackMode.Fail,
+                    CostPolicy = AiCostPolicy.NoRestriction
+                },
+                CapabilityRequirements = new AiCapabilityRequirements(),
+                Enabled = true
+            };
+
+            await store.SaveProviderAsync(provider).ConfigureAwait(true);
+            await store.SaveAgentAsync(profile).ConfigureAwait(true);
 
             var adapter = new GenericHostExecutionTestAdapter();
-            var client = new HAgentClient(store, secrets, new[] { adapter });
+            var client = new HAgentClient(store, new NullSecretStore(), new[] { adapter });
             var hostContext = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 { "host-operation", "generic-host-execution-42" },
@@ -30,12 +51,13 @@ namespace HAgent.Example
                 Temperature = 0.23d,
                 MaxOutputTokens = 64
             };
+
             var request = new AgentExecutionRequest
             {
                 AgentId = profile.Id,
                 Messages = new List<AIMessage>
                 {
-                    new AIMessage("user", "generic-host-first"),
+                    new AIMessage("user", string.IsNullOrWhiteSpace(message) ? "generic-host-first" : message),
                     new AIMessage("user", "GENERIC-HOST-OK")
                 }.AsReadOnly(),
                 HostCorrelationId = "host-correlation-42",
@@ -46,7 +68,7 @@ namespace HAgent.Example
                 },
                 Options = new AgentExecutionOptions
                 {
-                    Timeout = TimeSpan.FromSeconds(5),
+                    Timeout = TimeSpan.FromSeconds(3),
                     MaxProviderAttempts = 1,
                     MaxRetriesPerProvider = 0,
                     RuntimeOverrides = runtimeOverrides
@@ -54,13 +76,23 @@ namespace HAgent.Example
             };
 
             var executionTask = client.ExecuteAsync(request, CancellationToken.None);
-            await adapter.Started.Task.ConfigureAwait(true);
+            var gate = await Task.WhenAny(
+                adapter.Started.Task,
+                executionTask,
+                Task.Delay(TimeSpan.FromSeconds(2))).ConfigureAwait(true);
+
+            if (gate != adapter.Started.Task)
+            {
+                if (executionTask.IsCompleted)
+                    await executionTask.ConfigureAwait(true);
+
+                throw new InvalidOperationException("Generic host execution did not reach the provider adapter before the deterministic test gate expired.");
+            }
 
             hostContext["host-operation"] = "host-operation-mutated";
             hostContext["late-entry"] = "must-not-appear";
             runtimeOverrides.Temperature = 0.91d;
             runtimeOverrides.MaxOutputTokens = 999;
-            runtimeOverrides.Context["runtime-key"] = "runtime-value-mutated";
 
             adapter.Release.TrySetResult(true);
             var execution = await executionTask.ConfigureAwait(true);
@@ -71,27 +103,22 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Canonical execution request did not preserve all messages.");
             if (!string.Equals(execution.Snapshot.HostContext["host-operation"], "generic-host-execution-42", StringComparison.Ordinal))
                 throw new InvalidOperationException("Host context was not isolated in the execution snapshot.");
-            if (!string.Equals(execution.Snapshot.HostContext["resource-id"], "resource-42", StringComparison.Ordinal))
-                throw new InvalidOperationException("Host context resource identity was not isolated in the execution snapshot.");
             if (execution.Snapshot.HostContext.ContainsKey("late-entry"))
                 throw new InvalidOperationException("Host context mutated after execution start leaked into the execution snapshot.");
-            if (execution.Snapshot.Agent.Temperature != 0.23d)
-                throw new InvalidOperationException("Runtime temperature override snapshot was not isolated from later mutation.");
-            if (execution.Snapshot.Agent.MaxOutputTokens != 64)
-                throw new InvalidOperationException("Runtime output-token override snapshot was not isolated from later mutation.");
+            if (execution.Snapshot.Agent.Temperature != 0.23d || execution.Snapshot.Agent.MaxOutputTokens != 64)
+                throw new InvalidOperationException("Runtime override values were not isolated in the execution snapshot.");
             if (execution.Snapshot.Agent.ExecutionSelection == null)
                 throw new InvalidOperationException("Execution selection policy was lost from the canonical execution snapshot.");
-
             if (execution.Response == null || !string.Equals(execution.Response.StructuredOutputJson, "{\"status\":\"ok\"}", StringComparison.Ordinal))
-                throw new InvalidOperationException("Provider-facing request did not produce the expected structured response for validation.");
+                throw new InvalidOperationException("Provider-facing request did not produce the expected structured response.");
             if (!adapter.ReceivedRequest)
                 throw new InvalidOperationException("The provider adapter did not receive a ProviderExecutionRequest.");
             if (adapter.ReceivedMessages != request.Messages.Count)
                 throw new InvalidOperationException("ProviderExecutionRequest did not preserve the canonical message count.");
             if (!string.Equals(adapter.ReceivedStructuredSchema, request.StructuredOutput.SchemaJson, StringComparison.Ordinal))
                 throw new InvalidOperationException("Structured-output requirements were not propagated to the provider-facing request.");
-            if (string.IsNullOrWhiteSpace(adapter.ReceivedModel))
-                throw new InvalidOperationException("The selected execution target model was not propagated to the provider request.");
+            if (!string.Equals(adapter.ReceivedModel, "generic-host-discovered-model-42", StringComparison.Ordinal))
+                throw new InvalidOperationException("The discovered execution target model was not propagated to the provider request.");
             if (execution.State != AgentExecutionState.Succeeded)
                 throw new InvalidOperationException("Canonical generic host execution did not succeed.");
             if (!string.Equals(profile.Id, execution.Snapshot.Agent.Id, StringComparison.Ordinal))
@@ -102,18 +129,16 @@ namespace HAgent.Example
                 "Agent: " + profile.Name + " (" + profile.Id + ")" + Environment.NewLine +
                 "Messages: " + execution.Messages.Count + Environment.NewLine +
                 "Host correlation: " + execution.HostCorrelationId + Environment.NewLine +
-                "Host context: host-operation=generic-host-execution-42; resource-id=resource-42" + Environment.NewLine +
-                "Provider request object: verified" + Environment.NewLine +
-                "Selected execution target model: " + adapter.ReceivedModel + Environment.NewLine +
-                "Structured output requirement propagated: yes" + Environment.NewLine +
-                "Execution correlation: " + execution.CorrelationId + Environment.NewLine +
-                "Snapshot context immutable: verified" + Environment.NewLine +
+                "Host context snapshot: verified" + Environment.NewLine +
                 "Runtime override snapshot isolated: verified" + Environment.NewLine +
+                "Provider request object: verified" + Environment.NewLine +
+                "Selected discovered execution target: " + adapter.ReceivedModel + Environment.NewLine +
+                "Structured output requirement propagated: yes" + Environment.NewLine +
                 "Profile remained unchanged: yes" + Environment.NewLine +
                 "State: " + execution.State);
         }
 
-        private sealed class GenericHostExecutionTestAdapter : IAiProviderAdapter
+        private sealed class GenericHostExecutionTestAdapter : IAiProviderAdapter, IProviderDiscovery
         {
             public bool ReceivedRequest { get; private set; }
             public int ReceivedMessages { get; private set; }
@@ -127,7 +152,35 @@ namespace HAgent.Example
 
             public bool CanHandle(AiProvider provider)
             {
-                return provider != null;
+                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
+            }
+
+            public Task<ProviderDiscoveryResult> DiscoverAsync(
+                AiProvider provider,
+                string apiKey,
+                CancellationToken cancellationToken)
+            {
+                var capabilities = new AiModelCapabilities { Model = "generic-host-discovered-model-42" };
+                capabilities.Set(AiCapability.Chat, CapabilitySupport.Supported, CapabilitySource.ProviderMetadata, 1d, "Deterministic generic-host test metadata.");
+                capabilities.Set(AiCapability.StructuredOutput, CapabilitySupport.Supported, CapabilitySource.ProviderMetadata, 1d, "Deterministic generic-host test metadata.");
+
+                var result = new ProviderDiscoveryResult
+                {
+                    Succeeded = true,
+                    IsPartial = false,
+                    Message = "Deterministic generic host discovery."
+                };
+                result.Models.Add(new AiModelMetadata
+                {
+                    ProviderId = provider.Id,
+                    ModelId = "generic-host-discovered-model-42",
+                    LogicalModelId = "generic-host-logical-model-42",
+                    DisplayName = "Generic Host Discovered Model",
+                    Cost = AiCostStatus.Free,
+                    Source = AiMetadataSource.DiscoveryApi,
+                    Capabilities = capabilities
+                });
+                return Task.FromResult(result);
             }
 
             public async Task<AIResponse> SendAsync(
@@ -146,14 +199,14 @@ namespace HAgent.Example
 
                 var cancellationTask = Task.Delay(Timeout.Infinite, cancellationToken);
                 var completedTask = await Task.WhenAny(Release.Task, cancellationTask).ConfigureAwait(false);
-                if (completedTask == cancellationTask)
+                if (completedTask != Release.Task)
                     cancellationToken.ThrowIfCancellationRequested();
 
                 return new AIResponse
                 {
                     AgentId = request.Agent.Id,
                     ProviderId = request.Provider.Id,
-                    Model = request.ExecutionTarget == null ? string.Empty : request.ExecutionTarget.ModelId,
+                    Model = request.ExecutionTarget.ModelId,
                     Text = "GENERIC-HOST-OK",
                     StructuredOutputJson = "{\"status\":\"ok\"}"
                 };

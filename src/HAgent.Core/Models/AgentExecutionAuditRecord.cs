@@ -11,6 +11,7 @@ namespace HAgent.Models
         public string CorrelationId { get; set; }
         public string AgentId { get; set; }
         public string AgentName { get; set; }
+        public string ExecutionTargetId { get; set; }
         public string Model { get; set; }
         public string LastProviderId { get; set; }
         public string LastProviderName { get; set; }
@@ -48,13 +49,16 @@ namespace HAgent.Models
 
             var agent = execution.Snapshot == null ? null : execution.Snapshot.Agent;
             var identity = execution.Identity ?? new AgentIdentityContext();
+            var response = execution.Response;
+            var target = execution.Snapshot == null ? null : execution.Snapshot.ExecutionTarget;
             return new AgentExecutionAuditRecord
             {
                 ExecutionId = execution.Id ?? string.Empty,
                 CorrelationId = execution.CorrelationId ?? string.Empty,
                 AgentId = agent == null ? string.Empty : agent.Id,
                 AgentName = agent == null ? string.Empty : agent.Name,
-                Model = agent == null ? string.Empty : agent.Model,
+                ExecutionTargetId = target == null ? string.Empty : target.Id,
+                Model = response == null ? (target == null ? string.Empty : target.ModelId) : (response.Model ?? string.Empty),
                 LastProviderId = execution.LastProviderId ?? string.Empty,
                 LastProviderName = providerName,
                 DeploymentId = identity.DeploymentId ?? string.Empty,

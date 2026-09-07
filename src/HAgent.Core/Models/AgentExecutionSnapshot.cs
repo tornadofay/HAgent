@@ -54,14 +54,11 @@ namespace HAgent.Models
             {
                 Id = source.Id,
                 Name = source.Name,
-                ProviderId = source.ProviderId,
-                Model = source.Model,
                 SystemPrompt = source.SystemPrompt,
                 UseProviderSystemPrompt = source.UseProviderSystemPrompt,
                 Temperature = source.Temperature,
                 MaxOutputTokens = source.MaxOutputTokens,
                 Enabled = source.Enabled,
-                ProviderIds = source.ProviderIds == null ? new List<string>() : new List<string>(source.ProviderIds),
                 ToolIds = source.ToolIds == null ? new List<string>() : new List<string>(source.ToolIds),
                 ExecutionSelection = source.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : source.ExecutionSelection.Clone(),
                 CapabilityRequirements = source.CapabilityRequirements == null ? new AiCapabilityRequirements() : source.CapabilityRequirements.Clone()
@@ -69,12 +66,6 @@ namespace HAgent.Models
 
             if (overrides == null) return clone;
 
-            if (!string.IsNullOrWhiteSpace(overrides.ProviderId))
-            {
-                clone.ProviderId = overrides.ProviderId;
-                clone.ProviderIds = new List<string> { overrides.ProviderId };
-            }
-            if (!string.IsNullOrWhiteSpace(overrides.Model)) clone.Model = overrides.Model;
             if (overrides.Temperature.HasValue) clone.Temperature = overrides.Temperature;
             if (overrides.MaxOutputTokens.HasValue) clone.MaxOutputTokens = overrides.MaxOutputTokens;
             if (!string.IsNullOrWhiteSpace(overrides.SystemPrompt)) clone.SystemPrompt = overrides.SystemPrompt;

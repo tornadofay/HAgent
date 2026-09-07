@@ -26,21 +26,16 @@ namespace HAgent.Example
             var auditStore = await CreateConfiguredExecutionAuditStoreAsync().ConfigureAwait(true);
             var providers = await store.GetProvidersAsync();
 
-            var providerIds = new List<string>();
-            if (!string.IsNullOrWhiteSpace(agent.ProviderId))
-                providerIds.Add(agent.ProviderId);
-            if (agent.ProviderIds != null)
-                providerIds.AddRange(agent.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
+            var providerId = GetPreferredProviderId(agent);
+            var provider = string.IsNullOrWhiteSpace(providerId)
+                ? null
+                : providers.FirstOrDefault(p => string.Equals(p.Id, providerId, StringComparison.OrdinalIgnoreCase));
+            if (provider == null || !provider.Enabled)
+                throw new InvalidOperationException("The selected agent has no enabled preferred provider. Configure execution selection first.");
 
-            var provider = providerIds
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Select(id => providers.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)))
-                .FirstOrDefault(p => p != null && p.Enabled);
-
-            if (provider == null)
-                throw new InvalidOperationException("The selected agent has no enabled provider. Agent='" + agent.Name + "'.");
-
-            var model = string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model;
+            var model = GetPreferredModelId(agent);
+            if (string.IsNullOrWhiteSpace(model))
+                model = provider.DefaultModel;
             if (string.IsNullOrWhiteSpace(model))
                 throw new InvalidOperationException("No model is configured for agent '" + agent.Name + "' or provider '" + provider.Name + "'.");
 
@@ -49,6 +44,34 @@ namespace HAgent.Example
                 agent,
                 provider,
                 model);
+        }
+
+        private static string GetPreferredProviderId(AiAgent agent)
+        {
+            if (agent == null || agent.ExecutionSelection == null) return string.Empty;
+            if (!string.IsNullOrWhiteSpace(agent.ExecutionSelection.PreferredProviderId))
+                return agent.ExecutionSelection.PreferredProviderId;
+            return GetProviderIdFromTargetId(agent.ExecutionSelection.PreferredTargetId);
+        }
+
+        private static string GetPreferredModelId(AiAgent agent)
+        {
+            if (agent == null || agent.ExecutionSelection == null) return string.Empty;
+            return GetModelIdFromTargetId(agent.ExecutionSelection.PreferredTargetId);
+        }
+
+        private static string GetProviderIdFromTargetId(string targetId)
+        {
+            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
+            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
+            return separator > 0 ? targetId.Substring(0, separator) : string.Empty;
+        }
+
+        private static string GetModelIdFromTargetId(string targetId)
+        {
+            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
+            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
+            return separator >= 0 && separator + 2 < targetId.Length ? targetId.Substring(separator + 2) : string.Empty;
         }
 
         private async Task SendMessageAsync(string message)
@@ -236,7 +259,7 @@ namespace HAgent.Example
                                   "Providers: " + providers.Count + Environment.NewLine +
                                   string.Join(Environment.NewLine, providers.Select(p => "  - " + p.Name + " [" + p.Kind + "] model=" + p.DefaultModel)) + Environment.NewLine +
                                   "Agents: " + agents.Count + Environment.NewLine +
-                                  string.Join(Environment.NewLine, agents.Select(a => "  - " + a.Name + " -> " + a.ProviderId)));
+                                  string.Join(Environment.NewLine, agents.Select(a => "  - " + a.Name + " -> " + GetPreferredProviderId(a))));
 
             await Task.CompletedTask;
         }

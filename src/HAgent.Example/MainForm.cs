@@ -74,6 +74,7 @@ namespace HAgent.Example
             AddWorkspaceRoutingTab();
             AddWorkspaceRoleTab();
             AddEventFeatureTabs();
+            AddPolicyTabs();
             AddExecutionPlannerTabs();
             AddQuotaAdmissionTabs();
             AddProviderDiscoveryTabs();

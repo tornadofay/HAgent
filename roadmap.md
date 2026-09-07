@@ -1900,7 +1900,7 @@ The subsystem provides generic event infrastructure; it does not become a replac
 
 ## Status
 
-**In progress — policy contracts, deterministic evaluation, precedence, provenance, and cost guard implemented.**
+**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, and pre-transport runtime enforcement implemented.**
 
 ## Goal
 
@@ -1918,23 +1918,25 @@ Unify HAgent's growing permission, capability, cost, learning, approval, resourc
 8. [x] Support explicit policy precedence and deterministic conflict resolution.
 9. [x] Preserve policy provenance so diagnostics can explain which rule produced a decision.
 10. [x] Make policy evaluation deterministic where inputs are deterministic and expose an explicit policy version for cache invalidation.
-11. [ ] Capture effective policy state in execution/runtime snapshots.
+11. [ ] Capture full effective policy state in execution/runtime snapshots. The concrete execution now captures the selected policy decision.
 12. [x] Prevent prompt content from serving as the policy enforcement mechanism.
-13. [x] Add deterministic Example verification for policy precedence, denial, approval outcome, cost restrictions, resource/tool/provider matching, and deterministic conflict resolution. Learning/resource override coverage remains for later slices.
+13. [x] Add deterministic Example verification for policy precedence, denial, approval outcome, cost restrictions, resource/tool/provider matching, deterministic conflict resolution, and pre-transport runtime denial.
 
-## Implemented contract slice
+## Implemented slices
 
-The current implementation adds:
+The current implementation includes:
 
 - `AiPolicySet` and `AiPolicyRule` for versioned, scoped rules;
 - `AiPolicyEvaluationContext` for bounded identity/resource/execution inputs;
 - `AiPolicyDecision` with outcome and provenance;
 - `IAiPolicyEngine` and `DefaultAiPolicyEngine`;
-- deterministic precedence based on priority, scope specificity, match specificity, outcome restrictiveness, and stable rule ID;
+- deterministic precedence based on explicit priority, scope specificity, match specificity, outcome restrictiveness, and stable rule ID;
 - built-in `FreeOnly` enforcement where `Paid` and `Unknown` cost states are denied;
+- `AgentExecution.PolicyDecision` capture;
+- runtime enforcement after execution-target selection and before provider transport;
 - deterministic Example verification in `MainForm.PolicyTests.cs`.
 
-Runtime enforcement, persistent policy storage, learning promotion controls, resource tri-state integration, human approval workflow, and effective-policy snapshot capture remain subsequent slices.
+Persistent policy storage, learning promotion controls, resource tri-state integration, host authorization integration, human approval workflow, and full effective-policy snapshot capture remain subsequent slices.
 
 ## Architectural rule
 

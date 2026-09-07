@@ -39,8 +39,6 @@ namespace HAgent.Example
             {
                 Id = "runtime-concurrency-profile-42",
                 Name = "Runtime Concurrency Test Profile",
-                ProviderId = provider.Id,
-                Model = "legacy-agent-model-that-must-not-win",
                 ExecutionSelection = new AiExecutionSelectionPolicy
                 {
                     Mode = AiSelectionMode.Auto,

@@ -23,14 +23,10 @@ namespace HAgent.Example
             var sourceStore = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
             var sourceSecrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var providers = await sourceStore.GetProvidersAsync();
-            var providerIds = new List<string>();
-            if (!string.IsNullOrWhiteSpace(selected.ProviderId)) providerIds.Add(selected.ProviderId);
-            if (selected.ProviderIds != null) providerIds.AddRange(selected.ProviderIds.Where(x => !string.IsNullOrWhiteSpace(x)));
-            var provider = providerIds.Distinct(StringComparer.OrdinalIgnoreCase)
-                .Select(id => providers.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)))
-                .FirstOrDefault(p => p != null && p.Enabled);
+            var providerId = GetPreferredProviderId(selected);
+            var provider = providers.FirstOrDefault(p => string.Equals(p.Id, providerId, StringComparison.OrdinalIgnoreCase) && p.Enabled);
             if (provider == null)
-                throw new InvalidOperationException("The selected agent has no enabled provider.");
+                throw new InvalidOperationException("The selected agent has no enabled preferred provider. Configure execution selection first.");
 
             var agent = CloneAgent(selected);
             var tool = new AiTool
@@ -78,7 +74,7 @@ namespace HAgent.Example
                     "Live provider test completed." + Environment.NewLine +
                     "Agent: " + selected.Name + Environment.NewLine +
                     "Provider: " + provider.Name + Environment.NewLine +
-                    "Model: " + (string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model) + Environment.NewLine +
+                    "Model: " + GetPreferredModelDisplay(selected, provider) + Environment.NewLine +
                     "Request: " + request + Environment.NewLine +
                     "Tool calls executed: " + loop.ToolCallsExecuted + Environment.NewLine +
                     "Tool arguments: " + argumentsSeen + Environment.NewLine +
@@ -95,7 +91,7 @@ namespace HAgent.Example
                         "Live provider test was not executed because the selected model/provider does not support tool calling." + Environment.NewLine +
                         "Agent: " + selected.Name + Environment.NewLine +
                         "Provider: " + provider.Name + Environment.NewLine +
-                        "Model: " + (string.IsNullOrWhiteSpace(agent.Model) ? provider.DefaultModel : agent.Model) + Environment.NewLine +
+                        "Model: " + GetPreferredModelDisplay(selected, provider) + Environment.NewLine +
                         "Request: " + request + Environment.NewLine +
                         "Action: Select a model with Tool Calling support and run the test again." + Environment.NewLine +
                         "Provider detail: " + ex.Message);
@@ -104,6 +100,36 @@ namespace HAgent.Example
 
                 throw;
             }
+        }
+
+        private static string GetPreferredProviderId(AiAgent agent)
+        {
+            if (agent == null || agent.ExecutionSelection == null) return string.Empty;
+            if (!string.IsNullOrWhiteSpace(agent.ExecutionSelection.PreferredProviderId))
+                return agent.ExecutionSelection.PreferredProviderId;
+            return GetProviderIdFromTargetId(agent.ExecutionSelection.PreferredTargetId);
+        }
+
+        private static string GetPreferredModelDisplay(AiAgent agent, AiProvider provider)
+        {
+            var model = agent == null || agent.ExecutionSelection == null
+                ? string.Empty
+                : GetModelIdFromTargetId(agent.ExecutionSelection.PreferredTargetId);
+            return string.IsNullOrWhiteSpace(model) ? (provider == null ? string.Empty : provider.DefaultModel) : model;
+        }
+
+        private static string GetProviderIdFromTargetId(string targetId)
+        {
+            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
+            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
+            return separator > 0 ? targetId.Substring(0, separator) : string.Empty;
+        }
+
+        private static string GetModelIdFromTargetId(string targetId)
+        {
+            if (string.IsNullOrWhiteSpace(targetId)) return string.Empty;
+            var separator = targetId.IndexOf("::", StringComparison.Ordinal);
+            return separator >= 0 && separator + 2 < targetId.Length ? targetId.Substring(separator + 2) : string.Empty;
         }
 
         private static AiProvider CloneProvider(AiProvider source)
@@ -127,9 +153,8 @@ namespace HAgent.Example
             {
                 Id = source.Id,
                 Name = source.Name,
-                ProviderId = source.ProviderId,
-                ProviderIds = source.ProviderIds == null ? new List<string>() : new List<string>(source.ProviderIds),
-                Model = source.Model,
+                ExecutionSelection = source.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : source.ExecutionSelection.Clone(),
+                CapabilityRequirements = source.CapabilityRequirements == null ? new AiCapabilityRequirements() : source.CapabilityRequirements.Clone(),
                 SystemPrompt = source.SystemPrompt,
                 UseProviderSystemPrompt = source.UseProviderSystemPrompt,
                 Temperature = source.Temperature,

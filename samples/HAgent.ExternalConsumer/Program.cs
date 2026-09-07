@@ -15,16 +15,10 @@ namespace HAgent.ExternalConsumer
 {
     internal static class Program
     {
-        private static void Main(string[] args)
-        {
-            RunAsync().GetAwaiter().GetResult();
-        }
+        private static void Main(string[] args) { RunAsync().GetAwaiter().GetResult(); }
 
         private static async Task RunAsync()
         {
-            // This sample represents an unrelated host consuming the HAgent system.
-            // It references the production HAgent modules but supplies its own host
-            // storage/provider implementations so no external database or API is required.
             TouchProductionSurface();
 
             var provider = new AiProvider
@@ -32,6 +26,7 @@ namespace HAgent.ExternalConsumer
                 Id = "external-provider-42",
                 Name = "External Consumer Test Provider",
                 Kind = "external-consumer-test",
+                BaseUrl = "https://external-consumer.test/v1",
                 DefaultModel = "external-model-42",
                 Enabled = true
             };
@@ -40,8 +35,12 @@ namespace HAgent.ExternalConsumer
             {
                 Id = "external-agent-42",
                 Name = "External Consumer Test Agent",
-                ProviderId = provider.Id,
-                Model = provider.DefaultModel,
+                ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = AiSelectionMode.Auto,
+                    Fallback = AiFallbackMode.Fail,
+                    CostPolicy = AiCostPolicy.NoRestriction
+                },
                 Enabled = true
             };
 
@@ -100,7 +99,6 @@ namespace HAgent.ExternalConsumer
 
         private static void TouchProductionSurface()
         {
-            // Compile-time references to the production HAgent modules.
             GC.KeepAlive(typeof(OpenAICompatibleProviderAdapter));
             GC.KeepAlive(typeof(ProtectedDataSecretStore));
             GC.KeepAlive(typeof(SqlServerHAgentStorageBootstrapper));
@@ -109,31 +107,25 @@ namespace HAgent.ExternalConsumer
 
         private static void Assert(bool condition, string message)
         {
-            if (!condition)
-                throw new InvalidOperationException(message);
+            if (!condition) throw new InvalidOperationException(message);
         }
 
         private sealed class ExternalProviderAdapter : IAiProviderAdapter
         {
             public string Kind { get { return "external-consumer-test"; } }
             public string DisplayName { get { return "External Consumer Test Adapter"; } }
-
-            public bool CanHandle(AiProvider provider)
-            {
-                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
-            }
+            public bool CanHandle(AiProvider provider) { return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase); }
 
             public Task<AIResponse> SendAsync(ProviderExecutionRequest request, CancellationToken cancellationToken)
             {
                 if (request == null) throw new ArgumentNullException(nameof(request));
                 request.Validate();
                 cancellationToken.ThrowIfCancellationRequested();
-
                 return Task.FromResult(new AIResponse
                 {
                     AgentId = request.Agent.Id,
                     ProviderId = request.Provider.Id,
-                    Model = request.Agent.Model,
+                    Model = request.ExecutionTarget == null ? string.Empty : request.ExecutionTarget.ModelId,
                     Text = "EXTERNAL-CONSUMER-OK"
                 });
             }
@@ -143,69 +135,20 @@ namespace HAgent.ExternalConsumer
         {
             private readonly List<AiProvider> _providers;
             private readonly List<AiAgent> _agents;
-
-            public InMemoryAiStore(AiProvider provider, AiAgent agent)
-            {
-                _providers = new List<AiProvider> { provider };
-                _agents = new List<AiAgent> { agent };
-            }
-
-            public Task<IReadOnlyList<AiProvider>> GetProvidersAsync(CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.FromResult((IReadOnlyList<AiProvider>)_providers.AsReadOnly());
-            }
-
-            public Task<IReadOnlyList<AiAgent>> GetAgentsAsync(CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.FromResult((IReadOnlyList<AiAgent>)_agents.AsReadOnly());
-            }
-
-            public Task SaveProviderAsync(AiProvider provider, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.CompletedTask;
-            }
-
-            public Task SaveAgentAsync(AiAgent agent, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.CompletedTask;
-            }
-
-            public Task DeleteProviderAsync(string providerId, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.CompletedTask;
-            }
-
-            public Task DeleteAgentAsync(string agentId, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.CompletedTask;
-            }
+            public InMemoryAiStore(AiProvider provider, AiAgent agent) { _providers = new List<AiProvider> { provider }; _agents = new List<AiAgent> { agent }; }
+            public Task<IReadOnlyList<AiProvider>> GetProvidersAsync(CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult((IReadOnlyList<AiProvider>)_providers.AsReadOnly()); }
+            public Task<IReadOnlyList<AiAgent>> GetAgentsAsync(CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult((IReadOnlyList<AiAgent>)_agents.AsReadOnly()); }
+            public Task SaveProviderAsync(AiProvider provider, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
+            public Task SaveAgentAsync(AiAgent agent, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
+            public Task DeleteProviderAsync(string providerId, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
+            public Task DeleteAgentAsync(string agentId, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
         }
 
         private sealed class InMemorySecretStore : ISecretStore
         {
-            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.CompletedTask;
-            }
-
-            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.FromResult(string.Empty);
-            }
-
-            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return Task.CompletedTask;
-            }
+            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
+            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(string.Empty); }
+            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
         }
     }
 }

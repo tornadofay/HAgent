@@ -19,6 +19,8 @@ namespace HAgent.Runtime
         private readonly ConversationContextBuilder _contextBuilder;
         private readonly IConversationMemoryPolicy _memoryPolicy;
         private readonly AiModelCapabilityCache _capabilityCache = new AiModelCapabilityCache();
+        private readonly IExecutionPlanner _executionPlanner;
+        private readonly IExecutionTargetCatalog _executionTargetCatalog;
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
             : this(store, secrets, adapters, null, null, null, null, null, null, null) { }
@@ -50,7 +52,20 @@ namespace HAgent.Runtime
             _conversations = conversations;
             _contextBuilder = new ConversationContextBuilder(contextOptions);
             _memoryPolicy = memoryPolicy ?? (_memory == null ? null : new ExplicitConversationMemoryPolicy());
-            _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router, null, auditStore, auditOptions);
+            _executionPlanner = new DefaultExecutionPlanner();
+            _executionTargetCatalog = new DefaultExecutionTargetCatalog(
+                new ProviderDiscoveryService(_adapters),
+                _secrets);
+            _runtime = new DefaultAgentRuntime(
+                _store,
+                _secrets,
+                _adapters,
+                router,
+                null,
+                auditStore,
+                auditOptions,
+                _executionPlanner,
+                _executionTargetCatalog);
         }
 
         public ConversationContextOptions ContextOptions { get { return _contextBuilder.Options; } }

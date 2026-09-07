@@ -42,9 +42,9 @@ namespace HAgent.Runtime
         {
             lock (_sync)
             {
-                if (_agents.Values.Any(x => string.Equals(x.ProviderId, providerId, StringComparison.OrdinalIgnoreCase) ||
-                                             (x.ProviderIds != null && x.ProviderIds.Any(id => string.Equals(id, providerId, StringComparison.OrdinalIgnoreCase)))))
-                    throw new InvalidOperationException("Provider cannot be deleted while an agent references it.");
+                if (_agents.Values.Any(x => x.ExecutionSelection != null &&
+                                             string.Equals(x.ExecutionSelection.PreferredProviderId, providerId, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException("Provider cannot be deleted while an agent explicitly prefers it.");
                 _providers.Remove(providerId);
             }
             return Task.CompletedTask;
@@ -72,9 +72,6 @@ namespace HAgent.Runtime
         {
             Id = x.Id,
             Name = x.Name,
-            ProviderId = x.ProviderId,
-            ProviderIds = x.ProviderIds == null ? new List<string>() : new List<string>(x.ProviderIds),
-            Model = x.Model,
             SystemPrompt = x.SystemPrompt,
             UseProviderSystemPrompt = x.UseProviderSystemPrompt,
             Temperature = x.Temperature,

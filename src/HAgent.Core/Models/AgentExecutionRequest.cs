@@ -21,6 +21,7 @@ namespace HAgent.Models
             CapabilityRequirements = null;
             Tools = new ReadOnlyCollection<AiTool>(new List<AiTool>());
             InstructionSources = new ReadOnlyCollection<AiInstructionSource>(new List<AiInstructionSource>());
+            Context = null;
             Streaming = false;
             Progress = null;
             StructuredOutput = null;
@@ -58,6 +59,12 @@ namespace HAgent.Models
         /// These are composed by the runtime into the effective execution instruction snapshot.
         /// </summary>
         public IReadOnlyList<AiInstructionSource> InstructionSources { get; set; }
+
+        /// <summary>
+        /// Optional host-assembled provider-neutral context snapshot. The runtime captures an isolated copy
+        /// before provider execution; provider adapters receive the captured snapshot through ProviderExecutionRequest.
+        /// </summary>
+        public ContextSnapshot Context { get; set; }
 
         /// <summary>
         /// Requests streaming transport when true. The runtime selects a streaming-capable target.
@@ -111,6 +118,14 @@ namespace HAgent.Models
 
             if (InstructionSources != null && InstructionSources.Count > 256)
                 throw new ArgumentOutOfRangeException(nameof(InstructionSources), "A maximum of 256 instruction sources is supported per execution request.");
+
+            if (Context != null)
+            {
+                var contextBudget = Context.Budget;
+                contextBudget.Validate();
+                if (Context.Items.Count != Context.UsedItems)
+                    throw new ArgumentException("Execution context snapshot item count is inconsistent.", nameof(Context));
+            }
 
             if (StructuredOutput != null)
                 StructuredOutput.Validate();

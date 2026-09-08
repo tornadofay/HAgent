@@ -159,6 +159,33 @@ var result = await assembler.AssembleAsync(
     CancellationToken.None);
 
 Console.WriteLine(result.Snapshot.Items.Count);";
+                case "Context Assembly": return @"var assembler = new ContextAssembler(
+    new ContextPolicyAssembler(new ContextAcquirer(), admission, hostAuthorizer),
+    new ContextRanker(),
+    new ContextCompactor());
+
+var result = await assembler.AssembleAsync(
+    sources,
+    budget,
+    new ContextAdmissionContext { AgentProfileId = ""assistant"" },
+    CancellationToken.None);
+
+Console.WriteLine(result.Snapshot.Items.Count);";
+                case "Context Host Authorization": return @"var assembler = new ContextPolicyAssembler(
+    new ContextAcquirer(),
+    new ContextPolicyAdmissionEvaluator(policyEngine, capabilities),
+    hostAuthorizer);
+
+var result = await assembler.RetrieveCandidatesAsync(
+    new[] { new ContextRetrievalSource { Source = protectedDataSource, Query = ""orders"", MaxItems = 10 } },
+    new ContextAdmissionContext
+    {
+        RuntimeInstanceId = ""runtime-42"",
+        Identity = identity
+    },
+    CancellationToken.None);
+
+Console.WriteLine(result.Decisions[0].HostAuthorizationState);";
                 case "Task / Event Memory": return @"var taskId = ""task-42"";
 await memoryStore.SaveAsync(new MemoryRecord
 {

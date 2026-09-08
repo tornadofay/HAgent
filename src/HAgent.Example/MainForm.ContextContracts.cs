@@ -57,12 +57,17 @@ namespace HAgent.Example
             if (clone == item || clone.Provenance == item.Provenance || clone.Scope == item.Scope)
                 throw new InvalidOperationException("Context contract clone did not isolate nested contract objects.");
 
-            var snapshot = new ContextSnapshot(new[] { item }, budget);
-            if (snapshot.Items.Count != 1 || snapshot.Budget.MaxItems != 10)
-                throw new InvalidOperationException("Context snapshot did not retain the validated contract data.");
+            var budgetClone = budget.Clone();
+            budgetClone.Validate();
+            if (budgetClone == budget)
+                throw new InvalidOperationException("Context budget clone did not create a distinct contract instance.");
 
-            snapshot.Items[0].Validate();
-            Console.WriteLine("[CONTEXT CONTRACTS] Contract validation, bounded metadata, cloning, and snapshot creation succeeded.");
+            var requestClone = request.Clone();
+            requestClone.Validate();
+            if (requestClone == request || requestClone.Query != request.Query || requestClone.MaxItems != request.MaxItems)
+                throw new InvalidOperationException("Context source request clone did not preserve isolated contract data.");
+
+            Console.WriteLine("[CONTEXT CONTRACTS] Contract validation, bounded metadata, cloning, structured payload, and source request validation succeeded.");
             return Task.FromResult(0);
         }
     }

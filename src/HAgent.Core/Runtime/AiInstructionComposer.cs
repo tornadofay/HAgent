@@ -52,6 +52,12 @@ namespace HAgent.Runtime
                     continue;
                 }
 
+                if (source.Availability != AiInstructionAvailability.Available)
+                {
+                    diagnostics.Add("Instruction source unavailable: id='" + SafeId(source.Id) + "', availability='" + source.Availability + "'.");
+                    continue;
+                }
+
                 if (!source.IsActiveAt(pointInTime))
                 {
                     diagnostics.Add("Instruction source excluded from composition: id='" + SafeId(source.Id) + "', lifecycle='" + source.Lifecycle + "'.");

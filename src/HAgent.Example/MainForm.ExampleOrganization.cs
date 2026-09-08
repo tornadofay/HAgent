@@ -251,7 +251,7 @@ namespace HAgent.Example
         {
             var key = (title ?? string.Empty).Trim().ToUpperInvariant();
 
-            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT BUDGET" || key == "CONTEXT RANKING")
+            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT BUDGET" || key == "CONTEXT RANKING" || key == "CONTEXT COMPACTION")
                 return "Context Core";
             if (key.StartsWith("UI ", StringComparison.Ordinal) || key == "APPLICATION OBJECT CONTEXT")
                 return "UI Context";
@@ -282,7 +282,7 @@ namespace HAgent.Example
             if (key.Contains("MEMORY") || key == "AUTOMATIC MEMORY" || key == "TASK / EVENT MEMORY" || key == "EPISODIC MEMORY")
                 return "Memory";
 
-            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT RANKING" || key == "CONTEXT BUDGET" ||
+            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT RANKING" || key == "CONTEXT COMPACTION" || key == "CONTEXT BUDGET" ||
                 key.StartsWith("UI ", StringComparison.Ordinal) || key == "APPLICATION OBJECT CONTEXT" || key == "DATA QUERY CONTRACT")
                 return "Context";
 

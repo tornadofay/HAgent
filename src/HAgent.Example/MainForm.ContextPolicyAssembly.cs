@@ -25,11 +25,15 @@ namespace HAgent.Example
 
         private Task RunContextPolicyAssemblyTestAsync(string unused)
         {
-            var source = new RecordingContextSource(
+            var memorySource = new RecordingContextSource(
                 "memory",
                 "memory-example",
-                CreatePolicyExampleItem("blocked", 80, 8),
-                CreatePolicyExampleItem("allowed", 20, 2));
+                CreatePolicyExampleItem("blocked", "memory", 80, 8),
+                CreatePolicyExampleItem("allowed", "memory", 20, 2));
+            var disabledSource = new RecordingContextSource(
+                "knowledge",
+                "knowledge-disabled",
+                CreatePolicyExampleItem("disabled-item", "knowledge", 10, 1));
 
             var policy = new AiPolicySet();
             policy.Rules.Add(new AiPolicyRule
@@ -44,8 +48,10 @@ namespace HAgent.Example
             });
             policy.Validate();
 
+            var capabilityPolicy = new AiResourceCapabilityPolicy();
+            capabilityPolicy.Set("knowledge", "knowledge-disabled", AiResourceCapabilityState.Disabled);
             var engine = new DefaultAiPolicyEngine(policy);
-            var capabilities = AiResourceCapabilitySnapshot.Resolve(new AiResourceCapabilityPolicy());
+            var capabilities = AiResourceCapabilitySnapshot.Resolve(capabilityPolicy);
             var assembler = new ContextPolicyAssembler(
                 new ContextAcquirer(),
                 new ContextPolicyAdmissionEvaluator(engine, capabilities));
@@ -55,9 +61,15 @@ namespace HAgent.Example
                 {
                     new ContextRetrievalSource
                     {
-                        Source = source,
+                        Source = memorySource,
                         Query = "customer",
                         MaxItems = 2
+                    },
+                    new ContextRetrievalSource
+                    {
+                        Source = disabledSource,
+                        Query = "knowledge",
+                        MaxItems = 1
                     }
                 },
                 new ContextBudget
@@ -77,18 +89,25 @@ namespace HAgent.Example
             if (result.Snapshot.Items[0].Provenance.SourceKind != "memory" ||
                 result.Snapshot.Items[0].Provenance.SourceId != "source-1")
                 throw new InvalidOperationException("Allowed context provenance was not preserved.");
+            if (memorySource.CallCount != 1 || disabledSource.CallCount != 0)
+                throw new InvalidOperationException("Disabled context source was retrieved unexpectedly.");
 
             var blocked = FindDecision(result.Decisions, "blocked");
             if (blocked == null || blocked.Allowed || blocked.PolicyDecision == null || !blocked.PolicyDecision.IsDenied)
                 throw new InvalidOperationException("Denied candidate decision was not captured deterministically.");
+
+            var disabled = FindSourceDecision(result.Decisions, "knowledge-disabled");
+            if (disabled == null || disabled.Allowed || disabled.ResourceCapabilityState != AiResourceCapabilityState.Disabled)
+                throw new InvalidOperationException("Disabled source capability decision was not captured deterministically.");
 
             Write(
                 "CONTEXT POLICY ASSEMBLY",
                 "Policy-aware context admission and bounded assembly succeeded." + Environment.NewLine +
                 "Allowed candidate retained: verified." + Environment.NewLine +
                 "Denied candidate excluded before budget assembly: verified." + Environment.NewLine +
+                "Disabled source excluded before retrieval: verified." + Environment.NewLine +
                 "Provenance preservation: verified." + Environment.NewLine +
-                "Safe policy decision diagnostics: verified." + Environment.NewLine +
+                "Safe policy/capability diagnostics: verified." + Environment.NewLine +
                 "Provider request: none.");
 
             return Task.CompletedTask;
@@ -106,7 +125,19 @@ namespace HAgent.Example
             return null;
         }
 
-        private static ContextItem CreatePolicyExampleItem(string id, int characters, int tokens)
+        private static ContextAdmissionDecision FindSourceDecision(
+            IReadOnlyList<ContextAdmissionDecision> decisions,
+            string sourceId)
+        {
+            foreach (var decision in decisions)
+            {
+                if (string.Equals(decision.SourceId, sourceId, StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(decision.ItemId))
+                    return decision;
+            }
+            return null;
+        }
+
+        private static ContextItem CreatePolicyExampleItem(string id, string sourceKind, int characters, int tokens)
         {
             return new ContextItem
             {
@@ -116,7 +147,7 @@ namespace HAgent.Example
                 Payload = id + "-payload",
                 Provenance = new ContextProvenance
                 {
-                    SourceKind = "memory",
+                    SourceKind = sourceKind,
                     SourceId = "source-1",
                     SourceVersion = "1",
                     Evidence = "Deterministic policy-aware context example"
@@ -147,11 +178,13 @@ namespace HAgent.Example
 
             public string Id { get; private set; }
             public string Kind { get; private set; }
+            public int CallCount { get; private set; }
 
             public Task<IReadOnlyList<ContextItem>> GetCandidatesAsync(
                 ContextSourceRequest request,
                 CancellationToken cancellationToken = default(CancellationToken))
             {
+                CallCount++;
                 return Task.FromResult(_items);
             }
         }

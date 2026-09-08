@@ -39,6 +39,7 @@ namespace HAgent.Models
         public string ToolId { get; set; }
         public string ToolCallId { get; set; }
         public AgentIdentityContext Identity { get; set; }
+        public AiPolicyDecision PolicyDecision { get; set; }
         public DateTimeOffset StartedAt { get; set; }
         public DateTimeOffset? CompletedAt { get; set; }
         public TimeSpan? Duration
@@ -56,6 +57,7 @@ namespace HAgent.Models
             ToolId = string.Empty;
             ToolCallId = string.Empty;
             Identity = new AgentIdentityContext();
+            PolicyDecision = new AiPolicyDecision();
             StartedAt = DateTimeOffset.UtcNow;
         }
 

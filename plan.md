@@ -24,25 +24,27 @@ Slice 2 — Instruction composition and conflict handling — was verified by th
 
 Slice 3 — Resource and external-content boundaries — was verified by the user on 2026-09-08 through the updated `COGNITION INSTRUCTIONS` result, covering trusted-resource authority/trust, lower-authority external/user content, disabled/unavailable source handling, and resistance to lower-authority override.
 
-Slice 4 — Execution integration — was verified by the user on 2026-09-08 through the updated `COGNITION INSTRUCTIONS` result, covering effective instruction snapshot capture before provider transport, provider transport parity, caller-source mutation isolation, lower-authority external exclusion, and execution/principal provenance.
+Slice 4 — Execution integration — was verified by the user on 2026-09-08 through the updated `COGNITION INSTRUCTIONS` result, covering effective snapshot capture before provider transport, provider transport parity, caller-source mutation isolation, lower-authority external exclusion, and execution/principal provenance.
+
+Slice 5 — Example coverage and framework verification — is current. The first attempted runtime checks exposed Example-host setup coupling: `RUNTIME TERMINAL STATE` incorrectly depended on a manually selected agent even though it is a deterministic local verification, while `RUNTIME EXECUTION` is an intentionally configuration-driven live execution example.
 
 ## Current run
 
-**Verified checkpoint/blocker — 0.954 Slice 5 awaiting final local Example/framework verification.**
+**Verified checkpoint/blocker — 0.954 Slice 5 Example setup correction awaiting local verification.**
 
-- Execution request contract: `src/HAgent.Core/Models/AgentExecutionRequest.cs`.
-- Execution snapshot capture: `src/HAgent.Core/Models/AgentExecutionSnapshot.cs` and `src/HAgent.Core/Models/AgentExecution.cs`.
-- Runtime integration: `src/HAgent.Core/Runtime/DefaultAgentRuntime.cs`.
-- Example verification: `src/HAgent.Example/MainForm.InstructionContractsTests.cs` plus existing deterministic execution/cancellation/failure scenarios.
-- Required next verification: run the complete 0.954 Example verification set on the supported targets, including the updated **COGNITION INSTRUCTIONS** scenario and relevant existing runtime cancellation/failure boundary scenarios.
+- Deterministic terminal example: `src/HAgent.Example/MainForm.RuntimeTerminalStateTests.cs` now provisions an in-memory agent/provider and no longer requires selected-agent UI state.
+- Existing concurrency example: `src/HAgent.Example/MainForm.RuntimeConcurrencyTests.cs` is already self-contained with local store/adapter coverage.
+- Existing stale-result and runtime-override examples remain configuration/selected-agent dependent and should be assessed separately before being treated as deterministic Slice 5 gates.
+- `RUNTIME EXECUTION` intentionally uses the selected configured agent/provider and must be run only after an enabled agent is selected/configured.
+- Framework instruction verification is already complete on .NET Framework 4.8.1 and .NET 9 through `COGNITION INSTRUCTIONS`.
 
 ## Current blockers
 
-The user has verified the current instruction integration scenario successfully. This connected session still cannot execute the local .NET/WinForms build or complete the supported-target matrix itself. No framework-wide local build/test success is claimed until the final Slice 5 verification is run by the user.
+This connected session cannot execute the local .NET/WinForms build or Example. The runtime-terminal Example setup defect is corrected but not locally verified. No local build/test success is claimed.
 
 ## Next checkpoint
 
-After the complete 0.954 Example/framework verification passes on the supported targets, update this file and `docs/plan/20-active.md` to mark Slice 5 complete and the entire 0.954 milestone verified. Only then advance to **0.955 Context Engineering**.
+Run the corrected `RUNTIME TERMINAL STATE` example first, then `RUNTIME CONCURRENCY`. Do not treat configuration-driven `RUNTIME EXECUTION` as a deterministic 0.954 gate when it only exercises the live selected-agent/provider path. Continue with additional Slice 5 coverage only where it directly verifies a remaining 0.954 requirement.
 
 ## Current project state
 

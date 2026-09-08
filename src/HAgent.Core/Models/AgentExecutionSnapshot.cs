@@ -43,13 +43,18 @@ namespace HAgent.Models
             AgentIdentityContext identity,
             AiPolicySet effectivePolicy)
         {
-            Agent = CloneAgent(agent ?? throw new ArgumentNullException(nameof(agent)), overrides);
+            var sourceAgent = agent ?? throw new ArgumentNullException(nameof(agent));
+            Agent = CloneAgent(sourceAgent, overrides);
             Providers = CloneProviders(providers ?? throw new ArgumentNullException(nameof(providers)));
             RuntimeContext = CloneContext(overrides == null ? null : overrides.Context);
             HostContext = CloneContext(hostContext);
             Identity = identity == null ? new AgentIdentityContext() : identity.Clone();
             EffectivePolicy = effectivePolicy == null ? new AiPolicySet() : effectivePolicy.Clone();
+            EffectiveResourceCapabilities = AiResourceCapabilitySnapshot.Resolve(
+                sourceAgent.ResourceCapabilities,
+                overrides == null ? null : overrides.ResourceCapabilityOverrides);
             EffectivePolicy.Validate();
+            EffectiveResourceCapabilities.Validate();
             CreatedAt = DateTimeOffset.UtcNow;
             Identity.Validate();
         }
@@ -60,6 +65,7 @@ namespace HAgent.Models
         public IReadOnlyDictionary<string, string> HostContext { get; private set; }
         public AgentIdentityContext Identity { get; private set; }
         public AiPolicySet EffectivePolicy { get; private set; }
+        public AiResourceCapabilitySnapshot EffectiveResourceCapabilities { get; private set; }
         public DateTimeOffset CreatedAt { get; private set; }
 
         private static AiAgent CloneAgent(AiAgent source, AgentRuntimeOverrides overrides)
@@ -75,7 +81,8 @@ namespace HAgent.Models
                 Enabled = source.Enabled,
                 ToolIds = source.ToolIds == null ? new List<string>() : new List<string>(source.ToolIds),
                 ExecutionSelection = source.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : source.ExecutionSelection.Clone(),
-                CapabilityRequirements = source.CapabilityRequirements == null ? new AiCapabilityRequirements() : source.CapabilityRequirements.Clone()
+                CapabilityRequirements = source.CapabilityRequirements == null ? new AiCapabilityRequirements() : source.CapabilityRequirements.Clone(),
+                ResourceCapabilities = source.ResourceCapabilities == null ? new AiResourceCapabilityPolicy() : source.ResourceCapabilities.Clone()
             };
 
             if (overrides == null) return clone;

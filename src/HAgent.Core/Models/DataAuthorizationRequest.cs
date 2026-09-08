@@ -11,6 +11,7 @@ namespace HAgent.Models
         public DataAccessOperation Operation { get; set; }
         public string SourceId { get; set; }
         public string RuntimeIdentity { get; set; }
+        public AgentIdentityContext Identity { get; set; }
         public IReadOnlyDictionary<string, object> RuntimeContext { get; set; }
         public DataQueryRequest Query { get; set; }
     }

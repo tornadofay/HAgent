@@ -2,9 +2,9 @@
 
 ## Status
 
-**Ahead-of-roadmap implementation state — slices 1 and 2 are locally verified; the phase is not the current milestone.**
+**Ahead-of-roadmap implementation state — execution intervention slices 1 and 2 and the learning-candidate intervention slice are verified; the phase is not the current milestone.**
 
-The repository intentionally retains intervention implementation that was built before the ordered foundational phases 0.954–0.958 were completed. That implementation is treated as ahead-of-roadmap work, not as permission to skip the ordered foundations.
+The repository intentionally retains intervention implementation that was built before the ordered foundational phases 0.954–0.958 and 0.9591 were completed. That implementation is treated as ahead-of-roadmap work, not as permission to skip the foundations.
 
 The bounded approval/defer workflow from 0.953 is the starting point for this phase. Phase 0.959 generalizes that boundary into one provider-neutral intervention model rather than creating a parallel approval subsystem.
 
@@ -16,14 +16,14 @@ Allow authorized humans or host applications to inspect, pause, resume, approve,
 
 1. [x] Define a provider-neutral intervention/approval request and lifecycle model.
 2. [ ] Support inspect, approve, reject, pause, resume, cancel, retire, shutdown, redirect, and defer actions where applicable.
-3. [ ] Allow intervention at execution, tool, plan-step, goal, learning-candidate, and consequential-action boundaries.
+3. [ ] Allow intervention at execution, tool, plan-step, goal, learning-candidate, and consequential-action boundaries. Execution and learning-candidate boundaries are implemented ahead of roadmap; plan-step, goal, and consequential-action coverage remain future work.
 4. [x] Preserve who requested and who approved/rejected an intervention through identity and trace metadata.
 5. [x] Make intervention policy-driven rather than prompt-driven.
 6. [ ] Ensure an intervention cannot bypass permissions, authorization, budgets, capability requirements, or host-side validation at every intervention target.
 7. [x] Define behavior when intervention arrives while work is executing, waiting, completing, or concurrently changing state.
 8. [x] Support operator comments/reasons as bounded metadata without treating them as trusted executable instructions.
 9. [ ] Expose intervention state through management UI and diagnostics.
-10. [x] Add deterministic Example verification for approval, rejection, pause/resume, cancellation, concurrent intervention, and stale intervention requests.
+10. [x] Add deterministic Example verification for the currently implemented approval, rejection, pause/resume, cancellation, concurrent intervention, stale intervention, and learning-candidate scenarios. Final phase-wide coverage remains pending for all supported target types.
 
 ## Verified ahead-of-roadmap slices
 
@@ -48,9 +48,18 @@ Verified through deterministic local execution scenarios:
 - duplicate responder resolution cannot apply a second transition;
 - a paused execution remains blocked until an explicit fresh resume intervention is approved.
 
-### Ahead-of-roadmap learning-candidate implementation
+### Slice 3 — Learning-candidate intervention
 
-Typed learning-candidate intervention contracts and public API handling are present in source, including candidate state/revision capture and stale protection. This work is intentionally not treated as a completed 0.959 requirement until the ordered foundational phases reach 0.959 and its deterministic Example coverage is verified under that phase.
+Verified in `HAgent.Example` through the public `HAgentClient` intervention API:
+
+- approval moves `PendingReview -> Approved`;
+- rejection moves `PendingReview -> Rejected`;
+- target state and candidate revision are captured at request creation;
+- an approval made stale by candidate rejection resolves as `Expired`;
+- concurrent approve/reject requests produce one applied intervention and one stale request;
+- a proposed candidate can be rejected through the same intervention lifecycle.
+
+This does not make the whole 0.959 phase complete. Plan-step, goal, consequential-action, durable persistence, management UI, and final cross-target verification remain future work after the preceding roadmap phases are completed.
 
 ## Implementation sequence
 

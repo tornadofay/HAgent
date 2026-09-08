@@ -32,6 +32,38 @@ This phase establishes the **resource substrate**. Mature resource governance, c
 19. [ ] Preserve immutable snapshot compatibility: resource definitions and references must be safe to capture into active execution snapshots without later configuration edits mutating running executions.
 20. [ ] Ensure the resource foundation remains usable without GPU hardware, vector databases, embeddings, or large resident indexes.
 
+## Deferred historical completion obligations
+
+The following unfinished 0.8 items remain intentionally deferred. They are **not prerequisites for Phase 0.954** and must not be pulled into the active 0.954 implementation merely because they originated in this phase. They are retained here as durable completion obligations and are completed when their consuming architecture is ready.
+
+### Item 8 — Repository/backend wiring
+
+**Current state:** repository coverage exists for several HAgent-owned areas, but the original 0.8 acceptance criterion is broader than the currently verified implementation.
+
+**Not a blocker for:** 0.954 Prompt / Instruction Governance, 0.955 Context Engineering, 0.956 Observability / Tracing, or 0.957 Evaluation / Quality Measurement.
+
+**Consumed by:**
+- **0.9575 Knowledge, Skills, Memory Governance + Learning** — complete persistence for knowledge-resource relationships, skill versions/relationships, learning candidates/review state, capability assignments/overrides, and extensible memory-type policy.
+- **0.96.x Configuration, Storage + Portability Evolution** — aligned persistence of resources and relationships across File, SQL Server, and MySQL, plus portable configuration.
+- **0.97 Persistent Cognitive Runtime** — durable cognitive/resource state must use the canonical storage/resource architecture rather than introducing a parallel persistence model.
+
+**Completion rule:** close this obligation as part of the consuming storage/resource milestone, after the relevant repository contract, all supported backends, migrations, snapshot semantics, and Example verification are complete.
+
+### Item 10 — Internal read-only data tools / audit / correlation / Example verification
+
+**Current state:** bounded provider/agent/tool inventory, memory inspection with scope/owner isolation, explicit-session conversation inspection, execution-audit inspection, execution correlation IDs, and payload-safe audit persistence are already substantially implemented. The original item remains open because its acceptance criterion also covers the complete read-only internal tooling and live verification surface.
+
+**Not a blocker for:** 0.954 Prompt / Instruction Governance or the other pre-0.956 foundations.
+
+**Consumed primarily by:**
+- **0.956 Observability / Distributed Tracing** — complete diagnostics, correlation, trace inspection, redaction, and deterministic Example verification.
+- **0.9575 Knowledge, Skills, Memory Governance + Learning** — resource/learning inspection and governed management surfaces can consume the bounded internal inspection/audit foundation.
+- Later management/diagnostic phases may extend these read-only surfaces without bypassing the same authorization and redaction boundaries.
+
+**Completion rule:** close this obligation when the consuming observability/management work has complete read-only inspection, correlation/audit coverage, secret-safe diagnostics, supported backend behavior, and live Example verification.
+
+These obligations are roadmap dependencies, not active-work items. The authoritative active-work document should contain only the currently selected implementation slice.
+
 The read-only foundation now includes bounded provider/agent/tool inventory, memory inspection with scope/owner isolation, explicit-session conversation inspection, and execution-audit inspection. Execution audit persistence is available through File, SQL Server, and MySQL using a secret-safe payload-free record.
 
 ## Internal database naming
@@ -70,4 +102,4 @@ The Example storage verification will exercise File, SQL Server, and MySQL initi
 
 ## Exit criterion
 
-A host can select an HAgent-owned storage backend, initialize or upgrade it deterministically, use HAgent repositories against it, and rely on canonical provider-neutral foundations for Knowledge, Skills, Memory, Learning candidates, scope, provenance, versioning, and future resource types without HAgent gaining access to the host application's business database.
+A host can select an HAgent-owned storage backend, initialize or upgrade it deterministically, use HAgent repositories against it, and rely on canonical provider-neutral foundations for Knowledge, Skills, Memory, Learning candidates, scope, provenance, versioning, and future resource types without HAgent gaining access to the host application's business database. Deferred historical completion obligations must be consumed and verified by the later roadmap phases identified above rather than disappearing from project memory.

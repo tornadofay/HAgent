@@ -13,6 +13,7 @@ namespace HAgent.Runtime
         private readonly object _sync = new object();
         private readonly Dictionary<string, AiProvider> _providers = new Dictionary<string, AiProvider>();
         private readonly Dictionary<string, AiAgent> _agents = new Dictionary<string, AiAgent>();
+        private AiPolicySet _policy = new AiPolicySet();
 
         public Task<IReadOnlyList<AiProvider>> GetProvidersAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
@@ -22,6 +23,11 @@ namespace HAgent.Runtime
         public Task<IReadOnlyList<AiAgent>> GetAgentsAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (_sync) return Task.FromResult<IReadOnlyList<AiAgent>>(_agents.Values.Select(Clone).ToList().AsReadOnly());
+        }
+
+        public Task<AiPolicySet> GetPolicySetAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            lock (_sync) return Task.FromResult(_policy.Clone());
         }
 
         public Task SaveProviderAsync(AiProvider provider, CancellationToken cancellationToken = default(CancellationToken))
@@ -35,6 +41,14 @@ namespace HAgent.Runtime
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
             lock (_sync) _agents[agent.Id] = Clone(agent);
+            return Task.CompletedTask;
+        }
+
+        public Task SavePolicySetAsync(AiPolicySet policy, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            policy.Validate();
+            lock (_sync) _policy = policy.Clone();
             return Task.CompletedTask;
         }
 

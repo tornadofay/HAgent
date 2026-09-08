@@ -116,7 +116,8 @@ namespace HAgent.Runtime
                                 cancellationToken,
                                 hostCorrelationId,
                                 null,
-                                policyEngine).ConfigureAwait(false);
+                                policyEngine,
+                                null).ConfigureAwait(false);
                         }
                     }
 

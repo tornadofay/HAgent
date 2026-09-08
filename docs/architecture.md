@@ -9,6 +9,8 @@ Host
   -> generic execution/context
   -> runtime agent instances
   -> HAgent
+       +-- Cognitive Kernel
+       +-- Cognitive Strategies
        +-- Providers
        +-- Skills / Skill Library
        +-- Knowledge / Wiki / Retrieval
@@ -22,7 +24,7 @@ Host
 
 ## Responsibility boundary
 
-`HAgent.Core` owns provider-neutral agent profiles, runtime instances, execution, context, skills, knowledge/memory abstractions, learning contracts, tools, workspaces/coordination primitives, structured-output contracts, capability-policy evaluation, and execution telemetry.
+`HAgent.Core` owns provider-neutral agent profiles, runtime instances, persistent cognitive runtime contracts, cognitive strategies, execution, context, skills, knowledge/memory abstractions, learning contracts, tools, workspaces/coordination primitives, structured-output contracts, capability-policy evaluation, and execution telemetry.
 
 Provider assemblies own transport and provider-specific behavior. Storage assemblies own persistence. Optional integration assemblies own platform-specific adapters. Host applications own domain objects, authoritative state, scheduling policy, host-state persistence, authorization rules, and side effects.
 
@@ -35,6 +37,26 @@ Reusable persistent configuration: provider/model preferences, system prompt, ge
 ### Runtime Agent Instance
 
 One live agent identity created from a profile. It has its own runtime ID, scope, runtime overrides, memory ownership, and execution lifecycle. Many runtime instances may come from one profile.
+
+### Persistent Cognitive Runtime
+
+The long-lived cognitive layer above individual executions. It maintains provider-neutral cognitive state for a runtime instance, consumes environment events, manages beliefs, attention, goals, intentions, plans, memory, experiences, and learning, and decides whether deterministic cognition is sufficient or probabilistic reasoning is warranted.
+
+### Cognitive Kernel
+
+The stable runtime substrate for cognitive state, lifecycle, event activation, versioning/revision, history, governance, and persistence boundaries. It must not assume that one cognitive architecture is universally correct.
+
+### Cognitive Strategy
+
+A replaceable implementation of how cognitive state is interpreted and cognitive actions are selected. The first reference strategy is **Adaptive Hybrid Cognition (AHC)**. Future research-derived strategies may be added, independently evaluated, versioned, and replaced without redesigning the cognitive kernel.
+
+### Reasoning Requirement
+
+A provider-neutral description of the reasoning capability currently needed by cognition. It separates the cognitive decision about *what kind of reasoning is needed* from the Execution Planner decision about *where/how that reasoning executes*.
+
+### Agent Profile
+
+Reusable persistent configuration: provider/model preferences, system prompt, generation settings, capability references, and learning/memory policy defaults.
 
 ### Execution Request
 
@@ -54,11 +76,35 @@ Memory is scoped experience or runtime state. Working memory is execution-specif
 
 ### Learning
 
-Learning analyzes execution experience and creates typed candidates for memory, knowledge, or skill improvement. It is not model-weight training. Candidates are subject to provenance, validation, authorization, and learning policy before promotion.
+Learning analyzes execution experience and creates typed candidates for memory, knowledge, or skill improvement. It may also produce governed cognitive improvement candidates or partial proceduralization. It is not model-weight training. Candidates are subject to provenance, validation, authorization, evaluation, and learning policy before promotion.
 
 ### Capability Policy
 
-Capability policy determines which skills, knowledge resources, memory families, and future resource types are effectively enabled. Profile configuration supplies defaults; runtime overrides are tri-state (`Inherit`, `Enabled`, `Disabled`) and apply to execution snapshots without mutating the persistent profile.
+Capability policy determines which skills, knowledge resources, memory families, cognitive capabilities, and future resource types are effectively enabled. Profile configuration supplies defaults; runtime overrides are tri-state (`Inherit`, `Enabled`, `Disabled`) and apply to execution snapshots without mutating the persistent profile.
+
+## Cognitive model
+
+```text
+environment / host observations
+          -> events
+          -> belief interpretation + revision
+          -> attention / global workspace
+          -> goals
+          -> intentions
+          -> plans / operators
+          -> deterministic action
+                 or
+          -> impasse
+          -> deliberation through selected cognitive strategy
+          -> reasoning requirement
+          -> execution planner
+          -> provider/model
+          -> outcome
+          -> experience / memory / learning
+          -> belief + plan revision
+```
+
+The LLM is a replaceable reasoning component inside the cognitive runtime, not the cognitive runtime itself. A strategy may choose no LLM when deterministic cognition is sufficient.
 
 ## Execution flow
 
@@ -85,9 +131,10 @@ execution
    -> observations / outcomes / events
    -> learning engine
    -> MemoryCandidate / KnowledgeCandidate / SkillCandidate
-   -> validation + provenance + policy
+   -> optional PolicyCandidate / CognitiveImprovementCandidate
+   -> validation + provenance + evaluation + policy
    -> review or automatic promotion
-   -> scoped memory / knowledge source / new skill version
+   -> scoped memory / knowledge / skill / governed strategy improvement
 ```
 
 Learning modes are `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, and `FullyAutomatic`. `SuggestOnly` is the recommended governance mode; fully automatic promotion is never implied by enabling learning.
@@ -102,16 +149,21 @@ A runtime inherits its profile's capability policy and may override individual c
 
 HAgent exposes a generic capability/resource inventory with resource ID, type ID, display metadata, scope, effective enabled state, provenance/source metadata, and relationships/dependencies where applicable. Known resource types can receive specialized UI views, while unknown/future types remain visible through the generic inventory.
 
-The selected-agent management view should therefore expose the agent's effective Skills, Knowledge/Wiki access, Memory families, and any other future resource types without requiring a new hard-coded agent model for every new type.
+The selected-agent management view should therefore expose the agent's effective Skills, Knowledge/Wiki access, Memory families, cognitive strategy, and any other future resource types without requiring a new hard-coded agent model for every new type.
 
 ## Research Foundations
 
 HAgent's cognitive-runtime design is informed by established cognitive-architecture and modern language-agent research. The research mapping, adaptation decisions, and recommended architectural changes are documented in:
 
 - `docs/architecture/15-research-foundations.md` — research lineage and direct mapping of HAgent concepts to BDI, SOAR, ACT-R, CoALA, Generative Agents, Global Workspace/LIDA, ReAct, Reflexion, MemGPT, Voyager, and recent persistent-agent research.
+- `docs/architecture/16-cognitive-runtime.md` — stable HAgent cognitive-kernel, strategy, reasoning-requirement, belief, planning, learning, and live-workbench architecture.
 - `docs/research/2026-09-persistent-cognitive-runtime-comparison.md` — comprehensive comparison and recommended evolution of the HAgent Persistent Cognitive Runtime.
 
 These documents are architectural guidance, not claims that HAgent invented the underlying cognitive concepts. They are intended to prevent accidental reinvention, make research-derived decisions explicit, and identify the parts of the architecture that should remain HAgent-specific.
+
+## Live cognition workbench
+
+`HAgent.WinForms` provides the intended operator-facing runtime view for active cognition. Authorized users should be able to inspect the current strategy/version, beliefs, goals, intentions, attention, global workspace, plans and current step, memory, knowledge, skills, experiences, events, executions, reasoning decisions, learning candidates, and full cognitive history. Live intervention must occur through runtime APIs with authorization, revision checks, provenance, auditability, atomicity, and stale-result protection.
 
 ## Architecture references
 
@@ -120,6 +172,7 @@ These documents are architectural guidance, not claims that HAgent invented the 
 - `docs/architecture/07-execution-planning.md` — capability-aware execution planning.
 - `docs/architecture/10-runtime.md` — runtime agents and execution.
 - `docs/architecture/15-research-foundations.md` — research foundations and cognitive-architecture mapping.
+- `docs/architecture/16-cognitive-runtime.md` — persistent cognitive runtime and extensible cognition.
 - `docs/architecture/20-context.md` — bounded host context.
 - `docs/architecture/30-tools.md` — structured tools.
 - `docs/architecture/40-security.md` — authorization and guardrails.

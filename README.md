@@ -4,7 +4,7 @@
 
 HAgent provides reusable infrastructure for connecting software to LLMs and building long-lived agent behavior without forcing a specific application architecture or domain model. It is intended for conversational software, business applications, services, games, simulations, automation, developer tools, and other host environments.
 
-> Status: **0.954 Prompt and Instruction Governance is the current implementation milestone.**
+> Status: **0.954 Prompt / Instruction Governance is the current implementation milestone.**
 >
 > Completed major foundation: **0.95 Generic External Host Integration**, verified on .NET Framework 4.8.1 and .NET 9.
 >
@@ -155,7 +155,7 @@ The current roadmap is intentionally ordered as architectural foundations first,
 
 ```text
 0.95   Generic External Host Integration                    complete
-0.951  Identity / Tenancy / User Context
+0.951  Identity / Tenancy / User Context                    complete
 0.952  First-Class Event Subsystem                          complete
 0.953  Unified Policy Engine                                complete
 0.954  Prompt / Instruction Governance                       current
@@ -175,6 +175,8 @@ The current roadmap is intentionally ordered as architectural foundations first,
 ```
 
 The early 0.8 storage/resource foundation and the later 0.9575 mature governance phase deliberately split the old Knowledge / Skills / Memory Governance + Learning feature block according to architectural dependency. `0.9591` is ordered before `0.959` because durable goal/plan revisions and recovery state provide the persistent authority for later goal/plan intervention.
+
+The roadmap is dependency-driven rather than permanently locked. When architectural understanding changes, the authoritative roadmap may be reordered deliberately rather than forcing new requirements into obsolete sequencing.
 
 The detailed ordered roadmap is in [`roadmap.md`](roadmap.md), with modular source documents under [`docs/roadmap/`](docs/roadmap/).
 

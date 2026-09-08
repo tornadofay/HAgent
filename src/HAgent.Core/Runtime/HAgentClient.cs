@@ -21,6 +21,7 @@ namespace HAgent.Runtime
         private readonly AiModelCapabilityCache _capabilityCache = new AiModelCapabilityCache();
         private readonly IExecutionPlanner _executionPlanner;
         private readonly IExecutionTargetCatalog _executionTargetCatalog;
+        private readonly IAiPolicyEngine _configuredPolicyEngine;
 
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters)
             : this(store, secrets, adapters, null, null, null, null, null, null, null) { }
@@ -59,6 +60,7 @@ namespace HAgent.Runtime
             _executionTargetCatalog = new DefaultExecutionTargetCatalog(
                 new ProviderDiscoveryService(_adapters),
                 _secrets);
+            _configuredPolicyEngine = policyEngine;
             _runtime = new DefaultAgentRuntime(
                 _store,
                 _secrets,

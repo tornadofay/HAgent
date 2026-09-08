@@ -23,34 +23,44 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.959 — Human-in-the-Loop + Intervention — planned architectural foundation
 - 0.9591 — Goal/Plan Persistence + Recovery — planned foundation
 - 0.9592 — Provider Ecosystem + Adapter Lifecycle — planned provider-platform foundation
-- 0.96 — Capability-Aware Execution — planned next major execution foundation
-- 0.97 — Persistent Cognitive Runtime — planned after the pre-0.96 foundations and capability-aware execution
+- 0.96.x — Configuration, Storage + Portability Evolution — cross-cutting foundation for 0.96/0.97
+- 0.96 — Capability-Aware Execution — planned major execution foundation
+- 0.97 — Persistent Cognitive Runtime — planned long-lived cognitive layer
 - 0.10 — Workspaces, Routing + Chat — paused until the generic runtime/capability/cognitive foundations are sufficient
-- 0.11 — Knowledge, Skills, Memory Governance + Learning — planned platform feature layer
+- 0.11 — Knowledge, Skills, Memory Governance + Learning — planned platform feature/governance layer
 - 1.0 — Collaboration + Workflows
 - Later — extensibility, developer platform, release hardening, and other ecosystem work
 
-The pre-0.96 foundation phases intentionally precede capability-aware execution because they define reusable identity, events, policy, instruction trust, context assembly, tracing, evaluation, lifecycle/intervention, durable cognitive recovery, and provider adapter boundaries that later execution and cognition layers should consume rather than reinvent.
+The pre-0.96 foundation phases intentionally precede capability-aware execution because they define reusable identity, events, policy, instruction trust, context assembly, tracing, evaluation, lifecycle/intervention, durable goal/plan recovery, provider adapter boundaries, and configuration/storage evolution that later execution and cognition layers should consume rather than reinvent.
 
-Phase 0.11 converts existing memory/skill/wiki foundations into a coherent scoped resource model and adds controlled learning, review, capability inheritance, runtime overrides, and management UI. It must consume the generic runtime contracts rather than create project-specific exceptions.
+Phase 0.11 builds on memory, skills, and knowledge primitives already present in HAgent and later provides mature scoped resource governance, learning review/promotion, capability inheritance, runtime overrides, and management UI. Phase 0.97 may consume existing resource primitives before the complete 0.11 governance layer is finished, but must not create a parallel resource architecture.
 
 Phase 0.95 is a completed cross-cutting runtime/API hardening phase. It established the generic execution boundary for arbitrary hosts: host input/context, host correlation, structured output contracts and validation, provider-facing request isolation, execution terminality, tool identity propagation, runtime snapshot isolation, provider-native structured-output transport, and external-consumer verification. It does not introduce any host-specific domain dependency.
 
-Phase 0.96 makes execution-target selection and admission capability-aware. It builds on the pre-0.96 foundations and the storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md`. It defines the Execution Planner as the execution-side planner: it selects and admits a concrete provider/model/deployment target for an already-formed inference request and exposes a normalized target assessment.
+The configuration/storage evolution phase establishes the persistence model required by capability-aware execution and persistent cognition: provider/model/target separation, encrypted provider credentials, global settings, resource relationships, shared database deployment, cache invalidation, and portable configuration export/import. It is ordered before 0.96 even though its historical source filename contains `38`.
 
-Phase 0.97 adds the missing higher-level runtime above individual executions: a long-lived cognitive runtime that owns persistent cognitive state, receives environment events, manages attention, goals, intentions and plans, selects relevant resources, applies decision policies, decides when reactive handling is sufficient, creates or revises plans, and activates deliberative executions only when needed. It is generic and must not contain HWorld- or business-application-specific domain logic.
+Phase 0.96 makes execution-target selection and admission capability-aware. It defines the Execution Planner as the execution-side planner: it selects and admits a concrete provider/model/deployment target for an already-formed inference request and exposes normalized target assessment.
 
-The roadmap explicitly distinguishes two kinds of planning:
+Phase 0.97 adds the higher-level Persistent Cognitive Runtime above individual executions. It owns persistent cognitive state, event activation, belief state and revision, attention/global workspace, goals, intentions, plans, operators, impasses, cognitive actions, experience, learning/proceduralization, and adaptive decisions about whether probabilistic reasoning is warranted. The first reference strategy is **Adaptive Hybrid Cognition (AHC)**, but HAgent deliberately treats cognition as an extensible strategy layer rather than assuming AHC is the final architecture.
+
+The roadmap explicitly distinguishes three decisions:
 
 ```text
-Cognitive Planner
-    = what should the agent do?
+Cognitive Strategy
+    = how should the agent reason and manage cognitive state?
+
+Reasoning Requirement
+    = what kind of reasoning capability is needed now?
 
 Execution Planner
-    = where/how should the required inference execute?
+    = where/how should that reasoning execute?
 ```
 
-Phase 0.97 also establishes `DecisionContext`, `DecisionPolicy`, and `Planner` as explicit provider-neutral architectural concepts. Resource retrieval and relevance ranking remain separate from attention: attention determines what matters now, while retrieval/relevance determines which Memory, Knowledge, Skills, or other resources are useful about it.
+A cognitive strategy may decide that no LLM is required, use a lightweight model, escalate to a stronger model, invoke multiple reasoning passes, or request another form of information gathering. Model/provider choice remains the responsibility of the execution-planning layer after cognition has expressed its reasoning requirement.
+
+Persistent cognition must become more effective through validated experience without silently rewriting the cognitive kernel. Experience may produce memory, knowledge, skill, policy, or cognitive-improvement candidates; validated candidates may be promoted and later make recurring situations more deterministic and less dependent on LLM inference. Unresolved or novel situations remain able to return to deliberative reasoning.
+
+The roadmap also includes a live Cognitive Runtime Workbench for `HAgent.WinForms`. Authorized operators should be able to inspect and, through governed runtime APIs, intervene in active beliefs, goals, intentions, plans, attention, memory, experience, reasoning decisions, and cognitive history.
 
 The roadmap distinguishes feature phases from generic runtime hardening. Higher-level features may continue later, but they must consume the generic contracts rather than create project-specific exceptions.
 

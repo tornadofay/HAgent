@@ -11,24 +11,6 @@ namespace HAgent.Example
 {
     internal sealed partial class MainForm
     {
-        static MainForm()
-        {
-            Application.Idle += OnExampleIdentityModuleIdle;
-        }
-
-        private static void OnExampleIdentityModuleIdle(object sender, EventArgs e)
-        {
-            for (var i = 0; i < Application.OpenForms.Count; i++)
-            {
-                var form = Application.OpenForms[i] as MainForm;
-                if (form == null) continue;
-
-                Application.Idle -= OnExampleIdentityModuleIdle;
-                form.AddIdentityFeatureTabs();
-                return;
-            }
-        }
-
         private void AddIdentityFeatureTabs()
         {
             AddApiTab(

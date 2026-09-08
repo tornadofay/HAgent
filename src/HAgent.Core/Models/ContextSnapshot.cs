@@ -82,5 +82,17 @@ namespace HAgent.Models
         public int SourceCount { get; private set; }
         public int Version { get; private set; }
         public DateTimeOffset CreatedAt { get; private set; }
+
+        public ContextSnapshot Clone()
+        {
+            return new ContextSnapshot(
+                Items,
+                Budget,
+                UsedItems,
+                UsedCharacters,
+                UsedEstimatedTokens,
+                SourceCount,
+                CreatedAt);
+        }
     }
 }

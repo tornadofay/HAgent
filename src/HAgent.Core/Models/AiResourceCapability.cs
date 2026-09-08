@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace HAgent.Models
 {
@@ -55,6 +56,7 @@ namespace HAgent.Models
             Entries = new List<AiResourceCapabilityEntry>();
         }
 
+        [JsonInclude]
         public IList<AiResourceCapabilityEntry> Entries { get; private set; }
 
         public void Set(string resourceType, AiResourceCapabilityState state)
@@ -167,10 +169,6 @@ namespace HAgent.Models
         public AiResourceCapabilityState State { get; private set; }
     }
 
-    /// <summary>
-    /// Effective resource state captured for one execution. Every represented entry is Enabled or Disabled;
-    /// unspecified resources resolve to Enabled by default.
-    /// </summary>
     public sealed class AiResourceCapabilitySnapshot
     {
         private readonly IReadOnlyDictionary<string, AiResourceCapabilityState> _states;

@@ -12,25 +12,25 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 1 checkpoint after 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 2 checkpoint after 0.954.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slice 2 was subsequently verified by the user on both .NET Framework 4.8.1 and .NET 9.
 
 ## Current run
 
-**0.955 Slice 2 implementation checkpoint — Example verification added; local verification pending.**
+**0.955 Slice 3 implementation checkpoint — local verification pending.**
 
-Slice 2 now contains the provider-neutral context contract foundation plus matching deterministic `HAgent.Example` coverage. The new Example scenario exercises validation, bounded metadata, nested clone isolation, and snapshot creation through public contracts. Local .NET build/test and Example execution have not been performed in this connected session.
+Slice 3 now contains bounded provider-neutral context acquisition plus an execution-owned `ContextSnapshot`. Acquisition validates source/contracts, enforces item/character/token hard bounds, propagates cancellation, preserves supplied source order, and isolates the snapshot from caller-owned mutable item/request state. Deterministic xUnit coverage and public-API `HAgent.Example` coverage have been added. Local .NET build/test and Example execution for Slice 3 have not been performed in this connected session.
 
 ## Next action
 
-Run the targeted solution/tests and the new context-contract Example on the supported targets. Record the actual results before closing Slice 2 or selecting Slice 3.
+Run the targeted solution/tests and the new context-acquisition Example on both .NET Framework 4.8.1 and .NET 9. Record the actual results before closing Slice 3 or selecting Slice 4.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local verification success is claimed.
+This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 3 verification success is claimed.
 
 ## Current project state
 
@@ -562,13 +562,18 @@ The complete 0.954 implementation and verification sequence is complete.
    - The authoritative context architecture was reconciled with the current execution/context contracts, legacy conversation context implementation, and WinForms UI/data context adapters.
    - Existing mechanisms remain producer/input boundaries rather than competing canonical context architectures.
 
-2. **Provider-neutral context contract foundation — CURRENT**
-   - Scope: Core-only provider-neutral context item metadata/payload representation, explicit budget dimensions, bounded provenance/scope/trust/importance/freshness/size metadata, and the minimal candidate-source boundary. No ranking, compaction, cache, WinForms changes, or provider transport in this slice.
-   - Current implementation: context contracts and focused contract tests are implemented; deterministic public-API Example coverage has been added in `src/HAgent.Example/MainForm.ContextContracts.cs`.
-   - Required verification before completion: local targeted build/test plus deterministic Example execution. Per repository rule, the new public capability is not considered verified without matching Example coverage.
+2. **Provider-neutral context contract foundation — VERIFIED**
+   - Core contracts define provider-neutral context items, structured payloads, bounded provenance/scope/quality/size metadata, explicit item/character/token budget dimensions, bounded source requests, and clone isolation.
+   - Matching deterministic Example coverage was executed successfully on both .NET Framework 4.8.1 and .NET 9 on 2026-09-08.
+   - Verified Example results included contract validation, bounded metadata, structured payload preservation, explicit budget/source bounds, nested clone isolation, and no provider request.
 
-3. **Bounded context acquisition and canonical context snapshots — PLANNED**
+3. **Bounded context acquisition and canonical context snapshots — CHECKPOINT VERIFIED / LOCAL TEST SUITE PENDING**
    - Scope: implement bounded host/source acquisition and produce the immutable execution context snapshot, including cancellation and isolation from caller-owned mutable state.
+   - Current implementation: `ContextSnapshot`, `IContextAcquirer`, and `ContextAcquirer` are implemented in Core; deterministic xUnit coverage and a public-API `HAgent.Example` scenario are present.
+   - User Example verification succeeded for bounded acquisition and snapshot creation, including three-item selection, source-order determinism, all three budget dimensions at their hard limits, oversized-candidate exclusion, caller-mutation isolation, and no provider request.
+   - The new Context Acquisition scenario is correctly classified under **Context → Context Core** in `MainForm.ExampleOrganization.cs`.
+   - Matching Example placement guidance is now explicit in `AGENTS.md` and applies to all future examples.
+   - Remaining completion condition: user must run the targeted Core test suite and confirm the Slice 3 verification coverage locally. Do not select Slice 4 until that checkpoint is closed.
 
 4. **Ranking, deterministic prioritization, and deduplication — PLANNED**
 5. **Compaction, truncation, and provenance-preserving diagnostics — PLANNED**

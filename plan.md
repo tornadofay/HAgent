@@ -18,26 +18,25 @@ This file is the compact handoff state for work currently in progress. It is not
 
 The 0.954 Example UI prerequisite was verified by the user on 2026-09-08 through successful `LEARNING INTERVENTION`, `CONTEXT BUDGET`, and `RUNTIME INSTANCES` examples in the reorganized host.
 
-Slice 1 — Instruction source and authority contracts — is implemented but not yet locally verified. The implementation adds `AiInstructionSource`, authority/trust metadata, canonical generic scope/lifecycle/provenance, conflict representation, deterministic precedence, `AiInstructionSnapshot`, and `AgentExecutionSnapshot.InstructionSnapshot`. A deterministic public-API Example named `COGNITION INSTRUCTIONS` was added under the Cognition feature group.
+Slice 1 — Instruction source and authority contracts — was verified by the user on 2026-09-08 through the `COGNITION INSTRUCTIONS` Example. The result verified source creation/validation, authority-vs-trust separation, higher-authority precedence, equal-authority explicit priority, conflict representation, and provenance-preserving snapshot cloning.
 
 ## Current run
 
-**Verified checkpoint/blocker — 0.954 Slice 1 awaiting local Example verification.**
+**Current slice — 0.954 Slice 2: Instruction composition and conflict handling.**
 
-- Implementation: `src/HAgent.Core/Models/AiInstructionContracts.cs`.
-- Execution snapshot contract: `src/HAgent.Core/Models/AgentExecutionSnapshot.cs`.
-- Example verification: `src/HAgent.Example/MainForm.InstructionContractsTests.cs` and registration in `MainForm.cs`.
-- Architecture: `docs/architecture/11-instruction-governance.md`.
-- Required verification: build/run `HAgent.Example` and execute **COGNITION INSTRUCTIONS → Run instruction contract test**.
-- Expected result: source creation/validation, authority-vs-trust separation, higher-authority precedence, equal-authority explicit priority, conflict representation, and provenance-preserving snapshot cloning all report `verified`.
+- Entry condition: Slice 1 verified.
+- Scope: Integrate the canonical instruction contracts into one provider-neutral composition boundary; preserve higher-authority layers; handle conflicts, invalid sources, and unavailable/disabled sources deterministically; keep sensitive instruction/provenance diagnostics bounded and secret-safe.
+- Expected files/assemblies: `HAgent.Core` instruction/composition implementation and focused `HAgent.Example` verification only; no unrelated UI or later roadmap work.
+- Completion: canonical composition produces one deterministic provider-neutral instruction snapshot and does not allow lower-authority content to replace/erase higher-authority layers; invalid/unavailable sources are contained and diagnosable.
+- Verification: add deterministic public-API Example coverage for ordered composition, conflict handling, disabled/invalid/unavailable sources, and secret-safe diagnostics.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed. Slice 1 remains a verified checkpoint/blocker until the user runs the new Example successfully.
+This connected session cannot execute the local .NET/WinForms build or Example. Implementation work may proceed from the verified Slice 1 boundary, but this run may only end as a verified checkpoint/blocker until the new Slice 2 Example is executed locally. No local build/test success is claimed.
 
 ## Next checkpoint
 
-After `COGNITION INSTRUCTIONS` passes locally, update this file and the authoritative phase plan to mark Slice 1 complete, then make only **0.954 Slice 2 — Instruction composition and conflict handling** current. Do not start Slice 2 before Slice 1 verification.
+After the Slice 2 Example passes locally, update this file and `docs/plan/20-active.md` to mark Slice 2 complete, then make only **0.954 Slice 3 — Resource and external-content boundaries** current. Do not start Slice 3 before Slice 2 verification.
 
 ## Current project state
 

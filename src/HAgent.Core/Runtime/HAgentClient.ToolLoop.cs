@@ -40,6 +40,8 @@ namespace HAgent.Runtime
             var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
             if (agent == null) throw new InvalidOperationException("Agent was not found: " + agentId);
 
+            var policyEngine = await ResolvePolicyEngineAsync(cancellationToken).ConfigureAwait(false);
+
             var definitions = GetToolDefinitions();
             var enabledDefinitions = new List<AiTool>();
             if (agent.ToolIds != null && agent.ToolIds.Count > 0)
@@ -106,13 +108,15 @@ namespace HAgent.Runtime
                                 arguments = normalizedArguments;
                             }
 
-                            result = await ExecuteToolAsync(
+                            result = await ExecuteToolInternalAsync(
                                 agentId,
                                 definition.Id,
                                 call.Id,
                                 arguments,
                                 cancellationToken,
-                                hostCorrelationId).ConfigureAwait(false);
+                                hostCorrelationId,
+                                null,
+                                policyEngine).ConfigureAwait(false);
                         }
                     }
 

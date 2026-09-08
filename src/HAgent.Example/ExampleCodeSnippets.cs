@@ -81,6 +81,22 @@ foreach (var item in ranked)
 
 foreach (var decision in result.Decisions)
     Console.WriteLine(decision.ItemId + "": "" + decision.Reason);";
+                case "Context Cache": return @"var cache = new InMemoryContextCache();
+var key = new ContextCacheKey
+{
+    ComponentId = ""customer-context"",
+    ScopeType = ""User"",
+    ScopeId = ""user-42"",
+    ConfigurationVersion = ""cfg-7"",
+    ResourceVersion = ""resource-12"",
+    FreshnessVersion = ""fresh-3""
+};
+
+cache.Set(key, snapshot, expiresAt);
+
+ContextSnapshot cached;
+if (cache.TryGet(key, DateTimeOffset.UtcNow, out cached))
+    Console.WriteLine(cached.Items[0].Id);";
                 case "Task / Event Memory": return @"var taskId = ""task-42"";
 await memoryStore.SaveAsync(new MemoryRecord
 {

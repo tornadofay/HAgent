@@ -8,7 +8,7 @@ using HAgent.Models;
 
 namespace HAgent.Runtime
 {
-    public sealed class DefaultAgentRuntime : IAgentRuntime
+    public sealed class DefaultAgentRuntime : IAgentRuntime, IInterventionControllableRuntime
     {
         private readonly IAiStore _store;
         private readonly ISecretStore _secrets;
@@ -20,6 +20,7 @@ namespace HAgent.Runtime
         private readonly IExecutionAuditStore _auditStore;
         private readonly ExecutionAuditOptions _auditOptions;
         private readonly IAiPolicyEngine _configuredPolicyEngine;
+        private readonly AiInterventionCoordinator _interventionCoordinator;
 
         public DefaultAgentRuntime(
             IAiStore store,
@@ -28,7 +29,7 @@ namespace HAgent.Runtime
             IProviderRouter router = null,
             IProviderErrorClassifier errorClassifier = null,
             IExecutionAuditStore auditStore = null)
-            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null, null, null)
+            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null, null, null, null)
         {
         }
 
@@ -42,7 +43,8 @@ namespace HAgent.Runtime
             ExecutionAuditOptions auditOptions,
             IExecutionPlanner executionPlanner = null,
             IExecutionTargetCatalog executionTargetCatalog = null,
-            IAiPolicyEngine policyEngine = null)
+            IAiPolicyEngine policyEngine = null,
+            IAiInterventionWorkflow interventionWorkflow = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -57,6 +59,13 @@ namespace HAgent.Runtime
             _auditOptions = auditOptions ?? new ExecutionAuditOptions();
             _auditOptions.Validate();
             _configuredPolicyEngine = policyEngine;
+            _interventionCoordinator = new AiInterventionCoordinator(
+                interventionWorkflow ?? new InMemoryAiInterventionWorkflow());
+        }
+
+        public AiInterventionCoordinator InterventionCoordinator
+        {
+            get { return _interventionCoordinator; }
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
@@ -124,222 +133,218 @@ namespace HAgent.Runtime
             execution.HostCorrelationId = request.HostCorrelationId ?? string.Empty;
             execution.RuntimeInstanceId = options.RuntimeInstanceId;
             execution.RuntimeInstanceRevision = options.RuntimeInstanceRevision;
+            _interventionCoordinator.RegisterExecution(execution);
 
-            Notify(execution);
-            execution.State = AgentExecutionState.Running;
-            execution.StartedAt = DateTimeOffset.UtcNow;
-            Notify(execution);
-
-            using (var timeoutCts = new CancellationTokenSource(options.Timeout))
-            using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token))
+            try
             {
-                var token = linkedCts.Token;
-                try
+                Notify(execution);
+                execution.State = AgentExecutionState.Running;
+                execution.StartedAt = DateTimeOffset.UtcNow;
+                Notify(execution);
+
+                using (var timeoutCts = new CancellationTokenSource(options.Timeout))
+                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    timeoutCts.Token,
+                    _interventionCoordinator.GetExecutionCancellationToken(execution.Id)))
                 {
-                    var selectionPolicy = request.ExecutionSelection == null
-                        ? (snapshot.Agent.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : snapshot.Agent.ExecutionSelection.Clone())
-                        : request.ExecutionSelection.Clone();
-                    var requirements = request.CapabilityRequirements == null
-                        ? (snapshot.Agent.CapabilityRequirements == null ? new AiCapabilityRequirements() : snapshot.Agent.CapabilityRequirements.Clone())
-                        : request.CapabilityRequirements.Clone();
-
-                    if (request.StructuredOutput != null)
-                        requirements.Require(AiCapability.StructuredOutput);
-
-                    selectionPolicy.Validate();
-                    var targets = await _executionTargetCatalog
-                        .GetTargetsAsync(snapshot.Providers, token)
-                        .ConfigureAwait(false);
-                    var plan = _executionPlanner.Plan(targets, requirements, selectionPolicy);
-                    if (!plan.HasSelection)
+                    var token = linkedCts.Token;
+                    try
                     {
-                        throw new InvalidOperationException(
-                            "No compatible execution target was selected for agent '" + snapshot.Agent.Name + "'. " +
-                            BuildPlannerFailureSummary(plan));
-                    }
+                        await _interventionCoordinator.WaitIfPausedAsync(execution.Id, token).ConfigureAwait(false);
 
-                    var selectedTarget = plan.SelectedTarget;
-                    var policyContext = new AiPolicyEvaluationContext
-                    {
-                        Operation = "model.invoke",
-                        ResourceType = "execution-target",
-                        ResourceId = selectedTarget.Id,
-                        AgentProfileId = snapshot.Agent.Id,
-                        RuntimeInstanceId = execution.RuntimeInstanceId ?? string.Empty,
-                        ExecutionId = execution.Id,
-                        ProviderId = selectedTarget.ProviderId,
-                        ExecutionTargetId = selectedTarget.Id,
-                        CostStatus = selectedTarget.Cost,
-                        RequestedCostPolicy = selectionPolicy.CostPolicy,
-                        Identity = execution.Identity == null ? new AgentIdentityContext() : execution.Identity.Clone()
-                    };
-                    var policyDecision = policyEngine.Evaluate(policyContext);
-                    execution.PolicyDecision = policyDecision;
+                        var selectionPolicy = request.ExecutionSelection == null
+                            ? (snapshot.Agent.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : snapshot.Agent.ExecutionSelection.Clone())
+                            : request.ExecutionSelection.Clone();
+                        var requirements = request.CapabilityRequirements == null
+                            ? (snapshot.Agent.CapabilityRequirements == null ? new AiCapabilityRequirements() : snapshot.Agent.CapabilityRequirements.Clone())
+                            : request.CapabilityRequirements.Clone();
 
-                    if (policyDecision.IsDenied || policyDecision.RequiresApproval || policyDecision.IsDeferred)
-                    {
-                        var outcome = policyDecision.Outcome == AiPolicyOutcome.Deny
-                            ? "denied"
-                            : policyDecision.Outcome == AiPolicyOutcome.RequireApproval
-                                ? "requires approval"
-                                : "deferred";
-                        throw new InvalidOperationException(
-                            "Execution policy " + outcome + ". " +
-                            (string.IsNullOrWhiteSpace(policyDecision.Reason) ? "No additional policy detail was provided." : policyDecision.Reason));
-                    }
+                        if (request.StructuredOutput != null)
+                            requirements.Require(AiCapability.StructuredOutput);
 
-                    var candidates = _router
-                        .OrderProviders(snapshot.Agent, snapshot.Providers)
-                        .Where(x => string.Equals(x.Id, selectedTarget.ProviderId, StringComparison.OrdinalIgnoreCase))
-                        .ToList();
-                    if (candidates.Count == 0)
-                        throw new InvalidOperationException("The selected execution target references a provider that is not available: " + selectedTarget.ProviderId);
-
-                    var attempts = 0;
-                    Exception lastError = null;
-                    ProviderErrorKind lastErrorKind = ProviderErrorKind.Unknown;
-                    string lastProviderName = string.Empty;
-                    string lastModel = selectedTarget.ModelId;
-
-                    foreach (var provider in candidates)
-                    {
-                        if (attempts >= options.MaxProviderAttempts) break;
-                        token.ThrowIfCancellationRequested();
-
-                        var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
-                        if (adapter == null) continue;
-
-                        execution.LastProviderId = provider.Id;
-                        var retries = 0;
-
-                        while (true)
+                        selectionPolicy.Validate();
+                        var targets = await _executionTargetCatalog
+                            .GetTargetsAsync(snapshot.Providers, token)
+                            .ConfigureAwait(false);
+                        var plan = _executionPlanner.Plan(targets, requirements, selectionPolicy);
+                        if (!plan.HasSelection)
                         {
+                            throw new InvalidOperationException(
+                                "No compatible execution target was selected for agent '" + snapshot.Agent.Name + "'. " +
+                                BuildPlannerFailureSummary(plan));
+                        }
+
+                        var selectedTarget = plan.SelectedTarget;
+                        var policyContext = new AiPolicyEvaluationContext
+                        {
+                            Operation = "model.invoke",
+                            ResourceType = "execution-target",
+                            ResourceId = selectedTarget.Id,
+                            AgentProfileId = snapshot.Agent.Id,
+                            RuntimeInstanceId = execution.RuntimeInstanceId ?? string.Empty,
+                            ExecutionId = execution.Id,
+                            ProviderId = selectedTarget.ProviderId,
+                            ExecutionTargetId = selectedTarget.Id,
+                            CostStatus = selectedTarget.Cost,
+                            RequestedCostPolicy = selectionPolicy.CostPolicy,
+                            Identity = execution.Identity == null ? new AgentIdentityContext() : execution.Identity.Clone()
+                        };
+                        var policyDecision = policyEngine.Evaluate(policyContext);
+                        execution.PolicyDecision = policyDecision;
+
+                        if (policyDecision.IsDenied || policyDecision.RequiresApproval || policyDecision.IsDeferred)
+                        {
+                            var outcome = policyDecision.Outcome == AiPolicyOutcome.Deny
+                                ? "denied"
+                                : policyDecision.Outcome == AiPolicyOutcome.RequireApproval
+                                    ? "requires approval"
+                                    : "deferred";
+                            throw new InvalidOperationException(
+                                "Execution policy " + outcome + ". " +
+                                (string.IsNullOrWhiteSpace(policyDecision.Reason) ? "No additional policy detail was provided." : policyDecision.Reason));
+                        }
+
+                        var candidates = _router
+                            .OrderProviders(snapshot.Agent, snapshot.Providers)
+                            .Where(x => string.Equals(x.Id, selectedTarget.ProviderId, StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                        if (candidates.Count == 0)
+                            throw new InvalidOperationException("The selected execution target references a provider that is not available: " + selectedTarget.ProviderId);
+
+                        var attempts = 0;
+                        Exception lastError = null;
+                        ProviderErrorKind lastErrorKind = ProviderErrorKind.Unknown;
+                        string lastProviderName = string.Empty;
+                        string lastModel = selectedTarget.ModelId;
+
+                        foreach (var provider in candidates)
+                        {
+                            if (attempts >= options.MaxProviderAttempts) break;
+                            await _interventionCoordinator.WaitIfPausedAsync(execution.Id, token).ConfigureAwait(false);
                             token.ThrowIfCancellationRequested();
-                            attempts++;
-                            if (attempts > options.MaxProviderAttempts) break;
 
-                            try
+                            var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
+                            if (adapter == null) continue;
+
+                            execution.LastProviderId = provider.Id;
+                            var retries = 0;
+
+                            while (true)
                             {
-                                var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
-                                    ? string.Empty
-                                    : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
-                                var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent, options.SystemPromptLayers);
-                                lastProviderName = provider.Name;
+                                await _interventionCoordinator.WaitIfPausedAsync(execution.Id, token).ConfigureAwait(false);
+                                token.ThrowIfCancellationRequested();
+                                attempts++;
+                                if (attempts > options.MaxProviderAttempts) break;
 
-                                var providerRequest = new ProviderExecutionRequest
+                                try
                                 {
-                                    Provider = provider,
-                                    Agent = snapshot.Agent,
-                                    ExecutionTarget = selectedTarget,
-                                    ApiKey = apiKey,
-                                    SystemPrompt = systemPrompt,
-                                    Messages = execution.Messages,
-                                    StructuredOutput = request.StructuredOutput
-                                };
+                                    var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
+                                        ? string.Empty
+                                        : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
+                                    var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent, options.SystemPromptLayers);
+                                    lastProviderName = provider.Name;
 
-                                var response = await AwaitProviderResponseAsync(
-                                    adapter.SendAsync(providerRequest, token),
-                                    token).ConfigureAwait(false);
-                                if (token.IsCancellationRequested)
-                                    throw new OperationCanceledException("Agent execution was cancelled before the provider response became authoritative.", token);
-
-                                if (request.StructuredOutput != null)
-                                {
-                                    var structuredValidation = StructuredOutputValidator.Validate(
-                                        request.StructuredOutput,
-                                        response == null ? string.Empty : response.StructuredOutputJson);
-                                    if (!structuredValidation.IsValid)
+                                    var providerRequest = new ProviderExecutionRequest
                                     {
-                                        throw new InvalidOperationException(
-                                            "Structured output validation failed: " + string.Join(" ", structuredValidation.Errors));
+                                        Provider = provider,
+                                        Agent = snapshot.Agent,
+                                        ExecutionTarget = selectedTarget,
+                                        ApiKey = apiKey,
+                                        SystemPrompt = systemPrompt,
+                                        Messages = execution.Messages,
+                                        StructuredOutput = request.StructuredOutput
+                                    };
+
+                                    var response = await AwaitProviderResponseAsync(
+                                        adapter.SendAsync(providerRequest, token),
+                                        token).ConfigureAwait(false);
+                                    await _interventionCoordinator.WaitIfPausedAsync(execution.Id, token).ConfigureAwait(false);
+                                    if (token.IsCancellationRequested)
+                                        throw new OperationCanceledException("Agent execution was cancelled before the provider response became authoritative.", token);
+
+                                    if (request.StructuredOutput != null)
+                                    {
+                                        var structuredValidation = StructuredOutputValidator.Validate(
+                                            request.StructuredOutput,
+                                            response == null ? string.Empty : response.StructuredOutputJson);
+                                        if (!structuredValidation.IsValid)
+                                        {
+                                            throw new InvalidOperationException(
+                                                "Structured output validation failed: " + string.Join(" ", structuredValidation.Errors));
+                                        }
+                                    }
+
+                                    if (execution.TryCompleteSucceeded(response, DateTimeOffset.UtcNow))
+                                    {
+                                        Notify(execution);
+                                        await PersistAuditAsync(execution).ConfigureAwait(false);
+                                        return execution;
+                                    }
+
+                                    throw new InvalidOperationException("Execution reached a terminal state before the provider response could be committed.");
+                                }
+                                catch (Exception ex)
+                                {
+                                    lastError = ex;
+                                    lastErrorKind = ClassifyProviderError(ex);
+                                    execution.ProviderErrorKind = lastErrorKind;
+                                    if (token.IsCancellationRequested) throw;
+
+                                    var retryable = lastErrorKind == ProviderErrorKind.Transient ||
+                                                    lastErrorKind == ProviderErrorKind.Unavailable ||
+                                                    lastErrorKind == ProviderErrorKind.RateLimited;
+
+                                    if (!retryable || retries >= options.MaxRetriesPerProvider)
+                                        break;
+
+                                    retries++;
+                                    var delay = CalculateBackoff(options.RetryBaseDelay, retries, lastErrorKind == ProviderErrorKind.RateLimited);
+                                    if (delay > TimeSpan.Zero)
+                                    {
+                                        await _interventionCoordinator.WaitIfPausedAsync(execution.Id, token).ConfigureAwait(false);
+                                        await Task.Delay(delay, token).ConfigureAwait(false);
                                     }
                                 }
-
-                                if (execution.TryCompleteSucceeded(response, DateTimeOffset.UtcNow))
-                                {
-                                    Notify(execution);
-                                    await PersistAuditAsync(execution).ConfigureAwait(false);
-                                    return execution;
-                                }
-
-                                throw new InvalidOperationException("Execution reached a terminal state before the provider response could be committed.");
-                            }
-                            catch (Exception ex)
-                            {
-                                lastError = ex;
-                                lastErrorKind = ClassifyProviderError(ex);
-                                execution.ProviderErrorKind = lastErrorKind;
-                                if (token.IsCancellationRequested) throw;
-
-                                var retryable = lastErrorKind == ProviderErrorKind.Transient ||
-                                                lastErrorKind == ProviderErrorKind.Unavailable ||
-                                                lastErrorKind == ProviderErrorKind.RateLimited;
-
-                                if (!retryable || retries >= options.MaxRetriesPerProvider)
-                                    break;
-
-                                retries++;
-                                var delay = CalculateBackoff(options.RetryBaseDelay, retries, lastErrorKind == ProviderErrorKind.RateLimited);
-                                if (delay > TimeSpan.Zero)
-                                    await Task.Delay(delay, token).ConfigureAwait(false);
                             }
                         }
-                    }
 
-                    execution.FailureKind = lastErrorKind == ProviderErrorKind.Authentication ||
-                                            lastErrorKind == ProviderErrorKind.InvalidRequest ||
-                                            lastErrorKind == ProviderErrorKind.ModelTermsRequired ||
-                                            lastErrorKind == ProviderErrorKind.PermissionDenied ||
-                                            lastErrorKind == ProviderErrorKind.ModelNotFound
-                        ? AgentExecutionFailureKind.Configuration
-                        : lastErrorKind == ProviderErrorKind.Unavailable
-                            ? AgentExecutionFailureKind.ProviderUnavailable
-                            : lastErrorKind == ProviderErrorKind.Transient || lastErrorKind == ProviderErrorKind.RateLimited
-                                ? AgentExecutionFailureKind.ProviderFailed
-                                : AgentExecutionFailureKind.Unknown;
+                        execution.FailureKind = lastErrorKind == ProviderErrorKind.Authentication ||
+                                                lastErrorKind == ProviderErrorKind.InvalidRequest ||
+                                                lastErrorKind == ProviderErrorKind.ModelTermsRequired ||
+                                                lastErrorKind == ProviderErrorKind.PermissionDenied ||
+                                                lastErrorKind == ProviderErrorKind.ModelNotFound
+                            ? AgentExecutionFailureKind.Configuration
+                            : lastErrorKind == ProviderErrorKind.Unavailable
+                                ? AgentExecutionFailureKind.ProviderUnavailable
+                                : lastErrorKind == ProviderErrorKind.Transient || lastErrorKind == ProviderErrorKind.RateLimited
+                                    ? AgentExecutionFailureKind.ProviderFailed
+                                    : AgentExecutionFailureKind.Unknown;
 
-                    var finalFailure = lastError ?? new InvalidOperationException(
-                        "Execution planner selected no executable provider target for agent: " + snapshot.Agent.Name);
-                    if (execution.TryCompleteFailed(
-                        finalFailure,
-                        execution.FailureKind,
-                        lastErrorKind,
-                        DateTimeOffset.UtcNow))
-                    {
-                        Notify(execution);
-                        await PersistAuditAsync(execution).ConfigureAwait(false);
+                        var finalFailure = lastError ?? new InvalidOperationException(
+                            "Execution planner selected no executable provider target for agent: " + snapshot.Agent.Name);
+                        if (execution.TryCompleteFailed(
+                            finalFailure,
+                            execution.FailureKind,
+                            lastErrorKind,
+                            DateTimeOffset.UtcNow))
+                        {
+                            Notify(execution);
+                            await PersistAuditAsync(execution).ConfigureAwait(false);
+                        }
+                        throw finalFailure;
                     }
-                    throw finalFailure;
-                }
-                catch (OperationCanceledException)
-                {
-                    var cancellationFailureKind = cancellationToken.IsCancellationRequested
-                        ? AgentExecutionFailureKind.Cancelled
-                        : AgentExecutionFailureKind.Timeout;
-                    Exception cancellationError = cancellationToken.IsCancellationRequested
-                        ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
-                        : new TimeoutException("Agent execution exceeded its configured timeout.");
-
-                    if (execution.TryCompleteCancelled(
-                        cancellationError,
-                        cancellationFailureKind,
-                        DateTimeOffset.UtcNow))
+                    catch (OperationCanceledException)
                     {
-                        Notify(execution);
-                        await PersistAuditAsync(execution).ConfigureAwait(false);
-                    }
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    if (token.IsCancellationRequested)
-                    {
-                        var cancellationFailureKind = cancellationToken.IsCancellationRequested
+                        var interventionCancelled = _interventionCoordinator.IsInterventionCancellationRequested(execution.Id);
+                        var cancellationFailureKind = cancellationToken.IsCancellationRequested || interventionCancelled
                             ? AgentExecutionFailureKind.Cancelled
                             : AgentExecutionFailureKind.Timeout;
                         Exception cancellationError = cancellationToken.IsCancellationRequested
                             ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
-                            : new TimeoutException("Agent execution exceeded its configured timeout.");
+                            : interventionCancelled
+                                ? new OperationCanceledException("Agent execution was cancelled by intervention.", token)
+                                : new TimeoutException("Agent execution exceeded its configured timeout.");
 
                         if (execution.TryCompleteCancelled(
                             cancellationError,
@@ -349,23 +354,52 @@ namespace HAgent.Runtime
                             Notify(execution);
                             await PersistAuditAsync(execution).ConfigureAwait(false);
                         }
-                        throw cancellationError;
+                        throw;
                     }
-
-                    var failureKind = execution.FailureKind == AgentExecutionFailureKind.None
-                        ? AgentExecutionFailureKind.Unknown
-                        : execution.FailureKind;
-                    if (execution.TryCompleteFailed(
-                        ex,
-                        failureKind,
-                        execution.ProviderErrorKind,
-                        DateTimeOffset.UtcNow))
+                    catch (Exception ex)
                     {
-                        Notify(execution);
-                        await PersistAuditAsync(execution).ConfigureAwait(false);
+                        if (token.IsCancellationRequested)
+                        {
+                            var interventionCancelled = _interventionCoordinator.IsInterventionCancellationRequested(execution.Id);
+                            var cancellationFailureKind = cancellationToken.IsCancellationRequested || interventionCancelled
+                                ? AgentExecutionFailureKind.Cancelled
+                                : AgentExecutionFailureKind.Timeout;
+                            Exception cancellationError = cancellationToken.IsCancellationRequested
+                                ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
+                                : interventionCancelled
+                                    ? new OperationCanceledException("Agent execution was cancelled by intervention.", token)
+                                    : new TimeoutException("Agent execution exceeded its configured timeout.");
+
+                            if (execution.TryCompleteCancelled(
+                                cancellationError,
+                                cancellationFailureKind,
+                                DateTimeOffset.UtcNow))
+                            {
+                                Notify(execution);
+                                await PersistAuditAsync(execution).ConfigureAwait(false);
+                            }
+                            throw cancellationError;
+                        }
+
+                        var failureKind = execution.FailureKind == AgentExecutionFailureKind.None
+                            ? AgentExecutionFailureKind.Unknown
+                            : execution.FailureKind;
+                        if (execution.TryCompleteFailed(
+                            ex,
+                            failureKind,
+                            execution.ProviderErrorKind,
+                            DateTimeOffset.UtcNow))
+                        {
+                            Notify(execution);
+                            await PersistAuditAsync(execution).ConfigureAwait(false);
+                        }
+                        throw;
                     }
-                    throw;
                 }
+            }
+            finally
+            {
+                _interventionCoordinator.UnregisterExecution(execution.Id);
             }
         }
 

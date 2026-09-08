@@ -41,15 +41,27 @@ namespace HAgent.WinForms.UI.Configuration.Providers
 
         private void Build()
         {
-            var root = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
+            var root = CreateListPageRoot();
+            root.Controls.Add(CreateListContent());
+            root.Controls.Add(CreateActionBar());
             root.Controls.Add(CreateHeader("Providers", "Connection, authentication, model defaults, and shared provider settings."));
-            var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 50, WrapContents = false, BackColor = Surface, Padding = new Padding(0, 2, 0, 0) };
+            Controls.Add(root);
+        }
+
+        private Control CreateActionBar()
+        {
+            var actions = CreateActionPanel();
             var add = CreateActionButton("+  Add provider", 148);
             var delete = CreateActionButton("Delete selected", 132, true);
             add.Click += async delegate { await EditAsync(null); };
             delete.Click += async delegate { await DeleteSelectedAsync(); };
             actions.Controls.Add(add);
             actions.Controls.Add(delete);
+            return actions;
+        }
+
+        private Control CreateListContent()
+        {
             ConfigureList(_list);
             _list.Columns.Add("Provider", 190);
             _list.Columns.Add("Type", 145);
@@ -61,9 +73,7 @@ namespace HAgent.WinForms.UI.Configuration.Providers
             {
                 if (_list.SelectedItems.Count > 0) await EditAsync((AiProvider)_list.SelectedItems[0].Tag);
             };
-            root.Controls.Add(_list);
-            root.Controls.Add(actions);
-            Controls.Add(root);
+            return _list;
         }
 
         private async Task EditAsync(AiProvider existing)

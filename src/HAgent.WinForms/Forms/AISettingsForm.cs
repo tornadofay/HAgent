@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.WinForms.Controls;
-using HAgent.WinForms.Forms;
 using HAgent.WinForms.UI.Configuration;
 using HAgent.WinForms.UI.Configuration.About;
 using HAgent.WinForms.UI.Configuration.Agents;
@@ -29,7 +27,7 @@ namespace HAgent.WinForms.Forms
         private readonly Panel _content = new Panel();
         private readonly FlowLayoutPanel _navigation = new FlowLayoutPanel();
         private readonly Dictionary<string, Func<Control>> _pages = new Dictionary<string, Func<Control>>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, Button> _navigationButtons = new Dictionary<string, Button>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Control> _navigationButtons = new Dictionary<string, Control>(StringComparer.OrdinalIgnoreCase);
         private readonly OverviewPage _overview;
         private readonly ProvidersPage _providers;
         private readonly AgentsPage _agents;
@@ -130,7 +128,7 @@ namespace HAgent.WinForms.Forms
             var page = factory();
             page.Dock = DockStyle.Fill;
             _content.Controls.Add(page);
-            Button active;
+            Control active;
             if (_navigationButtons.TryGetValue(name, out active))
                 active.Focus();
         }
@@ -139,7 +137,7 @@ namespace HAgent.WinForms.Forms
         {
             _context.Providers = await _context.Store.GetProvidersAsync();
             _context.Agents = await _context.Store.GetAgentsAsync();
-            _overview.Refresh();
+            _overview.RefreshData();
             _providers.RefreshData();
             _agents.RefreshData();
             _tools.RefreshData();
@@ -176,7 +174,7 @@ namespace HAgent.WinForms.Forms
                 ButtonDownBackGroundColor1 = Color.FromArgb(61, 43, 110),
                 ButtonDownBackGroundColor2 = Color.FromArgb(42, 29, 78),
                 ButtonDownForeColor = Color.White,
-                ButtonDownBorderColor = Color.FromArgb(104, 76, 170),
+                ButtonDownBorderColor = Color.FromArgb(104, 76, 176),
                 Font = new Font("Segoe UI", 9.5f)
             };
             return button;

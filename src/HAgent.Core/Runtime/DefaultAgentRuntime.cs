@@ -20,6 +20,8 @@ namespace HAgent.Runtime
         private readonly IExecutionAuditStore _auditStore;
         private readonly ExecutionAuditOptions _auditOptions;
         private readonly IAiPolicyEngine _configuredPolicyEngine;
+        private readonly IAiInterventionWorkflow _interventionWorkflow;
+        private readonly AiInterventionCoordinator _interventionCoordinator;
 
         public DefaultAgentRuntime(
             IAiStore store,
@@ -28,7 +30,7 @@ namespace HAgent.Runtime
             IProviderRouter router = null,
             IProviderErrorClassifier errorClassifier = null,
             IExecutionAuditStore auditStore = null)
-            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null, null, null)
+            : this(store, secrets, adapters, router, errorClassifier, auditStore, null, null, null, null, null, null)
         {
         }
 
@@ -42,7 +44,9 @@ namespace HAgent.Runtime
             ExecutionAuditOptions auditOptions,
             IExecutionPlanner executionPlanner = null,
             IExecutionTargetCatalog executionTargetCatalog = null,
-            IAiPolicyEngine policyEngine = null)
+            IAiPolicyEngine policyEngine = null,
+            IAiInterventionWorkflow interventionWorkflow = null,
+            IAiInterventionAuthorizer interventionAuthorizer = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -57,9 +61,18 @@ namespace HAgent.Runtime
             _auditOptions = auditOptions ?? new ExecutionAuditOptions();
             _auditOptions.Validate();
             _configuredPolicyEngine = policyEngine;
+            _interventionWorkflow = interventionWorkflow ?? new InMemoryAiInterventionWorkflow();
+            _interventionCoordinator = new AiInterventionCoordinator(
+                _interventionWorkflow,
+                ResolvePolicyEngineAsync,
+                interventionAuthorizer);
+            _interventionCoordinator.ExecutionChanged += InterventionExecutionChanged;
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
+
+        public IAiInterventionWorkflow InterventionWorkflow { get { return _interventionWorkflow; } }
+        public AiInterventionCoordinator InterventionCoordinator { get { return _interventionCoordinator; } }
 
         public Task<AgentExecution> ExecuteAsync(
             string agentId,
@@ -124,6 +137,7 @@ namespace HAgent.Runtime
             execution.HostCorrelationId = request.HostCorrelationId ?? string.Empty;
             execution.RuntimeInstanceId = options.RuntimeInstanceId;
             execution.RuntimeInstanceRevision = options.RuntimeInstanceRevision;
+            _interventionCoordinator.TrackExecution(execution);
 
             Notify(execution);
             execution.State = AgentExecutionState.Running;
@@ -131,7 +145,10 @@ namespace HAgent.Runtime
             Notify(execution);
 
             using (var timeoutCts = new CancellationTokenSource(options.Timeout))
-            using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token))
+            using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                timeoutCts.Token,
+                execution.InterventionCancellationToken))
             {
                 var token = linkedCts.Token;
                 try
@@ -174,18 +191,91 @@ namespace HAgent.Runtime
                         Identity = execution.Identity == null ? new AgentIdentityContext() : execution.Identity.Clone()
                     };
                     var policyDecision = policyEngine.Evaluate(policyContext);
+                    if (policyDecision == null)
+                        throw new InvalidOperationException("The policy engine returned no model execution decision.");
                     execution.PolicyDecision = policyDecision;
 
-                    if (policyDecision.IsDenied || policyDecision.RequiresApproval || policyDecision.IsDeferred)
+                    if (policyDecision.IsDenied)
                     {
-                        var outcome = policyDecision.Outcome == AiPolicyOutcome.Deny
-                            ? "denied"
-                            : policyDecision.Outcome == AiPolicyOutcome.RequireApproval
-                                ? "requires approval"
-                                : "deferred";
                         throw new InvalidOperationException(
-                            "Execution policy " + outcome + ". " +
+                            "Execution policy denied the model invocation. " +
                             (string.IsNullOrWhiteSpace(policyDecision.Reason) ? "No additional policy detail was provided." : policyDecision.Reason));
+                    }
+
+                    if (policyDecision.RequiresApproval || policyDecision.IsDeferred)
+                    {
+                        var intervention = await _interventionWorkflow.CreateAsync(
+                            policyDecision.RequiresApproval ? AiInterventionRequestKind.Approval : AiInterventionRequestKind.Deferral,
+                            AiInterventionTargetKind.Execution,
+                            policyDecision.RequiresApproval ? AiInterventionAction.Approve : AiInterventionAction.Defer,
+                            "model.invoke",
+                            "execution-target",
+                            selectedTarget.Id,
+                            execution.CorrelationId,
+                            execution.HostCorrelationId,
+                            snapshot.Agent.Id,
+                            execution.RuntimeInstanceId,
+                            execution.Id,
+                            string.Empty,
+                            policyDecision.Reason,
+                            execution.Identity,
+                            token,
+                            execution.ControlRevision).ConfigureAwait(false);
+
+                        execution.InterventionRequest = intervention;
+                        if (!execution.TrySetWaitingForIntervention())
+                            throw new OperationCanceledException("The execution could not enter its intervention wait state.", token);
+                        Notify(execution);
+
+                        AiInterventionRequest resolution;
+                        try
+                        {
+                            resolution = await _interventionWorkflow.WaitForResolutionAsync(
+                                intervention.RequestId,
+                                TimeSpan.FromMilliseconds(100),
+                                token).ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            try
+                            {
+                                await _interventionWorkflow.ExpireAsync(
+                                    intervention.RequestId,
+                                    new AgentIdentityContext(),
+                                    "Execution stopped before its intervention request could be resolved.",
+                                    CancellationToken.None).ConfigureAwait(false);
+                            }
+                            catch { }
+                            throw;
+                        }
+
+                        if (resolution.Status != AiInterventionRequestStatus.Approved)
+                        {
+                            if (resolution.Status == AiInterventionRequestStatus.Cancelled)
+                                throw new OperationCanceledException("The intervention request cancelled the execution.", token);
+                            throw new InvalidOperationException(
+                                "Execution intervention was not approved. Status: " + resolution.Status + ".");
+                        }
+
+                        if (!execution.TryResumeFromIntervention())
+                            throw new OperationCanceledException("The execution changed state before its approved intervention could be applied.", token);
+                        Notify(execution);
+
+                        var resumedDecision = policyEngine.Evaluate(policyContext);
+                        if (resumedDecision == null || resumedDecision.IsDenied || resumedDecision.RequiresApproval || resumedDecision.IsDeferred)
+                        {
+                            throw new InvalidOperationException(
+                                "Execution policy did not allow the approved model invocation to proceed. " +
+                                (resumedDecision == null || string.IsNullOrWhiteSpace(resumedDecision.Reason)
+                                    ? "No additional policy detail was provided."
+                                    : resumedDecision.Reason));
+                        }
+
+                        await _interventionWorkflow.CompleteAsync(
+                            intervention.RequestId,
+                            resolution.ResponderIdentity,
+                            "Approved intervention was applied by the runtime execution boundary.",
+                            CancellationToken.None).ConfigureAwait(false);
                     }
 
                     var candidates = _router
@@ -205,6 +295,7 @@ namespace HAgent.Runtime
                     {
                         if (attempts >= options.MaxProviderAttempts) break;
                         token.ThrowIfCancellationRequested();
+                        await execution.WaitForRunnableAsync(token).ConfigureAwait(false);
 
                         var adapter = _adapters.FirstOrDefault(x => x.CanHandle(provider));
                         if (adapter == null) continue;
@@ -215,6 +306,7 @@ namespace HAgent.Runtime
                         while (true)
                         {
                             token.ThrowIfCancellationRequested();
+                            await execution.WaitForRunnableAsync(token).ConfigureAwait(false);
                             attempts++;
                             if (attempts > options.MaxProviderAttempts) break;
 
@@ -242,6 +334,8 @@ namespace HAgent.Runtime
                                     token).ConfigureAwait(false);
                                 if (token.IsCancellationRequested)
                                     throw new OperationCanceledException("Agent execution was cancelled before the provider response became authoritative.", token);
+
+                                await execution.WaitForRunnableAsync(token).ConfigureAwait(false);
 
                                 if (request.StructuredOutput != null)
                                 {
@@ -366,7 +460,49 @@ namespace HAgent.Runtime
                     }
                     throw;
                 }
+                finally
+                {
+                    _interventionCoordinator.UntrackExecution(execution);
+                }
             }
+        }
+
+        public void RegisterInterventionTargetHandler(IAiInterventionTargetHandler handler)
+        {
+            _interventionCoordinator.RegisterTargetHandler(handler);
+        }
+
+        public bool UnregisterInterventionTargetHandler(IAiInterventionTargetHandler handler)
+        {
+            return _interventionCoordinator.UnregisterTargetHandler(handler);
+        }
+
+        public Task<AiInterventionRequest> ResolveInterventionAsync(
+            string requestId,
+            AiInterventionRequestStatus resolution,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _interventionCoordinator.ResolveAsync(requestId, resolution, responderIdentity, reason, cancellationToken);
+        }
+
+        public Task<AiInterventionApplicationResult> ApplyInterventionAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _interventionCoordinator.ApplyAsync(requestId, responderIdentity, reason, cancellationToken);
+        }
+
+        private async Task<IAiPolicyEngine> ResolvePolicyEngineAsync(CancellationToken cancellationToken)
+        {
+            if (_configuredPolicyEngine != null) return _configuredPolicyEngine;
+            var policy = await _store.GetPolicySetAsync(cancellationToken).ConfigureAwait(false);
+            if (policy == null) policy = new AiPolicySet();
+            policy.Validate();
+            return new DefaultAiPolicyEngine(policy);
         }
 
         private static string BuildPlannerFailureSummary(AiExecutionPlan plan)
@@ -459,6 +595,14 @@ namespace HAgent.Runtime
                 layers.Add(new SystemPromptLayer("agent", "Agent", agent.SystemPrompt, 200));
             if (executionLayers != null) layers.AddRange(executionLayers);
             return SystemPromptComposer.Compose(layers);
+        }
+
+        private void InterventionExecutionChanged(object sender, AgentExecutionEventArgs e)
+        {
+            if (e == null || e.Execution == null) return;
+            Notify(e.Execution);
+            if (e.Execution.IsCompleted)
+                _ = PersistAuditAsync(e.Execution);
         }
 
         private void Notify(AgentExecution execution)

@@ -72,10 +72,6 @@ namespace HAgent.Runtime
                 null).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Executes a tool for a live runtime instance. The profile resource capability policy and
-        /// runtime tri-state overrides are resolved for this invocation without mutating either source.
-        /// </summary>
         public async Task<ToolExecutionResult> ExecuteToolAsync(
             AgentRuntimeInstance instance,
             string toolId,
@@ -235,8 +231,10 @@ namespace HAgent.Runtime
 
                 if (policyDecision.RequiresApproval || policyDecision.IsDeferred)
                 {
-                    blocked.ApprovalRequest = await _approvalWorkflow.CreateAsync(
-                        policyDecision.RequiresApproval ? AiApprovalRequestKind.Approval : AiApprovalRequestKind.Deferral,
+                    blocked.InterventionRequest = await _interventionWorkflow.CreateAsync(
+                        policyDecision.RequiresApproval ? AiInterventionRequestKind.Approval : AiInterventionRequestKind.Deferral,
+                        AiInterventionTargetKind.Tool,
+                        policyDecision.RequiresApproval ? AiInterventionAction.Approve : AiInterventionAction.Defer,
                         "tool.invoke",
                         "tool",
                         toolId,

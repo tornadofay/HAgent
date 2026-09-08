@@ -9,6 +9,9 @@ namespace HAgent.Abstractions
     {
         event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
 
+        IAiInterventionWorkflow InterventionWorkflow { get; }
+        AiInterventionCoordinator InterventionCoordinator { get; }
+
         Task<AgentExecution> ExecuteAsync(
             string agentId,
             string message,

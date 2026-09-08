@@ -21,6 +21,11 @@ namespace HAgent.Runtime
             get { return _policy.Version; }
         }
 
+        public AiPolicySet GetPolicySnapshot()
+        {
+            return _policy.Clone();
+        }
+
         public AiPolicyDecision Evaluate(AiPolicyEvaluationContext context)
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
@@ -89,12 +94,12 @@ namespace HAgent.Runtime
         private static bool Matches(AiPolicyRule rule, AiPolicyEvaluationContext context)
         {
             if (!ScopeMatches(rule, context)) return false;
-            if (!MatchesValues(rule.Operations, context.Operation, false)) return false;
-            if (!MatchesValues(rule.ResourceTypes, context.ResourceType, false)) return false;
-            if (!MatchesValues(rule.ResourceIds, context.ResourceId, false)) return false;
-            if (!MatchesValues(rule.ToolIds, context.ToolId, false)) return false;
-            if (!MatchesValues(rule.ProviderIds, context.ProviderId, false)) return false;
-            if (!MatchesValues(rule.ExecutionTargetIds, context.ExecutionTargetId, false)) return false;
+            if (!MatchesValues(rule.Operations, context.Operation)) return false;
+            if (!MatchesValues(rule.ResourceTypes, context.ResourceType)) return false;
+            if (!MatchesValues(rule.ResourceIds, context.ResourceId)) return false;
+            if (!MatchesValues(rule.ToolIds, context.ToolId)) return false;
+            if (!MatchesValues(rule.ProviderIds, context.ProviderId)) return false;
+            if (!MatchesValues(rule.ExecutionTargetIds, context.ExecutionTargetId)) return false;
 
             foreach (var condition in rule.Attributes ?? new Dictionary<string, string>())
             {
@@ -136,10 +141,10 @@ namespace HAgent.Runtime
             }
         }
 
-        private static bool MatchesValues(IList<string> values, string actual, bool requiredWhenEmpty)
+        private static bool MatchesValues(IList<string> values, string actual)
         {
             if (values == null || values.Count == 0)
-                return !requiredWhenEmpty;
+                return true;
             foreach (var value in values)
                 if (string.Equals(value, actual, StringComparison.OrdinalIgnoreCase)) return true;
             return false;

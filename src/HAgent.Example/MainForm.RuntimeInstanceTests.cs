@@ -244,14 +244,36 @@ namespace HAgent.Example
 
         private async Task TestRuntimeStaleResultsAsync(string message)
         {
-            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
-            var profile = GetSelectedAgent();
-            if (profile == null)
-                throw new InvalidOperationException("Select an agent first.");
+            var store = new InMemoryAiStore();
+            var provider = new AiProvider
+            {
+                Id = "runtime-stale-results-provider-42",
+                Name = "Runtime Stale Results Provider",
+                Kind = "RuntimeStaleResultTest",
+                BaseUrl = "https://runtime-stale-results.test/v1",
+                DefaultModel = "runtime-stale-results-model-42",
+                Enabled = true
+            };
+            var profile = new AiAgent
+            {
+                Id = "runtime-stale-results-profile-42",
+                Name = "Runtime Stale Results Test Profile",
+                ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = AiSelectionMode.Preferred,
+                    Fallback = AiFallbackMode.TryNextCandidate,
+                    CostPolicy = AiCostPolicy.NoRestriction,
+                    PreferredProviderId = provider.Id
+                },
+                CapabilityRequirements = new AiCapabilityRequirements(),
+                Enabled = true
+            };
+
+            await store.SaveProviderAsync(provider).ConfigureAwait(true);
+            await store.SaveAgentAsync(profile).ConfigureAwait(true);
 
             var adapter = new RuntimeStaleResultTestAdapter();
-            var client = new HAgentClient(store, secrets, new[] { adapter });
+            var client = new HAgentClient(store, new NullSecretStore(), new[] { adapter });
             var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Task);
             var options = new AgentExecutionOptions
             {
@@ -299,7 +321,7 @@ namespace HAgent.Example
 
             public bool CanHandle(AiProvider provider)
             {
-                return provider != null;
+                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
             }
 
             public async Task<AIResponse> SendAsync(

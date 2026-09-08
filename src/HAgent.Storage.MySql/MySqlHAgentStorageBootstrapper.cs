@@ -97,7 +97,8 @@ namespace HAgent.Storage.MySql
                 "CREATE TABLE IF NOT EXISTS HAgentConversations (SessionId varchar(128) NOT NULL, AgentId varchar(128) NOT NULL, CreatedAt datetime(6) NOT NULL, UpdatedAt datetime(6) NOT NULL, MessagesJson longtext NOT NULL, PRIMARY KEY (SessionId));",
                 "CREATE TABLE IF NOT EXISTS HAgentSkills (Id varchar(128) NOT NULL, Name varchar(200) NOT NULL, Description longtext NULL, DefinitionJson longtext NULL, Enabled boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (Id));",
                 "CREATE TABLE IF NOT EXISTS HAgentWikiDocuments (Id varchar(128) NOT NULL, Title varchar(500) NOT NULL, Content longtext NOT NULL, Source varchar(1000) NULL, Version varchar(64) NULL, CreatedAt datetime(6) NOT NULL, UpdatedAt datetime(6) NOT NULL, PRIMARY KEY (Id));",
-                "CREATE TABLE IF NOT EXISTS HAgentWikiChunks (Id varchar(128) NOT NULL, DocumentId varchar(128) NOT NULL, ChunkIndex int NOT NULL, Content longtext NOT NULL, MetadataJson longtext NULL, PRIMARY KEY (Id), CONSTRAINT FK_HAgentWikiChunks_Document FOREIGN KEY (DocumentId) REFERENCES HAgentWikiDocuments(Id));"
+                "CREATE TABLE IF NOT EXISTS HAgentWikiChunks (Id varchar(128) NOT NULL, DocumentId varchar(128) NOT NULL, ChunkIndex int NOT NULL, Content longtext NOT NULL, MetadataJson longtext NULL, PRIMARY KEY (Id), CONSTRAINT FK_HAgentWikiChunks_Document FOREIGN KEY (DocumentId) REFERENCES HAgentWikiDocuments(Id));",
+                "CREATE TABLE IF NOT EXISTS HAgentPolicies (Id varchar(64) NOT NULL, PolicyVersion varchar(128) NOT NULL, PolicyJson longtext NOT NULL, PRIMARY KEY (Id)) ENGINE=InnoDB;"
             };
 
             foreach (var sql in statements)

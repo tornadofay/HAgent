@@ -7,12 +7,12 @@ namespace HAgent.Models
     public sealed class AgentExecutionSnapshot
     {
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers)
-            : this(agent, providers, null, null, null)
+            : this(agent, providers, null, null, null, null)
         {
         }
 
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides)
-            : this(agent, providers, overrides, null, null)
+            : this(agent, providers, overrides, null, null, null)
         {
         }
 
@@ -21,7 +21,7 @@ namespace HAgent.Models
             IReadOnlyList<AiProvider> providers,
             AgentRuntimeOverrides overrides,
             IReadOnlyDictionary<string, string> hostContext)
-            : this(agent, providers, overrides, hostContext, null)
+            : this(agent, providers, overrides, hostContext, null, null)
         {
         }
 
@@ -31,12 +31,25 @@ namespace HAgent.Models
             AgentRuntimeOverrides overrides,
             IReadOnlyDictionary<string, string> hostContext,
             AgentIdentityContext identity)
+            : this(agent, providers, overrides, hostContext, identity, null)
+        {
+        }
+
+        public AgentExecutionSnapshot(
+            AiAgent agent,
+            IReadOnlyList<AiProvider> providers,
+            AgentRuntimeOverrides overrides,
+            IReadOnlyDictionary<string, string> hostContext,
+            AgentIdentityContext identity,
+            AiPolicySet effectivePolicy)
         {
             Agent = CloneAgent(agent ?? throw new ArgumentNullException(nameof(agent)), overrides);
             Providers = CloneProviders(providers ?? throw new ArgumentNullException(nameof(providers)));
             RuntimeContext = CloneContext(overrides == null ? null : overrides.Context);
             HostContext = CloneContext(hostContext);
             Identity = identity == null ? new AgentIdentityContext() : identity.Clone();
+            EffectivePolicy = effectivePolicy == null ? new AiPolicySet() : effectivePolicy.Clone();
+            EffectivePolicy.Validate();
             CreatedAt = DateTimeOffset.UtcNow;
             Identity.Validate();
         }
@@ -46,6 +59,7 @@ namespace HAgent.Models
         public IReadOnlyDictionary<string, string> RuntimeContext { get; private set; }
         public IReadOnlyDictionary<string, string> HostContext { get; private set; }
         public AgentIdentityContext Identity { get; private set; }
+        public AiPolicySet EffectivePolicy { get; private set; }
         public DateTimeOffset CreatedAt { get; private set; }
 
         private static AiAgent CloneAgent(AiAgent source, AgentRuntimeOverrides overrides)

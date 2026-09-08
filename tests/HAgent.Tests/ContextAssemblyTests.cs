@@ -59,8 +59,8 @@ namespace HAgent.Tests
             Assert.Contains(result.AdmissionDecisions, x => x.ItemId == "low" && !x.Allowed && x.PolicyDecision.IsDenied);
             Assert.NotNull(result.Compaction);
             Assert.True(result.Compaction.WasTruncated);
-            Assert.Equal("memory", result.Snapshot.Items[0].Provenance.SourceKind);
-            Assert.Equal("memory-1", result.Snapshot.Items[0].Provenance.SourceId);
+            Assert.Equal("test", result.Snapshot.Items[0].Provenance.SourceKind);
+            Assert.Equal("assembly-source", result.Snapshot.Items[0].Provenance.SourceId);
         }
 
         [Fact]

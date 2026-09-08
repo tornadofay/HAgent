@@ -29,10 +29,15 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User Example verification — .NET 9, 2026-09-09 01:38:** same public-API scenario succeeded with the same contract checks.
    - No Slice 3 implementation was started in this run.
 
-3. **Trace-producing runtime instrumentation and propagation — CURRENT**
-   - Add the first runtime producers that create/propagate trace context through canonical execution, provider, tool, event, policy, and context boundaries without duplicating those subsystem contracts.
-   - Preserve execution, host, runtime, event, and identity correlation independently from TraceId/SpanId relationships.
-   - Add focused deterministic `HAgent.Tests` coverage and matching public-API `HAgent.Example` verification for propagation across the first integrated boundaries, including terminal/failure/cancellation paths exposed by those producers.
+3. **Trace-producing runtime instrumentation and propagation — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+   - Added provider-neutral tracing producers/decorators for the canonical execution lifecycle, policy evaluation, provider invocation, tool execution, context assembly, and event publication/handling boundaries.
+   - Added `TracePropagation` as the explicit host/internal propagation scope and `EventEnvelope.TraceContext` as the optional provider-neutral event propagation field; neither replaces existing correlation/causation identity.
+   - Kept runtime lifecycle as the sole execution producer so policy/context tracing is not duplicated when their dedicated tracing boundaries are composed.
+   - Preserved default-deny payload handling: tool arguments, event payload/context, prompts, provider responses, and raw host payloads are not copied into trace metadata.
+   - Hardened nested execution restoration so an outer trace context/correlation is restored after a traced execution completes or fails.
+   - Added focused `HAgent.Tests` coverage for execution/policy/provider hierarchy, tool/context/event parent propagation, correlation preservation, payload exclusion, failure and cancellation terminal statuses, and nested ambient-context restoration.
+   - Added and classified the matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Runtime Instrumentation`; it exercises success, provider failure, cancellation, policy/provider hierarchy, tool/context/event propagation, event handler parentage, correlation preservation, and payload omission using only deterministic in-process fakes.
+   - **Local verification required:** after pull, build the solution, run the `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not mark Slice 3 verified until those results are supplied.
    - Do not begin Slice 4 in the same run.
 
 ### Verification rule

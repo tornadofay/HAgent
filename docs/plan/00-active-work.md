@@ -7,7 +7,7 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Reconcile and verify the complete 0.955 context-engineering milestone after the verified end-to-end assembly pipeline.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 10 checkpoint.
 
 ## Current checkpoint
 
@@ -15,14 +15,14 @@ Phase 0.954 Prompt and Instruction Governance was verified and closed by the use
 
 ## Current run
 
-**0.955 final phase-verification checkpoint — documentation/roadmap reconciliation pending.**
+**0.955 Slice 11 implementation checkpoint — local verification pending.**
 
-The complete provider-neutral context pipeline now spans contract foundation, bounded acquisition, deterministic ranking/deduplication, compaction, reusable caching, execution/provider integration, bounded multi-resource retrieval, policy/capability-aware admission, and end-to-end assembly. The final step is to reconcile roadmap requirements against the verified implementation and identify any remaining requirement or architecture gap before closing 0.955.
+Slice 11 adds an opt-in host authorization boundary for protected data-backed context sources. Sources implementing `IContextDataAuthorizationSource` are checked through the existing host-owned `IDataAccessAuthorizer` after HAgent policy/capability admission and before source retrieval. Host authorization decisions fail closed when unavailable or denied, carry the canonical identity/source/query context through cloned authorization requests, propagate cancellation, and remain metadata-only in context diagnostics.
 
 ## Next action
 
-Review `docs/roadmap/955-context-engineering.md` against `docs/architecture/20-context.md`, `docs/architecture/11-instruction-governance.md`, the verified Slice 1–10 evidence, and the current Examples/tests. Update only the authoritative roadmap/architecture state needed to reflect what is actually implemented and verified. Do not claim 0.955 complete until all required roadmap checks are satisfied.
+Run the updated `HAgent.Tests` suite and the Context → Context Core → Context Host Authorization Example. The Slice 11 tests currently add 6 tests, so the expected full suite count is **56 tests**. Verify the Example on .NET Framework 4.8.1 and .NET 9. Record actual results before closing Slice 11 or selecting the final 0.955 phase-verification step.
 
 ## Current blockers
 
-No known implementation blocker. The connected session cannot execute the local .NET/WinForms build or Example; the user-provided local verification results are the verification evidence for Slice 10.
+No known source-level blocker remains. The connected session cannot execute the local .NET/WinForms build or Example; Slice 11 has not been claimed verified.

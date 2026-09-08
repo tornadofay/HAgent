@@ -7,12 +7,12 @@ namespace HAgent.Models
     public sealed class AgentExecutionSnapshot
     {
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers)
-            : this(agent, providers, null, null, null, null, null)
+            : this(agent, providers, null, null, null, null, null, null)
         {
         }
 
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides)
-            : this(agent, providers, overrides, null, null, null, null)
+            : this(agent, providers, overrides, null, null, null, null, null)
         {
         }
 
@@ -21,7 +21,7 @@ namespace HAgent.Models
             IReadOnlyList<AiProvider> providers,
             AgentRuntimeOverrides overrides,
             IReadOnlyDictionary<string, string> hostContext)
-            : this(agent, providers, overrides, hostContext, null, null, null)
+            : this(agent, providers, overrides, hostContext, null, null, null, null)
         {
         }
 
@@ -31,7 +31,7 @@ namespace HAgent.Models
             AgentRuntimeOverrides overrides,
             IReadOnlyDictionary<string, string> hostContext,
             AgentIdentityContext identity)
-            : this(agent, providers, overrides, hostContext, identity, null, null)
+            : this(agent, providers, overrides, hostContext, identity, null, null, null)
         {
         }
 
@@ -42,7 +42,7 @@ namespace HAgent.Models
             IReadOnlyDictionary<string, string> hostContext,
             AgentIdentityContext identity,
             AiPolicySet effectivePolicy)
-            : this(agent, providers, overrides, hostContext, identity, effectivePolicy, null)
+            : this(agent, providers, overrides, hostContext, identity, effectivePolicy, null, null)
         {
         }
 
@@ -54,6 +54,19 @@ namespace HAgent.Models
             AgentIdentityContext identity,
             AiPolicySet effectivePolicy,
             AiInstructionSnapshot instructionSnapshot)
+            : this(agent, providers, overrides, hostContext, identity, effectivePolicy, instructionSnapshot, null)
+        {
+        }
+
+        public AgentExecutionSnapshot(
+            AiAgent agent,
+            IReadOnlyList<AiProvider> providers,
+            AgentRuntimeOverrides overrides,
+            IReadOnlyDictionary<string, string> hostContext,
+            AgentIdentityContext identity,
+            AiPolicySet effectivePolicy,
+            AiInstructionSnapshot instructionSnapshot,
+            ContextSnapshot contextSnapshot)
         {
             var sourceAgent = agent ?? throw new ArgumentNullException(nameof(agent));
             Agent = CloneAgent(sourceAgent, overrides);
@@ -68,6 +81,7 @@ namespace HAgent.Models
             InstructionSnapshot = instructionSnapshot == null
                 ? new AiInstructionSnapshot(null, null)
                 : instructionSnapshot.Clone();
+            Context = contextSnapshot == null ? null : contextSnapshot.Clone();
             EffectivePolicy.Validate();
             EffectiveResourceCapabilities.Validate();
             CreatedAt = DateTimeOffset.UtcNow;
@@ -82,6 +96,12 @@ namespace HAgent.Models
         public AiPolicySet EffectivePolicy { get; private set; }
         public AiResourceCapabilitySnapshot EffectiveResourceCapabilities { get; private set; }
         public AiInstructionSnapshot InstructionSnapshot { get; private set; }
+
+        /// <summary>
+        /// Optional execution-owned provider-neutral context snapshot captured from the canonical request.
+        /// </summary>
+        public ContextSnapshot Context { get; private set; }
+
         public DateTimeOffset CreatedAt { get; private set; }
 
         internal void CaptureInstructionSnapshot(AiInstructionSnapshot instructionSnapshot)

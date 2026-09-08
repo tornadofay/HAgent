@@ -1,25 +1,44 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using HAgent.Abstractions;
 using HAgent.Models;
 
 namespace HAgent.Runtime
 {
     public sealed partial class HAgentClient
     {
-        private readonly IAiInterventionWorkflow _interventionWorkflow = new InMemoryAiInterventionWorkflow();
+        public IAiInterventionWorkflow InterventionWorkflow { get { return _runtime.InterventionWorkflow; } }
+        public AiInterventionCoordinator InterventionCoordinator { get { return _runtime.InterventionCoordinator; } }
 
-        public IAiInterventionWorkflow InterventionWorkflow { get { return _interventionWorkflow; } }
-
-        public Task<AiInterventionRequest> GetInterventionRequestAsync(string requestId, CancellationToken cancellationToken = default(CancellationToken))
+        public void RegisterInterventionTargetHandler(IAiInterventionTargetHandler handler)
         {
-            return _interventionWorkflow.GetAsync(requestId, cancellationToken);
+            _runtime.InterventionCoordinator.RegisterTargetHandler(handler);
         }
 
-        public Task<IReadOnlyList<AiInterventionRequest>> GetPendingInterventionRequestsAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public bool UnregisterInterventionTargetHandler(IAiInterventionTargetHandler handler)
         {
-            return _interventionWorkflow.GetPendingAsync(cancellationToken);
+            return _runtime.InterventionCoordinator.UnregisterTargetHandler(handler);
+        }
+
+        public Task<AiInterventionRequest> GetInterventionRequestAsync(
+            string requestId,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _runtime.InterventionWorkflow.GetAsync(requestId, cancellationToken);
+        }
+
+        public Task<IReadOnlyList<AiInterventionRequest>> GetPendingInterventionRequestsAsync(
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _runtime.InterventionWorkflow.GetPendingAsync(cancellationToken);
+        }
+
+        public Task<IReadOnlyList<AiInterventionRequest>> SearchInterventionRequestsAsync(
+            AiInterventionQuery query,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _runtime.InterventionWorkflow.SearchAsync(query, cancellationToken);
         }
 
         public Task<AiInterventionRequest> ResolveInterventionRequestAsync(
@@ -29,9 +48,22 @@ namespace HAgent.Runtime
             string reason = null,
             CancellationToken cancellationToken = default(CancellationToken))
         {
-            return _interventionWorkflow.ResolveAsync(
+            return _runtime.InterventionCoordinator.ResolveAsync(
                 requestId,
                 resolution,
+                responderIdentity,
+                reason,
+                cancellationToken);
+        }
+
+        public Task<AiInterventionApplicationResult> ApplyInterventionRequestAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason = null,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _runtime.InterventionCoordinator.ApplyAsync(
+                requestId,
                 responderIdentity,
                 reason,
                 cancellationToken);

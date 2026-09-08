@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
+using HAgent.Storage.File;
 
 namespace HAgent.Example
 {
@@ -20,9 +22,9 @@ namespace HAgent.Example
             AddApiTab(
                 "Unified Policy",
                 "Run policy contract test",
-                "Verifies deterministic policy outcomes, runtime enforcement before provider transport, provenance, scoped matching, cost restrictions, and effective policy snapshot isolation.",
-                "A policy decision must be reproducible from the same inputs, the exact effective policy must be captured by the execution snapshot, and prohibited provider execution must be blocked before transport is invoked.",
-                "Uses only local deterministic adapters and in-memory state.",
+                "Verifies deterministic policy outcomes, runtime enforcement before provider transport, provenance, scoped matching, cost restrictions, effective policy snapshot isolation, and persisted policy round-tripping.",
+                "A policy decision must be reproducible from the same inputs, the exact effective policy must be captured by the execution snapshot, persisted policy must round-trip without shared mutable state, and prohibited provider execution must be blocked before transport is invoked.",
+                "Uses only local deterministic adapters and temporary File storage.",
                 TestPolicyEngineAsync,
                 "Policy boundary",
                 "Policy is enforcement metadata, not prompt text. Host authentication and business authorization remain host-owned.");
@@ -160,6 +162,7 @@ namespace HAgent.Example
             if (tieDecision.RuleId != "tie-a" || !tieDecision.IsDenied)
                 throw new InvalidOperationException("Policy tie-breaking is not deterministic.");
 
+            await TestPolicyPersistenceAsync().ConfigureAwait(true);
             await TestRuntimePolicyEnforcementAsync().ConfigureAwait(true);
 
             Write(
@@ -170,12 +173,55 @@ namespace HAgent.Example
                 "Tenant/resource/tool matching: verified." + Environment.NewLine +
                 "Decision provenance and policy version: verified." + Environment.NewLine +
                 "Effective policy snapshot cloning/isolation: verified." + Environment.NewLine +
+                "Policy persistence round-trip: verified." + Environment.NewLine +
                 "FreeOnly paid/unknown cost denial: verified." + Environment.NewLine +
                 "FreePreferred behavior: verified." + Environment.NewLine +
                 "Deterministic tie-breaking: verified." + Environment.NewLine +
                 "Runtime provider-execution enforcement: verified." + Environment.NewLine +
                 "Provider transport calls under denial: 0." + Environment.NewLine +
                 "Selected rule: " + decision.RuleId);
+        }
+
+        private async Task TestPolicyPersistenceAsync()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "HAgent-Policy-" + Guid.NewGuid().ToString("N") + ".json");
+            try
+            {
+                var policy = new AiPolicySet { Version = "persisted-policy-42" };
+                var rule = new AiPolicyRule
+                {
+                    Id = "persisted-denial",
+                    Name = "Persisted denial",
+                    Scope = AiPolicyScopeKind.Provider,
+                    ScopeId = "provider-persisted-42",
+                    Priority = 42,
+                    Outcome = AiPolicyOutcome.Deny,
+                    Reason = "Persisted deterministic rule."
+                };
+                rule.Operations.Add("model.invoke");
+                policy.Rules.Add(rule);
+
+                var store = new FileAiStore(path);
+                await store.SavePolicySetAsync(policy, CancellationToken.None).ConfigureAwait(true);
+
+                var reloaded = new FileAiStore(path);
+                var loaded = await reloaded.GetPolicySetAsync(CancellationToken.None).ConfigureAwait(true);
+                if (loaded.Version != policy.Version || loaded.Rules.Count != 1 || loaded.Rules[0].Id != rule.Id ||
+                    loaded.Rules[0].ScopeId != rule.ScopeId || loaded.Rules[0].Priority != rule.Priority ||
+                    loaded.Rules[0].Outcome != rule.Outcome || loaded.Rules[0].Operations.Count != 1 ||
+                    loaded.Rules[0].Operations[0] != "model.invoke")
+                    throw new InvalidOperationException("Persisted policy did not round-trip its canonical rule state.");
+
+                loaded.Rules[0].Name = "Mutated loaded copy";
+                var reread = await reloaded.GetPolicySetAsync(CancellationToken.None).ConfigureAwait(true);
+                if (reread.Rules[0].Name != "Persisted denial")
+                    throw new InvalidOperationException("Policy storage returned shared mutable state instead of an owned clone.");
+            }
+            finally
+            {
+                try { if (File.Exists(path)) File.Delete(path); } catch { }
+                try { if (File.Exists(path + ".bak")) File.Delete(path + ".bak"); } catch { }
+            }
         }
 
         private async Task TestRuntimePolicyEnforcementAsync()

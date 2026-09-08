@@ -646,89 +646,56 @@ without replacing HAgent or introducing application-specific types into `HAgent.
 
 Only the current implementation milestone belongs here. Completed implementation history is recorded in the ordered roadmap under `docs/roadmap/`; future work does not belong here.
 
-## 0.959 Human-in-the-Loop and Intervention — CURRENT
+## 0.954 Prompt and Instruction Governance — CURRENT
 
-Phase 0.959 is the current intervention foundation. HAgent now has a canonical provider-neutral intervention request/lifecycle contract built on the bounded approval/defer boundary from 0.953. Execution intervention control and execution-target concurrency/stale-state hardening are implemented and locally verified by the user. Additional intervention targets are now being added only where their underlying provider-neutral contracts already exist.
+Phase 0.954 is the next ordered foundational milestone after the verified 0.953 Unified Policy Engine. The repository roadmap defines 0.954 through 0.958 as foundations that precede 0.959 Human-in-the-Loop / Intervention. Work that was implemented ahead of this order in 0.959 remains in source but is not treated as the current milestone or as evidence that the intervening phases are complete.
 
 ### Objective
 
-Allow authorized humans or host applications to inspect and control active HAgent work without creating a bypass around execution, policy, permissions, authorization, capabilities, budgets, cancellation, or host validation.
-
-### Completed in this milestone so far
-
-- Canonical `AiInterventionRequest` with request identity, target kind, requested action, lifecycle status, execution/resource context, HAgent/host correlation, requester/responder identity, policy reason, target state/version evidence, and resolution metadata.
-- `IAiInterventionWorkflow` and bounded in-memory implementation with cloned request boundaries and terminal-state protection.
-- Intervention lifecycle requires `Pending -> Approved -> Completed` for an accepted intervention; stale application may terminate as `Approved -> Expired`; terminal requests cannot be resolved again.
-- Tool execution creates canonical intervention requests for `RequireApproval` and `Defer`, with explicit tool target and requested-action semantics.
-- Tool execution results expose the intervention request.
-- Deterministic Example approval/defer verification uses the canonical intervention API.
-- Obsolete approval-only contract/facade files were removed in favor of the intervention model.
-- `DefaultAgentRuntime` owns the canonical execution intervention coordinator and links intervention cancellation into the existing execution cancellation path.
-- Execution pause/resume/cancel requests use the shared `HAgentClient` intervention workflow and do not introduce a second execution engine.
-- `HAgentClient.ExecutionChanged` and execution intervention APIs expose the host-facing control boundary through public APIs.
-- The `EXECUTION INTERVENTION` Example passed local verification on 2026-09-08, covering pause/resume/cancel lifecycle, public execution events, terminal cancellation, and late provider response protection.
-- Execution intervention requests now capture the observed control state and monotonic control-state version.
-- Competing execution interventions are serialized per execution and stale requests resolve deterministically to `Expired`.
-- Duplicate responder resolution is protected by request lifecycle state, and stale requests remain queryable with responder and stale-reason metadata.
-- The `INTERVENTION HARDENING` Example passed local verification on 2026-09-08, covering terminal staleness, target state/version capture, conflicting concurrent requests, paused-state blocking, and duplicate responders.
-- `AiLearningCandidate` now has revision-safe lifecycle state suitable for human intervention targeting.
-- `HAgentClient` now supports canonical `LearningCandidate` intervention requests for human `Approve` and `Reject`, including candidate-state/revision capture and serialized candidate resolution.
-- Learning-candidate stale requests resolve to `Expired` instead of changing a newer or terminal candidate.
-- A deterministic `LEARNING INTERVENTION` Example scenario has been added for approval, rejection, stale revisions, and conflicting concurrent review.
+Define trusted instruction layers and provenance so HAgent can safely combine system policy, agent instructions, Skills, Knowledge, Memory, tools, runtime context, user input, and externally retrieved content without allowing lower-authority or untrusted content to override higher-authority instructions or code-enforced controls.
 
 ### Run-sized execution plan
 
 Only one slice is **CURRENT** at a time. Each slice must reach a verified checkpoint before the next slice begins.
 
-1. **Complete — Execution control boundary**
-   - Scope: Integrate intervention application into the existing canonical runtime/execution lifecycle for pause, resume, and cancellation; preserve the existing execution engine and terminal-state rules.
-   - Entry: Canonical intervention workflow and execution lifecycle contracts exist.
-   - Implementation state: Complete in source; focused Example verification added.
-   - Verification state: **VERIFIED** — user executed the `EXECUTION INTERVENTION` Example on 2026-09-08 and all expected lifecycle, cancellation, and late-response assertions passed.
-   - Completion: Controlled execution can be paused/resumed/cancelled through the intervention boundary without a second execution engine, and focused deterministic verification passes in an executable environment.
+1. **CURRENT — Instruction source and authority contracts**
+   - Scope: Define the provider-neutral normalized instruction/source model, source type, authority/trust level, provenance, scope, lifecycle metadata, deterministic precedence, conflict representation, and execution-snapshot provenance.
+   - Entry: Verified 0.953 Unified Policy Engine; existing prompt construction and execution snapshot boundaries identified.
+   - Completion: Core contracts can represent trusted and untrusted instruction sources with deterministic authority/precedence semantics and evidence suitable for execution snapshots.
+   - Verification: Add deterministic Example coverage for source creation/validation, precedence, authority separation, and provenance.
 
-2. **Complete — Concurrency and stale-state hardening**
-   - Scope: Make intervention state transitions deterministic under concurrent requests, duplicate responders, late provider completion, retirement/shutdown teardown, and already-terminal executions.
-   - Entry: Slice 1 passes its focused lifecycle verification.
-   - Implementation state: Complete in source; deterministic Example verification added.
-   - Verification state: **VERIFIED** — user executed the `INTERVENTION HARDENING` Example on 2026-09-08 and all stale-state, concurrency, pause, and duplicate-responder assertions passed.
-   - Completion: concurrency/stale-request tests pass and late results cannot overwrite terminal outcomes.
+2. **Instruction composition and conflict handling**
+   - Scope: Integrate the contracts into canonical prompt/instruction assembly, preserve higher-authority layers, handle conflicts/invalid or unavailable sources, and keep secrets/sensitive host data out of diagnostics by default.
+   - Entry: Slice 1 verified.
+   - Completion: canonical instruction composition produces a deterministic provider-neutral snapshot and rejects/contains invalid authority transitions.
 
-3. **CURRENT — Additional intervention targets: LearningCandidate**
-   - Scope: Extend the canonical intervention mechanism to the already-defined `AiLearningCandidate` target. Support human `Approve` and `Reject`, preserve candidate lifecycle invariants, capture target state/revision evidence, serialize competing resolutions, and expire stale requests without retroactive mutation.
-   - Entry: Slices 1 and 2 pass their focused verification, and an existing provider-neutral learning-candidate lifecycle contract is available.
-   - Implementation state: Complete in source; deterministic Example verification added.
-   - Verification state: **BLOCKED** — the user has not yet executed the new `LEARNING INTERVENTION` Example in the supported build/run environment.
-   - Completion: learning-candidate intervention verification passes for approval, rejection, stale revision, terminal state, duplicate/concurrent review, and lifecycle-safe request resolution.
-   - Boundary: Goal/Plan and ConsequentialAction interventions remain deferred until their corresponding provider-neutral target contracts and owning runtime boundaries are defined; this slice does not invent those models.
+3. **Resource and external-content boundaries**
+   - Scope: Integrate Skills, Knowledge, Memory, tool descriptions, runtime context, host context, user content, and externally retrieved content with explicit trust/provenance semantics while keeping authorization outside prompt text.
+   - Entry: composition semantics verified.
+   - Completion: lower-authority/untrusted content cannot erase higher-authority policy or instruction layers, and disabled/unavailable sources remain diagnosable.
 
-4. **Durable intervention persistence**
-   - Scope: Persist intervention lifecycle/history through the existing canonical storage architecture without creating a parallel persistence model.
-   - Entry: lifecycle and target semantics are stable.
-   - Completion: persistence/reload, ownership, and terminal-state behavior are verified against the supported storage contracts.
+4. **Execution integration**
+   - Scope: Feed the effective instruction snapshot into the existing execution boundary without creating a second execution/prompt engine and preserve active-execution snapshot isolation.
+   - Entry: instruction model and composition are stable.
+   - Completion: running executions retain immutable effective instruction state even when source configuration changes.
 
-5. **Management UI and diagnostics**
-   - Scope: Expose pending/history intervention state through the designated configuration/management surfaces and diagnostics while keeping UI as a consumer of the canonical contracts.
-   - Entry: persistence and lifecycle contracts are stable.
-   - Completion: UI opens/loads, displays correct state, issues authorized controls, and handles stale/completed requests safely in the supported WinForms targets.
+5. **Example coverage and framework verification**
+   - Scope: Add deterministic public-API Example scenarios for precedence, conflicts, untrusted content, disabled resources, provenance, snapshot isolation, cancellation/failure boundaries, and supported framework targets.
+   - Entry: implementation is stable.
+   - Completion: the new Example coverage passes locally on the supported targets and the authoritative phase documents record verification.
 
-6. **Example coverage expansion**
-   - Scope: Add deterministic public-API Example scenarios for pause/resume, cancellation, concurrency, stale requests, target/action transitions, persistence, and failure boundaries.
-   - Entry: implementation and UI contracts are stable enough to exercise end-to-end.
-   - Completion: all required scenarios are reproducible and the Example host remains organized by feature.
+6. **Advance to 0.955 Context Engineering**
+   - Scope: Only after 0.954 is verified, update the active plan to the next roadmap phase.
 
-7. **Final framework/backend verification**
-   - Scope: Run the supported .NET Framework 4.8.1 and .NET 9 verification plus backend-specific live verification where configured.
-   - Entry: all implementation slices and Example verification are complete.
-   - Completion: actual builds/tests/examples have been executed and the authoritative documentation records the verified milestone state.
+### Relationship to 0.959 work already present in source
+
+A prior run advanced into 0.959 before 0.954–0.958 were completed. That was an ordering mistake, not a reason to redefine the roadmap. The existing 0.959 intervention code is retained as ahead-of-roadmap work in the source tree, but it is not considered a completed project milestone until the ordered foundational phases and their required verification are reached.
 
 ### Architectural boundaries
 
-The intervention boundary is provider-neutral and does not authenticate principals or replace host authorization. Policy decides when an intervention/approval boundary is required; intervention state records and applies the authorized control through the owning runtime boundary.
+Prompt/instruction governance is an authority and provenance boundary, not an authorization mechanism. Prompt text cannot grant permissions, bypass policy, approve protected operations, or elevate untrusted content. Provider adapters receive provider-neutral effective instructions and remain responsible only for transport-specific representation.
 
-Approval or intervention acceptance never directly executes a protected tool/provider call, silently resumes work, grants host authorization, or creates capabilities. The target runtime must still enforce policy, permissions, capability, budget, cancellation, and host-side validation.
-
-The canonical lifecycle, target/action semantics, concurrency rules, persistence boundary, and management UI requirements are defined in `docs/architecture/92-human-intervention.md`.
+The authoritative requirements for this phase are in `docs/roadmap/954-prompt-instruction-governance.md` and the broader instruction architecture. The roadmap order is normative unless an explicit architectural decision records a dependency-driven exception.
 
 ## Verification rule
 

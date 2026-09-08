@@ -15,6 +15,7 @@ namespace HAgent.Models
         public AgentIdentityContext Identity { get; set; }
         public IReadOnlyDictionary<string, object> Arguments { get; set; }
         public CancellationToken CancellationToken { get; set; }
+        public AiResourceCapabilitySnapshot EffectiveResourceCapabilities { get; set; }
 
         public ToolExecutionContext()
         {
@@ -25,6 +26,7 @@ namespace HAgent.Models
             ToolCallId = string.Empty;
             Identity = new AgentIdentityContext();
             Arguments = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            EffectiveResourceCapabilities = AiResourceCapabilitySnapshot.Resolve(null, null);
         }
     }
 

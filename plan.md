@@ -16,23 +16,24 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-The current 0.954 entry prerequisite is implemented in `HAgent.Example` through `src/HAgent.Example/MainForm.ExampleOrganization.cs`: architecture-level feature tabs are created, Context and Runtime use nested focused sub-tabs, and the ahead-of-roadmap Learning candidate intervention example is restored to the visible Cognition group. The prerequisite has not been locally verified in this connected environment.
+The 0.954 Example UI prerequisite is verified by the user on 2026-09-08. `LEARNING INTERVENTION`, `CONTEXT BUDGET`, and `RUNTIME INSTANCES` all ran successfully in the reorganized Example host, confirming the grouped/nested Example presentation is usable and the restored Learning intervention example remains runnable.
 
 ## Current run
 
-**Verified checkpoint/blocker — Example UI prerequisite awaiting local verification.**
+**Slice 1 — Instruction source and authority contracts — CURRENT.**
 
-- Implementation present: `MainForm.ExampleOrganization.cs`.
-- Required verification: build/run `HAgent.Example`; confirm top-level feature grouping and nested examples are usable, confirm `LEARNING INTERVENTION` is visible under `Cognition`, and confirm existing examples remain independently runnable.
-- Environment limitation: this session has GitHub repository access only; there is no local checkout or executable code build/test workflow available here. The repository's only GitHub Actions workflow is documentation generation, so it cannot substitute for the required local Example verification.
+- Entry condition satisfied: Example UI prerequisite verified; 0.953 Unified Policy Engine is already verified.
+- Scope: Define the provider-neutral normalized instruction/source model, source type, authority/trust level, provenance, scope, lifecycle metadata, deterministic precedence, conflict representation, and execution-snapshot provenance.
+- Completion condition: Core contracts represent trusted and untrusted instruction sources with deterministic authority/precedence semantics and evidence suitable for execution snapshots.
+- Verification target: deterministic Example coverage for source creation/validation, precedence, authority separation, and provenance.
 
 ## Current blockers
 
-The 0.954 implementation cannot begin until the Example UI prerequisite is locally verified, as required by `docs/plan/20-active.md`. No claim of local build/test success is made in this run.
+No blocker is currently recorded for Slice 1. The connected environment still does not provide executable local build/test capability, so code verification must follow the repository's established local Example workflow when implementation is committed.
 
 ## Next checkpoint
 
-After local Example verification succeeds, mark the prerequisite complete and make **0.954 slice 1 — Instruction source and authority contracts** the sole current slice. Do not begin slice 1 before that prerequisite is verified.
+Do not begin 0.954 Slice 2. Slice 1 must first be implemented and reach a verified complete or verified checkpoint/blocker state through its defined Example verification.
 
 ## Current project state
 

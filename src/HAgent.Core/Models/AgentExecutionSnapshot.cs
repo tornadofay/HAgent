@@ -84,6 +84,13 @@ namespace HAgent.Models
         public AiInstructionSnapshot InstructionSnapshot { get; private set; }
         public DateTimeOffset CreatedAt { get; private set; }
 
+        internal void CaptureInstructionSnapshot(AiInstructionSnapshot instructionSnapshot)
+        {
+            if (instructionSnapshot == null)
+                throw new ArgumentNullException(nameof(instructionSnapshot));
+            InstructionSnapshot = instructionSnapshot.Clone();
+        }
+
         private static AiAgent CloneAgent(AiAgent source, AgentRuntimeOverrides overrides)
         {
             var clone = new AiAgent

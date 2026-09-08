@@ -28,7 +28,6 @@ namespace HAgent.Runtime
             var usedCharacters = 0;
             var usedTokens = 0;
             var allTokensKnown = true;
-            var stop = false;
 
             for (var index = 0; index < rankedCandidates.Count; index++)
             {
@@ -45,10 +44,9 @@ namespace HAgent.Runtime
                 var usedCharactersBefore = usedCharacters;
                 var usedTokensBefore = allTokensKnown ? (int?)usedTokens : null;
 
-                if (stop || selected.Count >= budget.MaxItems)
+                if (selected.Count >= budget.MaxItems)
                 {
                     reason = ContextCompactionDecisionReason.ItemBudgetExhausted;
-                    stop = true;
                 }
                 else if (budget.MaxEstimatedTokens.HasValue && !candidate.EstimatedTokens.HasValue)
                 {
@@ -99,7 +97,7 @@ namespace HAgent.Runtime
                 }
 
                 if (!included && !effectiveOptions.ContinueAfterExcludedCandidate)
-                    stop = true;
+                    break;
             }
 
             var usedEstimatedTokens = allTokensKnown ? (int?)usedTokens : null;

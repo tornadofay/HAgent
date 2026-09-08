@@ -18,7 +18,7 @@ namespace HAgent.Tests
             var agent = CreateAgent();
             var store = CreateStore(agent, provider);
             var adapter = new ContextIntegrationAdapter();
-            var client = new HAgentClient(store, new NullSecretStore(), new[] { adapter });
+            var client = new HAgentClient(store, new FakeSecretStore(), new[] { adapter });
             var original = CreateSnapshot("context-42", "Customer 42");
 
             var request = new AgentExecutionRequest
@@ -52,7 +52,7 @@ namespace HAgent.Tests
             var agent = CreateAgent();
             var store = CreateStore(agent, provider);
             var adapter = new ContextIntegrationAdapter { FailWith = new InvalidOperationException("deterministic provider failure") };
-            var client = new HAgentClient(store, new NullSecretStore(), new[] { adapter });
+            var client = new HAgentClient(store, new FakeSecretStore(), new[] { adapter });
             var original = CreateSnapshot("context-failure-42", "Failure context");
 
             var request = new AgentExecutionRequest
@@ -128,6 +128,7 @@ namespace HAgent.Tests
 
         private static ContextSnapshot CreateSnapshot(string id, string payload)
         {
+            var capturedAt = new DateTimeOffset(2026, 9, 9, 0, 0, 0, TimeSpan.Zero);
             var item = new ContextItem
             {
                 Id = id,
@@ -140,13 +141,13 @@ namespace HAgent.Tests
                     SourceId = id,
                     SourceVersion = "1",
                     Evidence = "Deterministic context execution integration test",
-                    CapturedAt = new DateTimeOffset(2026, 9, 9, 0, 0, 0, TimeSpan.Zero)
+                    CapturedAt = capturedAt
                 },
                 Scope = new ContextScope { ScopeType = "User", ScopeId = "user-42" },
                 Trust = 0.9d,
                 Importance = 0.9d,
                 Relevance = 1d,
-                CapturedAt = new DateTimeOffset(2026, 9, 9, 0, 0, 0, TimeSpan.Zero),
+                CapturedAt = capturedAt,
                 EstimatedCharacters = payload.Length,
                 EstimatedTokens = 2
             };
@@ -158,7 +159,7 @@ namespace HAgent.Tests
                 payload.Length,
                 2,
                 1,
-                new DateTimeOffset(2026, 9, 9, 0, 0, 0, TimeSpan.Zero));
+                capturedAt);
         }
 
         private sealed class ContextIntegrationAdapter : IAiProviderAdapter, IProviderDiscovery
@@ -233,6 +234,24 @@ namespace HAgent.Tests
                     Model = request.ExecutionTarget.ModelId,
                     Text = "CONTEXT-INTEGRATION-OK"
                 });
+            }
+        }
+
+        private sealed class FakeSecretStore : ISecretStore
+        {
+            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.CompletedTask;
+            }
+
+            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.FromResult(string.Empty);
+            }
+
+            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                return Task.CompletedTask;
             }
         }
     }

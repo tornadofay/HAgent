@@ -16,13 +16,15 @@ The complete 0.954 implementation and verification sequence is complete.
    - The authoritative context architecture was reconciled with the current execution/context contracts, legacy conversation context implementation, and WinForms UI/data context adapters.
    - Existing mechanisms remain producer/input boundaries rather than competing canonical context architectures.
 
-2. **Provider-neutral context contract foundation — CURRENT**
-   - Scope: Core-only provider-neutral context item metadata/payload representation, explicit budget dimensions, bounded provenance/scope/trust/importance/freshness/size metadata, and the minimal candidate-source boundary. No ranking, compaction, cache, WinForms changes, or provider transport in this slice.
-   - Current implementation: context contracts and focused contract tests are implemented; deterministic public-API Example coverage has been added in `src/HAgent.Example/MainForm.ContextContracts.cs`.
-   - Required verification before completion: local targeted build/test plus deterministic Example execution. Per repository rule, the new public capability is not considered verified without matching Example coverage.
+2. **Provider-neutral context contract foundation — VERIFIED**
+   - Core contracts define provider-neutral context items, structured payloads, bounded provenance/scope/quality/size metadata, explicit item/character/token budget dimensions, bounded source requests, and clone isolation.
+   - Matching deterministic Example coverage was executed successfully on both .NET Framework 4.8.1 and .NET 9 on 2026-09-08.
+   - Verified Example results included contract validation, bounded metadata, structured payload preservation, explicit budget/source bounds, nested clone isolation, and no provider request.
 
-3. **Bounded context acquisition and canonical context snapshots — PLANNED**
+3. **Bounded context acquisition and canonical context snapshots — CURRENT**
    - Scope: implement bounded host/source acquisition and produce the immutable execution context snapshot, including cancellation and isolation from caller-owned mutable state.
+   - Current implementation: `ContextSnapshot`, `IContextAcquirer`, and `ContextAcquirer` are implemented in Core; deterministic xUnit coverage and a public-API `HAgent.Example` scenario are present.
+   - Verification target: local targeted build/test plus deterministic Example execution on both supported HAgent Core targets, including budget enforcement, source-order determinism, cancellation, and snapshot isolation.
 
 4. **Ranking, deterministic prioritization, and deduplication — PLANNED**
 5. **Compaction, truncation, and provenance-preserving diagnostics — PLANNED**

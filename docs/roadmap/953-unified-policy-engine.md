@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, canonical policy persistence, policy-gated tool invocation, policy-first host authorization composition, and profile/runtime resource capability resolution are implemented.**
+**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, canonical policy persistence, policy-gated tool invocation, policy-first host authorization composition, profile/runtime resource capability resolution, and typed learning-promotion policy transitions are implemented.**
 
 ## Goal
 
@@ -15,14 +15,14 @@ Unify HAgent's growing permission, capability, cost, learning, approval, resourc
 3. [x] Support policy scopes such as system, tenant, user, workspace, agent, runtime, execution, resource, tool, and provider/target where applicable.
 4. [x] Integrate existing permission/authorization concepts without replacing host-owned authorization.
 5. [x] Integrate cost policy (`FreeOnly`, `FreePreferred`, `NoRestriction`) through the policy system at the evaluation boundary.
-6. [ ] Integrate learning promotion policy and approval requirements into runtime learning workflows.
-7. [ ] Complete verification of capability/resource enablement and runtime tri-state overrides at the profile/runtime resource boundary, with execution snapshot capture and tool gating.
+6. [x] Integrate typed learning-promotion policy and explicit candidate review/approval/promotion transitions into the policy boundary.
+7. [x] Complete verification of capability/resource enablement and runtime tri-state overrides at the profile/runtime resource boundary, with execution snapshot capture and tool gating.
 8. [x] Support explicit policy precedence and deterministic conflict resolution.
 9. [x] Preserve policy provenance so diagnostics can explain which rule produced a decision.
 10. [x] Make policy evaluation deterministic where inputs are deterministic and expose an explicit policy version for cache invalidation.
 11. [x] Capture the full effective policy state in the execution snapshot, including the deep-cloned policy version/rules that govern the run.
 12. [x] Prevent prompt content from serving as the policy enforcement mechanism.
-13. [ ] Complete deterministic Example verification for the newly added resource capability resolution, persistence, snapshot isolation, and tool gating in addition to the already verified policy/authorization scenarios.
+13. [x] Complete deterministic Example verification for the newly added resource capability resolution, persistence, snapshot isolation, and tool gating in addition to the already verified policy/authorization scenarios.
 
 ## Implemented slices
 
@@ -51,20 +51,24 @@ The current implementation includes:
 - deterministic effective resolution with exact-resource precedence, resource-type fallback, `Inherit` fall-through, and default `Enabled` state;
 - `AgentExecutionSnapshot.EffectiveResourceCapabilities` capturing resolved resource enablement for each execution;
 - tool execution resource gating before executable handler side effects, including runtime-instance-specific overrides;
-- deterministic Example verification in `MainForm.PolicyTests.cs` and `MainForm.ResourceCapabilityTests.cs` for policy persistence, runtime enforcement, host authorization, and resource capability resolution, persistence, snapshot isolation, and tool gating.
+- `AiLearningPromotionRequest` for bounded typed candidate metadata and source identity;
+- `AiLearningPromotionPolicy` routing learning promotion through the existing `IAiPolicyEngine` using operation `learning.promote` and resource type `learning-candidate`;
+- `AiLearningCandidate` guarded `Proposed` / `PendingReview` / `Approved` / `Rejected` / `Promoted` transitions mapped from policy outcomes;
+- deterministic Example verification in `MainForm.PolicyTests.cs`, `MainForm.ResourceCapabilityTests.cs`, and `MainForm.LearningPolicyTests.cs` for policy persistence, runtime enforcement, host authorization, resource capability resolution/persistence/snapshot isolation/tool gating, and learning promotion/review transitions.
 
-Policy persistence and the provider/tool/data authorization paths were locally verified by the user on 2026-09-08. The resource capability implementation and its new Example verification are ready for the next local run and must not be described as passing until that Example test succeeds.
+Policy persistence, provider/tool/data authorization, and the resource capability boundary were locally verified by the user on 2026-09-08. The learning-promotion implementation and its new Example verification are ready for the next local run and must not be described as passing until that Example test succeeds.
 
 ## Remaining slices
 
-1. Verify the profile/runtime resource capability slice locally and then treat it as complete.
-2. Integrate learning-promotion policy, review requirements, and typed approval transitions.
-3. Add bounded human approval/defer workflow integration.
-4. Add policy management UI for rules, scopes, precedence, provenance, effective decisions, and resource capability state.
-5. Expand deterministic Example verification and backend-specific live verification where configured.
+1. Verify the learning-promotion policy/candidate transition slice locally and then treat it as complete.
+2. Add bounded human approval/defer workflow integration.
+3. Add policy management UI for rules, scopes, precedence, provenance, effective decisions, and resource capability state.
+4. Expand deterministic Example verification and backend-specific live verification where configured.
 
 ## Architectural rule
 
 The policy engine decides what HAgent is permitted or configured to do. It does not become an authentication provider or replace host authority over application side effects. Policy may further restrict a host operation, but an HAgent policy `Allow` never grants application authorization.
 
 Resource enablement is a separate configuration capability layer. It does not replace provider capability discovery or host authorization. An enabled resource must still pass any applicable policy and authorization boundaries before side effects occur.
+
+Learning promotion uses the same policy boundary rather than a parallel learning authorization evaluator. A typed candidate may move to `Approved` only through an `Allow` policy decision or explicit review after `RequireApproval`/`Defer`. Promotion to authoritative storage is a separate operation and is not performed by policy evaluation itself.

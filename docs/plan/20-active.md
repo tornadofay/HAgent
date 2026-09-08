@@ -8,35 +8,38 @@ Phase 0.954 is the next ordered foundational milestone after the verified 0.953 
 
 Work that was implemented ahead of the roadmap in 0.959 remains in source but is not treated as the current milestone or as evidence that the intervening phases are complete.
 
-### Pre-phase Example UI prerequisite — CURRENT
+### Pre-phase Example UI prerequisite — VERIFIED
 
-Before beginning 0.954 implementation, the manual verification host must be reorganized according to the Example UI rules in `AGENTS.md`: architecture-level top-level feature tabs, with multiple examples represented by nested focused tabs instead of an ever-growing flat tab list.
+Before beginning 0.954 implementation, the manual verification host was reorganized according to the Example UI rules in `AGENTS.md`: architecture-level top-level feature tabs, with multiple examples represented by nested focused tabs instead of an ever-growing flat tab list.
 
-- Entry: existing Example host contains a growing flat tab collection and the roadmap has been reset to the ordered 0.954 milestone.
+- Entry: existing Example host contained a growing flat tab collection and the roadmap had been reset to the ordered 0.954 milestone.
 - Scope: reorganize the existing Example UI into feature groups without changing the underlying Example test behavior; restore the existing `LEARNING INTERVENTION` example to the visible host; keep Example code split into focused partial files.
 - Implementation: `src/HAgent.Example/MainForm.ExampleOrganization.cs` creates the feature-group/nested-tab presentation during `MainForm.OnLoad` and adds the already-implemented learning intervention example before grouping.
-- Verification: user builds/runs `HAgent.Example`, confirms the top-level feature groups and nested examples are usable, confirms `LEARNING INTERVENTION` is present under `Cognition`, and confirms existing examples remain independently runnable.
-- Completion: the UI is locally verified and no Example test capability is lost or duplicated.
+- Verification: user verified successful `LEARNING INTERVENTION`, `CONTEXT BUDGET`, and `RUNTIME INSTANCES` examples in the reorganized host on 2026-09-08.
+- Completion: verified by the user; no Example test capability was reported lost or duplicated.
 
 ### 0.954 Run-sized execution plan
 
 Only one slice is **CURRENT** at a time. Each slice must reach a verified checkpoint before the next slice begins.
 
-1. **Instruction source and authority contracts**
+1. **Instruction source and authority contracts — VERIFIED**
    - Scope: Define the provider-neutral normalized instruction/source model, source type, authority/trust level, provenance, scope, lifecycle metadata, deterministic precedence, conflict representation, and execution-snapshot provenance.
    - Entry: Verified Example UI prerequisite and verified 0.953 Unified Policy Engine; first-class resource foundations are established in the 0.8 architecture and existing resource contracts must be consumed rather than replaced.
    - Completion: Core contracts can represent trusted and untrusted instruction sources with deterministic authority/precedence semantics and evidence suitable for execution snapshots.
-   - Verification: Add deterministic Example coverage for source creation/validation, precedence, authority separation, and provenance.
+   - Verification: User executed `COGNITION INSTRUCTIONS` and confirmed source creation/validation, authority-vs-trust separation, precedence, explicit priority, conflict representation, and provenance-preserving snapshot cloning.
 
-2. **Instruction composition and conflict handling**
+2. **Instruction composition and conflict handling — VERIFIED**
    - Scope: Integrate the contracts into canonical prompt/instruction assembly, preserve higher-authority layers, handle conflicts/invalid or unavailable sources, and keep secrets/sensitive host data out of diagnostics by default.
    - Entry: Slice 1 verified.
    - Completion: canonical instruction composition produces a deterministic provider-neutral snapshot and rejects/contains invalid authority transitions.
+   - Verification: User executed the updated `COGNITION INSTRUCTIONS` and confirmed additive composition, deterministic conflicts, disabled/invalid containment, and secret-safe diagnostics.
 
-3. **Resource and external-content boundaries**
+3. **Resource and external-content boundaries — CURRENT**
    - Scope: Integrate the canonical first-class Skills, Knowledge, Memory, tool descriptions, runtime context, host context, user content, and externally retrieved content with explicit trust/provenance semantics while keeping authorization outside prompt text. Do not implement mature resource governance here; consume the Phase 0.8 resource substrate and preserve the later Phase 0.9575 governance boundary.
-   - Entry: composition semantics verified.
+   - Entry: Slice 2 verified.
+   - Implementation: `AiInstructionSourceFactory` provides the provider-neutral mapping; `AiInstructionAvailability` distinguishes available, disabled, and unavailable sources; `AiInstructionComposer` excludes unavailable sources while preserving bounded metadata-only diagnostics; the Example exercises the trust boundary.
    - Completion: lower-authority/untrusted content cannot erase higher-authority policy or instruction layers, and disabled/unavailable sources remain diagnosable.
+   - Verification: build/run `HAgent.Example` and execute **COGNITION INSTRUCTIONS → Run instruction contract test**.
 
 4. **Execution integration**
    - Scope: Feed the effective instruction snapshot into the existing execution boundary without creating a second execution/prompt engine and preserve active-execution snapshot isolation.

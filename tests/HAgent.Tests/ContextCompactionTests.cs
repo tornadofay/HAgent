@@ -50,8 +50,9 @@ namespace HAgent.Tests
             {
                 CreateItem("fits", "A", 1d, 10, 2, now),
                 CreateItem("too-large", "B", 0.9d, 95, 2, now),
-                CreateItem("too-many-tokens", "C", 0.8d, 10, 9, now),
-                CreateItem("unknown-tokens", "D", 0.7d, 10, null, now)
+                CreateItem("fits-token", "C", 0.8d, 10, 8, now),
+                CreateItem("too-many-tokens", "D", 0.75d, 10, 9, now),
+                CreateItem("unknown-tokens", "E", 0.7d, 10, null, now)
             };
 
             var result = new ContextCompactor().Compact(candidates, new ContextCompactionOptions
@@ -64,14 +65,15 @@ namespace HAgent.Tests
                 }
             });
 
-            Assert.Equal(new[] { "fits", "too-many-tokens" }, result.Decisions
+            Assert.Equal(new[] { "fits", "fits-token" }, result.Decisions
                 .Where(x => x.Included)
                 .Select(x => x.ItemId)
                 .ToArray());
             Assert.Equal(ContextCompactionDecisionReason.CharacterBudgetExceeded, result.Decisions[1].Reason);
-            Assert.Equal(ContextCompactionDecisionReason.TokenBudgetExceeded, result.Decisions[2].Reason);
-            Assert.Equal(ContextCompactionDecisionReason.UnknownTokenEstimate, result.Decisions[3].Reason);
-            Assert.Equal(8, result.Snapshot.UsedEstimatedTokens);
+            Assert.Equal(ContextCompactionDecisionReason.Included, result.Decisions[2].Reason);
+            Assert.Equal(ContextCompactionDecisionReason.TokenBudgetExceeded, result.Decisions[3].Reason);
+            Assert.Equal(ContextCompactionDecisionReason.UnknownTokenEstimate, result.Decisions[4].Reason);
+            Assert.Equal(10, result.Snapshot.UsedEstimatedTokens);
         }
 
         [Fact]
@@ -97,7 +99,7 @@ namespace HAgent.Tests
 
             Assert.Empty(result.Snapshot.Items);
             Assert.True(result.WasTruncated);
-            Assert.Equal(1, result.Decisions.Count);
+            Assert.Single(result.Decisions);
             Assert.Equal(ContextCompactionDecisionReason.CharacterAndTokenBudgetExceeded, result.Decisions[0].Reason);
         }
 

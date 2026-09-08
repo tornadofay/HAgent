@@ -191,13 +191,19 @@ namespace HAgent.Example
 
             if (layout != null && layout.RowCount == 4 && layout.Controls.Count >= 4)
             {
-                // The Description + Expected result content is intentionally one combined
-                // label. Give it enough height for wrapping instead of introducing a second
-                // competing information panel.
+                bool deeplyNested = IsDeeplyNestedExamplePage(page);
+
+                // Keep the normal layout unchanged for all existing examples. Runtime and
+                // Context have one additional Feature -> Sub-area -> Example tab level, so
+                // their description panel needs a little more fixed height to keep the
+                // Expected result section from crowding the wrapped description text.
                 layout.RowStyles[0] = new RowStyle(SizeType.Absolute, 44);
-                layout.RowStyles[1] = new RowStyle(SizeType.Percent, 52);
-                layout.RowStyles[2] = new RowStyle(SizeType.Percent, 31);
+                layout.RowStyles[1] = new RowStyle(SizeType.Percent, deeplyNested ? 45 : 52);
+                layout.RowStyles[2] = new RowStyle(SizeType.Absolute, deeplyNested ? 126 : 0);
                 layout.RowStyles[3] = new RowStyle(SizeType.Absolute, 48);
+
+                if (!deeplyNested)
+                    layout.RowStyles[2] = new RowStyle(SizeType.Percent, 31);
 
                 var details = layout.GetControlFromPosition(0, 2) as Label;
                 if (details != null)
@@ -218,6 +224,27 @@ namespace HAgent.Example
 
             foreach (Control child in root.Controls)
                 NormalizeControlsRecursive(child);
+        }
+
+        private static bool IsDeeplyNestedExamplePage(TabPage page)
+        {
+            if (page == null)
+                return false;
+
+            int tabControlAncestors = 0;
+            Control current = page.Parent;
+            while (current != null)
+            {
+                if (current is TabControl)
+                    tabControlAncestors++;
+                current = current.Parent;
+            }
+
+            // Runtime/Context examples are the only pages currently using the extra
+            // Feature -> Sub-area -> Example hierarchy.
+            return tabControlAncestors >= 2 &&
+                   (GetExampleFeatureGroup(page.Text) == "Runtime" ||
+                    GetExampleFeatureGroup(page.Text) == "Context");
         }
 
         private static string GetExampleSubGroup(string title)

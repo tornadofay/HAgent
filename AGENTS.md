@@ -86,7 +86,7 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 63. Application-owned objects may be attached as live runtime context and inspected through bounded, non-executable discovery.
 64. Discovery describes evidence; it never grants authorization or invents business meaning.
 65. Explicit developer semantics/authorization may override or enrich automatic discovery.
-66. Generic context may represent observations, state snapshots, events, records, objects, resources, or other host information without HAgent assigning domain meaning.
+66. Generic context may represent observations, state snapshots, events, records, resources, or other host information without HAgent assigning domain meaning.
 
 ## Multi-agent and workspace behavior
 
@@ -133,10 +133,10 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 
 99. `HAgent.Example` is the manual developer/verification host; it is separate from `HAgent.Tests`.
 100. Every meaningful completed capability requires matching Example verification using public APIs.
-101. Organize Example UI by feature. As the number of examples grows, use top-level feature tabs such as **Tools**, **Context**, **Memory**, **Policy**, **Providers**, **Runtime**, **Cognition**, etc., rather than an ever-growing flat tab list.
-102. When a feature has multiple examples, place a nested `TabControl` inside that feature page and give each example its own focused sub-tab. For example: **Tools** → **Tool Registry**, **Tool Loop**, **Tool Validation**, **Tool Persistence**, and related tool scenarios.
+101. Organize Example UI by architecture and capability. Before registering a new example, determine its intended top-level feature group and, when that feature uses sub-areas, its intended sub-area. Add explicit classification rules in the Example organization shell when the title is not already covered; never allow a new example to fall into a default or unrelated group merely because it was easier to register.
+102. When a feature has multiple examples, place a nested `TabControl` inside that feature page and give each example its own focused sub-tab. For features with distinct sub-areas, use **Feature → Sub-area → Example**. For example: **Context → Context Core → Context Contracts / Context Acquisition**, **Context → UI Context → UI scenarios**, and **Tools → tool scenarios**.
 103. Group examples according to architecture and capability boundaries, not merely implementation class names. Keep each example independently understandable and easy to run.
-104. Keep Example code split across focused partial files/components matching feature groupings where practical.
+104. Keep Example code split across focused partial files/components matching feature groupings where practical. The grouping shell owns presentation classification only; test implementation stays in its focused example file.
 105. Example scenarios must be reproducible and explain required setup or shared setup.
 106. Every meaningful capability should have deterministic verification for important success, failure, cancellation, concurrency, persistence, and boundary cases appropriate to its design.
 107. Do not claim build/test success unless it was actually executed.
@@ -160,7 +160,7 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 119. Substantial features must be implemented against the **complete intended architecture that can reasonably be derived before coding**, not against a deliberately simplified or temporary version intended to be redesigned later.
 120. Before implementing substantial work, inspect the existing architecture and implementation, identify dependencies and invariants, and reason through known lifecycle, persistence, concurrency, failure, security, performance, compatibility, and extension requirements.
 121. Do not knowingly defer foundational requirements merely to make implementation easier or faster to demonstrate when those requirements are already part of the intended design.
-122. Testing is primarily for verification, defect discovery, regression detection, and genuinely unforeseen interactions. Do not use testing as a substitute for architectural analysis that should have happened before implementation.
+122. Testing is primarily for verification, defect discovery, regression detection, and genuinely unforeseen interactions. Do not use testing as a substitute for architectural analysis that should have happened before coding.
 123. When testing reveals a requirement or interaction that could not reasonably have been known beforehand, update the authoritative architecture/decision documentation rather than applying an undocumented workaround.
 124. Code may be refined after testing, but refinement should normally correct defects, improve clarity/performance, or incorporate genuinely new information—not replace an intentionally incomplete architecture.
 125. When uncertain whether a proposed implementation is a complete target design or only a temporary simplification, resolve that uncertainty before coding and make the decision explicit in the relevant architecture/decision document.
@@ -184,18 +184,4 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 ## Persistent project-memory protocol
 
 139. The repository is the durable project memory for development across constrained, interrupted, or new AI sessions. Use small purpose-specific Markdown documents to preserve the minimum state needed to resume work safely.
-140. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation step into them.
-141. Keep each memory document small and purpose-specific. Prefer updating/replacing current state over continuously appending history.
-142. Use the current-state document for project position, the active-work document for unfinished work, the decisions document for durable decisions, and architecture documents for detailed subsystem design.
-143. Before starting substantial work, read the relevant current-state, active-work, architecture, and decision documents before designing or changing implementation.
-144. Active unfinished work must have one clear authoritative work record. Do not begin a parallel implementation of the same scope unless the active scope is explicitly changed.
-145. Update active-work state when scope, completion state, blockers, or next work changes materially. Close/remove completed work from active state once it is represented by the appropriate authoritative project document.
-146. Record only durable architectural decisions, invariants, rejected alternatives that prevent future confusion, and important discoveries that materially affect future work. Do not record routine coding history.
-147. Never create duplicate sources of truth. One document should own each durable fact; other documents should reference it where useful.
-148. When information conflicts, do not silently choose one. Resolve the conflict against the authoritative architecture/current state, then update the relevant source explicitly.
-149. Never silently delete important persistent knowledge. If a decision becomes obsolete, mark it superseded and record the replacement where the distinction matters.
-150. When implementation changes architecture, milestone state, or a durable decision, update the relevant authoritative document in the same change set whenever practical.
-151. At the end of substantial work, update the compact project-memory state so the next session can identify what is complete, what remains, what is blocked, and where authoritative details live.
-152. Before starting a new task, check the active-work state and current project state so unfinished work is continued or deliberately superseded rather than duplicated or lost.
-153. Do not create a new memory file merely because a task is large. Add or update an existing authoritative document when the information fits its purpose; create a new persistent document only when it has a distinct long-lived responsibility.
-154. Generated root documents remain views. Persistent memory belongs in authoritative source documents, not in generated `plan.md` or `roadmap.md`.
+140. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation detail into the repository merely for continuity.

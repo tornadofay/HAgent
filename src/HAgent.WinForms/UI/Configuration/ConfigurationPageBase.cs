@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using HAgent.WinForms.Helpers.Button;
 
 namespace HAgent.WinForms.UI.Configuration
 {
@@ -20,24 +21,8 @@ namespace HAgent.WinForms.UI.Configuration
         protected Panel CreateHeader(string title, string description, int height = 70)
         {
             var header = new Panel { Dock = DockStyle.Top, Height = height, BackColor = Surface };
-            header.Controls.Add(new Label
-            {
-                Text = title,
-                AutoSize = true,
-                Left = 0,
-                Top = 0,
-                Font = new Font("Segoe UI", 16f, FontStyle.Bold),
-                ForeColor = Heading
-            });
-            header.Controls.Add(new Label
-            {
-                Text = description,
-                AutoSize = true,
-                Left = 1,
-                Top = 35,
-                Font = new Font("Segoe UI", 8.8f),
-                ForeColor = Muted
-            });
+            header.Controls.Add(new Label { Text = title, AutoSize = true, Left = 0, Top = 0, Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = Heading });
+            header.Controls.Add(new Label { Text = description, AutoSize = true, Left = 1, Top = 35, Font = new Font("Segoe UI", 8.8f), ForeColor = Muted });
             return header;
         }
 
@@ -55,18 +40,7 @@ namespace HAgent.WinForms.UI.Configuration
 
         protected static HButton CreateActionButton(string text, int width, bool destructive = false)
         {
-            var button = new HButton
-            {
-                Text = text,
-                Width = width,
-                Height = 36,
-                RoundButton = true,
-                Edge = 10,
-                TextAlign = ContentAlignment.MiddleCenter,
-                TextMargin = 8,
-                Font = new Font("Segoe UI", 9.2f, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
+            var button = new HButton { Text = text, Width = width, Height = 36, RoundButton = true, Edge = 10, TextAlign = ContentAlignment.MiddleCenter, TextMargin = 8, Font = new Font("Segoe UI", 9.2f, FontStyle.Bold), Cursor = Cursors.Hand };
             button.ButtonLeaveBackGroundColor1 = destructive ? Color.FromArgb(183, 61, 89) : Color.FromArgb(92, 67, 168);
             button.ButtonLeaveBackGroundColor2 = destructive ? Color.FromArgb(119, 38, 62) : Color.FromArgb(57, 40, 108);
             button.ButtonLeaveForeColor = Color.White;

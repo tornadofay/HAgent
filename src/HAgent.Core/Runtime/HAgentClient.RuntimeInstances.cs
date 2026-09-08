@@ -70,8 +70,11 @@ namespace HAgent.Runtime
                 Messages = request.Messages,
                 HostCorrelationId = request.HostCorrelationId,
                 HostContext = request.HostContext,
+                Identity = request.Identity,
                 Options = effective,
-                StructuredOutput = request.StructuredOutput
+                StructuredOutput = request.StructuredOutput,
+                ExecutionSelection = request.ExecutionSelection,
+                CapabilityRequirements = request.CapabilityRequirements
             };
 
             using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(

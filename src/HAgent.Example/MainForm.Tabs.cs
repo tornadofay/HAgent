@@ -53,7 +53,14 @@ namespace HAgent.Example
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 88));
+            var detailsHeight = string.Equals(title, "Runtime Execution", StringComparison.OrdinalIgnoreCase)
+                || title.StartsWith("UI ", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(title, "Application Object Context", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(title, "Context Budget", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(title, "Data Query Contract", StringComparison.OrdinalIgnoreCase)
+                ? 112
+                : 88;
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, detailsHeight));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
             var editors = new TableLayoutPanel

@@ -12,27 +12,25 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 5 checkpoint after 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 6 checkpoint after 0.954.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, and 5 have subsequently been verified by the user. Slice 5 was verified on 2026-09-09 with 29/29 HAgent.Tests passing and the deterministic public-API Context Compaction Example passing.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, 5, and 6 have subsequently been verified by the user. Slice 6 was verified on 2026-09-09 with 34/34 HAgent.Tests passing and the deterministic public-API Context Cache Example passing.
 
 ## Current run
 
-**0.955 Slice 6 implementation checkpoint — local verification pending.**
+**0.955 Slice 7 implementation checkpoint — local verification pending.**
 
-Slice 6 implementation is now present in Core with explicit `ContextCacheKey` ownership/version identity, `ContextCacheEntry`, the generic `IContextCache` contract, and a thread-safe `InMemoryContextCache`. The cache identity covers component, scope, configuration version, resource version, and freshness version; entries also have explicit expiration. A matching public-API `HAgent.Example` Context Cache scenario and five focused xUnit tests cover valid reuse, scope/version/freshness isolation, expiration, explicit invalidation/clear, and cached snapshot metadata isolation.
-
-Local verification has not yet been performed for Slice 6. The expected next verification is the updated `HAgent.Tests` suite plus the Context → Context Core → Context Cache Example on the supported local targets.
+Slice 7 is scoped to integrating the canonical context pipeline with execution/provider-facing boundaries while preserving Core/provider separation. The integration must consume the execution-owned context snapshot, honor ranking/compaction results, preserve provenance/diagnostic safety, and keep provider-specific transport/tokenization inside the adapter boundary.
 
 ## Next action
 
-Run the local tests and the new Context Cache Example. Record the actual results before closing Slice 6 or selecting Slice 7.
+Implement the focused Slice 7 Core/integration boundary and matching deterministic public-API `HAgent.Example` verification using a fake/provider-neutral adapter, then run the focused/full local tests before closing the slice.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 6 verification success is claimed yet.
+This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 7 verification success is claimed yet.
 
 ## Current project state
 
@@ -587,15 +585,17 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 29/29 tests passing on 2026-09-09.
    - Deterministic public-API `HAgent.Example` Context Compaction verification passed on 2026-09-09, including bounded selection, character/token/unknown-token exclusions, explicit diagnostics, provenance/scope preservation, and no provider request.
 
-6. **Cache-safe reusable context components — CURRENT**
-   - Scope: explicit reusable context cache identity plus a thread-safe in-memory cache for already assembled `ContextSnapshot` instances.
-   - `ContextCacheKey` includes component identity, canonical scope type/ID, configuration version, resource version, and freshness version. Different ownership/version identities must never share an entry.
-   - Cache entries have explicit expiration and are invalidated by elapsed freshness or explicit key changes/invalidation; cache storage remains separate from mutable execution assembly.
-   - `ContextSnapshot` remains the execution-owned canonical result. The cache stores that reusable result rather than becoming a second mutable snapshot model.
-   - Matching deterministic Example coverage exercises valid reuse, scope/version/freshness isolation, expiration, explicit invalidation, and snapshot metadata isolation.
-   - Verification target: focused Core tests plus matching deterministic public-API Example coverage on the supported local targets.
+6. **Cache-safe reusable context components — VERIFIED**
+   - Core provides explicit reusable context cache identity plus a thread-safe in-memory cache for reusable `ContextSnapshot` results.
+   - `ContextCacheKey` covers component identity, canonical scope type/ID, configuration version, resource version, and freshness version; cache entries have explicit expiration.
+   - Cache storage remains separate from mutable execution assembly, and cached snapshots are returned isolated from caller mutation.
+   - `HAgent.Tests` completed with 34/34 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Cache verification passed on 2026-09-09, including valid reuse, scope/configuration/resource/freshness isolation, expiration invalidation, snapshot mutation isolation, and no provider request.
 
-7. **Execution/provider integration and deterministic Example verification — PLANNED**
+7. **Execution/provider integration and deterministic Example verification — CURRENT**
+   - Scope: integrate the canonical context pipeline with execution/provider-facing boundaries without moving provider tokenization into Core.
+   - The integration must preserve execution-owned snapshot isolation, honor ranking/compaction results, maintain provenance/diagnostic safety, and keep provider transport as an adapter concern.
+   - Verification target: focused Core/integration tests plus matching deterministic public-API `HAgent.Example` verification using a fake/provider-neutral adapter, including successful context transport and important boundary/failure behavior.
 
 ### Verification rule
 

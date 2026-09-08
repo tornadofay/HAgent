@@ -9,11 +9,11 @@ namespace HAgent.Runtime
 {
     /// <summary>
     /// Deterministically acquires source candidates in supplied source order and bounds the resulting snapshot.
-    /// Ranking, deduplication, compaction, policy evaluation, and provider transport are intentionally outside this slice.
+    /// Ranking, deduplication, compaction, policy evaluation, and provider transport are intentionally outside this boundary.
     /// </summary>
     public sealed class ContextAcquirer : IContextAcquirer
     {
-        public async Task<ContextSnapshot> AcquireAsync(
+        public Task<ContextSnapshot> AcquireAsync(
             IReadOnlyList<IContextSource> sources,
             ContextSourceRequest request,
             ContextBudget budget,
@@ -21,24 +21,37 @@ namespace HAgent.Runtime
         {
             if (sources == null) throw new ArgumentNullException(nameof(sources));
             if (request == null) throw new ArgumentNullException(nameof(request));
+
+            var plannedSources = new List<ContextRetrievalSource>(sources.Count);
+            foreach (var source in sources)
+            {
+                plannedSources.Add(new ContextRetrievalSource
+                {
+                    Source = source,
+                    Query = request.Query,
+                    MaxItems = request.MaxItems
+                });
+            }
+
+            return AcquireAsync(plannedSources, budget, cancellationToken);
+        }
+
+        public async Task<ContextSnapshot> AcquireAsync(
+            IReadOnlyList<ContextRetrievalSource> sources,
+            ContextBudget budget,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (sources == null) throw new ArgumentNullException(nameof(sources));
             if (budget == null) throw new ArgumentNullException(nameof(budget));
 
-            request.Validate();
             budget.Validate();
 
-            var sourceCopy = new List<IContextSource>(sources.Count);
+            var sourceCopy = new List<ContextRetrievalSource>(sources.Count);
             foreach (var source in sources)
             {
                 if (source == null)
-                    throw new ArgumentException("Context source collection cannot contain null sources.", nameof(sources));
-                if (string.IsNullOrWhiteSpace(source.Id))
-                    throw new ArgumentException("Context source ID is required.", nameof(sources));
-                if (source.Id.Length > 256)
-                    throw new ArgumentOutOfRangeException(nameof(sources), "Context source ID is too long.");
-                if (string.IsNullOrWhiteSpace(source.Kind))
-                    throw new ArgumentException("Context source kind is required.", nameof(sources));
-                if (source.Kind.Length > 128)
-                    throw new ArgumentOutOfRangeException(nameof(sources), "Context source kind is too long.");
+                    throw new ArgumentException("Context retrieval source collection cannot contain null entries.", nameof(sources));
+                source.Validate();
                 sourceCopy.Add(source);
             }
 
@@ -47,16 +60,20 @@ namespace HAgent.Runtime
             var usedTokens = 0;
             var allTokensKnown = true;
 
-            foreach (var source in sourceCopy)
+            foreach (var plannedSource in sourceCopy)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (selected.Count >= budget.MaxItems)
                     break;
 
+                var sourceRequest = plannedSource.CreateRequest();
                 var remainingItems = budget.MaxItems - selected.Count;
-                var sourceRequest = request.Clone();
                 sourceRequest.MaxItems = Math.Min(sourceRequest.MaxItems, remainingItems);
-                var candidates = await source.GetCandidatesAsync(sourceRequest, cancellationToken).ConfigureAwait(false);
+
+                var candidates = await plannedSource.Source
+                    .GetCandidatesAsync(sourceRequest, cancellationToken)
+                    .ConfigureAwait(false);
+
                 if (candidates == null)
                     throw new InvalidOperationException("A context source returned a null candidate collection.");
 

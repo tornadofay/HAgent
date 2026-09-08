@@ -12,27 +12,25 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 4 checkpoint after 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 5 checkpoint after 0.954.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, and 4 have subsequently been verified by the user. Slice 4 was verified on 2026-09-08 with 24/24 HAgent.Tests passing and the deterministic public-API Context Ranking Example passing.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, and 4 were subsequently verified by the user. Slice 5 was verified on 2026-09-09 with 29/29 HAgent.Tests passing and the deterministic public-API Context Compaction Example passing.
 
 ## Current run
 
-**0.955 Slice 5 implementation checkpoint — local verification pending.**
+**0.955 Slice 6 implementation checkpoint — local verification pending.**
 
-Slice 5 implementation is now present in Core with `IContextCompactor`, deterministic `ContextCompactor`, explicit `ContextCompactionOptions`, safe `ContextCompactionDecision` diagnostics, and `ContextCompactionResult`. A matching public-API `HAgent.Example` Context Compaction scenario, Example classification/snippet support, focused xUnit coverage, and the authoritative context/Example-maintenance documentation have also been added. The strategy is deterministic and tokenizer-free: candidates that do not fit the target item/character/token budget are excluded with explicit reasons; payloads are not rewritten or semantically summarized, and selected item provenance/scope metadata is preserved.
-
-Local verification has not yet been performed for Slice 5. The expected next verification is the updated `HAgent.Tests` suite plus the Context → Context Core → Context Compaction Example on the supported local targets.
+Slice 6 is scoped to cache-safe reusable context components. The target architecture requires explicit cache identity and ownership boundaries, configuration/resource version awareness, freshness invalidation, and reuse of valid components without ever turning the execution-owned `ContextSnapshot` into mutable shared cache state.
 
 ## Next action
 
-Run the local tests and the new Context Compaction Example. Record the actual results before closing Slice 5 or selecting Slice 6.
+Implement the focused Slice 6 Core reusable-component/cache contracts and matching deterministic `HAgent.Example` verification, then run the focused/full local tests before closing the slice.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 5 verification success is claimed yet.
+This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 6 verification success is claimed yet.
 
 ## Current project state
 
@@ -581,12 +579,18 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 24/24 tests passing on 2026-09-08.
    - Deterministic public-API `HAgent.Example` Context Ranking verification passed on 2026-09-08, including ranking order, deterministic ties, duplicate retention, provenance/scope preservation, and no provider request.
 
-5. **Compaction, truncation, and provenance-preserving diagnostics — CURRENT**
-   - Scope: bounded compaction over already ranked provider-neutral candidates, deterministic truncation to an explicit target budget, and safe inclusion/exclusion diagnostics that retain source/provenance metadata.
-   - The first strategy is deliberately deterministic and tokenizer-free: it may exclude lower-ranked candidates that do not fit, but it must not rewrite or summarize payloads or invent provider-specific token counts.
-   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for bounded selection, item/character/token exclusions, unknown-token handling, provenance preservation, and diagnostic reasons.
+5. **Compaction, truncation, and provenance-preserving diagnostics — VERIFIED**
+   - Core provides bounded compaction over already ranked provider-neutral candidates, deterministic truncation to an explicit target budget, and safe inclusion/exclusion diagnostics retaining source metadata without exposing payloads.
+   - The first strategy is deterministic and tokenizer-free: it excludes candidates that cannot fit the target item/character/token budget, handles unknown token estimates explicitly when a hard token budget exists, and never rewrites or semantically summarizes payloads.
+   - `HAgent.Tests` completed with 29/29 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Compaction verification passed on 2026-09-09, including bounded selection, character/token/unknown-token exclusions, explicit diagnostics, provenance/scope preservation, and no provider request.
 
-6. **Cache-safe reusable context components — PLANNED**
+6. **Cache-safe reusable context components — CURRENT**
+   - Scope: define reusable context component/cache contracts that remain safe across runtime, user, tenant, workspace, configuration/version, resource-version, and freshness boundaries.
+   - Cache identity must be explicit and ownership-aware; private context must not leak across independently scoped runtimes or users.
+   - Reusable components must remain distinct from mutable execution-owned `ContextSnapshot` instances.
+   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for cache-key isolation, version/freshness invalidation, reuse of valid components, and snapshot isolation.
+
 7. **Execution/provider integration and deterministic Example verification — PLANNED**
 
 ### Verification rule

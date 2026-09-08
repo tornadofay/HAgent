@@ -797,7 +797,7 @@ The exact precedence rules are implementation-defined, but authority and provena
 
 ## Status
 
-**Planned architectural foundation before advanced persistent cognition.**
+**In progress — foundational contracts, acquisition, ranking, and deterministic compaction are verified; reusable caching and execution integration remain.**
 
 ## Goal
 
@@ -805,18 +805,25 @@ Make context assembly a first-class HAgent subsystem that selects, ranks, bounds
 
 ## Requirements
 
-1. [ ] Define provider-neutral context items with source, type, provenance, trust, importance, freshness, scope, and estimated size.
-2. [ ] Define context budgets for tokens/characters/items and other applicable resource dimensions.
-3. [ ] Separate context retrieval from context assembly and from cognitive attention.
-4. [ ] Support relevance ranking using goal relevance, attention, recency, importance, trust, redundancy, and estimated cost where available.
+1. [x] Define provider-neutral context items with source, type, provenance, trust, importance, freshness, scope, and estimated size.
+2. [x] Define context budgets for tokens/characters/items and other applicable resource dimensions.
+3. [x] Separate context retrieval from context assembly and from cognitive attention.
+4. [x] Support relevance ranking using goal relevance, attention, recency, importance, trust, redundancy, and estimated cost where available.
 5. [ ] Support bounded memory, knowledge, skill, conversation, host-context, tool-description, and instruction retrieval.
-6. [ ] Support compaction, summarization, deduplication, and truncation strategies without silently discarding required policy or provenance.
-7. [ ] Preserve source/provenance metadata for assembled context and expose safe diagnostics explaining inclusion/exclusion.
+6. [x] Support compaction, summarization, deduplication, and truncation strategies without silently discarding required policy or provenance.
+7. [x] Preserve source/provenance metadata for assembled context and expose safe diagnostics explaining inclusion/exclusion.
 8. [ ] Support reusable and cacheable context components when configuration/version rules permit.
-9. [ ] Keep provider-specific tokenization behind optional adapters; Core must not require a particular tokenizer.
+9. [x] Keep provider-specific tokenization behind optional adapters; Core must not require a particular tokenizer.
 10. [ ] Ensure context assembly respects policy, permissions, disabled resources, and instruction authority.
-11. [ ] Capture the resulting bounded context in immutable execution snapshots.
+11. [x] Capture the resulting bounded context in immutable execution snapshots.
 12. [ ] Add deterministic Example verification for budgets, ranking, prioritization, compaction, source provenance, cache reuse, and policy-enforced exclusion.
+
+## Verified slices
+
+- Slice 2: provider-neutral context contracts and budgets — verified 2026-09-08 on .NET Framework 4.8.1 and .NET 9 Example execution.
+- Slice 3: bounded acquisition and execution-owned context snapshots — verified 2026-09-08 with 20/20 HAgent.Tests and deterministic Example coverage.
+- Slice 4: ranking, deterministic prioritization, and deduplication — verified 2026-09-08 with 24/24 HAgent.Tests and deterministic Example coverage.
+- Slice 5: deterministic compaction/truncation and provenance-preserving diagnostics — verified 2026-09-09 with 29/29 HAgent.Tests and deterministic Example coverage.
 
 ## Architectural outcome
 

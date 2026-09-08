@@ -11,7 +11,7 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-Policy persistence, runtime provider enforcement, tool policy enforcement, and policy-first host data authorization were verified locally by the user on 2026-09-08. The current implementation also adds canonical profile resource capability state, runtime `Inherit` / `Enabled` / `Disabled` overrides, effective execution snapshots, resource persistence, and tool capability gating. The matching `HAgent.Example` resource capability test is the current local verification checkpoint.
+Policy persistence, runtime provider enforcement, tool policy enforcement, policy-first host data authorization, and the profile/runtime resource capability boundary were verified locally by the user on 2026-09-08. The implementation now also contains typed learning-promotion policy requests and explicit learning-candidate review/promotion transitions. The matching learning-policy Example verification is the current local checkpoint.
 
 ## Work ownership
 
@@ -19,8 +19,8 @@ The active implementation plan is the authoritative scope for the current task. 
 
 ## Current blockers
 
-None recorded. The resource-capability slice is implemented; only local Example verification remains before it can be marked verified.
+None recorded. Resource capabilities are verified. Learning-promotion policy and candidate transition implementation is present; only its local Example verification remains before marking that slice verified.
 
 ## Next checkpoint
 
-Run `Resource Capabilities → Run resource capability test` after pulling current `master`. It must verify profile/runtime tri-state resolution, exact-resource precedence, default-enabled behavior, execution snapshot isolation, profile persistence, disabled-tool gating, and runtime re-enabling/disabling of the tool capability.
+Run `Learning Policy → Run learning promotion test` after pulling current `master`. It must verify typed candidate/scope/evidence/provenance/contradiction policy matching, policy provenance, `Allow`/`RequireApproval`/`Deny` outcomes, and guarded `Proposed` → `PendingReview`/`Approved` → `Promoted` and rejection transitions.

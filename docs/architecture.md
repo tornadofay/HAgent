@@ -54,10 +54,6 @@ A replaceable implementation of how cognitive state is interpreted and cognitive
 
 A provider-neutral description of the reasoning capability currently needed by cognition. It separates the cognitive decision about *what kind of reasoning is needed* from the Execution Planner decision about *where/how that reasoning executes*.
 
-### Agent Profile
-
-Reusable persistent configuration: provider/model preferences, system prompt, generation settings, capability references, and learning/memory policy defaults.
-
 ### Execution Request
 
 The generic host-to-HAgent boundary carrying host-supplied input/context, host correlation metadata, execution options, and optional structured-output requirements. Plain string messages are a convenience form.
@@ -163,7 +159,7 @@ These documents are architectural guidance, not claims that HAgent invented the 
 
 ## Live cognition workbench
 
-`HAgent.WinForms` provides the intended operator-facing runtime view for active cognition. Authorized users should be able to inspect the current strategy/version, beliefs, goals, intentions, attention, global workspace, plans and current step, memory, knowledge, skills, experiences, events, executions, reasoning decisions, learning candidates, and full cognitive history. Live intervention must occur through runtime APIs with authorization, revision checks, provenance, auditability, atomicity, and stale-result protection.
+`HAgent.WinForms` provides the intended operator-facing runtime view for active cognition. Authorized users should be able to inspect and, through governed runtime APIs, intervene in active beliefs, goals, intentions, plans, attention, memory, experience, reasoning decisions, and cognitive history. Live intervention must occur through runtime APIs with authorization, revision checks, provenance, auditability, atomicity, and stale-result protection.
 
 ## Architecture references
 

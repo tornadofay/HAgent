@@ -67,7 +67,7 @@ Sources without a conflict key remain additive. The resulting `AiInstructionComp
 - `ComposedText` — deterministic provider-neutral instruction text;
 - `Diagnostics` — bounded exclusion diagnostics that identify source metadata/reason without copying source content.
 
-`SystemPromptComposer` remains a small compatibility-shaped façade for the existing runtime API and delegates to `AiInstructionComposer`; it does not implement a second precedence or conflict mechanism.
+`SystemPromptComposer` remains a small compatibility-shaped façade for the existing runtime API and delegates to `AiInstructionComposer`; the execution path does not create a second precedence or conflict mechanism.
 
 ## Resource and external-content boundary
 
@@ -90,13 +90,25 @@ Lower-authority external or user content can participate in conflict evidence bu
 
 Mature Skill/Knowledge/Memory retrieval, resource authorization, bounded retrieval, and learning promotion remain later roadmap responsibilities; this slice establishes only the instruction/context trust boundary around their canonical resource outputs.
 
+## Execution integration
+
+`AgentExecutionRequest.InstructionSources` is the provider-neutral host/runtime input boundary for resource, external-content, and other instruction sources that must participate in an execution. The runtime does not treat these sources as authorization; it passes them through the same canonical validation, availability, precedence, and conflict logic as built-in execution instructions.
+
+`DefaultAgentRuntime` resolves the execution target first because the existing provider default system prompt is provider-specific configuration. Once the target is selected and policy permits execution, the runtime composes the provider default system instruction (when enabled), agent instruction, existing execution prompt layers, and request-supplied instruction sources exactly once through `AiInstructionComposer`. The result is captured as a cloned `AgentExecutionSnapshot.InstructionSnapshot` while the execution is still in `Created` state, then the execution transitions to `Running`.
+
+The resulting `ComposedText` is retained for provider transport and the provider adapter receives that already-composed text. Provider adapters therefore do not rebuild instruction precedence or conflict behavior. `AgentExecution.CaptureInstructionSnapshot` refuses capture after the execution has entered `Running`, which prevents later source changes from replacing active execution instructions.
+
+Caller-owned instruction sources are cloned before provenance is stamped with execution and principal context. The snapshot consequently retains the captured source content and provenance even if the caller mutates the original source objects while the provider is running.
+
+The execution snapshot continues to carry the independently captured agent/provider, runtime/host context, identity, policy, and effective resource-capability state. Instruction capture must not rebuild that state through a second snapshot path.
+
 ## Conflict representation
 
 `AiInstructionConflict` records a conflict key, all competing source IDs, the selected winner when known, the disposition, a bounded explanation, and detection time. The contract can represent unresolved conflicts as well as deterministic higher-precedence resolution. Conflict objects are evidence; they do not themselves authorize or execute side effects.
 
 ## Execution snapshot provenance
 
-`AiInstructionSnapshot` contains cloned source and conflict records. `AgentExecutionSnapshot.InstructionSnapshot` captures a cloned instruction snapshot so later caller-owned mutation cannot alter the captured provenance objects. Execution integration remains the next dedicated 0.954 slice.
+`AiInstructionSnapshot` contains cloned source and conflict records. `AgentExecutionSnapshot.InstructionSnapshot` captures a cloned instruction snapshot so later caller-owned mutation cannot alter the captured provenance objects. Execution integration is implemented in 0.954 Slice 4; local Example verification remains the current checkpoint before the phase can advance.
 
 ## Boundary rules
 
@@ -106,7 +118,8 @@ Mature Skill/Knowledge/Memory retrieval, resource authorization, bounded retriev
 - Secrets and sensitive host payloads should not be copied into provenance/evidence fields; diagnostic composition excludes source content by default.
 - Skills, Knowledge, Memory, tools, host context, and external content are represented as source types rather than provider-specific prompt formats.
 - Disabled/unavailable source state remains diagnosable without making the source authoritative.
+- Active execution instruction state is captured before `Running` and is not replaceable after execution start.
 
 ## Verification status
 
-Slice 1 source/authority contracts and Slice 2 composition/conflict handling were locally verified by the user through `COGNITION INSTRUCTIONS`. Slice 3 resource/external boundary implementation is present with deterministic Example coverage but has not yet been locally executed in this connected environment.
+Slices 1–3 were verified by the user on 2026-09-08 through `COGNITION INSTRUCTIONS`. Slice 4 execution integration is implemented and has deterministic Example coverage, but the updated Example has not yet been locally executed in this connected environment. The current checkpoint is therefore **Slice 4 awaiting local verification**.

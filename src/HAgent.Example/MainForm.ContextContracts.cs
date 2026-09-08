@@ -7,6 +7,19 @@ namespace HAgent.Example
 {
     internal sealed partial class MainForm
     {
+        private void AddContextContractsTab()
+        {
+            AddApiTab(
+                "Context Contracts",
+                "Run context contract test",
+                "Exercises the provider-neutral context contracts with bounded provenance, scope, trust, importance, freshness, size metadata, structured payloads, explicit budget dimensions, source requests, and clone isolation.",
+                "Contract validation, bounded metadata, structured payload, explicit budget/source bounds, and nested clone isolation should all succeed without contacting an AI provider.",
+                "No AI request is sent by this example.",
+                RunContextContractsTestAsync,
+                "Context contract boundary",
+                "This slice establishes reusable Core contracts only. Ranking, compaction, caching, provider transport, and execution integration remain later slices.");
+        }
+
         private Task RunContextContractsTestAsync(string unused)
         {
             var provenance = new ContextProvenance

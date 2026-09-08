@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -52,9 +51,9 @@ namespace HAgent.Example
                 Enabled = true
             }).ConfigureAwait(true);
 
-            await VerifyStaleRequestAsync(store, agentId, message, providerId).ConfigureAwait(true);
-            await VerifyConcurrentRequestsAsync(store, agentId, message, providerId).ConfigureAwait(true);
-            await VerifyDuplicateResponderAsync(store, agentId, message, providerId).ConfigureAwait(true);
+            await VerifyStaleRequestAsync(store, agentId, message).ConfigureAwait(true);
+            await VerifyConcurrentRequestsAsync(store, agentId, message).ConfigureAwait(true);
+            await VerifyDuplicateResponderAsync(store, agentId, message).ConfigureAwait(true);
 
             Write("INTERVENTION HARDENING",
                 "Concurrency/stale-state contract test succeeded." + Environment.NewLine +
@@ -65,7 +64,7 @@ namespace HAgent.Example
                 "Duplicate responder resolution could not apply a second transition: verified.");
         }
 
-        private async Task VerifyStaleRequestAsync(InMemoryAiStore store, string agentId, string message, string providerId)
+        private async Task VerifyStaleRequestAsync(InMemoryAiStore store, string agentId, string message)
         {
             var adapter = new InterventionHardeningTestAdapter();
             var client = new HAgentClient(store, new InterventionHardeningSecretStore(), new[] { adapter });
@@ -119,7 +118,7 @@ namespace HAgent.Example
                 throw new InvalidOperationException("A stale intervention request did not resolve to Expired.");
         }
 
-        private async Task VerifyConcurrentRequestsAsync(InMemoryAiStore store, string agentId, string message, string providerId)
+        private async Task VerifyConcurrentRequestsAsync(InMemoryAiStore store, string agentId, string message)
         {
             var adapter = new InterventionHardeningTestAdapter();
             var client = new HAgentClient(store, new InterventionHardeningSecretStore(), new[] { adapter });
@@ -206,7 +205,7 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Execution did not complete successfully after the fresh resume intervention.");
         }
 
-        private async Task VerifyDuplicateResponderAsync(InMemoryAiStore store, string agentId, string message, string providerId)
+        private async Task VerifyDuplicateResponderAsync(InMemoryAiStore store, string agentId, string message)
         {
             var adapter = new InterventionHardeningTestAdapter();
             var client = new HAgentClient(store, new InterventionHardeningSecretStore(), new[] { adapter });
@@ -241,13 +240,11 @@ namespace HAgent.Example
                 "Duplicate responder test.",
                 CancellationToken.None).ConfigureAwait(true);
 
-            var firstTask = ResolveAsync(client, request.RequestId, "operator-hardening-duplicate");
-            var secondTask = ResolveExpectingFailureAsync(client, request.RequestId, "operator-hardening-duplicate");
-            var first = await firstTask.ConfigureAwait(true);
-            var secondFailed = await secondTask.ConfigureAwait(true);
+            var first = await ResolveAsync(client, request.RequestId, "operator-hardening-duplicate").ConfigureAwait(true);
+            var secondFailed = await ResolveExpectingFailureAsync(client, request.RequestId, "operator-hardening-duplicate").ConfigureAwait(true);
 
             if (first.Status != AiInterventionRequestStatus.Completed || !secondFailed)
-                throw new InvalidOperationException("Duplicate responder resolution was not serialized by request lifecycle state.");
+                throw new InvalidOperationException("Duplicate responder resolution was not protected by request lifecycle state.");
 
             adapter.Release();
             await adapter.ResponseProduced.Task.ConfigureAwait(true);

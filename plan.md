@@ -580,14 +580,13 @@ Only one slice is **CURRENT** at a time. Each slice must reach its stated comple
    - Architectural resolution: `docs/architecture/20-context.md` now defines the canonical provider-neutral context item, budget, source/retrieval/assembly separation, policy boundary, ranking, compaction, provenance, caching, diagnostics, and immutable execution-snapshot target. Existing mechanisms remain producer/input boundaries rather than competing architectures.
    - Completion: achieved in repository state by architecture reconciliation plus recording the bounded implementation slice below. No local .NET build/test is claimed for this planning-only checkpoint.
 
-2. **Provider-neutral context contract foundation — VERIFIED CHECKPOINT / LOCAL VERIFICATION PENDING**
-   - Scope completed: added the Core-only provider-neutral contract layer in `src/HAgent.Core/Models/ContextContracts.cs` and `src/HAgent.Core/Abstractions/IContextSource.cs`.
-   - Contracts added: `ContextItem`, `ContextProvenance`, `ContextScope`, `ContextBudget`, `ContextSourceRequest`, and the minimal `IContextSource` candidate-source boundary.
-   - Design constraints preserved: no WinForms/SQL/provider-specific dependency, no raw SQL, no vendor tokenizer dependency, explicit validation/bounds, structured payload support, provenance/scope/trust/importance/relevance/freshness/size metadata, and no authority/authorization semantics implied by context metadata.
-   - Verification coverage added in `tests/HAgent.Tests/ContextContractTests.cs` for valid structured payloads, validation bounds, clone isolation for contract-owned metadata, budget/request validation, and missing metadata rejection.
-   - The initially drafted `ContextSnapshot` type was removed from this slice because immutable assembled execution snapshots belong to Slice 3; Slice 2 remains contract-only.
-   - Local .NET build/test execution is not available in this connected session, so no local test success is claimed. The repository build previously reported by the user predates these Slice 2 changes and does not verify them.
-   - Completion condition remaining: run the focused `HAgent.Tests` contract tests/build locally. Do not advance to Slice 3 until that verification passes and this entry is updated to verified complete.
+2. **Provider-neutral context contract foundation — CURRENT**
+   - Scope: add the smallest Core-only contract layer required by 0.955: provider-neutral context item metadata/payload representation, explicit context budget dimensions, bounded provenance/scope/trust/importance/freshness/size metadata, and the source boundary needed to supply candidate context. Do not implement ranking, compaction, cache, WinForms changes, or provider transport in this slice.
+   - Expected files: focused `src/HAgent.Core/Models/` context contract file(s), minimal `src/HAgent.Core/Abstractions/` source contract(s), focused `src/HAgent.Tests/` contract tests, and matching deterministic `src/HAgent.Example/` public-API verification.
+   - Design constraints: no WinForms types, no SQL/provider-specific types, no raw SQL, no vendor tokenizer dependency, explicit validation/bounds, provider-neutral structured payload support, provenance retained as data, and no implication that context metadata grants authority or authorization.
+   - Entry: 0.955 Slice 1 verified checkpoint is present; the architecture document above is authoritative for the target contract.
+   - Current implementation state: Core context contracts and focused contract tests are implemented; deterministic Example coverage has been added in `src/HAgent.Example/MainForm.ContextContracts.cs`. Local build/test and Example execution are not yet verified in this connected session.
+   - Completion: contracts compile on targeted frameworks, focused contract-level tests verify validation/bounds/clone-or-snapshot safety appropriate to the implemented types, and the matching Example scenario verifies the public contracts. This slice remains incomplete until the local build/test and Example verification results are recorded.
 
 3. **Bounded context acquisition and canonical context snapshots — PLANNED**
    - Scope: implement bounded host/source acquisition and produce the immutable execution context snapshot, including cancellation and isolation from caller-owned mutable state.

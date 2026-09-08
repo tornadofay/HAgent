@@ -67,48 +67,24 @@ namespace HAgent.Runtime
             if (request == null) throw new ArgumentNullException(nameof(request));
 
             var previous = TraceAmbient.Current;
-            var execution = await ExecuteInnerAsync(request, cancellationToken).ConfigureAwait(false);
-            if (execution != null)
-                CompleteRoot(execution);
-
-            if (previous == null)
-                TraceAmbient.Set(null, null);
-            else
-                TraceAmbient.Set(previous, TraceAmbient.CurrentCorrelation);
-
-            return execution;
-        }
-
-        private async Task<AgentExecution> ExecuteInnerAsync(
-            AgentExecutionRequest request,
-            CancellationToken cancellationToken)
-        {
+            var previousCorrelation = TraceAmbient.CurrentCorrelation;
             try
             {
-                var result = await _inner.ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
-                return result;
+                var execution = await _inner.ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
+                if (execution != null)
+                    CompleteRoot(execution);
+                return execution;
             }
             catch (OperationCanceledException)
             {
-                if (!cancellationToken.IsCancellationRequested)
+                var current = TraceAmbient.Current;
+                if (current != null)
                 {
-                    var current = TraceAmbient.Current;
-                    if (current != null)
-                    {
-                        var matching = FindRootByTrace(current.TraceId);
-                        if (matching != null)
-                            matching.Root.TryComplete(TraceSpanStatus.Timeout);
-                    }
-                }
-                else
-                {
-                    var current = TraceAmbient.Current;
-                    if (current != null)
-                    {
-                        var matching = FindRootByTrace(current.TraceId);
-                        if (matching != null)
-                            matching.Root.TryComplete(TraceSpanStatus.Cancelled);
-                    }
+                    var matching = FindRootByTrace(current.TraceId);
+                    if (matching != null)
+                        matching.Root.TryComplete(cancellationToken.IsCancellationRequested
+                            ? TraceSpanStatus.Cancelled
+                            : TraceSpanStatus.Timeout);
                 }
                 throw;
             }
@@ -122,6 +98,10 @@ namespace HAgent.Runtime
                         matching.Root.TryComplete(TraceSpanStatus.Failed);
                 }
                 throw;
+            }
+            finally
+            {
+                TraceAmbient.Set(previous, previousCorrelation);
             }
         }
 
@@ -233,7 +213,6 @@ namespace HAgent.Runtime
                 return;
 
             CompleteRoot(state.Root, execution.State, execution.FailureKind);
-            TraceAmbient.Set(null, null);
         }
 
         private ExecutionTraceState FindRootByTrace(string traceId)

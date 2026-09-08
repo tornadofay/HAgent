@@ -6,6 +6,11 @@ using HAgent.Models;
 
 namespace HAgent.Runtime
 {
+    internal interface IInterventionControllableRuntime
+    {
+        AiInterventionCoordinator InterventionCoordinator { get; }
+    }
+
     /// <summary>
     /// Coordinates human intervention with the execution boundary. It owns only
     /// intervention/control state; execution itself remains owned by the runtime.
@@ -61,17 +66,14 @@ namespace HAgent.Runtime
                 control.Dispose();
         }
 
-        public async Task<AiExecutionControlState> GetExecutionControlStateAsync(
+        public Task<AiExecutionControlState> GetExecutionControlStateAsync(
             string executionId,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(executionId)) throw new ArgumentException("Execution ID is required.", nameof(executionId));
 
-            ExecutionControl control;
-            if (!_executionControls.TryGetValue(executionId, out control))
-                return AiExecutionControlState.Cancelled;
-            return control.State;
+            return Task.FromResult(GetControl(executionId).State);
         }
 
         public Task PauseExecutionAsync(string executionId, CancellationToken cancellationToken = default(CancellationToken))
@@ -110,7 +112,7 @@ namespace HAgent.Runtime
                 requestedAction != AiInterventionAction.Cancel)
                 throw new ArgumentException("Execution intervention currently supports Pause, Resume, or Cancel.", nameof(requestedAction));
 
-            var control = GetControl(executionId);
+            GetControl(executionId);
             var operation = requestedAction == AiInterventionAction.Pause
                 ? "execution.pause"
                 : requestedAction == AiInterventionAction.Resume
@@ -151,14 +153,15 @@ namespace HAgent.Runtime
                  request.RequestedAction == AiInterventionAction.Resume ||
                  request.RequestedAction == AiInterventionAction.Cancel))
             {
-                if (resolution != AiInterventionRequestStatus.Approved &&
-                    resolution != AiInterventionRequestStatus.Rejected &&
-                    resolution != AiInterventionRequestStatus.Cancelled &&
-                    resolution != AiInterventionRequestStatus.Expired)
-                    throw new ArgumentOutOfRangeException(nameof(resolution));
-
                 if (resolution == AiInterventionRequestStatus.Approved)
                 {
+                    var approved = await _workflow.ResolveAsync(
+                        requestId,
+                        AiInterventionRequestStatus.Approved,
+                        responderIdentity,
+                        reason,
+                        cancellationToken).ConfigureAwait(false);
+
                     var control = GetControl(request.ExecutionId);
                     switch (request.RequestedAction)
                     {
@@ -173,20 +176,19 @@ namespace HAgent.Runtime
                             break;
                     }
 
-                    var approved = await _workflow.ResolveAsync(
-                        requestId,
-                        AiInterventionRequestStatus.Approved,
-                        responderIdentity,
-                        reason,
-                        cancellationToken).ConfigureAwait(false);
                     return await _workflow.CompleteAsync(
-                        requestId,
+                        approved.RequestId,
                         responderIdentity,
                         string.IsNullOrWhiteSpace(reason)
                             ? "Execution intervention was applied."
                             : reason,
                         cancellationToken).ConfigureAwait(false);
                 }
+
+                if (resolution != AiInterventionRequestStatus.Rejected &&
+                    resolution != AiInterventionRequestStatus.Cancelled &&
+                    resolution != AiInterventionRequestStatus.Expired)
+                    throw new ArgumentOutOfRangeException(nameof(resolution));
             }
 
             return await _workflow.ResolveAsync(
@@ -271,7 +273,7 @@ namespace HAgent.Runtime
                 lock (_sync)
                 {
                     ThrowIfDisposed();
-                    if (_state == AiExecutionControlState.Cancelled)
+                    if (_state == AiExecutionControlState.Cancelled || _state == AiExecutionControlState.Cancelling)
                         return;
                     _state = AiExecutionControlState.Cancelling;
                     signal = _resumeSignal;

@@ -379,6 +379,755 @@ HWorld is an external consumer. HAgent does not contain an HWorld dependency, ad
 
 A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent can execute that request either directly or through a long-lived runtime instance without losing request semantics or runtime ownership. HAgent resolves the request into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, preserves execution identity, protects terminal state, and isolates runtime snapshots without coupling to host or provider-specific domain models. A standalone external consumer representing the HAgent production surface demonstrated the public boundary on both supported target frameworks, and runtime-instance execution composes the canonical request through the verified instance/request API.
 
+## Phase 0.951 — Identity, Tenancy, and User Context
+
+## Status
+
+**Completed — verified in HAgent.Example.**
+
+## Goal
+
+Define provider-neutral identity and context contracts that allow HAgent to distinguish deployment, tenant, user, session, workspace, agent profile, runtime instance, execution, and related principals without implementing authentication itself.
+
+## Requirements
+
+1. [x] Define a provider-neutral identity context suitable for authorization, audit, evaluation, memory, knowledge, and runtime context. A separate `Principal` object is not required when the shared context is sufficient.
+2. [x] Distinguish deployment/application identity from tenant, user, session, workspace, agent profile, runtime-instance, and execution identity through a shared `AgentIdentityContext` and existing runtime/execution identities.
+3. [x] Define optional tenancy so single-tenant hosts remain simple while multi-tenant hosts can isolate HAgent resources through an explicit `TenantId` boundary.
+4. [x] Propagate the shared identity context through execution snapshots and public execution results, with tool-execution and audit projections now carrying the same identity context. Extend the same context to memory, knowledge, learning, policy, events, tracing, and evaluation in their respective phases.
+5. [x] Keep authentication and credential verification outside HAgent; the identity contract is host-supplied context only.
+6. [x] Define stable resource scope semantics for Global, Tenant, User, Workspace, Agent, Runtime, and Execution through `AgentResourceScope`.
+7. [x] Ensure private runtime memory and other private resources can be isolated by explicit owner identity through the canonical `AgentResourceOwnership` contract. The redesign rule requires subsystems to consume the canonical ownership model directly rather than preserving obsolete parallel mechanisms.
+8. [x] Make identity context immutable within an execution snapshot by cloning the host-supplied identity when the snapshot is created.
+9. [x] Define safe behavior when host identity information is absent; identity fields are optional and default to empty values rather than fabricated identities.
+10. [x] Add deterministic Example verification for single-user, multi-user, and multi-tenant identity propagation and isolation.
+
+## Initial implementation
+
+The first implementation slice introduced:
+
+```text
+AgentExecutionRequest.Identity
+        ↓
+AgentExecutionSnapshot.Identity
+        ↓
+AgentExecution.Identity
+        ├── ToolExecutionContext.Identity
+        ├── ToolExecutionResult.Identity
+        └── AgentExecutionAuditRecord identity projection
+```
+
+`AgentIdentityContext` is provider-neutral and carries:
+
+```text
+DeploymentId
+TenantId
+PrincipalId
+DisplayName
+UserId
+SessionId
+WorkspaceId
+```
+
+The execution snapshot keeps its own copy so caller-owned request state cannot mutate the identity associated with an active execution. Tool execution receives the same captured context, and audit projections retain identity dimensions without storing sensitive payloads.
+
+## Resource ownership implementation
+
+HAgent defines a canonical `AgentResourceScope` and `AgentResourceOwnership.GetOwnerId(...)` contract for HAgent-owned resource partitioning:
+
+```text
+Global
+Tenant
+User
+Workspace
+Agent
+Runtime
+Execution
+```
+
+The canonical owner key preserves deployment and, where applicable, tenant context. Therefore the same `UserId` in two tenants cannot produce the same user owner key.
+
+Private runtime memory ownership remains distinct from execution ownership. Runtime instances use their runtime identity, while execution-scoped resources use the execution identity. These identities must not be collapsed.
+
+Storage partitioning is not authorization. Authorization remains a policy decision using the supplied identity, operation, resource scope, and applicable policy.
+
+## Verification
+
+`HAgent.Example` verifies:
+
+```text
+Identity Snapshot
+Identity Execution
+Identity Tool
+Identity Isolation
+```
+
+The verified isolation scenario covers:
+
+- separate owner keys for different users;
+- tenant-qualified user ownership;
+- isolation of the same user ID across tenants;
+- private memory visibility by owner;
+- distinct runtime and execution resource scopes;
+- preservation of unrestricted-store behavior as distinct from authorization.
+
+## Architectural outcome
+
+```text
+Deployment
+  -> Tenant (optional)
+      -> User / Principal
+          -> Session
+              -> Workspace (optional)
+                  -> Agent Profile
+                      -> Runtime Instance
+                          -> Execution
+                              -> Resource Scope + Owner Key
+                                  -> Tools / Memory / Knowledge / Audit / downstream subsystems
+```
+
+HAgent consumes identity context; the host remains responsible for authentication and authoritative user/account lifecycle.
+
+## Phase 0.952 — Event Subsystem
+
+## Status
+
+**Completed — verified in the HAgent Example host on 2026-09-06.**
+
+## Goal
+
+Make events a first-class provider-neutral HAgent concept so hosts, tools, runtimes, workflows, and the future Persistent Cognitive Runtime can use one generic event model.
+
+## Requirements
+
+1. [x] Define `EventEnvelope` with stable event ID, type, source, timestamp, correlation/causation metadata, optional importance, and bounded payload/context.
+2. [x] Define event source and scope semantics without assuming a specific host domain.
+3. [x] Support user, application, timer, tool, provider, memory, goal, agent-message, and external events through the same generic contract.
+4. [x] Define bounded event queues, retention, expiration, and deduplication semantics.
+5. [x] Define an asynchronous event dispatch boundary with cancellation and backpressure.
+6. [x] Preserve event provenance and correlation into runtime decisions and executions.
+7. [x] Support event filtering/routing without making the event subsystem a domain-specific message bus.
+8. [x] Define persistence as optional and keep live queues/process-local handlers separate from durable event records.
+9. [x] Ensure event delivery is safe under concurrent producers and consumers.
+10. [x] Add deterministic Example verification for publishing, filtering, deduplication, expiration, bounded queues, cancellation, and correlation propagation.
+
+## Verification result
+
+The Example host reported success for all three event tests:
+
+- Event envelope clone preservation, nested identity/context isolation, and scoped-event validation.
+- Concurrent dispatch, type/source/scope filtering, correlation propagation, and identity propagation.
+- Duplicate suppression, expiration rejection, publish cancellation, bounded configuration, and handler fault isolation.
+
+## Architectural outcome
+
+```text
+Host / Provider / Tool / Runtime
+            |
+            v
+      EventEnvelope
+            |
+      Event Dispatcher
+       /           \
+   reactive      cognitive
+    handler       runtime
+```
+
+The subsystem provides generic event infrastructure; it does not become a replacement for a host's enterprise message broker.
+
+## Phase 0.953 — Unified Policy Engine
+
+## Status
+
+**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, and pre-transport runtime enforcement implemented.**
+
+## Goal
+
+Unify HAgent's growing permission, capability, cost, learning, approval, resource, and execution rules behind a coherent provider-neutral policy model.
+
+## Requirements
+
+1. [x] Define generic policy, rule, scope, evaluation context, and decision contracts.
+2. [x] Represent at least `Allow`, `Deny`, `RequireApproval`, `Defer/Wait`, and `NotApplicable` outcomes where meaningful.
+3. [x] Support policy scopes such as system, tenant, user, workspace, agent, runtime, execution, resource, tool, and provider/target where applicable.
+4. [ ] Integrate existing permission/authorization concepts without replacing host-owned authorization.
+5. [x] Integrate cost policy (`FreeOnly`, `FreePreferred`, `NoRestriction`) through the policy system at the evaluation boundary.
+6. [ ] Integrate learning promotion policy and approval requirements into runtime learning workflows.
+7. [ ] Integrate capability/resource enablement and runtime tri-state overrides.
+8. [x] Support explicit policy precedence and deterministic conflict resolution.
+9. [x] Preserve policy provenance so diagnostics can explain which rule produced a decision.
+10. [x] Make policy evaluation deterministic where inputs are deterministic and expose an explicit policy version for cache invalidation.
+11. [ ] Capture full effective policy state in execution/runtime snapshots. The concrete execution now captures the selected policy decision.
+12. [x] Prevent prompt content from serving as the policy enforcement mechanism.
+13. [x] Add deterministic Example verification for policy precedence, denial, approval outcome, cost restrictions, resource/tool/provider matching, deterministic conflict resolution, and pre-transport runtime denial.
+
+## Implemented slices
+
+The current implementation includes:
+
+- `AiPolicySet` and `AiPolicyRule` for versioned, scoped rules;
+- `AiPolicyEvaluationContext` for bounded identity/resource/execution inputs;
+- `AiPolicyDecision` with outcome and provenance;
+- `IAiPolicyEngine` and `DefaultAiPolicyEngine`;
+- deterministic precedence based on explicit priority, scope specificity, match specificity, outcome restrictiveness, and stable rule ID;
+- built-in `FreeOnly` enforcement where `Paid` and `Unknown` cost states are denied;
+- `AgentExecution.PolicyDecision` capture;
+- runtime enforcement after execution-target selection and before provider transport;
+- deterministic Example verification in `MainForm.PolicyTests.cs`.
+
+Persistent policy storage, learning promotion controls, resource tri-state integration, host authorization integration, human approval workflow, and full effective-policy snapshot capture remain subsequent slices.
+
+## Architectural rule
+
+The policy engine decides what HAgent is permitted or configured to do. It does not become an authentication provider or replace host authority over application side effects.
+
+## Phase 0.954 — Prompt and Instruction Governance
+
+## Status
+
+**Planned architectural foundation before persistent cognition and advanced learning.**
+
+## Goal
+
+Define trusted instruction layers and provenance so HAgent can safely combine system policy, agent instructions, Skills, Knowledge, Memory, tools, runtime context, user input, and externally retrieved content.
+
+## Requirements
+
+1. [ ] Define normalized instruction/source records with source type, authority/trust level, provenance, scope, and lifecycle metadata.
+2. [ ] Define deterministic instruction composition and precedence rules.
+3. [ ] Distinguish trusted policy/instructions from untrusted retrieved content and ordinary user/model-generated text.
+4. [ ] Prevent lower-authority content from silently overriding higher-authority policy.
+5. [ ] Ensure prompts never substitute for authorization, permissions, approval, or other code-enforced controls.
+6. [ ] Track the instruction sources contributing to an execution snapshot.
+7. [ ] Support Skill, Knowledge, Memory, tool-description, runtime, and host-context instructions without creating provider-specific prompt formats in Core.
+8. [ ] Define handling for instruction conflicts, unsafe/invalid sources, disabled resources, and unavailable source content.
+9. [ ] Keep secrets and sensitive host data out of diagnostic instruction traces by default.
+10. [ ] Add deterministic Example verification for precedence, untrusted-content handling, conflicts, disabled resources, and execution-snapshot provenance.
+
+## Architectural outcome
+
+```text
+System / Policy
+      ↓
+Agent instructions
+      ↓
+Skills / trusted resources
+      ↓
+Knowledge / Memory / tool descriptions
+      ↓
+Runtime + host context
+      ↓
+User / external content
+      ↓
+Provider request
+```
+
+The exact precedence rules are implementation-defined, but authority and provenance must remain explicit.
+
+## Phase 0.955 — Context Engineering
+
+## Status
+
+**Planned architectural foundation before advanced persistent cognition.**
+
+## Goal
+
+Make context assembly a first-class HAgent subsystem that selects, ranks, bounds, compresses, and explains the information sent to an execution instead of treating prompt construction as string concatenation.
+
+## Requirements
+
+1. [ ] Define provider-neutral context items with source, type, provenance, trust, importance, freshness, scope, and estimated size.
+2. [ ] Define context budgets for tokens/characters/items and other applicable resource dimensions.
+3. [ ] Separate context retrieval from context assembly and from cognitive attention.
+4. [ ] Support relevance ranking using goal relevance, attention, recency, importance, trust, redundancy, and estimated cost where available.
+5. [ ] Support bounded memory, knowledge, skill, conversation, host-context, tool-description, and instruction retrieval.
+6. [ ] Support compaction, summarization, deduplication, and truncation strategies without silently discarding required policy or provenance.
+7. [ ] Preserve source/provenance metadata for assembled context and expose safe diagnostics explaining inclusion/exclusion.
+8. [ ] Support reusable and cacheable context components when configuration/version rules permit.
+9. [ ] Keep provider-specific tokenization behind optional adapters; Core must not require a particular tokenizer.
+10. [ ] Ensure context assembly respects policy, permissions, disabled resources, and instruction authority.
+11. [ ] Capture the resulting bounded context in immutable execution snapshots.
+12. [ ] Add deterministic Example verification for budgets, ranking, prioritization, compaction, source provenance, cache reuse, and policy-enforced exclusion.
+
+## Architectural outcome
+
+```text
+Available information
+        ↓
+Policy + permissions
+        ↓
+Attention / relevance
+        ↓
+Retrieval
+        ↓
+Ranking / deduplication
+        ↓
+Compression / compaction
+        ↓
+Bounded Context
+        ↓
+Execution Request
+```
+
+Context engineering remains distinct from cognitive decision making: cognition decides what matters; context engineering constructs the bounded evidence supplied to an execution.
+
+## Phase 0.956 — Observability and Distributed Tracing
+
+## Status
+
+**Planned architectural foundation before capability-aware execution and persistent cognition.**
+
+## Goal
+
+Turn HAgent execution, resource use, policy decisions, cognition, tools, provider activity, and lifecycle changes into a coherent structured trace that can be correlated across operations and processes.
+
+## Requirements
+
+1. [ ] Define provider-neutral trace/span concepts for HAgent operations.
+2. [ ] Correlate deployment, tenant, user/session, workspace, agent, runtime, execution, tool-call, provider-target, event, policy, and evaluation activity where applicable.
+3. [ ] Represent operation start/end, duration, status, parent relationship, decision reason, and safe metadata.
+4. [ ] Trace context assembly, resource retrieval, policy evaluation, candidate selection, admission, provider execution, tool execution, learning, and cognitive transitions.
+5. [ ] Support configurable redaction of prompts, responses, arguments, host context, and other sensitive data.
+6. [ ] Keep secrets, credentials, raw connection strings, and sensitive payloads out of traces by default.
+7. [ ] Support local/in-memory tracing plus host-integrated sinks without forcing one telemetry vendor or transport.
+8. [ ] Define bounded trace retention and sampling controls.
+9. [ ] Preserve cross-process correlation for network/database-backed deployments where identity is available.
+10. [ ] Make stale-result rejection, policy denial, fallback, waiting, retry, and recovery decisions observable.
+11. [ ] Provide a safe human-readable diagnostic projection for management UI.
+12. [ ] Add deterministic Example verification for trace hierarchy, correlation propagation, redaction, sampling, failures, cancellation, and fallback paths.
+
+## Architectural outcome
+
+```text
+Event / Request
+      ↓
+Trace
+ ├── Policy
+ ├── Context
+ ├── Planning
+ ├── Admission
+ ├── Provider
+ ├── Tools
+ ├── Memory/Knowledge
+ └── Outcome
+```
+
+Tracing is observability, not authorization and not transcript storage.
+
+## Phase 0.957 — Evaluation and Quality Measurement
+
+## Status
+
+**Planned architectural foundation for reliable agent behavior and later optimization.**
+
+## Goal
+
+Give HAgent a provider-neutral way to measure whether executions, tool use, plans, learning changes, and agent outcomes achieved their intended quality or task goals.
+
+## Requirements
+
+1. [ ] Define evaluation contracts independent of any specific LLM vendor or grading service.
+2. [ ] Support evaluation targets including execution, response, tool outcome, goal outcome, plan outcome, memory/knowledge usefulness, and learning candidate quality.
+3. [ ] Support deterministic evaluators such as schema validity, required-field checks, policy compliance, tool success, latency, cost, and task completion signals.
+4. [ ] Support externally supplied human/application ratings and labels.
+5. [ ] Support model-assisted evaluators without treating evaluator-model output as unquestionable truth.
+6. [ ] Preserve evaluation provenance, evaluator identity/type, input references, timestamp, and confidence where meaningful.
+7. [ ] Correlate evaluations with execution/runtime/agent/goal/plan/trace identities.
+8. [ ] Keep evaluation data separate from authoritative agent state; an evaluation does not automatically mutate configuration, memory, skill, or knowledge.
+9. [ ] Support repeated test cases and regression suites for provider/model/agent comparisons.
+10. [ ] Support aggregate metrics such as success rate, quality score, latency, cost, fallback frequency, tool success, and plan completion.
+11. [ ] Add deterministic Example verification for evaluation creation, aggregation, human rating, failed evaluations, and comparison of alternative execution targets.
+
+## Architectural outcome
+
+```text
+Execution / Goal / Plan
+        ↓
+    Evaluation
+        ↓
+ score / label / evidence
+        ↓
+  metrics / regression
+```
+
+Evaluation measures behavior; it does not become a hidden decision-maker for authorization.
+
+## Phase 0.958 — Agent Lifecycle and Health Management
+
+## Status
+
+**Planned architectural foundation before persistent cognitive runtime.**
+
+## Goal
+
+Make agent/runtime lifecycle and health explicit, observable, recoverable, and controllable for both request-oriented and persistent agents.
+
+## Requirements
+
+1. [ ] Define normalized lifecycle states for runtime agents and persistent cognitive agents.
+2. [ ] Distinguish lifecycle state from health state and execution state.
+3. [ ] Support at least active, sleeping/idle, waiting, blocked, deliberating, executing, degraded, failed, retired, recovering, and shutdown semantics where applicable.
+4. [ ] Define health/status reasons and safe transitions rather than exposing only a Boolean healthy flag.
+5. [ ] Prevent retired/shutdown agents from originating new executions.
+6. [ ] Support suspension/resume without deleting durable state.
+7. [ ] Expose lifecycle and health changes through events and tracing.
+8. [ ] Define heartbeat/progress or equivalent signals for long-running persistent runtimes where needed.
+9. [ ] Detect stalled or repeatedly failing progress without confusing slow legitimate inference with failure.
+10. [ ] Support operator-visible diagnostics explaining why an agent is blocked, waiting, degraded, or recovering.
+11. [ ] Add deterministic Example verification for lifecycle transitions, suspension/resume, unhealthy/degraded states, stalled work, and shutdown safety.
+
+## Architectural rule
+
+Lifecycle state answers "what is the agent doing?" Health state answers "is the agent operating normally?" Execution state answers "what is this specific operation doing?" These concerns remain separate.
+
+## Phase 0.959 — Human-in-the-Loop and Intervention
+
+## Status
+
+**Planned architectural foundation for safe persistent and autonomous agents.**
+
+## Goal
+
+Allow authorized humans or host applications to inspect, pause, resume, approve, reject, redirect, or intervene in agent behavior without bypassing the HAgent execution and policy model.
+
+## Requirements
+
+1. [ ] Define a provider-neutral intervention/approval request and lifecycle model.
+2. [ ] Support inspect, approve, reject, pause, resume, cancel, retire, and shutdown actions where applicable.
+3. [ ] Allow intervention at execution, tool, plan-step, goal, learning-candidate, and consequential-action boundaries.
+4. [ ] Preserve who requested and who approved/rejected an intervention through identity and trace metadata.
+5. [ ] Make intervention policy-driven rather than prompt-driven.
+6. [ ] Ensure an intervention cannot bypass permissions, authorization, budgets, capability requirements, or host-side validation.
+7. [ ] Define behavior when intervention arrives while work is executing, waiting, or completing concurrently.
+8. [ ] Support operator comments/reasons as bounded metadata without treating them as trusted executable instructions.
+9. [ ] Expose intervention state through management UI and diagnostics.
+10. [ ] Add deterministic Example verification for approval, rejection, pause/resume, cancellation, concurrent intervention, and stale intervention requests.
+
+## Architectural outcome
+
+```text
+Agent Runtime
+     ↕
+Intervention Boundary
+     ↕
+Human / Authorized Host
+```
+
+Intervention controls agent operation; it does not become a second execution engine.
+
+## Phase 0.9591 — Goal/Plan Persistence and Recovery
+
+## Status
+
+**Planned foundation before and alongside the Persistent Cognitive Runtime.**
+
+## Goal
+
+Make long-lived agent goals, intentions, plans, checkpoints, and recovery state durable without making transient executions or provider sessions part of persistent cognitive state.
+
+## Requirements
+
+1. [ ] Define durable Goal, Intention, Plan, PlanStep, checkpoint, and recovery metadata contracts.
+2. [ ] Separate durable cognitive state from live execution tasks, cancellation tokens, provider sessions, HTTP state, and synchronization primitives.
+3. [ ] Define plan revision/version semantics so stale executions cannot overwrite newer goals or plans.
+4. [ ] Support partial plan execution and explicit step states.
+5. [ ] Define checkpoint boundaries and durable progress records.
+6. [ ] Define idempotency semantics for retried plan steps and externally observable actions.
+7. [ ] Distinguish safe retry, unknown outcome, and completed outcome states.
+8. [ ] Support recovery after process restart, crash, timeout, cancellation, or provider failure.
+9. [ ] Reconcile in-flight executions during recovery and invalidate obsolete execution authority.
+10. [ ] Support plan suspension, resumption, replacement, abandonment, and rollback/compensation metadata where applicable.
+11. [ ] Keep host side effects authoritative; HAgent may persist intent and requested action state but must not claim external side effects occurred without evidence.
+12. [ ] Support optional persistence backends through the HAgent storage abstraction.
+13. [ ] Add deterministic Example verification for checkpoints, restart recovery, stale revisions, duplicate/retry handling, unknown outcomes, and plan supersession.
+
+## Architectural outcome
+
+```text
+Goal / Intention
+      ↓
+     Plan
+      ↓
+ checkpoints / revisions
+      ↓
+ Execution
+      ↓
+ outcome evidence
+      ↓
+ durable progress / recovery state
+```
+
+Durability provides recovery semantics; it does not guarantee exactly-once execution of arbitrary host side effects.
+
+## Phase 0.9592 — Provider Ecosystem and Adapter Lifecycle
+
+## Status
+
+**Planned provider-platform foundation before and alongside Phase 0.96.**
+
+## Goal
+
+Mature the provider adapter boundary so HAgent can support many providers, API variants, models, modalities, discovery mechanisms, and provider API versions without leaking provider-specific behavior into HAgent.Core.
+
+## Requirements
+
+1. [ ] Define a complete provider adapter lifecycle including registration, validation, initialization, refresh, health, disablement, replacement, and retirement.
+2. [ ] Separate transport capability from discovery, usage, quota/rate, health, and other provider-specific data sources.
+3. [ ] Define normalized adapter contracts for model discovery, capability discovery, usage, rate/quota information, health, and supported execution features where available.
+4. [ ] Allow one provider integration to expose multiple models and task families without hard-coded model assumptions in Core.
+5. [ ] Preserve provider-native identifiers, API versions, deployment identifiers, and endpoint metadata alongside normalized identities.
+6. [ ] Support partial provider implementations: a provider may support execution while exposing incomplete discovery or quota telemetry.
+7. [ ] Represent unavailable/unknown provider features explicitly instead of manufacturing defaults.
+8. [ ] Define adapter version/compatibility metadata so provider API changes can be handled deliberately.
+9. [ ] Support provider deprecation/retirement without corrupting persisted agent configuration or historical execution records.
+10. [ ] Keep provider-specific retry, response, streaming, authentication, and error handling inside adapters where appropriate.
+11. [ ] Ensure adapter instances are safe for concurrent use or explicitly scoped when they are not.
+12. [ ] Ensure provider credentials are supplied through the current simple encrypted provider-configuration mechanism; this phase must not introduce a separate secret-vault architecture.
+13. [ ] Add deterministic fake-provider verification for complete discovery, partial discovery, unsupported operations, provider/API version changes, adapter replacement, health changes, and concurrent usage.
+
+## Architectural outcome
+
+```text
+Provider Configuration
+        ↓
+Provider Adapter
+ ├── execution
+ ├── discovery
+ ├── capabilities
+ ├── usage/quota
+ ├── health
+ └── provider-specific metadata
+        ↓
+Normalized HAgent contracts
+        ↓
+Execution Planner / Runtime
+```
+
+HAgent.Core remains provider-neutral; provider-specific knowledge stays behind adapter boundaries.
+
+## Phase 0.96.x — Configuration, Storage, and Portability Evolution
+
+## Status
+
+**Required cross-cutting work for Phase 0.96 capability-aware execution and the later 0.97 persistent cognitive runtime.**
+
+## Goal
+
+Evolve HAgent persistence so the new provider/model selection architecture, capability-aware execution, agent policies, resource relationships, global settings, and configuration portability can be stored consistently across the File, SQL Server, and MySQL backends.
+
+The storage design should remain deliberately simple. HAgent configuration is HAgent-owned data. Provider API keys are persisted with provider configuration and encrypted at rest; there is no separate secret-reference, vault, or centralized secret-provider architecture.
+
+The same database-backed configuration can be consumed by multiple HAgent processes/machines, allowing a network deployment to share providers, models, agents, skills, knowledge, policies, and credentials without configuring each client independently.
+
+## Storage architecture direction
+
+```text
+HAgent Configuration
+├── General/system settings
+├── Providers
+│   ├── connection configuration
+│   └── encrypted API key
+├── Models
+├── Concrete execution targets
+├── Discovery metadata/evidence
+├── Capability state
+├── Constraints
+├── Quota/rate/capacity state
+├── Agents
+│   ├── selection mode
+│   ├── requirements/preferences
+│   └── fallback/cost policy
+├── Skills
+├── Knowledge / Wiki
+├── Memory configuration/policy
+├── Learning configuration
+├── Tools
+├── Permissions
+└── resource relationships
+
+Configuration Portability
+├── versioned export package
+├── import/compatibility validation
+├── explicit conflict handling
+└── optional encrypted credential bundle
+```
+
+## Provider credentials
+
+1. [ ] Replace the current conceptual requirement that provider credentials live only in a separate secret store with direct provider configuration persistence.
+2. [ ] Add an `ApiKey`-style provider credential field to the authoritative provider configuration contract where the provider uses an API key.
+3. [ ] Encrypt provider API keys at rest before writing them to File, SQL Server, or MySQL persistence.
+4. [ ] Keep the encryption mechanism simple, documented, deterministic for the supported deployment model, and independent of provider-specific logic.
+5. [ ] Ensure decrypted credentials are available to provider adapters only when constructing provider execution requests.
+6. [ ] Redact provider credentials from diagnostics, logs, audits, discovery evidence, planner assessments, exceptions, and UI diagnostic output.
+7. [ ] Support credential replacement/removal so revoking a provider credential only requires updating/removing the persisted configuration and refreshing active snapshots.
+8. [ ] Remove the requirement for `SecretReference`-based provider persistence from the new architecture.
+9. [ ] Retire or simplify `ISecretStore` usage as part of implementation; it must not remain an unnecessary parallel source of truth for provider credentials.
+10. [ ] Preserve runtime-only handling of storage-server connection passwords where appropriate; do not place database connection passwords into ordinary provider configuration records.
+
+## Global configuration persistence
+
+11. [ ] Persist the system-wide `General` configuration described by the architecture, including at minimum Cost Policy, default AI selection mode, default fallback policy, default Learning Mode, and discovery/refresh defaults.
+12. [ ] Support explicit inherit/override semantics for settings that may be overridden at Agent or runtime/host scope.
+13. [ ] Persist effective policy inputs without mutating global defaults when an Agent or runtime override is applied.
+14. [ ] Version configuration records so cache/snapshot invalidation can detect changes reliably.
+
+## Provider and model persistence
+
+15. [ ] Redesign the provider persistence model so Provider is independent from Model and concrete Execution Target.
+16. [ ] Remove obsolete permanent Agent `ProviderId`/`ProviderIds` and model-binding storage from the new design rather than preserving legacy fields unnecessarily.
+17. [ ] Persist normalized logical-model records where logical identity can be established.
+18. [ ] Persist provider-native model identifiers separately from logical-model identity.
+19. [ ] Persist concrete execution targets with provider, endpoint/account/project, deployment/model identity, version/revision where available, and routing/deployment identity.
+20. [ ] Persist execution-target commercial state: `Free`, `FreeWithinQuota`, `Paid`, or `Unknown`.
+21. [ ] Persist discovery metadata including verification time, source/provenance, confidence where applicable, and refresh/expiration information.
+22. [ ] Persist capability evidence and normalized tri-state capability state: `Supported`, `Unsupported`, `Unknown`.
+23. [ ] Persist normalized request/target constraints such as context limits, output limits, modality restrictions, schema limitations, and provider-specific values through extensible metadata where needed.
+24. [ ] Persist operational state separately from capability: availability/health, quota, rate, concurrency/capacity, reset information, and observed remaining capacity.
+25. [ ] Distinguish configured/manual overrides from provider-discovered/observed values so refresh does not silently erase administrator intent.
+26. [ ] Permit unknown discovery data without requiring fake defaults. Unknown must remain a valid persisted state.
+27. [ ] Preserve multiple execution targets for the same logical model across different providers/accounts/projects/endpoints.
+
+## Agent policy persistence
+
+28. [ ] Persist Agent AI selection mode: `Auto`, `Preferred`, or `Fixed`.
+29. [ ] Persist preferred provider/model/execution-target settings without treating them as permanent execution bindings.
+30. [ ] Persist fixed execution-target selection when the administrator intentionally chooses Fixed mode.
+31. [ ] Persist capability requirements and preferences, including required/preferred/optional/forbidden semantics.
+32. [ ] Persist fallback/degradation policy.
+33. [ ] Persist Agent cost-policy inheritance/override and effective policy inputs.
+34. [ ] Persist runtime tri-state capability overrides separately from the reusable Agent profile.
+35. [ ] Ensure execution snapshots contain resolved configuration versions so changes after execution start cannot alter active work.
+
+## Resource and relationship persistence
+
+36. [ ] Extend persistence for Skills, Knowledge/Wiki, Memory policy, Learning configuration, Tools, Permissions, and their Agent/runtime relationships.
+37. [ ] Support reusable Skill definitions and versions without embedding executable handlers in persistence.
+38. [ ] Support Knowledge/Wiki resources independently from Skill storage while allowing explicit Agent access relationships.
+39. [ ] Support extensible resource/type identity so future resource categories can be stored and inventoried without hard-coded Agent columns.
+40. [ ] Persist Agent/resource relationships with explicit scope and enabled/disabled state where required.
+41. [ ] Preserve Learning candidate provenance, source execution/runtime identity, target scope, and evidence/confidence.
+
+## Runtime and cache coordination
+
+42. [ ] Add change/version metadata sufficient for long-lived runtime configuration snapshots.
+43. [ ] Support cache invalidation when provider configuration, model/discovery metadata, capabilities, permissions, global settings, or Agent configuration changes.
+44. [ ] Avoid reloading unchanged Agent/provider configuration from persistence on every execution when a valid runtime snapshot exists.
+45. [ ] Ensure database-backed HAgent instances can safely observe shared configuration changes across processes/machines.
+46. [ ] Define a lightweight refresh/invalidation strategy appropriate for File, SQL Server, and MySQL without requiring a distributed cache service.
+47. [ ] Prevent stale configuration snapshots from being used indefinitely after a relevant configuration revision changes.
+
+## Configuration export/import
+
+48. [ ] Define a versioned HAgent configuration package format independent of the physical storage backend.
+49. [ ] Export all HAgent-owned configuration that can be recreated on another deployment, including General settings, Providers, Models, execution targets, Agents, Skills, Knowledge/Wiki, Memory configuration/policy, Learning configuration, Tools, Permissions, capability/resource relationships, and relevant metadata.
+50. [ ] Exclude executable tool handlers, live runtime objects, active executions, synchronization primitives, transient provider sessions, raw HTTP state, and other process-local state from portable configuration.
+51. [ ] Support normal export without provider credentials by default.
+52. [ ] Support explicit credential-bearing export for administrators who choose to move credentials with the configuration.
+53. [ ] Encrypt included API keys inside a credential-bearing export package.
+54. [ ] Protect credential-bearing exports with a basic user-supplied password/encryption mechanism; do not introduce a separate secret-vault architecture.
+55. [ ] Validate package format/version compatibility before import.
+56. [ ] Provide explicit conflict behavior for existing IDs, names, providers, models, skills, knowledge resources, and other imported objects.
+57. [ ] Ensure import restores credentials into the normal encrypted-at-rest provider configuration of the selected storage backend.
+58. [ ] Ensure export/import preserves authoritative IDs and relationships when possible while providing deterministic remapping when conflicts require new IDs.
+59. [ ] Support round-trip export/import verification with the File, SQL Server, and MySQL backends.
+
+## Multi-machine database deployment
+
+60. [ ] Treat SQL Server and MySQL configuration storage as centrally shared HAgent configuration for all authorized HAgent processes connected to that database.
+61. [ ] Ensure provider API keys stored in the shared database are usable by authorized execution processes after decryption.
+62. [ ] Do not require each machine to maintain a separate provider API-key copy when using shared database-backed HAgent configuration.
+63. [ ] Ensure configuration refresh/version checks prevent one machine from continuing to use a revoked or replaced provider credential indefinitely.
+64. [ ] Preserve HAgent database isolation: shared HAgent storage remains an HAgent-owned database and must not become a gateway into the host application's business database.
+
+## File, SQL Server, and MySQL parity
+
+65. [ ] Define one logical configuration/storage contract and maintain equivalent behavior across File, SQL Server, and MySQL implementations.
+66. [ ] Add ordered schema migrations for SQL Server and MySQL covering the redesigned provider/agent/model configuration and new resource/policy records.
+67. [ ] Keep provider-specific SQL differences isolated to storage implementation/migrations; HAgent.Core remains provider-neutral.
+68. [ ] Add File persistence equivalents for the same authoritative configuration concepts so File mode does not become a second architecture.
+69. [ ] Ensure the selected backend can persist the configuration required by Phase 0.96 and Phase 0.97 without depending on a host business database.
+
+## UI implications
+
+70. [ ] Update `Providers` UI to edit connection information and API key while exposing encryption/redaction behavior without exposing implementation details.
+71. [ ] Update `Models` UI to display persisted/discovered model and execution-target metadata, capability evidence, limits, availability, cost state, and verification state.
+72. [ ] Update `Agents` UI to edit the new selection policy instead of obsolete permanent ProviderId/Model fields.
+73. [ ] Add configuration export/import management UI, including package type, credential-inclusion choice, password/protection flow, compatibility validation, conflict preview, and import result summary.
+74. [ ] Make it clear in the UI that credential-bearing export is an explicit action and normal export does not include API keys.
+75. [ ] Keep the user-facing UI organized around General, Providers, Models, Agents, Tools, Permissions, Storage, and related resource-management surfaces rather than exposing storage internals.
+
+## Migration strategy
+
+Because HAgent is still in active build/test and legacy configuration does not require preservation, this evolution should favor direct model replacement over a large backward-compatibility layer.
+
+76. [ ] Remove obsolete Agent provider/model fields from the authoritative model and schema.
+77. [ ] Remove obsolete provider-secret-reference assumptions from the new provider persistence path.
+78. [ ] Add new schema versions/migrations as needed for the redesigned model without introducing compatibility tables solely for retired fields.
+79. [ ] Update File, SQL Server, and MySQL serialization/persistence together so the backends remain behaviorally aligned.
+80. [ ] Update Example verification and management UI against the new storage contracts before marking the architecture transition complete.
+
+## Verification
+
+81. [ ] File, SQL Server, and MySQL can persist and reload the same logical configuration model.
+82. [ ] Two independent HAgent processes using one database observe the same provider, model, agent, skill, knowledge, and General configuration.
+83. [ ] A stored API key is encrypted at rest and is not emitted by diagnostics/audit/logging paths.
+84. [ ] Updating/removing a provider API key is reflected after configuration snapshot refresh/invalidation.
+85. [ ] Same logical model with different provider/account cost, capability, quota, and health state remains represented as distinct execution targets.
+86. [ ] Auto, Preferred, and Fixed Agent selection policies round-trip correctly through persistence.
+87. [ ] General Cost Policy and Learning defaults round-trip correctly and preserve inherit/override semantics.
+88. [ ] Export without credentials contains no API keys.
+89. [ ] Credential-bearing export contains encrypted credentials and requires the export protection mechanism to import them.
+90. [ ] Export/import round-trips providers, models, execution targets, agents, skills, knowledge/wiki, memory policy, learning configuration, tools, permissions, and relationships.
+91. [ ] Import detects incompatible package versions and reports deterministic conflicts rather than silently overwriting unrelated configuration.
+92. [ ] Running executions use immutable snapshots even when another process edits/deletes the underlying configuration.
+
+## Architectural outcome
+
+After this evolution, HAgent storage should conceptually look like:
+
+```text
+                 HAgent Configuration
+                         │
+          ┌──────────────┴──────────────┐
+          │                             │
+      File backend                Database backend
+                                      │
+                               SQL Server / MySQL
+                                      │
+                          shared by authorized HAgent
+                              processes/machines
+
+Provider
+  ├── connection metadata
+  └── encrypted API key
+
+Model
+  ├── logical identity
+  └── provider-native identities
+
+Execution Target
+  ├── provider/account/project/endpoint
+  ├── model/deployment
+  ├── capabilities/evidence
+  ├── constraints
+  ├── quota/rate/capacity
+  ├── health/availability
+  └── cost state
+
+Agent
+  ├── selection policy
+  ├── requirements/preferences
+  ├── fallback
+  ├── cost policy
+  └── resource relationships
+
+Export / Import
+  └── versioned portable representation of the same authoritative configuration
+```
+
+The storage layer remains an implementation boundary. Provider routing, cognitive planning, and execution behavior consume normalized contracts rather than knowing whether the source was a JSON file, SQL Server, or MySQL.
+
 ## Phase 0.96 — Capability-Aware Execution
 
 ## Status
@@ -1634,228 +2383,27 @@ Decisions, beliefs, plans, skills, policies, and learned candidates must remain 
 
 A host can create a long-lived cognitive runtime for a runtime agent, feed it events/observations, maintain persistent beliefs, goals, intentions, and plans, selectively retrieve memory/knowledge/skills, handle routine situations without an LLM, progressively escalate reasoning only when justified, select an appropriate model through a provider-neutral reasoning requirement, encounter and resolve explicit impasses, learn versioned skills/policies from validated experience without silently mutating the cognitive kernel, recover safely after restart, compare multiple cognitive strategies through the same runtime substrate, and observe the full cognitive lifecycle — without HAgent gaining ownership of host-domain state or side effects.
 
-## Phase 0.96.x — Configuration, Storage, and Portability Evolution
+Cognitive Runtime Workbench
 
-## Status
+Part of Phase 0.97.
 
-**Required cross-cutting work for Phase 0.96 capability-aware execution and the later 0.97 persistent cognitive runtime.**
+HAgent.WinForms must add a top-level Cognitions view for active runtime instances. It provides complete inspection of current runtime cognition: beliefs, goals, intentions, plans, attention, working state, memory, knowledge, skills, events, executions, learning and history.
 
-## Goal
+Cognitive Workbench Controls
 
-Evolve HAgent persistence so the new provider/model selection architecture, capability-aware execution, agent policies, resource relationships, global settings, and configuration portability can be stored consistently across the File, SQL Server, and MySQL backends.
+Authorized users may insert, edit and invalidate beliefs; create, edit, reprioritize, suspend, resume and abandon goals; modify intentions where policy permits; request plan reconsideration; inject observations/events; request deliberation; and pause, resume, wake, sleep or retire a runtime.
 
-The storage design should remain deliberately simple. HAgent configuration is HAgent-owned data. Provider API keys are persisted with provider configuration and encrypted at rest; there is no separate secret-reference, vault, or centralized secret-provider architecture.
+The UI must use HAgent runtime state-transition APIs and never write directly to persistence. Every mutation is atomic, version-aware, authorized and auditable. Record operator identity, timestamp, reason, UI action, previous revision and new revision.
 
-The same database-backed configuration can be consumed by multiple HAgent processes/machines, allowing a network deployment to share providers, models, agents, skills, knowledge, policies, and credentials without configuring each client independently.
+If the runtime revision changed since the UI read it, reject or refresh the mutation rather than silently merging it. Existing execution snapshots remain immutable and stale executions must not overwrite newer cognition.
 
-## Storage architecture direction
+Cognitive Workbench History and Learning
 
-```text
-HAgent Configuration
-├── General/system settings
-├── Providers
-│   ├── connection configuration
-│   └── encrypted API key
-├── Models
-├── Concrete execution targets
-├── Discovery metadata/evidence
-├── Capability state
-├── Constraints
-├── Quota/rate/capacity state
-├── Agents
-│   ├── selection mode
-│   ├── requirements/preferences
-│   └── fallback/cost policy
-├── Skills
-├── Knowledge / Wiki
-├── Memory configuration/policy
-├── Learning configuration
-├── Tools
-├── Permissions
-└── resource relationships
+Show the complete cognitive timeline: events, belief changes, attention changes, goal and intention changes, plan revisions, impasses, deliberation, executions, outcomes, memory/experience creation, learning decisions, sleep/wake and recovery, including user interventions.
 
-Configuration Portability
-├── versioned export package
-├── import/compatibility validation
-├── explicit conflict handling
-└── optional encrypted credential bundle
-```
+Show learning as Experience -> Memory -> Reflection/Learning -> candidate skill/knowledge/policy -> validation/governance -> published version. Distinguish candidates from authoritative versions so users can see when repeated LLM reasoning becomes reusable deterministic behavior.
 
-## Provider credentials
-
-1. [ ] Replace the current conceptual requirement that provider credentials live only in a separate secret store with direct provider configuration persistence.
-2. [ ] Add an `ApiKey`-style provider credential field to the authoritative provider configuration contract where the provider uses an API key.
-3. [ ] Encrypt provider API keys at rest before writing them to File, SQL Server, or MySQL persistence.
-4. [ ] Keep the encryption mechanism simple, documented, deterministic for the supported deployment model, and independent of provider-specific logic.
-5. [ ] Ensure decrypted credentials are available to provider adapters only when constructing provider execution requests.
-6. [ ] Redact provider credentials from diagnostics, logs, audits, discovery evidence, planner assessments, exceptions, and UI diagnostic output.
-7. [ ] Support credential replacement/removal so revoking a provider credential only requires updating/removing the persisted configuration and refreshing active snapshots.
-8. [ ] Remove the requirement for `SecretReference`-based provider persistence from the new architecture.
-9. [ ] Retire or simplify `ISecretStore` usage as part of implementation; it must not remain an unnecessary parallel source of truth for provider credentials.
-10. [ ] Preserve runtime-only handling of storage-server connection passwords where appropriate; do not place database connection passwords into ordinary provider configuration records.
-
-## Global configuration persistence
-
-11. [ ] Persist the system-wide `General` configuration described by the architecture, including at minimum Cost Policy, default AI selection mode, default fallback policy, default Learning Mode, and discovery/refresh defaults.
-12. [ ] Support explicit inherit/override semantics for settings that may be overridden at Agent or runtime/host scope.
-13. [ ] Persist effective policy inputs without mutating global defaults when an Agent or runtime override is applied.
-14. [ ] Version configuration records so cache/snapshot invalidation can detect changes reliably.
-
-## Provider and model persistence
-
-15. [ ] Redesign the provider persistence model so Provider is independent from Model and concrete Execution Target.
-16. [ ] Remove obsolete permanent Agent `ProviderId`/`ProviderIds` and model-binding storage from the new design rather than preserving legacy fields unnecessarily.
-17. [ ] Persist normalized logical-model records where logical identity can be established.
-18. [ ] Persist provider-native model identifiers separately from logical-model identity.
-19. [ ] Persist concrete execution targets with provider, endpoint/account/project, deployment/model identity, version/revision where available, and routing/deployment identity.
-20. [ ] Persist execution-target commercial state: `Free`, `FreeWithinQuota`, `Paid`, or `Unknown`.
-21. [ ] Persist discovery metadata including verification time, source/provenance, confidence where applicable, and refresh/expiration information.
-22. [ ] Persist capability evidence and normalized tri-state capability state: `Supported`, `Unsupported`, `Unknown`.
-23. [ ] Persist normalized request/target constraints such as context limits, output limits, modality restrictions, schema limitations, and provider-specific values through extensible metadata where needed.
-24. [ ] Persist operational state separately from capability: availability/health, quota, rate, concurrency/capacity, reset information, and observed remaining capacity.
-25. [ ] Distinguish configured/manual overrides from provider-discovered/observed values so refresh does not silently erase administrator intent.
-26. [ ] Permit unknown discovery data without requiring fake defaults. Unknown must remain a valid persisted state.
-27. [ ] Preserve multiple execution targets for the same logical model across different providers/accounts/projects/endpoints.
-
-## Agent policy persistence
-
-28. [ ] Persist Agent AI selection mode: `Auto`, `Preferred`, or `Fixed`.
-29. [ ] Persist preferred provider/model/execution-target settings without treating them as permanent execution bindings.
-30. [ ] Persist fixed execution-target selection when the administrator intentionally chooses Fixed mode.
-31. [ ] Persist capability requirements and preferences, including required/preferred/optional/forbidden semantics.
-32. [ ] Persist fallback/degradation policy.
-33. [ ] Persist Agent cost-policy inheritance/override and effective policy inputs.
-34. [ ] Persist runtime tri-state capability overrides separately from the reusable Agent profile.
-35. [ ] Ensure execution snapshots contain resolved configuration versions so changes after execution start cannot alter active work.
-
-## Resource and relationship persistence
-
-36. [ ] Extend persistence for Skills, Knowledge/Wiki, Memory policy, Learning configuration, Tools, Permissions, and their Agent/runtime relationships.
-37. [ ] Support reusable Skill definitions and versions without embedding executable handlers in persistence.
-38. [ ] Support Knowledge/Wiki resources independently from Skill storage while allowing explicit Agent access relationships.
-39. [ ] Support extensible resource/type identity so future resource categories can be stored and inventoried without hard-coded Agent columns.
-40. [ ] Persist Agent/resource relationships with explicit scope and enabled/disabled state where required.
-41. [ ] Preserve Learning candidate provenance, source execution/runtime identity, target scope, and evidence/confidence.
-
-## Runtime and cache coordination
-
-42. [ ] Add change/version metadata sufficient for long-lived runtime configuration snapshots.
-43. [ ] Support cache invalidation when provider configuration, model/discovery metadata, capabilities, permissions, global settings, or Agent configuration changes.
-44. [ ] Avoid reloading unchanged Agent/provider configuration from persistence on every execution when a valid runtime snapshot exists.
-45. [ ] Ensure database-backed HAgent instances can safely observe shared configuration changes across processes/machines.
-46. [ ] Define a lightweight refresh/invalidation strategy appropriate for File, SQL Server, and MySQL without requiring a distributed cache service.
-47. [ ] Prevent stale configuration snapshots from being used indefinitely after a relevant configuration revision changes.
-
-## Configuration export/import
-
-48. [ ] Define a versioned HAgent configuration package format independent of the physical storage backend.
-49. [ ] Export all HAgent-owned configuration that can be recreated on another deployment, including General settings, Providers, Models, execution targets, Agents, Skills, Knowledge/Wiki, Memory configuration/policy, Learning configuration, Tools, Permissions, capability/resource relationships, and relevant metadata.
-50. [ ] Exclude executable tool handlers, live runtime objects, active executions, synchronization primitives, transient provider sessions, raw HTTP state, and other process-local state from portable configuration.
-51. [ ] Support normal export without provider credentials by default.
-52. [ ] Support explicit credential-bearing export for administrators who choose to move credentials with the configuration.
-53. [ ] Encrypt included API keys inside a credential-bearing export package.
-54. [ ] Protect credential-bearing exports with a basic user-supplied password/encryption mechanism; do not introduce a separate secret-vault architecture.
-55. [ ] Validate package format/version compatibility before import.
-56. [ ] Provide explicit conflict behavior for existing IDs, names, providers, models, skills, knowledge resources, and other imported objects.
-57. [ ] Ensure import restores credentials into the normal encrypted-at-rest provider configuration of the selected storage backend.
-58. [ ] Ensure export/import preserves authoritative IDs and relationships when possible while providing deterministic remapping when conflicts require new IDs.
-59. [ ] Support round-trip export/import verification with the File, SQL Server, and MySQL backends.
-
-## Multi-machine database deployment
-
-60. [ ] Treat SQL Server and MySQL configuration storage as centrally shared HAgent configuration for all authorized HAgent processes connected to that database.
-61. [ ] Ensure provider API keys stored in the shared database are usable by authorized execution processes after decryption.
-62. [ ] Do not require each machine to maintain a separate provider API-key copy when using shared database-backed HAgent configuration.
-63. [ ] Ensure configuration refresh/version checks prevent one machine from continuing to use a revoked or replaced provider credential indefinitely.
-64. [ ] Preserve HAgent database isolation: shared HAgent storage remains an HAgent-owned database and must not become a gateway into the host application's business database.
-
-## File, SQL Server, and MySQL parity
-
-65. [ ] Define one logical configuration/storage contract and maintain equivalent behavior across File, SQL Server, and MySQL implementations.
-66. [ ] Add ordered schema migrations for SQL Server and MySQL covering the redesigned provider/agent/model configuration and new resource/policy records.
-67. [ ] Keep provider-specific SQL differences isolated to storage implementation/migrations; HAgent.Core remains provider-neutral.
-68. [ ] Add File persistence equivalents for the same authoritative configuration concepts so File mode does not become a second architecture.
-69. [ ] Ensure the selected backend can persist the configuration required by Phase 0.96 and Phase 0.97 without depending on a host business database.
-
-## UI implications
-
-70. [ ] Update `Providers` UI to edit connection information and API key while exposing encryption/redaction behavior without exposing implementation details.
-71. [ ] Update `Models` UI to display persisted/discovered model and execution-target metadata, capability evidence, limits, availability, cost state, and verification state.
-72. [ ] Update `Agents` UI to edit the new selection policy instead of obsolete permanent ProviderId/Model fields.
-73. [ ] Add configuration export/import management UI, including package type, credential-inclusion choice, password/protection flow, compatibility validation, conflict preview, and import result summary.
-74. [ ] Make it clear in the UI that credential-bearing export is an explicit action and normal export does not include API keys.
-75. [ ] Keep the user-facing UI organized around General, Providers, Models, Agents, Tools, Permissions, Storage, and related resource-management surfaces rather than exposing storage internals.
-
-## Migration strategy
-
-Because HAgent is still in active build/test and legacy configuration does not require preservation, this evolution should favor direct model replacement over a large backward-compatibility layer.
-
-76. [ ] Remove obsolete Agent provider/model fields from the authoritative model and schema.
-77. [ ] Remove obsolete provider-secret-reference assumptions from the new provider persistence path.
-78. [ ] Add new schema versions/migrations as needed for the redesigned model without introducing compatibility tables solely for retired fields.
-79. [ ] Update File, SQL Server, and MySQL serialization/persistence together so the backends remain behaviorally aligned.
-80. [ ] Update Example verification and management UI against the new storage contracts before marking the architecture transition complete.
-
-## Verification
-
-81. [ ] File, SQL Server, and MySQL can persist and reload the same logical configuration model.
-82. [ ] Two independent HAgent processes using one database observe the same provider, model, agent, skill, knowledge, and General configuration.
-83. [ ] A stored API key is encrypted at rest and is not emitted by diagnostics/audit/logging paths.
-84. [ ] Updating/removing a provider API key is reflected after configuration snapshot refresh/invalidation.
-85. [ ] Same logical model with different provider/account cost, capability, quota, and health state remains represented as distinct execution targets.
-86. [ ] Auto, Preferred, and Fixed Agent selection policies round-trip correctly through persistence.
-87. [ ] General Cost Policy and Learning defaults round-trip correctly and preserve inherit/override semantics.
-88. [ ] Export without credentials contains no API keys.
-89. [ ] Credential-bearing export contains encrypted credentials and requires the export protection mechanism to import them.
-90. [ ] Export/import round-trips providers, models, execution targets, agents, skills, knowledge/wiki, memory policy, learning configuration, tools, permissions, and relationships.
-91. [ ] Import detects incompatible package versions and reports deterministic conflicts rather than silently overwriting unrelated configuration.
-92. [ ] Running executions use immutable snapshots even when another process edits/deletes the underlying configuration.
-
-## Architectural outcome
-
-After this evolution, HAgent storage should conceptually look like:
-
-```text
-                 HAgent Configuration
-                         │
-          ┌──────────────┴──────────────┐
-          │                             │
-      File backend                Database backend
-                                      │
-                               SQL Server / MySQL
-                                      │
-                          shared by authorized HAgent
-                              processes/machines
-
-Provider
-  ├── connection metadata
-  └── encrypted API key
-
-Model
-  ├── logical identity
-  └── provider-native identities
-
-Execution Target
-  ├── provider/account/project/endpoint
-  ├── model/deployment
-  ├── capabilities/evidence
-  ├── constraints
-  ├── quota/rate/capacity
-  ├── health/availability
-  └── cost state
-
-Agent
-  ├── selection policy
-  ├── requirements/preferences
-  ├── fallback
-  ├── cost policy
-  └── resource relationships
-
-Export / Import
-  └── versioned portable representation of the same authoritative configuration
-```
-
-The storage layer remains an implementation boundary. Provider routing, cognitive planning, and execution behavior consume normalized contracts rather than knowing whether the source was a JSON file, SQL Server, or MySQL.
+Show the active cognitive strategy and version, such as Adaptive Hybrid Cognition (AHC). Future strategies must use the same generic workbench while allowing strategy-specific diagnostics. Historical state is initially read-only; future experimentation may branch from checkpoints without silently replacing live state.
 
 ## Phase 0.10 — Workspaces, Routing + Chat
 
@@ -2130,551 +2678,3 @@ These capabilities follow the core runtime, data, and collaboration milestones. 
 - [ ] Documentation and migration guidance.
 
 `.NET 10` remains a future target after the development environment and compatibility policy are ready.
-
-## Phase 0.951 — Identity, Tenancy, and User Context
-
-## Status
-
-**Completed — verified in HAgent.Example.**
-
-## Goal
-
-Define provider-neutral identity and context contracts that allow HAgent to distinguish deployment, tenant, user, session, workspace, agent profile, runtime instance, execution, and related principals without implementing authentication itself.
-
-## Requirements
-
-1. [x] Define a provider-neutral identity context suitable for authorization, audit, evaluation, memory, knowledge, and runtime context. A separate `Principal` object is not required when the shared context is sufficient.
-2. [x] Distinguish deployment/application identity from tenant, user, session, workspace, agent profile, runtime-instance, and execution identity through a shared `AgentIdentityContext` and existing runtime/execution identities.
-3. [x] Define optional tenancy so single-tenant hosts remain simple while multi-tenant hosts can isolate HAgent resources through an explicit `TenantId` boundary.
-4. [x] Propagate the shared identity context through execution snapshots and public execution results, with tool-execution and audit projections now carrying the same identity context. Extend the same context to memory, knowledge, learning, policy, events, tracing, and evaluation in their respective phases.
-5. [x] Keep authentication and credential verification outside HAgent; the identity contract is host-supplied context only.
-6. [x] Define stable resource scope semantics for Global, Tenant, User, Workspace, Agent, Runtime, and Execution through `AgentResourceScope`.
-7. [x] Ensure private runtime memory and other private resources can be isolated by explicit owner identity through the canonical `AgentResourceOwnership` contract. The redesign rule requires subsystems to consume the canonical ownership model directly rather than preserving obsolete parallel mechanisms.
-8. [x] Make identity context immutable within an execution snapshot by cloning the host-supplied identity when the snapshot is created.
-9. [x] Define safe behavior when host identity information is absent; identity fields are optional and default to empty values rather than fabricated identities.
-10. [x] Add deterministic Example verification for single-user, multi-user, and multi-tenant identity propagation and isolation.
-
-## Initial implementation
-
-The first implementation slice introduced:
-
-```text
-AgentExecutionRequest.Identity
-        ↓
-AgentExecutionSnapshot.Identity
-        ↓
-AgentExecution.Identity
-        ├── ToolExecutionContext.Identity
-        ├── ToolExecutionResult.Identity
-        └── AgentExecutionAuditRecord identity projection
-```
-
-`AgentIdentityContext` is provider-neutral and carries:
-
-```text
-DeploymentId
-TenantId
-PrincipalId
-DisplayName
-UserId
-SessionId
-WorkspaceId
-```
-
-The execution snapshot keeps its own copy so caller-owned request state cannot mutate the identity associated with an active execution. Tool execution receives the same captured context, and audit projections retain identity dimensions without storing sensitive payloads.
-
-## Resource ownership implementation
-
-HAgent defines a canonical `AgentResourceScope` and `AgentResourceOwnership.GetOwnerId(...)` contract for HAgent-owned resource partitioning:
-
-```text
-Global
-Tenant
-User
-Workspace
-Agent
-Runtime
-Execution
-```
-
-The canonical owner key preserves deployment and, where applicable, tenant context. Therefore the same `UserId` in two tenants cannot produce the same user owner key.
-
-Private runtime memory ownership remains distinct from execution ownership. Runtime instances use their runtime identity, while execution-scoped resources use the execution identity. These identities must not be collapsed.
-
-Storage partitioning is not authorization. Authorization remains a policy decision using the supplied identity, operation, resource scope, and applicable policy.
-
-## Verification
-
-`HAgent.Example` verifies:
-
-```text
-Identity Snapshot
-Identity Execution
-Identity Tool
-Identity Isolation
-```
-
-The verified isolation scenario covers:
-
-- separate owner keys for different users;
-- tenant-qualified user ownership;
-- isolation of the same user ID across tenants;
-- private memory visibility by owner;
-- distinct runtime and execution resource scopes;
-- preservation of unrestricted-store behavior as distinct from authorization.
-
-## Architectural outcome
-
-```text
-Deployment
-  -> Tenant (optional)
-      -> User / Principal
-          -> Session
-              -> Workspace (optional)
-                  -> Agent Profile
-                      -> Runtime Instance
-                          -> Execution
-                              -> Resource Scope + Owner Key
-                                  -> Tools / Memory / Knowledge / Audit / downstream subsystems
-```
-
-HAgent consumes identity context; the host remains responsible for authentication and authoritative user/account lifecycle.
-
-## Phase 0.952 — Event Subsystem
-
-## Status
-
-**Completed — verified in the HAgent Example host on 2026-09-06.**
-
-## Goal
-
-Make events a first-class provider-neutral HAgent concept so hosts, tools, runtimes, workflows, and the future Persistent Cognitive Runtime can use one generic event model.
-
-## Requirements
-
-1. [x] Define `EventEnvelope` with stable event ID, type, source, timestamp, correlation/causation metadata, optional importance, and bounded payload/context.
-2. [x] Define event source and scope semantics without assuming a specific host domain.
-3. [x] Support user, application, timer, tool, provider, memory, goal, agent-message, and external events through the same generic contract.
-4. [x] Define bounded event queues, retention, expiration, and deduplication semantics.
-5. [x] Define an asynchronous event dispatch boundary with cancellation and backpressure.
-6. [x] Preserve event provenance and correlation into runtime decisions and executions.
-7. [x] Support event filtering/routing without making the event subsystem a domain-specific message bus.
-8. [x] Define persistence as optional and keep live queues/process-local handlers separate from durable event records.
-9. [x] Ensure event delivery is safe under concurrent producers and consumers.
-10. [x] Add deterministic Example verification for publishing, filtering, deduplication, expiration, bounded queues, cancellation, and correlation propagation.
-
-## Verification result
-
-The Example host reported success for all three event tests:
-
-- Event envelope clone preservation, nested identity/context isolation, and scoped-event validation.
-- Concurrent dispatch, type/source/scope filtering, correlation propagation, and identity propagation.
-- Duplicate suppression, expiration rejection, publish cancellation, bounded configuration, and handler fault isolation.
-
-## Architectural outcome
-
-```text
-Host / Provider / Tool / Runtime
-            |
-            v
-      EventEnvelope
-            |
-      Event Dispatcher
-       /           \
-   reactive      cognitive
-    handler       runtime
-```
-
-The subsystem provides generic event infrastructure; it does not become a replacement for a host's enterprise message broker.
-
-## Phase 0.953 — Unified Policy Engine
-
-## Status
-
-**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, and pre-transport runtime enforcement implemented.**
-
-## Goal
-
-Unify HAgent's growing permission, capability, cost, learning, approval, resource, and execution rules behind a coherent provider-neutral policy model.
-
-## Requirements
-
-1. [x] Define generic policy, rule, scope, evaluation context, and decision contracts.
-2. [x] Represent at least `Allow`, `Deny`, `RequireApproval`, `Defer/Wait`, and `NotApplicable` outcomes where meaningful.
-3. [x] Support policy scopes such as system, tenant, user, workspace, agent, runtime, execution, resource, tool, and provider/target where applicable.
-4. [ ] Integrate existing permission/authorization concepts without replacing host-owned authorization.
-5. [x] Integrate cost policy (`FreeOnly`, `FreePreferred`, `NoRestriction`) through the policy system at the evaluation boundary.
-6. [ ] Integrate learning promotion policy and approval requirements into runtime learning workflows.
-7. [ ] Integrate capability/resource enablement and runtime tri-state overrides.
-8. [x] Support explicit policy precedence and deterministic conflict resolution.
-9. [x] Preserve policy provenance so diagnostics can explain which rule produced a decision.
-10. [x] Make policy evaluation deterministic where inputs are deterministic and expose an explicit policy version for cache invalidation.
-11. [ ] Capture full effective policy state in execution/runtime snapshots. The concrete execution now captures the selected policy decision.
-12. [x] Prevent prompt content from serving as the policy enforcement mechanism.
-13. [x] Add deterministic Example verification for policy precedence, denial, approval outcome, cost restrictions, resource/tool/provider matching, deterministic conflict resolution, and pre-transport runtime denial.
-
-## Implemented slices
-
-The current implementation includes:
-
-- `AiPolicySet` and `AiPolicyRule` for versioned, scoped rules;
-- `AiPolicyEvaluationContext` for bounded identity/resource/execution inputs;
-- `AiPolicyDecision` with outcome and provenance;
-- `IAiPolicyEngine` and `DefaultAiPolicyEngine`;
-- deterministic precedence based on explicit priority, scope specificity, match specificity, outcome restrictiveness, and stable rule ID;
-- built-in `FreeOnly` enforcement where `Paid` and `Unknown` cost states are denied;
-- `AgentExecution.PolicyDecision` capture;
-- runtime enforcement after execution-target selection and before provider transport;
-- deterministic Example verification in `MainForm.PolicyTests.cs`.
-
-Persistent policy storage, learning promotion controls, resource tri-state integration, host authorization integration, human approval workflow, and full effective-policy snapshot capture remain subsequent slices.
-
-## Architectural rule
-
-The policy engine decides what HAgent is permitted or configured to do. It does not become an authentication provider or replace host authority over application side effects.
-
-## Phase 0.954 — Prompt and Instruction Governance
-
-## Status
-
-**Planned architectural foundation before persistent cognition and advanced learning.**
-
-## Goal
-
-Define trusted instruction layers and provenance so HAgent can safely combine system policy, agent instructions, Skills, Knowledge, Memory, tools, runtime context, user input, and externally retrieved content.
-
-## Requirements
-
-1. [ ] Define normalized instruction/source records with source type, authority/trust level, provenance, scope, and lifecycle metadata.
-2. [ ] Define deterministic instruction composition and precedence rules.
-3. [ ] Distinguish trusted policy/instructions from untrusted retrieved content and ordinary user/model-generated text.
-4. [ ] Prevent lower-authority content from silently overriding higher-authority policy.
-5. [ ] Ensure prompts never substitute for authorization, permissions, approval, or other code-enforced controls.
-6. [ ] Track the instruction sources contributing to an execution snapshot.
-7. [ ] Support Skill, Knowledge, Memory, tool-description, runtime, and host-context instructions without creating provider-specific prompt formats in Core.
-8. [ ] Define handling for instruction conflicts, unsafe/invalid sources, disabled resources, and unavailable source content.
-9. [ ] Keep secrets and sensitive host data out of diagnostic instruction traces by default.
-10. [ ] Add deterministic Example verification for precedence, untrusted-content handling, conflicts, disabled resources, and execution-snapshot provenance.
-
-## Architectural outcome
-
-```text
-System / Policy
-      ↓
-Agent instructions
-      ↓
-Skills / trusted resources
-      ↓
-Knowledge / Memory / tool descriptions
-      ↓
-Runtime + host context
-      ↓
-User / external content
-      ↓
-Provider request
-```
-
-The exact precedence rules are implementation-defined, but authority and provenance must remain explicit.
-
-## Phase 0.955 — Context Engineering
-
-## Status
-
-**Planned architectural foundation before advanced persistent cognition.**
-
-## Goal
-
-Make context assembly a first-class HAgent subsystem that selects, ranks, bounds, compresses, and explains the information sent to an execution instead of treating prompt construction as string concatenation.
-
-## Requirements
-
-1. [ ] Define provider-neutral context items with source, type, provenance, trust, importance, freshness, scope, and estimated size.
-2. [ ] Define context budgets for tokens/characters/items and other applicable resource dimensions.
-3. [ ] Separate context retrieval from context assembly and from cognitive attention.
-4. [ ] Support relevance ranking using goal relevance, attention, recency, importance, trust, redundancy, and estimated cost where available.
-5. [ ] Support bounded memory, knowledge, skill, conversation, host-context, tool-description, and instruction retrieval.
-6. [ ] Support compaction, summarization, deduplication, and truncation strategies without silently discarding required policy or provenance.
-7. [ ] Preserve source/provenance metadata for assembled context and expose safe diagnostics explaining inclusion/exclusion.
-8. [ ] Support reusable and cacheable context components when configuration/version rules permit.
-9. [ ] Keep provider-specific tokenization behind optional adapters; Core must not require a particular tokenizer.
-10. [ ] Ensure context assembly respects policy, permissions, disabled resources, and instruction authority.
-11. [ ] Capture the resulting bounded context in immutable execution snapshots.
-12. [ ] Add deterministic Example verification for budgets, ranking, prioritization, compaction, source provenance, cache reuse, and policy-enforced exclusion.
-
-## Architectural outcome
-
-```text
-Available information
-        ↓
-Policy + permissions
-        ↓
-Attention / relevance
-        ↓
-Retrieval
-        ↓
-Ranking / deduplication
-        ↓
-Compression / compaction
-        ↓
-Bounded Context
-        ↓
-Execution Request
-```
-
-Context engineering remains distinct from cognitive decision making: cognition decides what matters; context engineering constructs the bounded evidence supplied to an execution.
-
-## Phase 0.956 — Observability and Distributed Tracing
-
-## Status
-
-**Planned architectural foundation before capability-aware execution and persistent cognition.**
-
-## Goal
-
-Turn HAgent execution, resource use, policy decisions, cognition, tools, provider activity, and lifecycle changes into a coherent structured trace that can be correlated across operations and processes.
-
-## Requirements
-
-1. [ ] Define provider-neutral trace/span concepts for HAgent operations.
-2. [ ] Correlate deployment, tenant, user/session, workspace, agent, runtime, execution, tool-call, provider-target, event, policy, and evaluation activity where applicable.
-3. [ ] Represent operation start/end, duration, status, parent relationship, decision reason, and safe metadata.
-4. [ ] Trace context assembly, resource retrieval, policy evaluation, candidate selection, admission, provider execution, tool execution, learning, and cognitive transitions.
-5. [ ] Support configurable redaction of prompts, responses, arguments, host context, and other sensitive data.
-6. [ ] Keep secrets, credentials, raw connection strings, and sensitive payloads out of traces by default.
-7. [ ] Support local/in-memory tracing plus host-integrated sinks without forcing one telemetry vendor or transport.
-8. [ ] Define bounded trace retention and sampling controls.
-9. [ ] Preserve cross-process correlation for network/database-backed deployments where identity is available.
-10. [ ] Make stale-result rejection, policy denial, fallback, waiting, retry, and recovery decisions observable.
-11. [ ] Provide a safe human-readable diagnostic projection for management UI.
-12. [ ] Add deterministic Example verification for trace hierarchy, correlation propagation, redaction, sampling, failures, cancellation, and fallback paths.
-
-## Architectural outcome
-
-```text
-Event / Request
-      ↓
-Trace
- ├── Policy
- ├── Context
- ├── Planning
- ├── Admission
- ├── Provider
- ├── Tools
- ├── Memory/Knowledge
- └── Outcome
-```
-
-Tracing is observability, not authorization and not transcript storage.
-
-## Phase 0.957 — Evaluation and Quality Measurement
-
-## Status
-
-**Planned architectural foundation for reliable agent behavior and later optimization.**
-
-## Goal
-
-Give HAgent a provider-neutral way to measure whether executions, tool use, plans, learning changes, and agent outcomes achieved their intended quality or task goals.
-
-## Requirements
-
-1. [ ] Define evaluation contracts independent of any specific LLM vendor or grading service.
-2. [ ] Support evaluation targets including execution, response, tool outcome, goal outcome, plan outcome, memory/knowledge usefulness, and learning candidate quality.
-3. [ ] Support deterministic evaluators such as schema validity, required-field checks, policy compliance, tool success, latency, cost, and task completion signals.
-4. [ ] Support externally supplied human/application ratings and labels.
-5. [ ] Support model-assisted evaluators without treating evaluator-model output as unquestionable truth.
-6. [ ] Preserve evaluation provenance, evaluator identity/type, input references, timestamp, and confidence where meaningful.
-7. [ ] Correlate evaluations with execution/runtime/agent/goal/plan/trace identities.
-8. [ ] Keep evaluation data separate from authoritative agent state; an evaluation does not automatically mutate configuration, memory, skill, or knowledge.
-9. [ ] Support repeated test cases and regression suites for provider/model/agent comparisons.
-10. [ ] Support aggregate metrics such as success rate, quality score, latency, cost, fallback frequency, tool success, and plan completion.
-11. [ ] Add deterministic Example verification for evaluation creation, aggregation, human rating, failed evaluations, and comparison of alternative execution targets.
-
-## Architectural outcome
-
-```text
-Execution / Goal / Plan
-        ↓
-    Evaluation
-        ↓
- score / label / evidence
-        ↓
-  metrics / regression
-```
-
-Evaluation measures behavior; it does not become a hidden decision-maker for authorization.
-
-## Phase 0.958 — Agent Lifecycle and Health Management
-
-## Status
-
-**Planned architectural foundation before persistent cognitive runtime.**
-
-## Goal
-
-Make agent/runtime lifecycle and health explicit, observable, recoverable, and controllable for both request-oriented and persistent agents.
-
-## Requirements
-
-1. [ ] Define normalized lifecycle states for runtime agents and persistent cognitive agents.
-2. [ ] Distinguish lifecycle state from health state and execution state.
-3. [ ] Support at least active, sleeping/idle, waiting, blocked, deliberating, executing, degraded, failed, retired, recovering, and shutdown semantics where applicable.
-4. [ ] Define health/status reasons and safe transitions rather than exposing only a Boolean healthy flag.
-5. [ ] Prevent retired/shutdown agents from originating new executions.
-6. [ ] Support suspension/resume without deleting durable state.
-7. [ ] Expose lifecycle and health changes through events and tracing.
-8. [ ] Define heartbeat/progress or equivalent signals for long-running persistent runtimes where needed.
-9. [ ] Detect stalled or repeatedly failing progress without confusing slow legitimate inference with failure.
-10. [ ] Support operator-visible diagnostics explaining why an agent is blocked, waiting, degraded, or recovering.
-11. [ ] Add deterministic Example verification for lifecycle transitions, suspension/resume, unhealthy/degraded states, stalled work, and shutdown safety.
-
-## Architectural rule
-
-Lifecycle state answers "what is the agent doing?" Health state answers "is the agent operating normally?" Execution state answers "what is this specific operation doing?" These concerns remain separate.
-
-## Phase 0.959 — Human-in-the-Loop and Intervention
-
-## Status
-
-**Planned architectural foundation for safe persistent and autonomous agents.**
-
-## Goal
-
-Allow authorized humans or host applications to inspect, pause, resume, approve, reject, redirect, or intervene in agent behavior without bypassing the HAgent execution and policy model.
-
-## Requirements
-
-1. [ ] Define a provider-neutral intervention/approval request and lifecycle model.
-2. [ ] Support inspect, approve, reject, pause, resume, cancel, retire, and shutdown actions where applicable.
-3. [ ] Allow intervention at execution, tool, plan-step, goal, learning-candidate, and consequential-action boundaries.
-4. [ ] Preserve who requested and who approved/rejected an intervention through identity and trace metadata.
-5. [ ] Make intervention policy-driven rather than prompt-driven.
-6. [ ] Ensure an intervention cannot bypass permissions, authorization, budgets, capability requirements, or host-side validation.
-7. [ ] Define behavior when intervention arrives while work is executing, waiting, or completing concurrently.
-8. [ ] Support operator comments/reasons as bounded metadata without treating them as trusted executable instructions.
-9. [ ] Expose intervention state through management UI and diagnostics.
-10. [ ] Add deterministic Example verification for approval, rejection, pause/resume, cancellation, concurrent intervention, and stale intervention requests.
-
-## Architectural outcome
-
-```text
-Agent Runtime
-     ↕
-Intervention Boundary
-     ↕
-Human / Authorized Host
-```
-
-Intervention controls agent operation; it does not become a second execution engine.
-
-## Phase 0.9591 — Goal/Plan Persistence and Recovery
-
-## Status
-
-**Planned foundation before and alongside the Persistent Cognitive Runtime.**
-
-## Goal
-
-Make long-lived agent goals, intentions, plans, checkpoints, and recovery state durable without making transient executions or provider sessions part of persistent cognitive state.
-
-## Requirements
-
-1. [ ] Define durable Goal, Intention, Plan, PlanStep, checkpoint, and recovery metadata contracts.
-2. [ ] Separate durable cognitive state from live execution tasks, cancellation tokens, provider sessions, HTTP state, and synchronization primitives.
-3. [ ] Define plan revision/version semantics so stale executions cannot overwrite newer goals or plans.
-4. [ ] Support partial plan execution and explicit step states.
-5. [ ] Define checkpoint boundaries and durable progress records.
-6. [ ] Define idempotency semantics for retried plan steps and externally observable actions.
-7. [ ] Distinguish safe retry, unknown outcome, and completed outcome states.
-8. [ ] Support recovery after process restart, crash, timeout, cancellation, or provider failure.
-9. [ ] Reconcile in-flight executions during recovery and invalidate obsolete execution authority.
-10. [ ] Support plan suspension, resumption, replacement, abandonment, and rollback/compensation metadata where applicable.
-11. [ ] Keep host side effects authoritative; HAgent may persist intent and requested action state but must not claim external side effects occurred without evidence.
-12. [ ] Support optional persistence backends through the HAgent storage abstraction.
-13. [ ] Add deterministic Example verification for checkpoints, restart recovery, stale revisions, duplicate/retry handling, unknown outcomes, and plan supersession.
-
-## Architectural outcome
-
-```text
-Goal / Intention
-      ↓
-     Plan
-      ↓
- checkpoints / revisions
-      ↓
- Execution
-      ↓
- outcome evidence
-      ↓
- durable progress / recovery state
-```
-
-Durability provides recovery semantics; it does not guarantee exactly-once execution of arbitrary host side effects.
-
-## Phase 0.9592 — Provider Ecosystem and Adapter Lifecycle
-
-## Status
-
-**Planned provider-platform foundation before and alongside Phase 0.96.**
-
-## Goal
-
-Mature the provider adapter boundary so HAgent can support many providers, API variants, models, modalities, discovery mechanisms, and provider API versions without leaking provider-specific behavior into HAgent.Core.
-
-## Requirements
-
-1. [ ] Define a complete provider adapter lifecycle including registration, validation, initialization, refresh, health, disablement, replacement, and retirement.
-2. [ ] Separate transport capability from discovery, usage, quota/rate, health, and other provider-specific data sources.
-3. [ ] Define normalized adapter contracts for model discovery, capability discovery, usage, rate/quota information, health, and supported execution features where available.
-4. [ ] Allow one provider integration to expose multiple models and task families without hard-coded model assumptions in Core.
-5. [ ] Preserve provider-native identifiers, API versions, deployment identifiers, and endpoint metadata alongside normalized identities.
-6. [ ] Support partial provider implementations: a provider may support execution while exposing incomplete discovery or quota telemetry.
-7. [ ] Represent unavailable/unknown provider features explicitly instead of manufacturing defaults.
-8. [ ] Define adapter version/compatibility metadata so provider API changes can be handled deliberately.
-9. [ ] Support provider deprecation/retirement without corrupting persisted agent configuration or historical execution records.
-10. [ ] Keep provider-specific retry, response, streaming, authentication, and error handling inside adapters where appropriate.
-11. [ ] Ensure adapter instances are safe for concurrent use or explicitly scoped when they are not.
-12. [ ] Ensure provider credentials are supplied through the current simple encrypted provider-configuration mechanism; this phase must not introduce a separate secret-vault architecture.
-13. [ ] Add deterministic fake-provider verification for complete discovery, partial discovery, unsupported operations, provider/API version changes, adapter replacement, health changes, and concurrent usage.
-
-## Architectural outcome
-
-```text
-Provider Configuration
-        ↓
-Provider Adapter
- ├── execution
- ├── discovery
- ├── capabilities
- ├── usage/quota
- ├── health
- └── provider-specific metadata
-        ↓
-Normalized HAgent contracts
-        ↓
-Execution Planner / Runtime
-```
-
-HAgent.Core remains provider-neutral; provider-specific knowledge stays behind adapter boundaries.
-
-Cognitive Workbench Controls
-
-Authorized users may insert, edit and invalidate beliefs; create, edit, reprioritize, suspend, resume and abandon goals; modify intentions where policy permits; request plan reconsideration; inject observations/events; request deliberation; and pause, resume, wake, sleep or retire a runtime.
-
-The UI must use HAgent runtime state-transition APIs and never write directly to persistence. Every mutation is atomic, version-aware, authorized and auditable. Record operator identity, timestamp, reason, UI action, previous revision and new revision.
-
-If the runtime revision changed since the UI read it, reject or refresh the mutation rather than silently merging it. Existing execution snapshots remain immutable and stale executions must not overwrite newer cognition.
-
-Cognitive Workbench History and Learning
-
-Show the complete cognitive timeline: events, belief changes, attention changes, goal and intention changes, plan revisions, impasses, deliberation, executions, outcomes, memory/experience creation, learning decisions, sleep/wake and recovery, including user interventions.
-
-Show learning as Experience -> Memory -> Reflection/Learning -> candidate skill/knowledge/policy -> validation/governance -> published version. Distinguish candidates from authoritative versions so users can see when repeated LLM reasoning becomes reusable deterministic behavior.
-
-Show the active cognitive strategy and version, such as Adaptive Hybrid Cognition (AHC). Future strategies must use the same generic workbench while allowing strategy-specific diagnostics. Historical state is initially read-only; future experimentation may branch from checkpoints without silently replacing live state.
-
-Cognitive Runtime Workbench
-
-Part of Phase 0.97.
-
-HAgent.WinForms must add a top-level Cognitions view for active runtime instances. It provides complete inspection of current runtime cognition: beliefs, goals, intentions, plans, attention, working state, memory, knowledge, skills, events, executions, learning and history.

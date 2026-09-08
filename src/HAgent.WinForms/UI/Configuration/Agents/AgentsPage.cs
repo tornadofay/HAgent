@@ -42,16 +42,27 @@ namespace HAgent.WinForms.UI.Configuration.Agents
 
         private void Build()
         {
-            var root = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
+            var root = CreateListPageRoot();
+            root.Controls.Add(CreateListContent());
+            root.Controls.Add(CreateActionBar());
             root.Controls.Add(CreateHeader("Agents", "Choose providers and models, then define each agent's behavior and runtime settings."));
-            var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 50, WrapContents = false, BackColor = Surface, Padding = new Padding(0, 2, 0, 0) };
+            Controls.Add(root);
+        }
+
+        private Control CreateActionBar()
+        {
+            var actions = CreateActionPanel();
             var add = CreateActionButton("+  Add agent", 130);
             var delete = CreateActionButton("Delete selected", 132, true);
             add.Click += async delegate { await EditAsync(null); };
             delete.Click += async delegate { await DeleteSelectedAsync(); };
             actions.Controls.Add(add);
             actions.Controls.Add(delete);
+            return actions;
+        }
 
+        private Control CreateListContent()
+        {
             ConfigureList(_list);
             _list.Columns.Add("Agent", 220);
             _list.Columns.Add("Provider", 180);
@@ -62,9 +73,7 @@ namespace HAgent.WinForms.UI.Configuration.Agents
             {
                 if (_list.SelectedItems.Count > 0) await EditAsync((AiAgent)_list.SelectedItems[0].Tag);
             };
-            root.Controls.Add(_list);
-            root.Controls.Add(actions);
-            Controls.Add(root);
+            return _list;
         }
 
         private async Task EditAsync(AiAgent existing)

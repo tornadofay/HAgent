@@ -15,8 +15,8 @@ namespace HAgent.Example
             AddApiTab(
                 "Observability Runtime Instrumentation",
                 "Run instrumentation test",
-                "Runs a deterministic local execution through the traced runtime and provider boundary, then verifies trace propagation through policy, tool, context, and event operations.",
-                "The trace should contain one execution root plus child policy/provider/tool/context/event spans. Existing execution and host correlation remain distinct from TraceId/SpanId, and payloads stay out of metadata.",
+                "Runs deterministic local execution, failure, and cancellation paths through traced runtime/provider boundaries, then verifies trace propagation through policy, tool, context, and event operations.",
+                "The trace should contain one execution root plus child policy/provider/tool/context/event spans. Existing execution and host correlation remain distinct from TraceId/SpanId, payloads remain excluded, and failure/cancellation produce terminal trace statuses.",
                 "No real provider is contacted. All provider, policy, tool, context, and event work is deterministic and in-process.",
                 RunObservabilityRuntimeInstrumentationTestAsync,
                 "Trace propagation",
@@ -26,63 +26,12 @@ namespace HAgent.Example
         private async Task RunObservabilityRuntimeInstrumentationTestAsync(string unused)
         {
             var recorder = new InMemoryTraceRecorder();
-            var store = new InMemoryAiStore();
-            var provider = new AiProvider
-            {
-                Id = "trace-runtime-provider-42",
-                Name = "Trace Runtime Provider",
-                Kind = "TraceRuntimeExample",
-                BaseUrl = "https://trace-runtime.example/v1",
-                DefaultModel = "trace-runtime-model-42",
-                Enabled = true
-            };
-            var agent = new AiAgent
-            {
-                Id = "trace-runtime-agent-42",
-                Name = "Trace Runtime Agent",
-                Enabled = true,
-                ExecutionSelection = new AiExecutionSelectionPolicy
-                {
-                    Mode = AiSelectionMode.Auto,
-                    Fallback = AiFallbackMode.Fail,
-                    CostPolicy = AiCostPolicy.NoRestriction
-                },
-                CapabilityRequirements = new AiCapabilityRequirements()
-            };
-
-            await store.SaveProviderAsync(provider).ConfigureAwait(true);
-            await store.SaveAgentAsync(agent).ConfigureAwait(true);
-
-            var rawAdapter = new TraceRuntimeExampleAdapter();
-            var tracedAdapter = new TracingProviderAdapter(rawAdapter, recorder);
-            var tracedPolicy = new TracingPolicyEngine(new DefaultAiPolicyEngine(new AiPolicySet()), recorder);
-            var innerRuntime = new DefaultAgentRuntime(
-                store,
-                new NullSecretStore(),
-                new[] { tracedAdapter },
-                policyEngine: tracedPolicy);
-            var runtime = new TracingAgentRuntime(innerRuntime, recorder);
+            var store = await CreateTraceRuntimeStoreAsync().ConfigureAwait(true);
+            var rawAdapter = new TraceRuntimeExampleAdapter(TraceProviderMode.Success);
+            var runtime = CreateTraceRuntime(store, rawAdapter, recorder);
 
             var execution = await runtime.ExecuteAsync(
-                new AgentExecutionRequest
-                {
-                    AgentId = agent.Id,
-                    Messages = new List<AIMessage> { new AIMessage("user", "Trace this execution.") },
-                    HostCorrelationId = "trace-host-correlation-42",
-                    Identity = new AgentIdentityContext
-                    {
-                        DeploymentId = "deployment-42",
-                        TenantId = "tenant-42",
-                        UserId = "user-42"
-                    },
-                    Options = new AgentExecutionOptions
-                    {
-                        RuntimeInstanceId = "runtime-42",
-                        Timeout = TimeSpan.FromSeconds(3),
-                        MaxProviderAttempts = 1,
-                        MaxRetriesPerProvider = 0
-                    }
-                },
+                CreateTraceRequest("trace-host-correlation-42"),
                 CancellationToken.None).ConfigureAwait(true);
 
             if (execution.State != AgentExecutionState.Succeeded)
@@ -94,8 +43,9 @@ namespace HAgent.Example
             var providerSpan = FindSpan(spans, "provider.invoke");
             if (root == null || policy == null || providerSpan == null)
                 throw new InvalidOperationException("Execution, policy, or provider trace spans were not produced.");
-            if (providerSpan.ParentSpanId != root.SpanId || providerSpan.TraceId != root.TraceId)
-                throw new InvalidOperationException("Provider trace propagation did not preserve the execution parent.");
+            if (root.ParentSpanId != null || policy.ParentSpanId != root.SpanId ||
+                providerSpan.ParentSpanId != root.SpanId || providerSpan.TraceId != root.TraceId)
+                throw new InvalidOperationException("Execution trace hierarchy was not preserved.");
             if (providerSpan.Correlation.ExecutionId != execution.Id ||
                 providerSpan.Correlation.ExecutionCorrelationId != execution.CorrelationId ||
                 providerSpan.Correlation.HostCorrelationId != "trace-host-correlation-42")
@@ -106,7 +56,7 @@ namespace HAgent.Example
                 var tool = new TracingAgentTool(new TraceRuntimeExampleTool(), recorder);
                 var toolResult = await tool.ExecuteAsync(new ToolExecutionContext
                 {
-                    AgentId = agent.Id,
+                    AgentId = "trace-runtime-agent-42",
                     ToolId = "trace-tool-42",
                     ToolCallId = "trace-call-42",
                     CancellationToken = CancellationToken.None
@@ -164,10 +114,59 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Integrated trace parent propagation was incorrect.");
             if (eventHandle.ParentSpanId != eventPublish.SpanId)
                 throw new InvalidOperationException("Event handler trace did not inherit the publication span.");
-            if (toolSpan.Metadata.Values.ContainsKey("tool.arguments") && toolSpan.Metadata.Values["tool.arguments"] != "[Omitted]")
-                throw new InvalidOperationException("Tool argument metadata was not omitted safely.");
-            if (eventPublish.Metadata.Values["event.payload"] != "[Omitted]")
-                throw new InvalidOperationException("Event payload was not omitted safely.");
+            if (toolSpan.Metadata.Values["tool.arguments"] != "[Omitted]" ||
+                eventPublish.Metadata.Values["event.payload"] != "[Omitted]")
+                throw new InvalidOperationException("Sensitive trace payload metadata was not omitted safely.");
+
+            var failureRecorder = new InMemoryTraceRecorder();
+            var failureRuntime = CreateTraceRuntime(
+                store,
+                new TraceRuntimeExampleAdapter(TraceProviderMode.Failure),
+                failureRecorder);
+            try
+            {
+                await failureRuntime.ExecuteAsync(CreateTraceRequest("trace-failure-host-42"), CancellationToken.None).ConfigureAwait(true);
+                throw new InvalidOperationException("Expected deterministic provider failure was not raised.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                if (ex.Message != "Deterministic trace provider failure.")
+                    throw;
+            }
+
+            var failureRoot = FindSpan(failureRecorder.GetSpans(), "execution");
+            var failureProvider = FindSpan(failureRecorder.GetSpans(), "provider.invoke");
+            if (failureRoot == null || failureProvider == null ||
+                failureRoot.Status != TraceSpanStatus.Failed ||
+                failureProvider.Status != TraceSpanStatus.Failed)
+                throw new InvalidOperationException("Provider failure trace status was not recorded.");
+
+            var cancellationRecorder = new InMemoryTraceRecorder();
+            var cancellationAdapter = new TraceRuntimeExampleAdapter(TraceProviderMode.Cancellation);
+            var cancellationRuntime = CreateTraceRuntime(store, cancellationAdapter, cancellationRecorder);
+            using (var cancellation = new CancellationTokenSource())
+            {
+                var cancellationTask = cancellationRuntime.ExecuteAsync(
+                    CreateTraceRequest("trace-cancel-host-42"),
+                    cancellation.Token);
+                await cancellationAdapter.Started.Task.ConfigureAwait(true);
+                cancellation.Cancel();
+                try
+                {
+                    await cancellationTask.ConfigureAwait(true);
+                    throw new InvalidOperationException("Expected cancellation was not raised.");
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+
+            var cancellationRoot = FindSpan(cancellationRecorder.GetSpans(), "execution");
+            var cancellationProvider = FindSpan(cancellationRecorder.GetSpans(), "provider.invoke");
+            if (cancellationRoot == null || cancellationProvider == null ||
+                cancellationRoot.Status != TraceSpanStatus.Cancelled ||
+                cancellationProvider.Status != TraceSpanStatus.Cancelled)
+                throw new InvalidOperationException("Cancellation trace status was not recorded.");
 
             Write(
                 "OBSERVABILITY RUNTIME INSTRUMENTATION",
@@ -177,8 +176,76 @@ namespace HAgent.Example
                 "Tool + context + event propagation: verified." + Environment.NewLine +
                 "Event publication -> handler parentage: verified." + Environment.NewLine +
                 "Sensitive tool arguments/event payload: omitted from trace metadata." + Environment.NewLine +
+                "Provider failure terminal status: Failed / Failed verified." + Environment.NewLine +
+                "Cancellation terminal status: Cancelled / Cancelled verified." + Environment.NewLine +
                 "Provider transport: fake deterministic adapter." + Environment.NewLine +
                 "Real provider request: none.");
+        }
+
+        private static async Task<InMemoryAiStore> CreateTraceRuntimeStoreAsync()
+        {
+            var store = new InMemoryAiStore();
+            await store.SaveProviderAsync(new AiProvider
+            {
+                Id = "trace-runtime-provider-42",
+                Name = "Trace Runtime Provider",
+                Kind = "TraceRuntimeExample",
+                BaseUrl = "https://trace-runtime.example/v1",
+                DefaultModel = "trace-runtime-model-42",
+                Enabled = true
+            }).ConfigureAwait(true);
+            await store.SaveAgentAsync(new AiAgent
+            {
+                Id = "trace-runtime-agent-42",
+                Name = "Trace Runtime Agent",
+                Enabled = true,
+                ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = AiSelectionMode.Auto,
+                    Fallback = AiFallbackMode.Fail,
+                    CostPolicy = AiCostPolicy.NoRestriction
+                },
+                CapabilityRequirements = new AiCapabilityRequirements()
+            }).ConfigureAwait(true);
+            return store;
+        }
+
+        private static TracingAgentRuntime CreateTraceRuntime(
+            InMemoryAiStore store,
+            TraceRuntimeExampleAdapter adapter,
+            ITraceRecorder recorder)
+        {
+            var tracedAdapter = new TracingProviderAdapter(adapter, recorder);
+            var tracedPolicy = new TracingPolicyEngine(new DefaultAiPolicyEngine(new AiPolicySet()), recorder);
+            var innerRuntime = new DefaultAgentRuntime(
+                store,
+                new NullSecretStore(),
+                new[] { tracedAdapter },
+                policyEngine: tracedPolicy);
+            return new TracingAgentRuntime(innerRuntime, recorder);
+        }
+
+        private static AgentExecutionRequest CreateTraceRequest(string hostCorrelationId)
+        {
+            return new AgentExecutionRequest
+            {
+                AgentId = "trace-runtime-agent-42",
+                Messages = new List<AIMessage> { new AIMessage("user", "Trace this execution.") },
+                HostCorrelationId = hostCorrelationId,
+                Identity = new AgentIdentityContext
+                {
+                    DeploymentId = "deployment-42",
+                    TenantId = "tenant-42",
+                    UserId = "user-42"
+                },
+                Options = new AgentExecutionOptions
+                {
+                    RuntimeInstanceId = "runtime-42",
+                    Timeout = TimeSpan.FromSeconds(3),
+                    MaxProviderAttempts = 1,
+                    MaxRetriesPerProvider = 0
+                }
+            };
         }
 
         private static TraceSpan FindSpan(IReadOnlyList<TraceSpan> spans, string operationName)
@@ -189,8 +256,24 @@ namespace HAgent.Example
             return null;
         }
 
+        private enum TraceProviderMode
+        {
+            Success,
+            Failure,
+            Cancellation
+        }
+
         private sealed class TraceRuntimeExampleAdapter : IAiProviderAdapter, IProviderDiscovery
         {
+            private readonly TraceProviderMode _mode;
+
+            public TraceRuntimeExampleAdapter(TraceProviderMode mode)
+            {
+                _mode = mode;
+                Started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
+            public TaskCompletionSource<bool> Started { get; private set; }
             public string Kind { get { return "TraceRuntimeExample"; } }
             public string DisplayName { get { return "Trace Runtime Example Adapter"; } }
 
@@ -217,16 +300,22 @@ namespace HAgent.Example
                 return Task.FromResult(result);
             }
 
-            public Task<AIResponse> SendAsync(ProviderExecutionRequest request, CancellationToken cancellationToken)
+            public async Task<AIResponse> SendAsync(ProviderExecutionRequest request, CancellationToken cancellationToken)
             {
                 request.Validate();
-                return Task.FromResult(new AIResponse
+                Started.TrySetResult(true);
+                if (_mode == TraceProviderMode.Failure)
+                    throw new InvalidOperationException("Deterministic trace provider failure.");
+                if (_mode == TraceProviderMode.Cancellation)
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+
+                return new AIResponse
                 {
                     AgentId = request.Agent.Id,
                     ProviderId = request.Provider.Id,
                     Model = request.ExecutionTarget.ModelId,
                     Text = "TRACE-RUNTIME-OK"
-                });
+                };
             }
         }
 

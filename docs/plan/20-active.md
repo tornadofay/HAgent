@@ -40,10 +40,12 @@ The complete 0.954 implementation and verification sequence is complete.
    - Deterministic public-API `HAgent.Example` Context Compaction verification passed on 2026-09-09, including bounded selection, character/token/unknown-token exclusions, explicit diagnostics, provenance/scope preservation, and no provider request.
 
 6. **Cache-safe reusable context components — CURRENT**
-   - Scope: define reusable context component/cache contracts that remain safe across runtime, user, tenant, workspace, configuration/version, resource-version, and freshness boundaries.
-   - Cache identity must be explicit and ownership-aware; private context must not leak across independently scoped runtimes or users.
-   - Reusable components must remain distinct from mutable execution-owned `ContextSnapshot` instances.
-   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for cache-key isolation, version/freshness invalidation, reuse of valid components, and snapshot isolation.
+   - Scope: explicit reusable context cache identity plus a thread-safe in-memory cache for already assembled `ContextSnapshot` instances.
+   - `ContextCacheKey` includes component identity, canonical scope type/ID, configuration version, resource version, and freshness version. Different ownership/version identities must never share an entry.
+   - Cache entries have explicit expiration and are invalidated by elapsed freshness or explicit key changes/invalidation; cache storage remains separate from mutable execution assembly.
+   - `ContextSnapshot` remains the execution-owned canonical result. The cache stores that reusable result rather than becoming a second mutable snapshot model.
+   - Matching deterministic Example coverage exercises valid reuse, scope/version/freshness isolation, expiration, explicit invalidation, and snapshot metadata isolation.
+   - Verification target: focused Core tests plus matching deterministic public-API Example coverage on the supported local targets.
 
 7. **Execution/provider integration and deterministic Example verification — PLANNED**
 

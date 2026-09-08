@@ -11,7 +11,7 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-Policy persistence/default-runtime integration is implemented and was verified locally by the user on 2026-09-08. The next enforcement slice is implemented in source and includes policy-gated tool invocation plus policy-first composition with host data authorization. Matching deterministic Example verification is ready and is the next local checkpoint.
+Policy persistence, runtime provider enforcement, tool policy enforcement, and policy-first host data authorization were verified locally by the user on 2026-09-08. The current implementation also adds canonical profile resource capability state, runtime `Inherit` / `Enabled` / `Disabled` overrides, effective execution snapshots, resource persistence, and tool capability gating. The matching `HAgent.Example` resource capability test is the current local verification checkpoint.
 
 ## Work ownership
 
@@ -19,8 +19,8 @@ The active implementation plan is the authoritative scope for the current task. 
 
 ## Current blockers
 
-None recorded.
+None recorded. The resource-capability slice is implemented; only local Example verification remains before it can be marked verified.
 
 ## Next checkpoint
 
-Run the `Unified Policy` Example contract test after pulling the current master. It must verify the newly added tool denial/approval/allow cases and the policy-before-host-authorization data-access case in addition to the already passing persistence and runtime policy checks.
+Run `Resource Capabilities → Run resource capability test` after pulling current `master`. It must verify profile/runtime tri-state resolution, exact-resource precedence, default-enabled behavior, execution snapshot isolation, profile persistence, disabled-tool gating, and runtime re-enabling/disabling of the tool capability.

@@ -67,13 +67,18 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 46/46 tests passing on 2026-09-09.
    - Deterministic public-API `HAgent.Example` Context Policy Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering allowed, denied, and disabled admission paths plus provenance and safe diagnostics.
 
-10. **End-to-end bounded context assembly pipeline — CURRENT**
-   - Add one provider-neutral orchestration boundary that composes the existing policy-aware retrieval, deterministic ranking/deduplication, and deterministic compaction stages into one canonical bounded `ContextSnapshot` result.
-   - Preserve the existing stage boundaries and ownership rules: policy/permission admission remains before ranking, ranking remains before compaction, and execution/provider integration remains downstream.
-   - The pipeline must aggregate safe stage diagnostics without copying payloads, preserve provenance/scope across all stages, honor the final global budget, remain provider-neutral, and propagate cancellation.
-   - Do not duplicate the 0.954 instruction-governance engine. Instruction authority/precedence remains owned by `AiInstructionComposer`; the context pipeline only carries provider-neutral evidence and its provenance.
-   - Verification target: focused end-to-end Core tests plus a deterministic public-API `HAgent.Example` showing allowed/denied candidates flowing through retrieval → policy admission → ranking/deduplication → compaction into the final bounded snapshot, with no provider request.
-   - Completion target: after this slice passes, reconcile the full 0.955 verification matrix and determine whether all roadmap requirements are satisfied before closing the phase.
+10. **End-to-end bounded context assembly pipeline — VERIFIED**
+   - Core now exposes a single provider-neutral orchestration boundary that composes policy-filtered retrieval, deterministic ranking/deduplication, and final budgeted compaction into one canonical bounded `ContextSnapshot` result.
+   - Policy-filtered retrieval is kept separate from final assembly budgeting so early retrieval does not starve later ranking/compaction candidates; the final global item/character/token budget is enforced by the compaction stage.
+   - The pipeline preserves provenance and scope, aggregates safe admission/compaction diagnostics without payloads, propagates cancellation between stages, and remains provider-neutral.
+   - `HAgent.Tests` completed with 50/50 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering policy admission before ranking, deterministic ranking/deduplication, final budget enforcement, provenance preservation, and no provider request.
+
+### Final 0.955 verification step — CURRENT
+
+- Reconcile the full 0.955 roadmap requirements against the implemented contracts and verified slices.
+- Confirm the complete verification matrix, including every deterministic Context Example currently required by the roadmap and any remaining policy/permission or provider-boundary requirement.
+- Close 0.955 only after the roadmap and architecture state agree that no required Context Engineering capability remains unverified or architecturally incomplete.
 
 ### Verification rule
 

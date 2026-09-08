@@ -648,7 +648,7 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.959 Human-in-the-Loop and Intervention — CURRENT
 
-Phase 0.959 is the current intervention foundation. HAgent now has a canonical provider-neutral intervention request/lifecycle contract built on the bounded approval/defer boundary from 0.953. Execution intervention control and execution-target concurrency/stale-state hardening are implemented; the hardening slice remains unverified in this connected environment because there is no executable repository build/test workflow and no local checkout.
+Phase 0.959 is the current intervention foundation. HAgent now has a canonical provider-neutral intervention request/lifecycle contract built on the bounded approval/defer boundary from 0.953. Execution intervention control and execution-target concurrency/stale-state hardening are implemented and locally verified by the user. Additional intervention targets are now being added only where their underlying provider-neutral contracts already exist.
 
 ### Objective
 
@@ -669,8 +669,12 @@ Allow authorized humans or host applications to inspect and control active HAgen
 - The `EXECUTION INTERVENTION` Example passed local verification on 2026-09-08, covering pause/resume/cancel lifecycle, public execution events, terminal cancellation, and late provider response protection.
 - Execution intervention requests now capture the observed control state and monotonic control-state version.
 - Competing execution interventions are serialized per execution and stale requests resolve deterministically to `Expired`.
-- Duplicate responder resolution is protected by request lifecycle state, and a stale request remains queryable with its responder and stale reason.
-- A deterministic `INTERVENTION HARDENING` Example scenario has been added for terminal staleness, conflicting concurrent requests, paused-state blocking, and duplicate responders.
+- Duplicate responder resolution is protected by request lifecycle state, and stale requests remain queryable with responder and stale-reason metadata.
+- The `INTERVENTION HARDENING` Example passed local verification on 2026-09-08, covering terminal staleness, target state/version capture, conflicting concurrent requests, paused-state blocking, and duplicate responders.
+- `AiLearningCandidate` now has revision-safe lifecycle state suitable for human intervention targeting.
+- `HAgentClient` now supports canonical `LearningCandidate` intervention requests for human `Approve` and `Reject`, including candidate-state/revision capture and serialized candidate resolution.
+- Learning-candidate stale requests resolve to `Expired` instead of changing a newer or terminal candidate.
+- A deterministic `LEARNING INTERVENTION` Example scenario has been added for approval, rejection, stale revisions, and conflicting concurrent review.
 
 ### Run-sized execution plan
 
@@ -683,18 +687,20 @@ Only one slice is **CURRENT** at a time. Each slice must reach a verified checkp
    - Verification state: **VERIFIED** — user executed the `EXECUTION INTERVENTION` Example on 2026-09-08 and all expected lifecycle, cancellation, and late-response assertions passed.
    - Completion: Controlled execution can be paused/resumed/cancelled through the intervention boundary without a second execution engine, and focused deterministic verification passes in an executable environment.
 
-2. **CURRENT — Concurrency and stale-state hardening**
+2. **Complete — Concurrency and stale-state hardening**
    - Scope: Make intervention state transitions deterministic under concurrent requests, duplicate responders, late provider completion, retirement/shutdown teardown, and already-terminal executions.
    - Entry: Slice 1 passes its focused lifecycle verification.
    - Implementation state: Complete in source; deterministic Example verification added.
-   - Verification state: **BLOCKED** — no executable repository build/test workflow is available through the connected environment, and local repository checkout is unavailable in this session.
+   - Verification state: **VERIFIED** — user executed the `INTERVENTION HARDENING` Example on 2026-09-08 and all stale-state, concurrency, pause, and duplicate-responder assertions passed.
    - Completion: concurrency/stale-request tests pass and late results cannot overwrite terminal outcomes.
-   - Next smallest step after verification: additional intervention targets.
 
-3. **Additional intervention targets**
-   - Scope: Extend the same canonical intervention mechanism to plan steps, goals, learning candidates, and consequential actions where defined by the architecture.
-   - Entry: lifecycle/concurrency semantics are stable.
-   - Completion: each supported target/action pair has explicit authorization/policy semantics and focused deterministic verification.
+3. **CURRENT — Additional intervention targets: LearningCandidate**
+   - Scope: Extend the canonical intervention mechanism to the already-defined `AiLearningCandidate` target. Support human `Approve` and `Reject`, preserve candidate lifecycle invariants, capture target state/revision evidence, serialize competing resolutions, and expire stale requests without retroactive mutation.
+   - Entry: Slices 1 and 2 pass their focused verification, and an existing provider-neutral learning-candidate lifecycle contract is available.
+   - Implementation state: Complete in source; deterministic Example verification added.
+   - Verification state: **BLOCKED** — the user has not yet executed the new `LEARNING INTERVENTION` Example in the supported build/run environment.
+   - Completion: learning-candidate intervention verification passes for approval, rejection, stale revision, terminal state, duplicate/concurrent review, and lifecycle-safe request resolution.
+   - Boundary: Goal/Plan and ConsequentialAction interventions remain deferred until their corresponding provider-neutral target contracts and owning runtime boundaries are defined; this slice does not invent those models.
 
 4. **Durable intervention persistence**
    - Scope: Persist intervention lifecycle/history through the existing canonical storage architecture without creating a parallel persistence model.

@@ -13,7 +13,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.955 Context Engineering — CURRENT.**
+**0.956 Observability and Distributed Tracing — CURRENT.**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -23,7 +23,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.954 Prompt and Instruction Governance is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.955 Context Engineering is now the current ordered foundational milestone. Its active implementation plan is `docs/plan/20-active.md`; its authoritative context architecture is `docs/architecture/20-context.md`.
+0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.954 Prompt and Instruction Governance is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.955 Context Engineering is completed and verified on .NET Framework 4.8.1 and .NET 9, including provider-neutral context contracts, bounded multi-resource retrieval, deterministic ranking/compaction/caching, policy/capability admission, host authorization for protected data-backed sources, execution/provider integration, and end-to-end Context Example verification.
 
 The remaining ordered foundation includes 0.956 Observability/Tracing, 0.957 Evaluation/Quality Measurement, 0.9575 Knowledge/Skills/Memory Governance + Learning, 0.958 Agent Lifecycle/Health, 0.9591 Goal/Plan Persistence/Recovery, and 0.959 Human-in-the-Loop/Intervention. Phase 0.9591 remains intentionally ordered before 0.959 because durable goal/plan revisions, checkpoints, and recovery state provide the persistent authority for later goal/plan intervention. Execution-level intervention remains valid independently. 0.9592 Provider Ecosystem/Adapter Lifecycle follows these foundations, then 0.96 Capability-Aware Execution.
 
@@ -66,9 +66,9 @@ The ordered sequence is now:
         ↓
 0.954 Prompt / Instruction Governance — verified
         ↓
-0.955 Context Engineering — current
+0.955 Context Engineering — verified
         ↓
-0.956 Observability / Tracing
+0.956 Observability / Tracing — current
         ↓
 0.957 Evaluation / Quality Measurement
         ↓
@@ -91,9 +91,9 @@ The ordered sequence is now:
 
 The numbered roadmap is dependency-driven, not permanently locked. When architectural understanding reveals a real dependency change, the roadmap may be reordered deliberately and the authoritative roadmap/current-state documents must be updated together. Ahead-of-roadmap implementation remains code evidence rather than milestone completion.
 
-## 0.955 Context Engineering entry boundary
+## 0.955 Context Engineering completion boundary
 
-The authoritative context architecture defines context as bounded information exposed or explicitly supplied by the host. HAgent must support observations, state snapshots, events, records, objects, resources, and structured data without requiring conversion to plain strings; automatic discovery is evidence rather than authorization; host semantics remain host-owned; data reads/queries and object discovery are bounded; live object access remains non-executable unless separately authorized; and the same generic boundary must work across different host technologies. The first 0.955 implementation run therefore begins with architecture/implementation reconciliation and selection of a smallest bounded context-contract slice before coding.
+0.955 Context Engineering is complete and verified. The canonical context subsystem now provides provider-neutral bounded context items and snapshots; separate retrieval planning; deterministic ranking, deduplication, compaction, and provenance-safe diagnostics; reusable cache components; execution/provider context propagation; policy/capability admission; host authorization composition for protected data-backed sources; and one canonical end-to-end assembly boundary. The context subsystem remains distinct from cognitive decision making and does not duplicate policy, host authorization, or instruction authority. Its complete verified Example/test matrix was exercised on .NET Framework 4.8.1 and .NET 9 through the ordered Context slices.
 
 ## Storage implications
 

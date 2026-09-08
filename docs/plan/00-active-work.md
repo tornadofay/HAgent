@@ -7,22 +7,22 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 2 checkpoint after 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 4 checkpoint after 0.954.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slice 2 was subsequently verified by the user on both .NET Framework 4.8.1 and .NET 9.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, and 4 have subsequently been verified by the user. Slice 4 was verified on 2026-09-08 with 24/24 HAgent.Tests passing and the deterministic public-API Context Ranking Example passing.
 
 ## Current run
 
-**0.955 Slice 3 implementation checkpoint — local verification pending.**
+**0.955 Slice 5 implementation checkpoint — local verification pending.**
 
-Slice 3 now contains bounded provider-neutral context acquisition plus an execution-owned `ContextSnapshot`. Acquisition validates source/contracts, enforces item/character/token hard bounds, propagates cancellation, preserves supplied source order, and isolates the snapshot from caller-owned mutable item/request state. Deterministic xUnit coverage and public-API `HAgent.Example` coverage have been added. Local .NET build/test and Example execution for Slice 3 have not been performed in this connected session.
+Slice 5 is scoped to bounded provider-neutral compaction/truncation over already ranked candidates plus safe inclusion/exclusion diagnostics. The initial strategy is deterministic and tokenizer-free: candidates that do not fit the target item/character/token budget are excluded with explicit reasons; payloads are not rewritten or semantically summarized, and selected item provenance/scope metadata is preserved.
 
 ## Next action
 
-Run the targeted solution/tests and the new context-acquisition Example on both .NET Framework 4.8.1 and .NET 9. Record the actual results before closing Slice 3 or selecting Slice 4.
+Implement the focused Slice 5 Core contracts/runtime and matching deterministic `HAgent.Example` verification, then run the focused/full local tests before closing the slice.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 3 verification success is claimed.
+This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 5 verification success is claimed yet.

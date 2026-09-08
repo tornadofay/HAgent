@@ -2656,7 +2656,3 @@ Execution Planner / Runtime
 ```
 
 HAgent.Core remains provider-neutral; provider-specific knowledge stays behind adapter boundaries.
-
-## Cognitive Runtime Workbench
-
-Planned as part of Phase 0.97.

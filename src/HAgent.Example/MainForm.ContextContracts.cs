@@ -80,8 +80,17 @@ namespace HAgent.Example
             if (requestClone == request || requestClone.Query != request.Query || requestClone.MaxItems != request.MaxItems)
                 throw new InvalidOperationException("Context source request clone did not preserve isolated contract data.");
 
-            Console.WriteLine("[CONTEXT CONTRACTS] Contract validation, bounded metadata, cloning, structured payload, and source request validation succeeded.");
-            return Task.FromResult(0);
+            Write(
+                "CONTEXT CONTRACTS",
+                "Contract validation, bounded metadata, cloning, structured payload, and source request validation succeeded." + Environment.NewLine +
+                "Provider-neutral contract validation: verified." + Environment.NewLine +
+                "Bounded provenance/scope/quality/size metadata: verified." + Environment.NewLine +
+                "Structured payload preservation: verified." + Environment.NewLine +
+                "Explicit budget and source-request bounds: verified." + Environment.NewLine +
+                "Nested clone isolation: verified." + Environment.NewLine +
+                "Provider request: none.");
+
+            return Task.CompletedTask;
         }
     }
 }

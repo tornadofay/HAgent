@@ -42,10 +42,14 @@ Create one coherent policy boundary for HAgent decisions without making the mode
 - Approval resolution is explicit and terminal; resolving an approval never executes the protected operation or silently resumes an execution.
 - Deterministic Example coverage for engine behavior, persistence, runtime provider-call prevention, tool denial/approval/allow, policy-before-host-authorization, resource capability resolution/persistence/tool gating, learning promotion/review transitions, and approval/deferral workflow lifecycle.
 - WinForms policy management surface with policy-rule editing, explicit precedence fields, effective-decision inspection, and agent resource-capability inspection.
+- WinForms configuration UI was structurally refactored so `AISettingsForm` is a small composition shell and feature-owned pages live under `UI/Configuration/<Area>/`.
+- Providers, Agents, Tools, Policy, Overview, and About are independently owned configuration pages; shared dependencies/state flow through `ConfigurationContext`.
+- List-oriented configuration pages use a shared three-row layout separating header, action bar, and content to prevent docking overlap.
+- Legacy reflection/control-tree navigation injection was removed. Permissions, Storage, Storage Test, and Policy are now explicitly composed by the configuration shell.
 
 ### Remaining implementation slices
 
-1. Verify the new policy management UI locally on .NET Framework 4.8.1 and .NET 9.
+1. Verify the refactored configuration UI locally on .NET Framework 4.8.1 and .NET 9.
 2. Expand deterministic Example verification and backend-specific live verification where configured.
 
 ### Architectural boundaries
@@ -54,11 +58,13 @@ The policy engine is provider-neutral and deterministic. It evaluates HAgent pol
 
 Resource enablement is a separate configuration capability layer. It determines whether an HAgent-owned or explicitly governed resource is enabled for a profile/runtime; it is not equivalent to provider capability discovery and it never grants host authorization.
 
-Profile resource configuration is the default layer. Runtime `Inherit` / `Enabled` / `Disabled` overrides are runtime-only and do not mutate the persistent profile. Effective state is captured into the execution snapshot so later profile/runtime edits cannot alter an already-created execution.
+Profile resource configuration is the default layer. Runtime `Inherit` / `Enabled` / `Disabled` overrides are runtime-only and do not mutate the persistent profile. Effective state is captured into the execution snapshot so later profile/runtime edits cannot alter an already-running execution.
 
 Learning promotion is another enforcement use of the same policy boundary. Typed learning metadata is supplied as policy context; policy may permit, require review, defer, or deny promotion. Candidate lifecycle transitions are explicit and terminal states cannot be bypassed. Approved candidates still require a separate repository/promotion operation; no candidate object directly mutates authoritative Knowledge or Skills.
 
 Approval and deferral are explicit review-state boundaries. `RequireApproval` and `Defer` may create bounded pending requests, but approval state is not authorization by itself and does not silently resume execution. Full durable intervention, pause/resume, cancellation, and operator lifecycle semantics remain owned by the later human-intervention foundation.
+
+The WinForms configuration shell is intentionally separate from feature implementation. `AISettingsForm` composes pages and navigation; feature-specific behavior belongs to its feature directory. See `docs/architecture/91-winforms-configuration-maintenance.md` for the maintenance protocol.
 
 Prompt/instruction text is never a policy enforcement mechanism. A model may request an action, but the appropriate runtime enforcement boundary must independently decide whether the action can occur.
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HAgent.Abstractions;
 using HAgent.Models;
+using HAgent.Runtime;
 
 namespace HAgent.WinForms.UI.Configuration
 {
@@ -23,7 +24,6 @@ namespace HAgent.WinForms.UI.Configuration
         public ISecretStore Secrets { get; private set; }
         public IReadOnlyList<IAiProviderAdapter> Adapters { get; private set; }
         public IToolRegistry Tools { get; private set; }
-
         public IReadOnlyList<AiProvider> Providers { get; set; } = new List<AiProvider>();
         public IReadOnlyList<AiAgent> Agents { get; set; } = new List<AiAgent>();
     }

@@ -19,23 +19,22 @@ Slice 2 — Instruction composition and conflict handling — was verified by th
 
 Slice 3 — Resource and external-content boundaries — was verified by the user on 2026-09-08 through the updated `COGNITION INSTRUCTIONS` result, covering trusted-resource authority/trust, lower-authority external/user content, disabled/unavailable source handling, and resistance to lower-authority override.
 
-Slice 4 — Execution integration — is now implemented but not yet locally verified. The execution request accepts provider-neutral instruction sources; `DefaultAgentRuntime` composes them through the canonical composer after target selection, captures a cloned effective instruction snapshot before the execution enters `Running`, and passes the same composed text to provider transport.
+Slice 4 — Execution integration — was verified by the user on 2026-09-08 through the updated `COGNITION INSTRUCTIONS` result, covering effective instruction snapshot capture before provider transport, provider transport parity, caller-source mutation isolation, lower-authority external exclusion, and execution/principal provenance.
 
 ## Current run
 
-**Verified checkpoint/blocker — 0.954 Slice 4 awaiting local Example verification.**
+**Verified checkpoint/blocker — 0.954 Slice 5 awaiting final local Example/framework verification.**
 
 - Execution request contract: `src/HAgent.Core/Models/AgentExecutionRequest.cs`.
 - Execution snapshot capture: `src/HAgent.Core/Models/AgentExecutionSnapshot.cs` and `src/HAgent.Core/Models/AgentExecution.cs`.
 - Runtime integration: `src/HAgent.Core/Runtime/DefaultAgentRuntime.cs`.
-- Example verification: `src/HAgent.Example/MainForm.InstructionContractsTests.cs`.
-- Required verification: build/run `HAgent.Example` and execute **COGNITION INSTRUCTIONS → Run instruction contract test**.
-- Expected result: effective instruction snapshot is captured before provider transport, provider receives the same composed instruction set, caller mutation after capture does not alter the execution snapshot/provider prompt, lower-authority external content is excluded, and execution/principal provenance is preserved.
+- Example verification: `src/HAgent.Example/MainForm.InstructionContractsTests.cs` plus existing deterministic execution/cancellation/failure scenarios.
+- Required next verification: run the complete 0.954 Example verification set on the supported targets, including the updated **COGNITION INSTRUCTIONS** scenario and relevant existing runtime cancellation/failure boundary scenarios.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed. Slice 4 remains a verified checkpoint/blocker until the updated Example is run successfully by the user.
+The user has verified the current instruction integration scenario successfully. This connected session still cannot execute the local .NET/WinForms build or complete the supported-target matrix itself. No framework-wide local build/test success is claimed until the final Slice 5 verification is run by the user.
 
 ## Next checkpoint
 
-After the updated `COGNITION INSTRUCTIONS` result passes locally, update this file and `docs/plan/20-active.md` to mark Slice 4 complete, then continue only with **0.954 Slice 5 — Example coverage and framework verification**. Do not advance to 0.955 until the complete 0.954 milestone is verified.
+After the complete 0.954 Example/framework verification passes on the supported targets, update this file and `docs/plan/20-active.md` to mark Slice 5 complete and the entire 0.954 milestone verified. Only then advance to **0.955 Context Engineering**.

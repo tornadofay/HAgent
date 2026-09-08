@@ -27,13 +27,13 @@ namespace HAgent.Example
         {
             var sources = new List<IContextSource>
             {
-                new ExampleContextSource("host", "Host", new[]
+                new ExampleAcquisitionContextSource("host", "Host", new[]
                 {
                     CreateAcquisitionItem("host-1", "Host customer observation", 40, 10),
                     CreateAcquisitionItem("host-too-large", "Host oversized observation", 100, 10),
                     CreateAcquisitionItem("host-2", "Host customer state", 30, 8)
                 }),
-                new ExampleContextSource("memory", "Memory", new[]
+                new ExampleAcquisitionContextSource("memory", "Memory", new[]
                 {
                     CreateAcquisitionItem("memory-1", "Memory evidence", 30, 12),
                     CreateAcquisitionItem("memory-2", "Memory overflow", 30, 12)
@@ -115,11 +115,11 @@ namespace HAgent.Example
             };
         }
 
-        private sealed class ExampleContextSource : IContextSource
+        private sealed class ExampleAcquisitionContextSource : IContextSource
         {
             private readonly IReadOnlyList<ContextItem> _items;
 
-            public ExampleContextSource(string id, string kind, IReadOnlyList<ContextItem> items)
+            public ExampleAcquisitionContextSource(string id, string kind, IReadOnlyList<ContextItem> items)
             {
                 Id = id;
                 Kind = kind;
@@ -131,6 +131,7 @@ namespace HAgent.Example
 
             public Task<IReadOnlyList<ContextItem>> GetCandidatesAsync(ContextSourceRequest request, CancellationToken cancellationToken = default(CancellationToken))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 return Task.FromResult(_items);
             }
         }

@@ -135,11 +135,14 @@ namespace HAgent.ExternalConsumer
         {
             private readonly List<AiProvider> _providers;
             private readonly List<AiAgent> _agents;
+            private AiPolicySet _policy = new AiPolicySet();
             public InMemoryAiStore(AiProvider provider, AiAgent agent) { _providers = new List<AiProvider> { provider }; _agents = new List<AiAgent> { agent }; }
             public Task<IReadOnlyList<AiProvider>> GetProvidersAsync(CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult((IReadOnlyList<AiProvider>)_providers.AsReadOnly()); }
             public Task<IReadOnlyList<AiAgent>> GetAgentsAsync(CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult((IReadOnlyList<AiAgent>)_agents.AsReadOnly()); }
+            public Task<AiPolicySet> GetPolicySetAsync(CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(_policy.Clone()); }
             public Task SaveProviderAsync(AiProvider provider, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
             public Task SaveAgentAsync(AiAgent agent, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
+            public Task SavePolicySetAsync(AiPolicySet policy, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); if (policy == null) throw new ArgumentNullException(nameof(policy)); policy.Validate(); _policy = policy.Clone(); return Task.CompletedTask; }
             public Task DeleteProviderAsync(string providerId, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
             public Task DeleteAgentAsync(string agentId, CancellationToken cancellationToken = default(CancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return Task.CompletedTask; }
         }

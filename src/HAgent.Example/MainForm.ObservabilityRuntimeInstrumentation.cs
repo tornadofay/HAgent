@@ -101,7 +101,7 @@ namespace HAgent.Example
                 providerSpan.Correlation.HostCorrelationId != "trace-host-correlation-42")
                 throw new InvalidOperationException("Execution correlation was not preserved independently from trace identity.");
 
-            using (TracePropagation.Push(root.Context))
+            using (TracePropagation.Push(root.Context, root.Record.Correlation))
             {
                 var tool = new TracingAgentTool(new TraceRuntimeExampleTool(), recorder);
                 var toolResult = await tool.ExecuteAsync(new ToolExecutionContext

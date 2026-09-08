@@ -28,13 +28,38 @@ namespace HAgent.Example
 
         private async Task TestRuntimeOverridesAsync(string message)
         {
-            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var memoryStore = await CreateConfiguredMemoryStoreAsync().ConfigureAwait(true);
-            var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            var profile = GetSelectedAgent();
-            if (profile == null)
-                throw new InvalidOperationException("Select an agent first.");
+            var store = new InMemoryAiStore();
+            var provider = new AiProvider
+            {
+                Id = "runtime-overrides-provider-42",
+                Name = "Runtime Overrides Provider",
+                Kind = "RuntimeOverrideTest",
+                BaseUrl = "https://runtime-overrides.test/v1",
+                DefaultModel = "runtime-overrides-model-42",
+                Enabled = true
+            };
+            var profile = new AiAgent
+            {
+                Id = "runtime-overrides-profile-42",
+                Name = "Runtime Overrides Test Profile",
+                Temperature = 0.61d,
+                MaxOutputTokens = 31,
+                ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = AiSelectionMode.Preferred,
+                    Fallback = AiFallbackMode.TryNextCandidate,
+                    CostPolicy = AiCostPolicy.NoRestriction,
+                    PreferredProviderId = provider.Id
+                },
+                CapabilityRequirements = new AiCapabilityRequirements(),
+                Enabled = true
+            };
 
+            await store.SaveProviderAsync(provider).ConfigureAwait(true);
+            await store.SaveAgentAsync(profile).ConfigureAwait(true);
+
+            var memoryStore = new InMemoryMemoryStore();
+            var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
             var originalTemperature = profile.Temperature;
             var originalMaxOutputTokens = profile.MaxOutputTokens;
             var overrideTemperature = 0.17d;
@@ -53,7 +78,7 @@ namespace HAgent.Example
                 });
             instance.Overrides.Context[contextKey] = contextValue;
 
-            var client = new HAgentClient(store, secrets, new[] { new RuntimeOverrideTestAdapter() }, null, memoryStore);
+            var client = new HAgentClient(store, new NullSecretStore(), new[] { new RuntimeOverrideTestAdapter() }, null, memoryStore);
             var execution = await client.ExecuteAsync(
                 instance,
                 string.IsNullOrWhiteSpace(message) ? "Runtime override test." : message,
@@ -147,7 +172,7 @@ namespace HAgent.Example
 
             public bool CanHandle(AiProvider provider)
             {
-                return provider != null;
+                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
             }
 
             public Task<AIResponse> SendAsync(

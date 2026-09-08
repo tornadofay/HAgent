@@ -7,7 +7,7 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 1 checkpoint after 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the Slice 2 implementation checkpoint.
 
 ## Current checkpoint
 
@@ -21,20 +21,16 @@ Phase 0.954 Prompt and Instruction Governance was verified and closed by the use
 
 ## Current run
 
-**Verified repository checkpoint — 0.955 Slice 1 complete; 0.955 Slice 2 is current for the next run.**
+**Verified checkpoint/blocker — 0.955 Slice 2 implementation complete; local contract verification remains pending.**
 
-0.955 Slice 1 reconciled `docs/architecture/20-context.md` with the current implementation and 0.955 roadmap requirements. The canonical target now separates provider-neutral context items, budgets, source/retrieval, policy filtering, ranking, compaction, caching, diagnostics, and immutable execution context snapshots. Existing `AgentExecutionRequest.HostContext`, `ConversationContextBuilder`, and WinForms `IUiContext` / `WinFormsUiContext` are recorded as input/producer boundaries rather than competing context architectures.
+Implemented `src/HAgent.Core/Models/ContextContracts.cs` with provider-neutral context item, provenance, scope, budget, and bounded source-request contracts, plus `src/HAgent.Core/Abstractions/IContextSource.cs` for candidate-source acquisition. Added `tests/HAgent.Tests/ContextContractTests.cs` covering structured payloads, validation bounds, metadata clone isolation, budget/request validation, and missing metadata rejection.
 
-No local .NET build/test success is claimed for this Slice 1 planning/architecture checkpoint.
+A preliminary `ContextSnapshot` type was deliberately removed from Slice 2 because immutable assembled execution snapshots belong to Slice 3. No ranking, compaction, caching, WinForms integration, or provider transport was implemented.
 
-## Next slice
+## Required next action
 
-**0.955 Slice 2 — Provider-neutral context contract foundation**
-
-Bounded objective: add the smallest Core-only contract layer for context items, explicit budget dimensions, bounded provenance/scope/trust/importance/freshness/size metadata, and the minimal candidate-source boundary. Do not implement ranking, compaction, caching, WinForms changes, or provider transport in that run.
-
-Expected verification: focused contract-level validation/build on targeted frameworks, followed by the documentation update required by `docs/plan/20-active.md`. The next run must resume from this checkpoint and must not duplicate Slice 1 or begin Slice 3.
+Run the focused `HAgent.Tests` contract tests/build locally against the repository state after commit `09712dfc1fc732f04d82673783cf4e3e79c4cc15`. Record the actual result in `docs/plan/20-active.md`. Do not advance to 0.955 Slice 3 until Slice 2 verification passes.
 
 ## Current blockers
 
-This connected session can inspect and modify repository sources but cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed from this session.
+This connected session can inspect and modify repository sources but cannot execute the local .NET/WinForms test environment. Therefore no Slice 2 local test success is claimed here.

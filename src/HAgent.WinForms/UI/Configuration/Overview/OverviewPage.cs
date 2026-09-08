@@ -7,32 +7,35 @@ namespace HAgent.WinForms.UI.Configuration.Overview
     internal sealed class OverviewPage : ConfigurationPageBase
     {
         private readonly ConfigurationContext _context;
+        private readonly FlowLayoutPanel _cards = new FlowLayoutPanel();
 
         public OverviewPage(ConfigurationContext context)
         {
             _context = context;
-            Controls.Add(Build());
+            Build();
         }
 
-        private Control Build()
+        public void RefreshData()
+        {
+            _cards.Controls.Clear();
+            _cards.Controls.Add(Card("Providers", _context.Providers.Count.ToString(), "Connection definitions"));
+            _cards.Controls.Add(Card("Agents", _context.Agents.Count.ToString(), "Configured behaviors"));
+            _cards.Controls.Add(Card("Tools", _context.Tools.GetDefinitions().Count().ToString(), "Available capabilities"));
+        }
+
+        private void Build()
         {
             var root = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
             root.Controls.Add(CreateHeader("Workspace", "Manage providers, agents, tools, policy, permissions, and storage from one configuration surface."));
-
-            var cards = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Top,
-                Height = 116,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                Padding = new Padding(0, 6, 0, 0),
-                BackColor = Surface
-            };
-            cards.Controls.Add(Card("Providers", _context.Providers.Count.ToString(), "Connection definitions"));
-            cards.Controls.Add(Card("Agents", _context.Agents.Count.ToString(), "Configured behaviors"));
-            cards.Controls.Add(Card("Tools", _context.Tools.GetDefinitions().Count().ToString(), "Available capabilities"));
-            root.Controls.Add(cards);
-            return root;
+            _cards.Dock = DockStyle.Top;
+            _cards.Height = 116;
+            _cards.FlowDirection = FlowDirection.LeftToRight;
+            _cards.WrapContents = false;
+            _cards.Padding = new Padding(0, 6, 0, 0);
+            _cards.BackColor = Surface;
+            root.Controls.Add(_cards);
+            Controls.Add(root);
+            RefreshData();
         }
 
         private Control Card(string name, string value, string description)

@@ -12,33 +12,25 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the Slice 2 implementation checkpoint.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 1 checkpoint after 0.954.
 
 ## Current checkpoint
 
 Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08.
 
-- `COGNITION INSTRUCTIONS` passed on .NET Framework 4.8.1 and .NET 9.
-- .NET 9 deterministic runtime coverage passed: `RUNTIME TERMINAL STATE`, `RUNTIME CONCURRENCY`, `RUNTIME OVERRIDES`, `RUNTIME STALE RESULTS`, and corrected `RUNTIME SHUTDOWN`.
-- .NET Framework 4.8.1 deterministic runtime coverage passed: `RUNTIME INSTANCES`, `RUNTIME OVERRIDES`, `RUNTIME STALE RESULTS`, and `RUNTIME SHUTDOWN`.
-- The deterministic runtime Examples corrected during Slice 5 no longer require manually selected configured-agent UI state.
-- Configuration-driven `RUNTIME EXECUTION` remains a live host example and was not used as a deterministic 0.954 milestone gate.
-
 ## Current run
 
-**Verified checkpoint/blocker — 0.955 Slice 2 implementation complete; local contract verification remains pending.**
+**0.955 Slice 2 implementation checkpoint — Example verification added; local verification pending.**
 
-Implemented `src/HAgent.Core/Models/ContextContracts.cs` with provider-neutral context item, provenance, scope, budget, and bounded source-request contracts, plus `src/HAgent.Core/Abstractions/IContextSource.cs` for candidate-source acquisition. Added `tests/HAgent.Tests/ContextContractTests.cs` covering structured payloads, validation bounds, metadata clone isolation, budget/request validation, and missing metadata rejection.
+Slice 2 now contains the provider-neutral context contract foundation plus matching deterministic `HAgent.Example` coverage. The new Example scenario exercises validation, bounded metadata, nested clone isolation, and snapshot creation through public contracts. Local .NET build/test and Example execution have not been performed in this connected session.
 
-A preliminary `ContextSnapshot` type was deliberately removed from Slice 2 because immutable assembled execution snapshots belong to Slice 3. No ranking, compaction, caching, WinForms integration, or provider transport was implemented.
+## Next action
 
-## Required next action
-
-Run the focused `HAgent.Tests` contract tests/build locally against the repository state after commit `09712dfc1fc732f04d82673783cf4e3e79c4cc15`. Record the actual result in `docs/plan/20-active.md`. Do not advance to 0.955 Slice 3 until Slice 2 verification passes.
+Run the targeted solution/tests and the new context-contract Example on the supported targets. Record the actual results before closing Slice 2 or selecting Slice 3.
 
 ## Current blockers
 
-This connected session can inspect and modify repository sources but cannot execute the local .NET/WinForms test environment. Therefore no Slice 2 local test success is claimed here.
+This connected session cannot execute the local .NET/WinForms build or Example. No local verification success is claimed.
 
 ## Current project state
 

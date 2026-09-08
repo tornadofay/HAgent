@@ -7,15 +7,15 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.953 Unified Policy Engine
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Complete the policy contracts, deterministic evaluation, cost guarding, runtime enforcement, persistence/effective snapshots, authorization integration, tool/resource policy, learning-promotion policy, approvals, UI, and verification defined by the active implementation plan.
+- **Scope:** Complete policy contracts, deterministic evaluation, cost guarding, runtime enforcement, persistence/effective snapshots, authorization integration, tool/resource policy, learning-promotion policy, approvals, UI, and verification defined by the active implementation plan.
+
+## Current checkpoint
+
+Policy persistence/default-runtime integration is implemented and was verified locally by the user on 2026-09-08. The next enforcement slice is implemented in source and includes policy-gated tool invocation plus policy-first composition with host data authorization. Matching deterministic Example verification is ready and is the next local checkpoint.
 
 ## Work ownership
 
 The active implementation plan is the authoritative scope for the current task. Do not start a parallel implementation of the same capability unless the scope is explicitly changed.
-
-## Handoff rule
-
-When the current task changes materially, update this file to reflect the new active scope, completed portion, blockers, and next work. Completed historical details belong in source architecture/plan documents only when they are durable project knowledge.
 
 ## Current blockers
 
@@ -23,4 +23,4 @@ None recorded.
 
 ## Next checkpoint
 
-Update this file after the next substantial implementation/test result or when the active milestone changes.
+Run the `Unified Policy` Example contract test after pulling the current master. It must verify the newly added tool denial/approval/allow cases and the policy-before-host-authorization data-access case in addition to the already passing persistence and runtime policy checks.

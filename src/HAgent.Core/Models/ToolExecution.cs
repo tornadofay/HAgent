@@ -42,6 +42,7 @@ namespace HAgent.Models
         public string ToolCallId { get; set; }
         public AgentIdentityContext Identity { get; set; }
         public AiPolicyDecision PolicyDecision { get; set; }
+        public AiApprovalRequest ApprovalRequest { get; set; }
         public AiResourceCapabilitySnapshot EffectiveResourceCapabilities { get; set; }
         public AiResourceCapabilityState ResourceCapabilityState { get; set; }
         public DateTimeOffset StartedAt { get; set; }

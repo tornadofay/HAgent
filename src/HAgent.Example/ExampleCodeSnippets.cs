@@ -298,6 +298,25 @@ var request = new DataQueryRequest
 };
 
 var result = await source.QueryAsync(request, CancellationToken.None);";
+                case "Resource Capabilities": return @"var profile = new AiAgent();
+profile.ResourceCapabilities.Set(""memory"", AiResourceCapabilityState.Disabled);
+profile.ResourceCapabilities.Set(""tool"", ""tool-42"", AiResourceCapabilityState.Disabled);
+
+var overrides = new AgentRuntimeOverrides();
+overrides.ResourceCapabilityOverrides.Set(""tool"", ""tool-42"", AiResourceCapabilityState.Enabled);
+
+var effective = AiResourceCapabilitySnapshot.Resolve(
+    profile.ResourceCapabilities,
+    overrides.ResourceCapabilityOverrides);
+
+Console.WriteLine(effective.GetState(""tool"", ""tool-42""));
+
+var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.User, overrides);
+var result = await client.ExecuteToolAsync(
+    instance,
+    ""tool-42"",
+    ""call-42"",
+    new Dictionary<string, object> { { ""value"", ""hello"" } });";
                 default: return @"// See the corresponding HAgent example source file.
 // The Example application uses the public HAgent API shown here as the reference pattern.";
             }

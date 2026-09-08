@@ -60,11 +60,18 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 41/41 tests passing on 2026-09-09.
    - Deterministic public-API `HAgent.Example` Context Multi-Resource Retrieval verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, including distinct per-source queries, per-source candidate limits, global budget enforcement, deterministic source order, provenance preservation, and no provider request.
 
-9. **Policy/permission-aware context assembly — CURRENT**
-   - Introduce a provider-neutral authorization/enforcement boundary between retrieval and ranking/assembly so sources and candidates are admitted only when explicitly allowed by host/resource policy and effective capability state.
-   - Preserve the existing retrieval, ranking, compaction, provenance, scope, and execution-snapshot contracts; policy decisions must remain enforcement metadata rather than prompt text.
-   - Cover source disabled/denied behavior, scope/ownership boundaries, deterministic exclusion reasons, and safe diagnostics without exposing payloads or creating a parallel authorization model.
-   - Verification target: focused Core policy/assembly tests plus deterministic public-API `HAgent.Example` coverage showing allowed, denied, and disabled sources/candidates with provider request absent unless separately exercising execution integration.
+9. **Policy/permission-aware context assembly — VERIFIED**
+   - The canonical policy engine and effective resource capability model now gate context source retrieval and candidate inclusion before ranked/bounded assembly.
+   - Disabled sources are rejected before retrieval; denied sources are not queried; denied candidates are excluded before global budget consumption.
+   - Policy/resource decisions remain enforcement metadata and are never encoded as prompt instructions or a parallel authorization model. Provenance and safe metadata-only diagnostics are preserved.
+   - `HAgent.Tests` completed with 46/46 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Policy Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering allowed, denied, and disabled admission paths plus provenance and safe diagnostics.
+
+10. **Instruction-authority separation — CURRENT**
+   - Ensure instruction-origin context remains distinguishable from ordinary evidence and cannot gain authority merely by being present in the generic context pipeline.
+   - Preserve the existing 0.954 instruction-governance boundary: instruction precedence/authority stays in the instruction subsystem, while context policy may decide eligibility without rewriting instruction semantics.
+   - Define deterministic admission metadata for instruction-origin context and safe handling of lower-authority or ordinary evidence so it cannot silently replace, erase, or override authoritative instruction layers.
+   - Verification target: focused Core tests plus deterministic public-API Example coverage showing instruction-origin context remains provenance-labeled and cannot alter instruction authority merely through context inclusion.
 
 ### Verification rule
 

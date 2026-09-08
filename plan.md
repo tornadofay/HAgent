@@ -16,32 +16,29 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-0.956 Slice 1 architecture/contract reconciliation is complete. The authoritative observability architecture is `docs/architecture/22-observability.md`. It defines trace/span identity and parentage, preserves existing execution/host/runtime/event correlation identities, establishes default-deny bounded metadata and sink-side redaction, separates tracing from event dispatch, authorization, execution audit, and transcript storage, and defines the provider-neutral in-memory-first implementation boundary.
-
-No tracing implementation was started during Slice 1.
+0.956 Slice 2 trace identity and span lifecycle contracts are complete and verified. The provider-neutral Core trace context/span contracts, bounded metadata representation, and in-memory recorder boundary are implemented and verified by local solution build, `HAgent.Tests`, and the matching public-API `HAgent.Example` scenario on both supported targets.
 
 ## Current run
 
-**0.956 Slice 2 trace identity and span lifecycle contracts — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
+**0.956 Slice 3 trace-producing runtime instrumentation and propagation — CURRENT.**
 
-The current slice implements only the provider-neutral Core trace context/span contracts and in-memory recorder boundary defined by `docs/architecture/22-observability.md`, with matching deterministic `HAgent.Tests` and public-API `HAgent.Example` verification.
-
-Implemented in this checkpoint:
-
-- `TraceContext` for immutable provider-neutral trace propagation.
-- `TraceCorrelation` for existing HAgent identity/correlation references without replacing them.
-- bounded `TraceMetadata` with explicit redacted/omitted representations and no arbitrary object serialization.
-- `TraceSpan` / `ITraceSpan` for lifecycle, parentage, timestamps, status, duration, and terminal completion protection.
-- `ITraceRecorder` and `InMemoryTraceRecorder` with deterministic insertion sequencing.
-- focused `HAgent.Tests` contract coverage and a public-API `HAgent.Example` scenario covering hierarchy, correlation propagation, redaction-safe metadata, terminal status, and ordering.
+The current slice is to add the first runtime producers that create and propagate trace context through the canonical execution, provider, tool, event, policy, and context boundaries without duplicating those subsystem contracts.
 
 ## Next action
 
-Run the repository's required verification for Slice 2: build the affected projects, run the focused/full `HAgent.Tests` suite as appropriate, and run the matching `HAgent.Example` scenario. Only after successful local verification should this slice be marked verified and Slice 3 selected.
+Inspect the existing execution/provider/tool/event/policy/context integration seams and implement only the first bounded instrumentation slice. Preserve execution, host, runtime, event, and identity correlation separately from TraceId/SpanId. Add focused deterministic `HAgent.Tests` coverage plus the matching public-API `HAgent.Example` scenario for integrated propagation and terminal/failure/cancellation paths exposed by the producers. Do not begin Slice 4 in the same run.
+
+## Verification evidence for Slice 2
+
+- User solution build succeeded after pull.
+- User `HAgent.Tests`: **59/59 passed** on 2026-09-09.
+- User `HAgent.Example` `.NET Framework 4.8.1`: **Observability Tracing succeeded** at 2026-09-09 01:37:28.
+- User `HAgent.Example` `.NET 9`: **Observability Tracing succeeded** at 2026-09-09 01:38:14.
+- Both Examples verified hierarchy, execution/host/runtime/event correlation, redacted/omitted metadata, terminal status protection, deterministic recorder ordering, and no provider request.
 
 ## Current blockers
 
-The connected session can inspect and modify repository source, but it does not have a local .NET/WinForms execution environment for the repository. Therefore Slice 2 remains an implementation checkpoint pending the required local verification.
+No known architecture blocker. Local .NET/WinForms execution remains user-side verification for connected implementation runs.
 
 ## Current project state
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, canonical policy persistence, policy-gated tool invocation, and policy-first host authorization composition are implemented.**
+**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, canonical policy persistence, policy-gated tool invocation, policy-first host authorization composition, and profile/runtime resource capability resolution are implemented.**
 
 ## Goal
 
@@ -16,13 +16,13 @@ Unify HAgent's growing permission, capability, cost, learning, approval, resourc
 4. [x] Integrate existing permission/authorization concepts without replacing host-owned authorization.
 5. [x] Integrate cost policy (`FreeOnly`, `FreePreferred`, `NoRestriction`) through the policy system at the evaluation boundary.
 6. [ ] Integrate learning promotion policy and approval requirements into runtime learning workflows.
-7. [ ] Integrate capability/resource enablement and runtime tri-state overrides.
+7. [x] Integrate capability/resource enablement and runtime tri-state overrides at the profile/runtime resource boundary, with execution snapshot capture and tool gating.
 8. [x] Support explicit policy precedence and deterministic conflict resolution.
 9. [x] Preserve policy provenance so diagnostics can explain which rule produced a decision.
 10. [x] Make policy evaluation deterministic where inputs are deterministic and expose an explicit policy version for cache invalidation.
 11. [x] Capture the full effective policy state in the execution snapshot, including the deep-cloned policy version/rules that govern the run.
 12. [x] Prevent prompt content from serving as the policy enforcement mechanism.
-13. [x] Add deterministic Example verification for policy precedence, denial, approval outcome, cost restrictions, resource/tool/provider matching, deterministic conflict resolution, pre-transport runtime denial, effective-policy snapshot isolation, persistence, tool enforcement, and policy-before-host-authorization behavior.
+13. [x] Add deterministic Example verification for policy precedence, denial, approval outcome, cost restrictions, resource/tool/provider matching, deterministic conflict resolution, pre-transport runtime denial, effective-policy snapshot isolation, persistence, tool enforcement, policy-before-host-authorization behavior, and resource capability resolution/persistence/tool gating.
 
 ## Implemented slices
 
@@ -46,18 +46,25 @@ The current implementation includes:
 - policy decisions captured in `ToolExecutionResult` and one evaluator captured for each tool loop;
 - `PolicyDataAccessAuthorizer` composition of HAgent policy with host `IDataAccessAuthorizer`, preserving host authority after policy evaluation;
 - canonical identity propagation into `DataAuthorizationRequest` for policy composition;
-- deterministic Example verification in `MainForm.PolicyTests.cs` for policy persistence, runtime enforcement, tool denial/approval/allow, and policy decisions that stop a data operation before the host authorization callback.
+- `AiResourceCapabilityPolicy` profile defaults with `Inherit` / `Enabled` / `Disabled` states;
+- runtime-only `AgentRuntimeOverrides.ResourceCapabilityOverrides` with runtime-over-profile precedence;
+- deterministic effective resolution with exact-resource precedence, resource-type fallback, `Inherit` fall-through, and default `Enabled` state;
+- `AgentExecutionSnapshot.EffectiveResourceCapabilities` capturing resolved resource enablement for each execution;
+- tool execution resource gating before executable handler side effects, including runtime-instance-specific overrides;
+- deterministic Example verification in `MainForm.PolicyTests.cs` and `MainForm.ResourceCapabilityTests.cs` for policy persistence, runtime enforcement, host authorization, and resource capability resolution, persistence, snapshot isolation, and tool gating.
 
-The persistence/default-runtime path was locally verified by the user on 2026-09-08. The newly added tool/data authorization verification has not yet been run locally and must not be described as passing until the next Example execution succeeds.
+Policy persistence and the provider/tool/data authorization paths were locally verified by the user on 2026-09-08. The resource capability implementation and its new Example verification are ready for the next local run and must not be described as passing until that Example test succeeds.
 
 ## Remaining slices
 
-1. Integrate capability/resource enablement and runtime tri-state overrides.
+1. Verify the profile/runtime resource capability slice locally and then treat it as complete.
 2. Integrate learning-promotion policy, review requirements, and typed approval transitions.
 3. Add bounded human approval/defer workflow integration.
-4. Add policy management UI for rules, scopes, precedence, provenance, and effective decisions.
+4. Add policy management UI for rules, scopes, precedence, provenance, effective decisions, and resource capability state.
 5. Expand deterministic Example verification and backend-specific live verification where configured.
 
 ## Architectural rule
 
 The policy engine decides what HAgent is permitted or configured to do. It does not become an authentication provider or replace host authority over application side effects. Policy may further restrict a host operation, but an HAgent policy `Allow` never grants application authorization.
+
+Resource enablement is a separate configuration capability layer. It does not replace provider capability discovery or host authorization. An enabled resource must still pass any applicable policy and authorization boundaries before side effects occur.

@@ -19,15 +19,45 @@ Allow authorized humans or host applications to inspect and control active HAgen
 - Deterministic Example approval/defer verification uses the canonical intervention API.
 - Obsolete approval-only contract/facade files were removed in favor of the intervention model.
 
-### Remaining implementation slices
+### Run-sized execution plan
 
-1. Integrate intervention application at execution and tool boundaries without creating a second execution engine.
-2. Add deterministic concurrency-safe state transitions and stale-request handling.
-3. Extend intervention to plan steps, goals, learning candidates, and consequential actions.
-4. Add durable intervention persistence after lifecycle semantics stabilize.
-5. Expose pending/historical intervention state through management UI and diagnostics.
-6. Expand deterministic Example verification for pause/resume, cancellation, concurrency, stale requests, and all supported target/action transitions.
-7. Complete .NET Framework 4.8.1 and .NET 9 verification plus backend-specific live verification where configured.
+Only one slice is **CURRENT** at a time. Each slice must reach a verified checkpoint before the next slice begins.
+
+1. **CURRENT — Execution control boundary**
+   - Scope: Integrate intervention application into the existing canonical runtime/execution lifecycle for pause, resume, and cancellation; preserve the existing execution engine and terminal-state rules.
+   - Entry: Canonical intervention workflow and execution lifecycle contracts exist.
+   - Completion: Controlled execution can be paused/resumed/cancelled through the intervention boundary without a second execution engine, and focused deterministic verification passes.
+   - Next smallest step after completion: race/stale-state hardening.
+
+2. **Concurrency and stale-state hardening**
+   - Scope: Make intervention state transitions deterministic under concurrent requests, duplicate requests, late provider completion, retirement, shutdown, and already-terminal executions.
+   - Entry: Slice 1 passes its focused lifecycle verification.
+   - Completion: concurrency/stale-request tests pass and late results cannot overwrite terminal outcomes.
+
+3. **Additional intervention targets**
+   - Scope: Extend the same canonical intervention mechanism to plan steps, goals, learning candidates, and consequential actions where defined by the architecture.
+   - Entry: lifecycle/concurrency semantics are stable.
+   - Completion: each supported target/action pair has explicit authorization/policy semantics and focused deterministic verification.
+
+4. **Durable intervention persistence**
+   - Scope: Persist intervention lifecycle/history through the existing canonical storage architecture without creating a parallel persistence model.
+   - Entry: lifecycle and target semantics are stable.
+   - Completion: persistence/reload, ownership, and terminal-state behavior are verified against the supported storage contracts.
+
+5. **Management UI and diagnostics**
+   - Scope: Expose pending/history intervention state through the designated configuration/management surfaces and diagnostics while keeping UI as a consumer of the canonical contracts.
+   - Entry: persistence and lifecycle contracts are stable.
+   - Completion: UI opens/loads, displays correct state, issues authorized controls, and handles stale/completed requests safely in the supported WinForms targets.
+
+6. **Example coverage expansion**
+   - Scope: Add deterministic public-API Example scenarios for pause/resume, cancellation, concurrency, stale requests, target/action transitions, persistence, and failure boundaries.
+   - Entry: implementation and UI contracts are stable enough to exercise end-to-end.
+   - Completion: all required scenarios are reproducible and the Example host remains organized by feature.
+
+7. **Final framework/backend verification**
+   - Scope: Run the supported .NET Framework 4.8.1 and .NET 9 verification plus backend-specific live verification where configured.
+   - Entry: all implementation slices and Example verification are complete.
+   - Completion: actual builds/tests/examples have been executed and the authoritative documentation records the verified milestone state.
 
 ### Architectural boundaries
 
@@ -39,4 +69,8 @@ The canonical lifecycle, target/action semantics, concurrency rules, persistence
 
 ## Verification rule
 
-A slice becomes complete only after the implementation exists, matching deterministic Example verification passes locally, and the authoritative architecture/roadmap documentation reflects the verified result. Do not claim local build/test success unless it was actually performed.
+A slice becomes complete only after the implementation exists, matching deterministic Example or focused test verification passes locally, and the authoritative architecture/roadmap documentation reflects the verified result. Do not claim local build/test success unless it was actually performed.
+
+## Run rule
+
+Do not implement multiple numbered slices in one run merely because they are related. Finish the current slice, verify it, update this file, and only then select the next slice.

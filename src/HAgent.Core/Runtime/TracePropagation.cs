@@ -18,5 +18,11 @@ namespace HAgent.Runtime
             if (context == null) throw new ArgumentNullException(nameof(context));
             return TraceAmbient.Push(context);
         }
+
+        public static IDisposable Push(TraceContext context, TraceCorrelation correlation)
+        {
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            return TraceAmbient.Push(context, correlation);
+        }
     }
 }

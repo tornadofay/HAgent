@@ -88,6 +88,14 @@ namespace HAgent.Models
             }
         }
 
+        public AiResourceCapabilityState GetState(string resourceType, string resourceId = null)
+        {
+            var normalizedType = NormalizeRequired(resourceType, nameof(resourceType));
+            var normalizedId = NormalizeOptional(resourceId);
+            var entry = Find(normalizedType, normalizedId);
+            return entry == null ? AiResourceCapabilityState.Inherit : entry.State;
+        }
+
         public AiResourceCapabilityPolicy Clone()
         {
             var clone = new AiResourceCapabilityPolicy();
@@ -205,7 +213,10 @@ namespace HAgent.Models
 
         public AiResourceCapabilitySnapshot Clone()
         {
-            var states = new Dictionary<string, AiResourceCapabilityState>(_states, StringComparer.OrdinalIgnoreCase);
+            var states = new Dictionary<string, AiResourceCapabilityState>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in _states)
+                states[pair.Key] = pair.Value;
+
             var entries = new List<AiResourceCapabilitySnapshotEntry>();
             foreach (var entry in Entries)
                 entries.Add(new AiResourceCapabilitySnapshotEntry(entry.ResourceType, entry.ResourceId, entry.State));

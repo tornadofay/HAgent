@@ -200,18 +200,10 @@ namespace HAgent.Runtime
             if (query == null)
                 return null;
 
-            var clone = new DataQueryRequest
-            {
-                Fields = new List<string>(query.Fields),
-                Filters = new List<DataFilterCondition>(),
-                Sorts = new List<DataSort>(),
-                Skip = query.Skip,
-                Take = query.Take
-            };
-
+            var filters = new List<DataFilterCondition>();
             foreach (var filter in query.Filters)
             {
-                clone.Filters.Add(new DataFilterCondition
+                filters.Add(new DataFilterCondition
                 {
                     Field = filter.Field,
                     Operator = filter.Operator,
@@ -219,16 +211,24 @@ namespace HAgent.Runtime
                 });
             }
 
+            var sorts = new List<DataSort>();
             foreach (var sort in query.Sorts)
             {
-                clone.Sorts.Add(new DataSort
+                sorts.Add(new DataSort
                 {
                     Field = sort.Field,
                     Descending = sort.Descending
                 });
             }
 
-            return clone;
+            return new DataQueryRequest
+            {
+                Fields = new List<string>(query.Fields),
+                Filters = filters,
+                Sorts = sorts,
+                Skip = query.Skip,
+                Take = query.Take
+            };
         }
 
         private sealed class CandidateListContextSource : IContextSource

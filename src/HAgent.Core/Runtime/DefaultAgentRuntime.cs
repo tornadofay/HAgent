@@ -261,8 +261,11 @@ namespace HAgent.Runtime
                             throw new OperationCanceledException("The execution changed state before its approved intervention could be applied.", token);
                         Notify(execution);
 
+                        // Re-evaluate the effective policy at the execution boundary, but consume the
+                        // already-approved intervention instead of recursively requesting the same approval.
+                        // A newly applicable deny remains authoritative and blocks the side effect.
                         var resumedDecision = policyEngine.Evaluate(policyContext);
-                        if (resumedDecision == null || resumedDecision.IsDenied || resumedDecision.RequiresApproval || resumedDecision.IsDeferred)
+                        if (resumedDecision == null || resumedDecision.IsDenied)
                         {
                             throw new InvalidOperationException(
                                 "Execution policy did not allow the approved model invocation to proceed. " +
@@ -407,12 +410,16 @@ namespace HAgent.Runtime
                 }
                 catch (OperationCanceledException)
                 {
-                    var cancellationFailureKind = cancellationToken.IsCancellationRequested
+                    var interventionCancelled = execution.InterventionCancellationToken.IsCancellationRequested;
+                    var callerCancelled = cancellationToken.IsCancellationRequested;
+                    var cancellationFailureKind = callerCancelled || interventionCancelled
                         ? AgentExecutionFailureKind.Cancelled
                         : AgentExecutionFailureKind.Timeout;
-                    Exception cancellationError = cancellationToken.IsCancellationRequested
+                    Exception cancellationError = callerCancelled
                         ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
-                        : new TimeoutException("Agent execution exceeded its configured timeout.");
+                        : interventionCancelled
+                            ? new OperationCanceledException("Agent execution was cancelled by intervention.", token)
+                            : new TimeoutException("Agent execution exceeded its configured timeout.");
 
                     if (execution.TryCompleteCancelled(
                         cancellationError,
@@ -428,12 +435,16 @@ namespace HAgent.Runtime
                 {
                     if (token.IsCancellationRequested)
                     {
-                        var cancellationFailureKind = cancellationToken.IsCancellationRequested
+                        var interventionCancelled = execution.InterventionCancellationToken.IsCancellationRequested;
+                        var callerCancelled = cancellationToken.IsCancellationRequested;
+                        var cancellationFailureKind = callerCancelled || interventionCancelled
                             ? AgentExecutionFailureKind.Cancelled
                             : AgentExecutionFailureKind.Timeout;
-                        Exception cancellationError = cancellationToken.IsCancellationRequested
+                        Exception cancellationError = callerCancelled
                             ? new OperationCanceledException("Agent execution was cancelled by the caller.", cancellationToken)
-                            : new TimeoutException("Agent execution exceeded its configured timeout.");
+                            : interventionCancelled
+                                ? new OperationCanceledException("Agent execution was cancelled by intervention.", token)
+                                : new TimeoutException("Agent execution exceeded its configured timeout.");
 
                         if (execution.TryCompleteCancelled(
                             cancellationError,

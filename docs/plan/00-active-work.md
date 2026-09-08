@@ -11,17 +11,19 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, and 4 were subsequently verified by the user. Slice 5 was verified on 2026-09-09 with 29/29 HAgent.Tests passing and the deterministic public-API Context Compaction Example passing.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, and 5 have subsequently been verified by the user. Slice 5 was verified on 2026-09-09 with 29/29 HAgent.Tests passing and the deterministic public-API Context Compaction Example passing.
 
 ## Current run
 
 **0.955 Slice 6 implementation checkpoint — local verification pending.**
 
-Slice 6 is scoped to cache-safe reusable context components. The target architecture requires explicit cache identity and ownership boundaries, configuration/resource version awareness, freshness invalidation, and reuse of valid components without ever turning the execution-owned `ContextSnapshot` into mutable shared cache state.
+Slice 6 implementation is now present in Core with explicit `ContextCacheKey` ownership/version identity, `ContextCacheEntry`, the generic `IContextCache` contract, and a thread-safe `InMemoryContextCache`. The cache identity covers component, scope, configuration version, resource version, and freshness version; entries also have explicit expiration. A matching public-API `HAgent.Example` Context Cache scenario and five focused xUnit tests cover valid reuse, scope/version/freshness isolation, expiration, explicit invalidation/clear, and cached snapshot metadata isolation.
+
+Local verification has not yet been performed for Slice 6. The expected next verification is the updated `HAgent.Tests` suite plus the Context → Context Core → Context Cache Example on the supported local targets.
 
 ## Next action
 
-Implement the focused Slice 6 Core reusable-component/cache contracts and matching deterministic `HAgent.Example` verification, then run the focused/full local tests before closing the slice.
+Run the local tests and the new Context Cache Example. Record the actual results before closing Slice 6 or selecting Slice 7.
 
 ## Current blockers
 

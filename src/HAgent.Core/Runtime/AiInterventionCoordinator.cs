@@ -72,29 +72,22 @@ namespace HAgent.Runtime
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(executionId)) throw new ArgumentException("Execution ID is required.", nameof(executionId));
-
             return Task.FromResult(GetControl(executionId).State);
         }
 
-        public Task PauseExecutionAsync(string executionId, CancellationToken cancellationToken = default(CancellationToken))
+        internal void PauseExecution(string executionId)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             GetControl(executionId).Pause();
-            return Task.CompletedTask;
         }
 
-        public Task ResumeExecutionAsync(string executionId, CancellationToken cancellationToken = default(CancellationToken))
+        internal void ResumeExecution(string executionId)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             GetControl(executionId).Resume();
-            return Task.CompletedTask;
         }
 
-        public Task CancelExecutionAsync(string executionId, CancellationToken cancellationToken = default(CancellationToken))
+        internal void CancelExecution(string executionId)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             GetControl(executionId).Cancel();
-            return Task.CompletedTask;
         }
 
         public Task<AiInterventionRequest> RequestExecutionInterventionAsync(

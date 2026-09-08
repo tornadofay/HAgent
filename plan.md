@@ -12,15 +12,15 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.953 Unified Policy Engine
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Complete the policy contracts, deterministic evaluation, cost guarding, runtime enforcement, persistence/effective snapshots, authorization integration, tool/resource policy, learning-promotion policy, approvals, UI, and verification defined by the active implementation plan.
+- **Scope:** Complete policy contracts, deterministic evaluation, cost guarding, runtime enforcement, persistence/effective snapshots, authorization integration, tool/resource policy, learning-promotion policy, approvals, UI, and verification defined by the active implementation plan.
+
+## Current checkpoint
+
+Policy persistence/default-runtime integration is implemented and was verified locally by the user on 2026-09-08. The next enforcement slice is implemented in source and includes policy-gated tool invocation plus policy-first composition with host data authorization. Matching deterministic Example verification is ready and is the next local checkpoint.
 
 ## Work ownership
 
 The active implementation plan is the authoritative scope for the current task. Do not start a parallel implementation of the same capability unless the scope is explicitly changed.
-
-## Handoff rule
-
-When the current task changes materially, update this file to reflect the new active scope, completed portion, blockers, and next work. Completed historical details belong in source architecture/plan documents only when they are durable project knowledge.
 
 ## Current blockers
 
@@ -28,7 +28,7 @@ None recorded.
 
 ## Next checkpoint
 
-Update this file after the next substantial implementation/test result or when the active milestone changes.
+Run the `Unified Policy` Example contract test after pulling the current master. It must verify the newly added tool denial/approval/allow cases and the policy-before-host-authorization data-access case in addition to the already passing persistence and runtime policy checks.
 
 ## Current project state
 
@@ -55,7 +55,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is the current implementation milestone. Its core evaluator, runtime enforcement, effective-policy execution snapshots, canonical policy-store contract, and File/SQL Server/MySQL persistence paths are implemented; the new persistence/default-runtime integration still requires matching local Example verification before being considered verified. The remaining foundational sequence is 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
+0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is the current implementation milestone. Its core evaluator, runtime enforcement, effective-policy execution snapshots, canonical policy-store contract, File/SQL Server/MySQL persistence paths, and policy/tool/data authorization integration are implemented. The 0.953 persistence/default-runtime path was locally verified by the user on 2026-09-08; the newly added tool/data authorization verification is now part of the next local Example run. The remaining foundational sequence is 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
 
 The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` is ordered as a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition both depend on its provider/model/target separation, credential persistence, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portability contracts.
 
@@ -92,7 +92,9 @@ The repository currently contains verified foundations for:
 - runtime-instance identity, scope, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, host-controlled scheduling, shutdown semantics, and optional runtime-state persistence;
 - provider-neutral workspace participants, message metadata, default-recipient routing, and coordinator/specialist role policy;
 - generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, verified external-consumer coverage on both supported target frameworks, and verified runtime-instance + canonical-request composition;
-- unified policy contracts, deterministic scoped evaluation, cost guards, policy provenance, pre-transport runtime enforcement, deep-cloned effective policy state in execution snapshots, and canonical File/SQL Server/MySQL policy persistence implementation (new persistence/default-runtime verification pending local execution).
+- unified policy contracts, deterministic scoped evaluation, cost guards, policy provenance, pre-transport runtime enforcement, deep-cloned effective policy state in execution snapshots, and canonical File/SQL Server/MySQL policy persistence;
+- policy-gated tool invocation before executable handlers, including `Deny`, `RequireApproval`, and `Defer` enforcement and policy provenance in `ToolExecutionResult`;
+- policy-first composition with host `IDataAccessAuthorizer` for structured data operations, preserving host authorization as the final authority.
 
 ## Foundational architecture hardening before 0.96
 

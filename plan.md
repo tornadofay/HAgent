@@ -3,6 +3,33 @@
 > This file is generated from smaller source documents. Do not edit it directly.
 > Source directory: `docs/plan`.
 
+## Active Work
+
+This file is the compact handoff state for work currently in progress. It is not a task history or development diary.
+
+## Current task
+
+- **Phase:** 0.953 Unified Policy Engine
+- **Status:** In progress
+- **Primary source:** `docs/plan/20-active.md`
+- **Scope:** Complete the policy contracts, deterministic evaluation, cost guarding, runtime enforcement, persistence/effective snapshots, authorization integration, tool/resource policy, learning-promotion policy, approvals, UI, and verification defined by the active implementation plan.
+
+## Work ownership
+
+The active implementation plan is the authoritative scope for the current task. Do not start a parallel implementation of the same capability unless the scope is explicitly changed.
+
+## Handoff rule
+
+When the current task changes materially, update this file to reflect the new active scope, completed portion, blockers, and next work. Completed historical details belong in source architecture/plan documents only when they are durable project knowledge.
+
+## Current blockers
+
+None recorded.
+
+## Next checkpoint
+
+Update this file after the next substantial implementation/test result or when the active milestone changes.
+
 ## Current project state
 
 ## Project
@@ -203,6 +230,42 @@ Do not claim local build/test success unless it was actually performed.
 - `docs/storage.md` — storage-specific details.
 
 The root `plan.md` and `roadmap.md` are generated from their source directories. They are views, not independent sources of truth.
+
+## Architectural Decisions
+
+This file contains only durable decisions needed to preserve project direction across sessions. It is not a conversation log.
+
+## D-001 — Complete known architecture before implementation
+
+**Status:** Active
+
+Substantial features must be implemented against the complete intended architecture that can reasonably be derived from the repository, roadmap, architecture documents, and requirements. Do not deliberately create simplified temporary implementations when the required design is already understood.
+
+Testing is primarily for verification, defect discovery, and genuinely unforeseen interactions. It must not be used as a substitute for architectural analysis that should have happened before implementation.
+
+## D-002 — Repository documents are persistent project memory
+
+**Status:** Active
+
+Small purpose-specific Markdown documents preserve durable project state so development can resume without relying on conversation history. They contain compressed conclusions, current state, active work, invariants, and durable decisions—not transcripts or unrestricted reasoning.
+
+## D-003 — No duplicate sources of truth
+
+**Status:** Active
+
+Each durable fact should have one authoritative source. Other documents should reference that source rather than copying the same architectural decision. Generated root documents remain generated views.
+
+## D-004 — Active work is state, not history
+
+**Status:** Active
+
+Current unfinished work is represented by the compact active-work document. When work advances, update the current state instead of appending a chronological diary. Completed work is removed from active state once it is reflected in the appropriate authoritative project document.
+
+## D-005 — Unforeseen discoveries may refine architecture
+
+**Status:** Active
+
+Testing and implementation may reveal requirements or interactions that could not reasonably be known beforehand. Such discoveries should produce an explicit architectural decision or update to the authoritative source rather than an undocumented workaround.
 
 ## HAgent Master Plan
 
@@ -571,7 +634,7 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.953 Unified Policy Engine — CURRENT
 
-Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, and pre-transport runtime enforcement. The remaining work completes policy integration across persistence, authorization, resources, learning, approvals, and effective snapshots.
+Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, pre-transport runtime enforcement, and effective-policy execution snapshots. The remaining work completes policy integration across persistence, authorization, resources, learning, approvals, and UI.
 
 ### Objective
 
@@ -583,23 +646,25 @@ Create one coherent policy boundary for HAgent decisions without making the mode
 - `Allow`, `Deny`, `RequireApproval`, `Defer`, and `NotApplicable` outcomes.
 - Evaluation contexts carrying identity, tenant/workspace, agent/runtime/execution, resource/tool, provider/target, cost, and bounded attributes.
 - Deterministic rule precedence and conflict resolution.
+- Empty rule constraint collections treated as unrestricted dimensions.
 - Decision provenance including policy version and selected rule.
 - Built-in `FreeOnly` cost enforcement; unknown cost is never assumed free.
+- `IAiPolicyEngine.GetPolicySnapshot()` as the owned policy capture boundary.
 - `AgentExecution.PolicyDecision` capture.
+- `AgentExecutionSnapshot.EffectivePolicy` deep-cloned into the execution snapshot.
 - Runtime policy enforcement after execution-target selection and before provider transport.
-- Deterministic Example verification for engine behavior and provider-call prevention under denial.
+- Deterministic Example verification for engine behavior, snapshot isolation, runtime policy capture, and provider-call prevention under denial.
 
 ### Next implementation slices
 
-1. Capture an immutable effective policy state/version in the execution snapshot, including the policy inputs that governed the run.
-2. Persist policy configuration through File, SQL Server, and MySQL without mixing it into provider/agent transport configuration.
-3. Integrate host authorization callbacks at HAgent enforcement boundaries without replacing host authority.
-4. Apply policy to tool invocation and resource access before side effects occur.
-5. Integrate resource enablement and runtime `Inherit` / `Enabled` / `Disabled` semantics.
-6. Add learning-promotion policy, review requirements, and typed approval transitions.
-7. Add bounded human approval/defer workflow integration.
-8. Add management UI for policy rules, scope, precedence, provenance, and effective decisions.
-9. Expand deterministic Example coverage for inheritance, resource access, runtime overrides, persistence, tool denial, approval, and recovery.
+1. Persist policy configuration through File, SQL Server, and MySQL without mixing it into provider/agent transport configuration.
+2. Integrate host authorization callbacks at HAgent enforcement boundaries without replacing host authority.
+3. Apply policy to tool invocation and resource access before side effects occur.
+4. Integrate resource enablement and runtime `Inherit` / `Enabled` / `Disabled` semantics.
+5. Add learning-promotion policy, review requirements, and typed approval transitions.
+6. Add bounded human approval/defer workflow integration.
+7. Add management UI for policy rules, scope, precedence, provenance, and effective decisions.
+8. Expand deterministic Example coverage for persistence, authorization callbacks, tool denial, resource gating, inheritance, runtime overrides, approval, and recovery.
 
 ### Architectural boundaries
 

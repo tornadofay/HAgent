@@ -123,6 +123,9 @@ namespace HAgent.Models
 
     public sealed class AiLearningCandidate
     {
+        private readonly object _sync = new object();
+        private long _revision;
+
         public AiLearningCandidate()
         {
             Id = Guid.NewGuid().ToString("N");
@@ -134,11 +137,14 @@ namespace HAgent.Models
             SourceExecutionId = string.Empty;
             SourceRuntimeInstanceId = string.Empty;
             SourceAgentProfileId = string.Empty;
+            _revision = 0;
         }
 
         public string Id { get; set; }
         public AiLearningCandidateType Type { get; set; }
-        public AiLearningCandidateStatus Status { get; private set; }
+        public AiLearningCandidateStatus Status { get { lock (_sync) { return _status; } } }
+        private AiLearningCandidateStatus _status;
+        public long Revision { get { lock (_sync) { return _revision; } } }
         public string ProposedScope { get; set; }
         public string Provenance { get; set; }
         public string Evidence { get; set; }
@@ -175,9 +181,14 @@ namespace HAgent.Models
 
         public void Reject()
         {
-            if (Status != AiLearningCandidateStatus.Proposed && Status != AiLearningCandidateStatus.PendingReview && Status != AiLearningCandidateStatus.Approved)
-                throw new InvalidOperationException("Only proposed, pending-review, or approved learning candidates can be rejected.");
-            Transition(AiLearningCandidateStatus.Rejected);
+            lock (_sync)
+            {
+                if (_status != AiLearningCandidateStatus.Proposed &&
+                    _status != AiLearningCandidateStatus.PendingReview &&
+                    _status != AiLearningCandidateStatus.Approved)
+                    throw new InvalidOperationException("Only proposed, pending-review, or approved learning candidates can be rejected.");
+                TransitionLocked(AiLearningCandidateStatus.Rejected);
+            }
         }
 
         public void Promote()
@@ -186,9 +197,57 @@ namespace HAgent.Models
             Transition(AiLearningCandidateStatus.Promoted);
         }
 
+        internal CandidateSnapshot GetSnapshot()
+        {
+            lock (_sync)
+            {
+                return new CandidateSnapshot(_status, _revision);
+            }
+        }
+
+        internal bool TryApplyIntervention(AiInterventionAction action, string expectedState, long expectedRevision, out string reason)
+        {
+            lock (_sync)
+            {
+                if (!string.Equals(_status.ToString(), expectedState ?? string.Empty, StringComparison.Ordinal) || _revision != expectedRevision)
+                {
+                    reason = "The learning candidate changed from " + (expectedState ?? string.Empty) + "/" + expectedRevision + " to " + _status + "/" + _revision + ".";
+                    return false;
+                }
+
+                try
+                {
+                    if (action == AiInterventionAction.Approve)
+                        TransitionLocked(AiLearningCandidateStatus.Approved);
+                    else if (action == AiInterventionAction.Reject)
+                        TransitionLocked(AiLearningCandidateStatus.Rejected);
+                    else
+                    {
+                        reason = "Learning candidate intervention supports Approve or Reject, not " + action + ".";
+                        return false;
+                    }
+                    reason = string.Empty;
+                    return true;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    reason = ex.Message;
+                    return false;
+                }
+            }
+        }
+
         private void Transition(AiLearningCandidateStatus target)
         {
-            switch (Status)
+            lock (_sync)
+            {
+                TransitionLocked(target);
+            }
+        }
+
+        private void TransitionLocked(AiLearningCandidateStatus target)
+        {
+            switch (_status)
             {
                 case AiLearningCandidateStatus.Proposed:
                     if (target != AiLearningCandidateStatus.PendingReview && target != AiLearningCandidateStatus.Approved && target != AiLearningCandidateStatus.Rejected)
@@ -206,22 +265,37 @@ namespace HAgent.Models
                 case AiLearningCandidateStatus.Promoted:
                     throw InvalidTransition(target);
                 default:
-                    throw new InvalidOperationException("Unknown learning candidate status: " + Status.ToString());
+                    throw new InvalidOperationException("Unknown learning candidate status: " + _status.ToString());
             }
 
-            Status = target;
+            _status = target;
+            _revision++;
         }
 
         private void EnsureStatus(AiLearningCandidateStatus expected)
         {
-            if (Status != expected)
-                throw new InvalidOperationException("Learning candidate must be in " + expected + " state but is " + Status + ".");
+            lock (_sync)
+            {
+                if (_status != expected)
+                    throw new InvalidOperationException("Learning candidate must be in " + expected + " state but is " + _status + ".");
+            }
         }
 
         private InvalidOperationException InvalidTransition(AiLearningCandidateStatus target)
         {
             return new InvalidOperationException(
-                "Invalid learning candidate transition: " + Status + " -> " + target + ".");
+                "Invalid learning candidate transition: " + _status + " -> " + target + ".");
         }
+    }
+
+    internal sealed class CandidateSnapshot
+    {
+        public CandidateSnapshot(AiLearningCandidateStatus state, long revision)
+        {
+            State = state;
+            Revision = revision;
+        }
+        public AiLearningCandidateStatus State { get; private set; }
+        public long Revision { get; private set; }
     }
 }

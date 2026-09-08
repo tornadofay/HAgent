@@ -14,10 +14,13 @@ namespace HAgent.Models
 
         public ContextCompactionResult(
             ContextSnapshot snapshot,
-            IReadOnlyList<ContextCompactionDecision> decisions)
+            IReadOnlyList<ContextCompactionDecision> decisions,
+            int candidateCount)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             if (decisions == null) throw new ArgumentNullException(nameof(decisions));
+            if (candidateCount < snapshot.UsedItems)
+                throw new ArgumentOutOfRangeException(nameof(candidateCount));
 
             var clones = new List<ContextCompactionDecision>(decisions.Count);
             foreach (var decision in decisions)
@@ -30,7 +33,7 @@ namespace HAgent.Models
             _snapshot = snapshot;
             _decisions = new ReadOnlyCollection<ContextCompactionDecision>(clones);
             IncludedCount = snapshot.UsedItems;
-            ExcludedCount = decisions.Count - IncludedCount;
+            ExcludedCount = candidateCount - IncludedCount;
             WasTruncated = ExcludedCount > 0;
             Version = 1;
         }

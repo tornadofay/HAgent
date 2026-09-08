@@ -199,6 +199,12 @@ namespace HAgent.Example
                     Reason = "Persisted deterministic rule."
                 };
                 rule.Operations.Add("model.invoke");
+                rule.ResourceTypes.Add("execution-target");
+                rule.ResourceIds.Add("target-persisted-42");
+                rule.ToolIds.Add("tool-persisted-42");
+                rule.ProviderIds.Add("provider-persisted-42");
+                rule.ExecutionTargetIds.Add("target-persisted-42");
+                rule.Attributes["classification"] = "sensitive";
                 policy.Rules.Add(rule);
 
                 var store = new FileAiStore(path);
@@ -206,15 +212,27 @@ namespace HAgent.Example
 
                 var reloaded = new FileAiStore(path);
                 var loaded = await reloaded.GetPolicySetAsync(CancellationToken.None).ConfigureAwait(true);
-                if (loaded.Version != policy.Version || loaded.Rules.Count != 1 || loaded.Rules[0].Id != rule.Id ||
-                    loaded.Rules[0].ScopeId != rule.ScopeId || loaded.Rules[0].Priority != rule.Priority ||
-                    loaded.Rules[0].Outcome != rule.Outcome || loaded.Rules[0].Operations.Count != 1 ||
-                    loaded.Rules[0].Operations[0] != "model.invoke")
+                var loadedRule = loaded == null || loaded.Rules.Count == 0 ? null : loaded.Rules[0];
+                if (loaded == null || loaded.Version != policy.Version || loaded.Rules.Count != 1 || loadedRule == null ||
+                    loadedRule.Id != rule.Id || loadedRule.Name != rule.Name || loadedRule.Scope != rule.Scope ||
+                    loadedRule.ScopeId != rule.ScopeId || loadedRule.Priority != rule.Priority ||
+                    loadedRule.Outcome != rule.Outcome || loadedRule.Reason != rule.Reason ||
+                    loadedRule.Operations.Count != 1 || loadedRule.Operations[0] != "model.invoke" ||
+                    loadedRule.ResourceTypes.Count != 1 || loadedRule.ResourceTypes[0] != "execution-target" ||
+                    loadedRule.ResourceIds.Count != 1 || loadedRule.ResourceIds[0] != "target-persisted-42" ||
+                    loadedRule.ToolIds.Count != 1 || loadedRule.ToolIds[0] != "tool-persisted-42" ||
+                    loadedRule.ProviderIds.Count != 1 || loadedRule.ProviderIds[0] != "provider-persisted-42" ||
+                    loadedRule.ExecutionTargetIds.Count != 1 || loadedRule.ExecutionTargetIds[0] != "target-persisted-42" ||
+                    loadedRule.Attributes.Count != 1 || loadedRule.Attributes["classification"] != "sensitive")
                     throw new InvalidOperationException("Persisted policy did not round-trip its canonical rule state.");
 
                 loaded.Rules[0].Name = "Mutated loaded copy";
+                loaded.Rules[0].Operations[0] = "mutated.operation";
+                loaded.Rules[0].Attributes["classification"] = "mutated";
                 var reread = await reloaded.GetPolicySetAsync(CancellationToken.None).ConfigureAwait(true);
-                if (reread.Rules[0].Name != "Persisted denial")
+                if (reread.Rules[0].Name != "Persisted denial" ||
+                    reread.Rules[0].Operations[0] != "model.invoke" ||
+                    reread.Rules[0].Attributes["classification"] != "sensitive")
                     throw new InvalidOperationException("Policy storage returned shared mutable state instead of an owned clone.");
             }
             finally

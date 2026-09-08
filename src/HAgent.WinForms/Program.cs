@@ -49,7 +49,7 @@ namespace HAgent.WinForms
                     return Task.FromResult(ToolExecutionResult.Success("HAgent WinForms development host"));
                 }));
 
-            var form = new Forms.ConfigurationLauncherForm(store, secrets, adapters, tools);
+            var form = new Forms.AISettingsForm(store, secrets, adapters, tools);
             NavigationOrder.Apply(form);
             Application.Run(form);
         }

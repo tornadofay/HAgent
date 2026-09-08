@@ -16,24 +16,28 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-The 0.954 Example UI prerequisite is verified by the user on 2026-09-08. `LEARNING INTERVENTION`, `CONTEXT BUDGET`, and `RUNTIME INSTANCES` all ran successfully in the reorganized Example host, confirming the grouped/nested Example presentation is usable and the restored Learning intervention example remains runnable.
+The 0.954 Example UI prerequisite was verified by the user on 2026-09-08 through successful `LEARNING INTERVENTION`, `CONTEXT BUDGET`, and `RUNTIME INSTANCES` examples in the reorganized host.
+
+Slice 1 — Instruction source and authority contracts — is implemented but not yet locally verified. The implementation adds `AiInstructionSource`, authority/trust metadata, canonical generic scope/lifecycle/provenance, conflict representation, deterministic precedence, `AiInstructionSnapshot`, and `AgentExecutionSnapshot.InstructionSnapshot`. A deterministic public-API Example named `COGNITION INSTRUCTIONS` was added under the Cognition feature group.
 
 ## Current run
 
-**Slice 1 — Instruction source and authority contracts — CURRENT.**
+**Verified checkpoint/blocker — 0.954 Slice 1 awaiting local Example verification.**
 
-- Entry condition satisfied: Example UI prerequisite verified; 0.953 Unified Policy Engine is already verified.
-- Scope: Define the provider-neutral normalized instruction/source model, source type, authority/trust level, provenance, scope, lifecycle metadata, deterministic precedence, conflict representation, and execution-snapshot provenance.
-- Completion condition: Core contracts represent trusted and untrusted instruction sources with deterministic authority/precedence semantics and evidence suitable for execution snapshots.
-- Verification target: deterministic Example coverage for source creation/validation, precedence, authority separation, and provenance.
+- Implementation: `src/HAgent.Core/Models/AiInstructionContracts.cs`.
+- Execution snapshot contract: `src/HAgent.Core/Models/AgentExecutionSnapshot.cs`.
+- Example verification: `src/HAgent.Example/MainForm.InstructionContractsTests.cs` and registration in `MainForm.cs`.
+- Architecture: `docs/architecture/11-instruction-governance.md`.
+- Required verification: build/run `HAgent.Example` and execute **COGNITION INSTRUCTIONS → Run instruction contract test**.
+- Expected result: source creation/validation, authority-vs-trust separation, higher-authority precedence, equal-authority explicit priority, conflict representation, and provenance-preserving snapshot cloning all report `verified`.
 
 ## Current blockers
 
-No blocker is currently recorded for Slice 1. The connected environment still does not provide executable local build/test capability, so code verification must follow the repository's established local Example workflow when implementation is committed.
+This connected session cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed. Slice 1 remains a verified checkpoint/blocker until the user runs the new Example successfully.
 
 ## Next checkpoint
 
-Do not begin 0.954 Slice 2. Slice 1 must first be implemented and reach a verified complete or verified checkpoint/blocker state through its defined Example verification.
+After `COGNITION INSTRUCTIONS` passes locally, update this file and the authoritative phase plan to mark Slice 1 complete, then make only **0.954 Slice 2 — Instruction composition and conflict handling** current. Do not start Slice 2 before Slice 1 verification.
 
 ## Current project state
 

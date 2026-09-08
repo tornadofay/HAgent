@@ -11,16 +11,16 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-Policy persistence, runtime provider enforcement, tool policy enforcement, policy-first host data authorization, the profile/runtime resource capability boundary, and learning-promotion policy/candidate transitions were verified locally by the user on 2026-09-08. The implementation now also contains a bounded process-local approval/defer workflow integrated with policy-gated tool execution. The matching approval workflow Example verification is the current local checkpoint.
+Policy persistence, runtime provider enforcement, tool policy enforcement, policy-first host data authorization, the profile/runtime resource capability boundary, learning-promotion policy/candidate transitions, and the bounded approval/defer workflow were verified locally by the user on 2026-09-08. The implementation now also contains a policy management WinForms surface for rule editing, effective-decision inspection, and agent resource-capability inspection. The UI has not yet been locally verified.
 
 ## Work ownership
 
-The active implementation plan is the authoritative scope for the current task. Do not start a parallel implementation of the same capability unless the scope is explicitly changed.
+The active implementation plan is the authoritative scope for the current task. Do not start a parallel implementation of the same capability unless the active scope is explicitly changed.
 
 ## Current blockers
 
-None recorded. Resource capabilities and learning-promotion policy are verified. The bounded approval/defer workflow implementation is present; only its local Example verification remains before marking that slice verified.
+None recorded. All runtime policy slices completed so far are verified. The remaining 0.953 checkpoint is local verification of the new policy management UI on the supported WinForms targets, followed by any backend-specific verification appropriate to the configured environment.
 
 ## Next checkpoint
 
-Run `Approval Workflow → Run approval workflow test` after pulling current `master`. It must verify pending approval/deferral requests, policy provenance, correlation and requester identity propagation, explicit resolution, terminal-state protection, and that approval/defer decisions never execute the protected tool handler.
+Build and run the HAgent WinForms configuration application. Verify the **Policy** configuration surface opens, loads the persisted policy, adds/edits/deletes rules without invalid states, evaluates a request with correct outcome/provenance, and displays effective agent resource-capability state. Repeat on both `net481` and `net9.0-windows` where available.

@@ -13,7 +13,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.953 Unified Policy Engine — CURRENT; 0.954–0.9592 remain foundational hardening ahead of 0.96 Capability-Aware Execution.**
+**0.959 Human-in-the-Loop / Intervention — CURRENT; 0.9591–0.9592 remain foundational hardening ahead of 0.96 Capability-Aware Execution.**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -23,9 +23,9 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is the current implementation milestone. Its core evaluator, runtime enforcement, effective-policy execution snapshots, canonical policy-store contract, File/SQL Server/MySQL persistence paths, policy/tool/data authorization integration, resource capability/tri-state implementation, and typed learning-promotion policy/candidate transition contracts are now present. Policy persistence, provider/tool/data authorization, and the resource capability boundary were locally verified by the user on 2026-09-08. The newly added learning-policy Example verification is the current local checkpoint. The remaining foundational sequence is 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
+0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.959 Human-in-the-Loop / Intervention is the current implementation milestone. Its canonical provider-neutral intervention request/lifecycle contract, bounded in-memory workflow, tool approval/defer integration, and deterministic approval/defer verification are present. Runtime application, concurrency hardening, broader targets, persistence, management UI, expanded Example coverage, and final framework/backend verification remain in the run-sized active plan.
 
-The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` is ordered as a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition both depend on its provider/model/target separation, credential persistence, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portability contracts.
+The remaining foundational sequence is 0.9591 Goal/Plan Persistence/Recovery and 0.9592 Provider Ecosystem/Adapter Lifecycle, followed by 0.96 Capability-Aware Execution. The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` remains a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition both depend on its provider/model/target separation, credential persistence, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portability contracts.
 
 0.96 Capability-Aware Execution follows these foundations and addresses heterogeneous capabilities, the same logical model exposed by multiple providers, provider/account/project restrictions, model/task-specific constraints, quotas, rate limits and future quota dimensions, concurrency capacity, operational availability, long-running inference, capability-aware candidate selection, fallback/degradation, and proactive admission control.
 
@@ -64,11 +64,12 @@ The repository currently contains verified foundations for:
 - policy-gated tool invocation before executable handlers, including `Deny`, `RequireApproval`, and `Defer` enforcement and policy provenance in `ToolExecutionResult`;
 - policy-first composition with host `IDataAccessAuthorizer` for structured data operations, preserving host authorization as the final authority;
 - canonical resource capability profiles with runtime `Inherit` / `Enabled` / `Disabled` overrides, deterministic effective-state snapshots, resource persistence, and tool gating before executable handlers;
-- typed learning-promotion requests evaluated through the unified policy engine, plus explicit learning-candidate `Proposed` / `PendingReview` / `Approved` / `Rejected` / `Promoted` transition rules.
+- typed learning-promotion requests evaluated through the unified policy engine, plus explicit learning-candidate `Proposed` / `PendingReview` / `Approved` / `Rejected` / `Promoted` transition rules;
+- canonical provider-neutral human-intervention requests, bounded approval/defer workflow, and deterministic Example verification for the current intervention foundation.
 
 ## Foundational architecture hardening before 0.96
 
-The next architectural work establishes common infrastructure required by both capability-aware execution and persistent cognition:
+The foundational sequence is now:
 
 ```text
 0.951 Identity / Tenancy / User Context
@@ -111,6 +112,8 @@ The unified policy set is now a canonical HAgent-owned configuration record expo
 Agent profile resource capability defaults are now part of the canonical `AiAgent` configuration and persist through the normal agent storage path. Runtime capability overrides remain transient and resolve above profile defaults into `AgentExecutionSnapshot.EffectiveResourceCapabilities`.
 
 Learning-promotion decisions are now represented as normal `AiPolicyDecision` outcomes on `learning.promote`, with typed candidate metadata carried as bounded policy attributes. This keeps learning governed by the single policy engine rather than adding a parallel learning authorization mechanism. Candidate persistence/target repositories and human intervention remain separate phases.
+
+Human intervention is now a canonical provider-neutral workflow boundary built on the existing approval/defer policy boundary. Runtime execution control, persistence, and management UI are being added through the ordered run-sized plan in `docs/plan/20-active.md` rather than through parallel approval or execution subsystems.
 
 Provider API keys are persisted with provider configuration and encrypted at rest. There is no separate provider secret-reference or vault architecture. Shared SQL Server/MySQL configuration can therefore be used by multiple authorized HAgent processes/machines. Configuration export/import is planned as a versioned portable representation with optional encrypted credential inclusion.
 
@@ -191,7 +194,7 @@ Provider/model administration should eventually show execution-target identity, 
 
 ## Active implementation
 
-The active implementation plan remains `docs/plan/20-active.md`. The architectural foundation phases 0.951–0.9592 now precede Phase 0.96 in the roadmap. Configuration/storage evolution is ordered as a cross-cutting pre-0.96 dependency even though its historical source filename is `38-configuration-storage-and-portability.md`. Phase 0.10 remains paused while the generic foundations are hardened.
+The active implementation plan is `docs/plan/20-active.md`. It is currently organized into seven run-sized 0.959 intervention slices; only one slice is current at a time and each must reach a verified checkpoint before the next begins. The first slice is the execution control boundary.
 
 ## Verification rule
 

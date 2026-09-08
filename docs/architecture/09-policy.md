@@ -46,7 +46,17 @@ Cost policy is therefore orthogonal to capability matching and provider identity
 
 ## Authorization boundary
 
-The policy engine does not replace host authorization. A host may still supply a dedicated authorization decision for a data operation or side effect. Policy can express HAgent-level rules and requirements; host authorization remains authoritative for application-owned resources and side effects.
+The policy engine does not replace host authorization. A host may still supply a dedicated authorization decision for a data operation or side effect. `PolicyDataAccessAuthorizer` composes these two authorities for structured data access: HAgent policy is evaluated first, and a deny/approval/defer outcome prevents the host callback from being invoked. A policy allow or not-applicable result only permits evaluation to continue to the host `IDataAccessAuthorizer`; the host decision remains authoritative.
+
+`DataAuthorizationRequest` carries the canonical `AgentIdentityContext` in addition to host runtime context so policy composition can evaluate the same identity presented at the data boundary. Host authorization callbacks remain runtime-owned and are never persisted as policy/configuration.
+
+## Tool enforcement
+
+Tool invocation is an HAgent-owned side-effect boundary. `HAgentClient.ExecuteToolAsync` evaluates the unified policy with operation `tool.invoke`, resource type `tool`, the concrete tool ID, the agent profile ID, and the effective identity before calling the registered executable handler.
+
+`Deny`, `RequireApproval`, and `Defer` therefore prevent the executable handler from running. The resulting `ToolExecutionResult` preserves the `AiPolicyDecision` and its provenance. `Allow` and `NotApplicable` permit the handler to execute normally.
+
+A tool loop resolves one effective policy engine at loop start and reuses it for all tool invocations in that loop, preserving execution-level policy consistency even if persisted configuration changes while the loop is running.
 
 ## Approval and deferral
 
@@ -64,7 +74,7 @@ When an execution begins, `DefaultAgentRuntime` obtains the effective policy bef
 
 The default runtime path therefore uses persisted HAgent policy configuration, while hosts may inject an explicit evaluator for deliberately isolated policy composition or tests. No synchronous database or network call is used to load policy.
 
-Because the policy is captured at execution creation, later persistence changes do not modify an active run. Future cache/invalidation work may replace or refresh the policy source between executions, but must preserve this execution-level isolation invariant.
+Because the policy is captured at execution creation, later persistence changes do not modify an active run. Tool loops likewise capture the evaluator used for their complete loop so a configuration edit cannot change the policy mid-loop.
 
 ## Persistence
 
@@ -74,4 +84,4 @@ The SQL Server/MySQL HAgent bootstrap paths create the policy table during norma
 
 ## Current implementation
 
-Phase 0.953 currently implements the core contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime enforcement, effective-policy execution snapshots, and policy persistence through the HAgent File/SQL Server/MySQL configuration stores. Host authorization integration, tool/resource policy enforcement, runtime tri-state integration, learning-promotion rules, human approval workflow, policy management UI, and full cross-backend live verification remain subsequent slices.
+Phase 0.953 currently implements the core contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime pre-transport enforcement, effective-policy execution snapshots, policy persistence through the HAgent File/SQL Server/MySQL configuration stores, policy-gated tool invocation, and policy-first composition with host data authorization. Runtime tri-state integration, learning-promotion rules, human approval workflow, policy management UI, and full cross-backend live verification remain subsequent slices.

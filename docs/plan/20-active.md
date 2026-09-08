@@ -2,86 +2,23 @@
 
 Only the current implementation milestone belongs here. Completed implementation history is recorded in the ordered roadmap under `docs/roadmap/`; future work does not belong here.
 
-## 0.955 Context Engineering — CURRENT
+## 0.956 Observability and Distributed Tracing — CURRENT
 
-Phase 0.954 Prompt and Instruction Governance is complete and verified. The next ordered foundational milestone is 0.955 Context Engineering.
+Phase 0.955 Context Engineering is complete and verified on .NET Framework 4.8.1 and .NET 9. The next ordered foundational milestone is 0.956 Observability and Distributed Tracing.
 
-### 0.954 Prompt and Instruction Governance — VERIFIED
+### 0.955 Context Engineering — VERIFIED
 
-The complete 0.954 implementation and verification sequence is complete.
+The complete 0.955 implementation and verification sequence is complete. Verified work includes provider-neutral context contracts, bounded acquisition, deterministic ranking/deduplication, compaction, reusable caching, execution/provider integration, bounded multi-resource retrieval, policy/capability admission, host authorization for protected data-backed sources, and end-to-end assembly.
 
-### 0.955 Run-sized execution plan
+### 0.956 Run-sized execution plan
 
-1. **Context contract inventory and architecture review — VERIFIED CHECKPOINT**
-   - The authoritative context architecture was reconciled with the current execution/context contracts, legacy conversation context implementation, and WinForms UI/data context adapters.
-   - Existing mechanisms remain producer/input boundaries rather than competing canonical context architectures.
-
-2. **Provider-neutral context contract foundation — VERIFIED**
-   - Core contracts define provider-neutral context items, structured payloads, bounded provenance/scope/quality/size metadata, explicit item/character/token budget dimensions, bounded source requests, and clone isolation.
-   - Matching deterministic Example coverage was executed successfully on both .NET Framework 4.8.1 and .NET 9 on 2026-09-08.
-   - Verified Example results included contract validation, bounded metadata, structured payload preservation, explicit budget/source bounds, nested clone isolation, and no provider request.
-
-3. **Bounded context acquisition and canonical context snapshots — VERIFIED**
-   - Core provides bounded source acquisition and an execution-owned `ContextSnapshot` with explicit used/remaining budget dimensions.
-   - Acquisition preserves deterministic source order, propagates cancellation, clones request/item state, and prevents snapshot mutation through defensive copies.
-   - `HAgent.Tests` completed with 20/20 tests passing on 2026-09-08.
-   - Deterministic public-API `HAgent.Example` Context Acquisition verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-08.
-
-4. **Ranking, deterministic prioritization, and deduplication — VERIFIED**
-   - Core provides provider-neutral candidate ranking and deterministic prioritization using available relevance/importance/trust/freshness/estimated-cost evidence.
-   - Duplicate IDs are eliminated with stable tie-breaking while preserving the highest-ranked candidate's metadata.
-   - `HAgent.Tests` completed with 24/24 tests passing on 2026-09-08.
-   - Deterministic public-API `HAgent.Example` Context Ranking verification passed on 2026-09-08, including ranking order, deterministic ties, duplicate retention, provenance/scope preservation, and no provider request.
-
-5. **Compaction, truncation, and provenance-preserving diagnostics — VERIFIED**
-   - Core provides bounded compaction over already ranked provider-neutral candidates, deterministic truncation to an explicit target budget, and safe inclusion/exclusion diagnostics retaining source metadata without exposing payloads.
-   - The first strategy is deterministic and tokenizer-free: it excludes candidates that cannot fit the target item/character/token budget, handles unknown token estimates explicitly when a hard token budget exists, and never rewrites or semantically summarizes payloads.
-   - `HAgent.Tests` completed with 29/29 tests passing on 2026-09-09.
-   - Deterministic public-API `HAgent.Example` Context Compaction verification passed on 2026-09-09, including bounded selection, character/token/unknown-token exclusions, explicit diagnostics, provenance/scope preservation, and no provider request.
-
-6. **Cache-safe reusable context components — VERIFIED**
-   - Core provides explicit reusable context cache identity plus a thread-safe in-memory cache for reusable `ContextSnapshot` results.
-   - `ContextCacheKey` covers component identity, canonical scope type/ID, configuration version, resource version, and freshness version; cache entries have explicit expiration.
-   - Cache storage remains separate from mutable execution assembly, and cached snapshots are returned isolated from caller mutation.
-   - `HAgent.Tests` completed with 34/34 tests passing on 2026-09-09.
-   - Deterministic public-API `HAgent.Example` Context Cache verification passed on 2026-09-09, including valid reuse, scope/configuration/resource/freshness isolation, expiration invalidation, snapshot mutation isolation, and no provider request.
-
-7. **Execution/provider integration and deterministic Example verification — VERIFIED**
-   - Core carries the optional canonical `ContextSnapshot` from `AgentExecutionRequest` into an isolated `AgentExecutionSnapshot` and then into `ProviderExecutionRequest`.
-   - Provider adapters receive provider-neutral context without Core imposing provider-specific tokenization or prompt formatting. Adapter-side request mutation does not replace the execution-owned snapshot.
-   - `HAgent.Tests` completed with 37/37 tests passing on 2026-09-09.
-   - Deterministic public-API `HAgent.Example` Context Execution Integration verification passed on 2026-09-09, including execution-snapshot context, provider request context, provenance/source preservation, provider-request mutation isolation, and deterministic fake-adapter transport.
-   - Provider-failure/context-preservation behavior is covered by the focused integration verification.
-
-8. **Bounded multi-resource retrieval — VERIFIED**
-   - Core now supports an explicit per-source retrieval plan so provider-neutral sources can receive distinct bounded queries and candidate limits in deterministic source order.
-   - Standard source categories are represented without coupling Core to domain-specific resource implementations: memory, knowledge, skill, conversation, host-context, tool-description, and instruction.
-   - The existing global item/character/token budget, cancellation, provenance, snapshot isolation, and provider neutrality remain authoritative. Source enablement/authorization is intentionally outside this slice.
-   - `HAgent.Tests` completed with 41/41 tests passing on 2026-09-09.
-   - Deterministic public-API `HAgent.Example` Context Multi-Resource Retrieval verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, including distinct per-source queries, per-source candidate limits, global budget enforcement, deterministic source order, provenance preservation, and no provider request.
-
-9. **Policy/permission-aware context assembly — VERIFIED**
-   - The canonical policy engine and effective resource capability model now gate context source retrieval and candidate inclusion before ranked/bounded assembly.
-   - Disabled sources are rejected before retrieval; denied sources are not queried; denied candidates are excluded before global budget consumption.
-   - Policy/resource decisions remain enforcement metadata and are never encoded as prompt instructions or a parallel authorization model. Provenance and safe metadata-only diagnostics are preserved.
-   - `HAgent.Tests` completed with 46/46 tests passing on 2026-09-09.
-   - Deterministic public-API `HAgent.Example` Context Policy Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering allowed, denied, and disabled admission paths plus provenance and safe diagnostics.
-
-10. **End-to-end bounded context assembly pipeline — VERIFIED**
-   - Core now exposes a single provider-neutral orchestration boundary that composes policy-filtered retrieval, deterministic ranking/deduplication, and final budgeted compaction into one canonical bounded `ContextSnapshot` result.
-   - Policy-filtered retrieval is kept separate from final assembly budgeting so early retrieval does not starve later ranking/compaction candidates; the final global item/character/token budget is enforced by the compaction stage.
-   - The pipeline preserves provenance and scope, aggregates safe admission/compaction diagnostics without payloads, propagates cancellation between stages, and remains provider-neutral.
-   - `HAgent.Tests` completed with 50/50 tests passing on 2026-09-09.
-   - Deterministic public-API `HAgent.Example` Context Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering policy admission before ranking, deterministic ranking/deduplication, final budget enforcement, provenance preservation, and no provider request.
-
-11. **Host authorization-aware context admission — CURRENT**
-   - Compose the existing host-owned `IDataAccessAuthorizer` into context admission for protected data-backed context sources; do not introduce a second generic authorization engine.
-   - Preserve the existing unified HAgent policy evaluation and effective resource-capability gating. A policy allow or not-applicable result may permit the host authorization callback, but must never replace or imply host authorization.
-   - Carry the canonical `AgentIdentityContext` and bounded source identity into the host authorization request; clone caller-owned authorization context at the boundary and propagate cancellation.
-   - Fail closed for protected sources when host authorization is unavailable or denies access. Do not invoke the underlying protected source after a failed host authorization decision.
-   - Keep safe diagnostics metadata-only and distinguish policy denial, disabled capability, and host-authorization denial without copying context payloads.
-   - Avoid applying `IDataAccessAuthorizer` to source categories that are not host-authorized data operations unless the existing architecture explicitly defines that mapping.
-   - Verification target: focused Core tests plus a deterministic public-API `HAgent.Example` covering host allow, host deny/no source retrieval, policy deny before host callback, identity propagation, cancellation, and safe diagnostics. Verify on .NET Framework 4.8.1 and .NET 9.
+1. **Observability contract inventory and architecture review — CURRENT CHECKPOINT**
+   - Reconcile the existing diagnostics, execution audit, correlation IDs, lifecycle events, policy decisions, provider execution boundaries, tool activity, context assembly, and runtime state against the authoritative 0.956 observability requirements.
+   - Define the smallest provider-neutral trace/span contract needed to correlate HAgent operations without creating a second event system or coupling Core to a telemetry vendor.
+   - Establish the canonical relationship between existing execution/correlation identifiers and future trace/span/parent relationships.
+   - Define the safe metadata boundary for traces: secrets, credentials, sensitive payloads, and raw prompts/responses remain excluded by default; redaction must be explicit and bounded.
+   - Identify which existing observability mechanisms are retained as producers/adapters and which missing contracts must be introduced in later slices.
+   - This slice is architecture/contract reconciliation only; do not implement the full tracing system in the same run.
 
 ### Verification rule
 

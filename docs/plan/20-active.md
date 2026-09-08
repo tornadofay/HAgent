@@ -74,11 +74,14 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 50/50 tests passing on 2026-09-09.
    - Deterministic public-API `HAgent.Example` Context Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering policy admission before ranking, deterministic ranking/deduplication, final budget enforcement, provenance preservation, and no provider request.
 
-### Final 0.955 verification step — CURRENT
-
-- Reconcile the full 0.955 roadmap requirements against the implemented contracts and verified slices.
-- Confirm the complete verification matrix, including every deterministic Context Example currently required by the roadmap and any remaining policy/permission or provider-boundary requirement.
-- Close 0.955 only after the roadmap and architecture state agree that no required Context Engineering capability remains unverified or architecturally incomplete.
+11. **Host authorization-aware context admission — CURRENT**
+   - Compose the existing host-owned `IDataAccessAuthorizer` into context admission for protected data-backed context sources; do not introduce a second generic authorization engine.
+   - Preserve the existing unified HAgent policy evaluation and effective resource-capability gating. A policy allow or not-applicable result may permit the host authorization callback, but must never replace or imply host authorization.
+   - Carry the canonical `AgentIdentityContext` and bounded source identity into the host authorization request; clone caller-owned authorization context at the boundary and propagate cancellation.
+   - Fail closed for protected sources when host authorization is unavailable or denies access. Do not invoke the underlying protected source after a failed host authorization decision.
+   - Keep safe diagnostics metadata-only and distinguish policy denial, disabled capability, and host-authorization denial without copying context payloads.
+   - Avoid applying `IDataAccessAuthorizer` to source categories that are not host-authorized data operations unless the existing architecture explicitly defines that mapping.
+   - Verification target: focused Core tests plus a deterministic public-API `HAgent.Example` covering host allow, host deny/no source retrieval, policy deny before host callback, identity propagation, cancellation, and safe diagnostics. Verify on .NET Framework 4.8.1 and .NET 9.
 
 ### Verification rule
 

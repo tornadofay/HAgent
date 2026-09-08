@@ -364,7 +364,8 @@ namespace HAgent.Runtime
 
                 lock (_sync)
                 {
-                    ThrowIfDisposed();
+                    if (_disposed)
+                        return ApplyResult.Stale("The target execution is no longer active.");
                     if (_execution.IsCompleted)
                         return ApplyResult.Stale("The target execution is already terminal.");
                     if (!string.Equals(_state.ToString(), expectedState ?? string.Empty, StringComparison.Ordinal))

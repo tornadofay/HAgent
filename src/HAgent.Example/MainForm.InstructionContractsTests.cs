@@ -194,7 +194,7 @@ namespace HAgent.Example
                 "Execution captures the effective instruction snapshot before provider transport: verified.",
                 "Provider transport receives the same composed effective instructions: verified.",
                 "Execution instruction snapshot remains isolated after caller-source mutation: verified.",
-                "Execution source provenance captures execution/runtime/principal context: verified.",
+                "Execution source provenance captures execution/principal context: verified.",
                 "Source types covered: SystemPolicy, Agent, Skill, Knowledge, Memory, ToolDescription, RuntimeContext, HostContext, UserInput, ExternalContent."
             }));
         }
@@ -255,9 +255,7 @@ namespace HAgent.Example
                     {
                         Timeout = TimeSpan.FromSeconds(5),
                         MaxProviderAttempts = 1,
-                        MaxRetriesPerProvider = 0,
-                        RuntimeInstanceId = "runtime-42",
-                        RuntimeInstanceRevision = 7
+                        MaxRetriesPerProvider = 0
                     }
                 },
                 CancellationToken.None);
@@ -281,7 +279,6 @@ namespace HAgent.Example
             if (effectiveTrusted.Content != "Use the captured trusted instruction.")
                 throw new InvalidOperationException("Execution instruction snapshot was affected by caller mutation.");
             if (effectiveTrusted.Provenance.ExecutionId != execution.Id ||
-                effectiveTrusted.Provenance.RuntimeInstanceId != "runtime-42" ||
                 effectiveTrusted.Provenance.PrincipalId != "principal-42")
                 throw new InvalidOperationException("Execution instruction provenance did not capture the effective execution context.");
             if (execution.Snapshot.InstructionSnapshot.Sources.Any(x => x.Id == external.Id))

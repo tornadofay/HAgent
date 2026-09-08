@@ -30,23 +30,21 @@ Slice 5 — Example coverage and framework verification — is current. Determin
 
 ## Current run
 
-**Verified checkpoint — 0.954 Slice 5 deterministic runtime coverage verified for the reported runs; final framework verification remains.**
+**Verified checkpoint — 0.954 Slice 5 deterministic runtime coverage verified on both supported frameworks for the currently exercised scenarios; final framework matrix completion remains.**
 
-- `RUNTIME TERMINAL STATE` passed after correction: caller cancellation and timeout completed before late provider completion, and late responses did not overwrite terminal state.
-- `RUNTIME CONCURRENCY` passed: two independent instances overlapped successfully with distinct execution/correlation identities and instance isolation after retirement.
-- `RUNTIME OVERRIDES` passed after correction: runtime overrides applied to the execution snapshot without mutating the reusable profile, and independent memory ownership was verified.
-- `RUNTIME STALE RESULTS` passed after correction: execution revisions advanced from 1 to 2, the older result became non-current, the newer result remained current until retirement, and retirement invalidated current-result status.
+- .NET 9: `RUNTIME TERMINAL STATE`, `RUNTIME CONCURRENCY`, `RUNTIME OVERRIDES`, and `RUNTIME STALE RESULTS` passed as deterministic local scenarios.
+- .NET Framework 4.8.1: `RUNTIME SHUTDOWN`, `RUNTIME INSTANCES`, `RUNTIME OVERRIDES`, and `RUNTIME STALE RESULTS` passed as deterministic local scenarios.
+- `RUNTIME SHUTDOWN` on .NET 9 initially exposed the same selected-agent coupling as the other corrected runtime examples. `src/HAgent.Example/MainForm.RuntimeLifecycleTests.cs` has now been corrected to provision an in-memory provider/agent and local adapter instead of requiring selected-agent UI state.
 - `RUNTIME EXECUTION` remains a configuration-driven live example using the selected configured agent/provider and is not a deterministic Slice 5 gate by itself.
-- The four runtime results above were supplied by the user, but the supported framework target(s) used for those runs were not explicitly identified; do not treat them as complete framework-matrix evidence yet.
 - `COGNITION INSTRUCTIONS` has already been verified by the user on .NET Framework 4.8.1 and .NET 9.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed from this session.
+This connected session cannot execute the local .NET/WinForms build or Example. The .NET 9 `RUNTIME SHUTDOWN` correction is committed but not locally verified. No local build/test success is claimed from this session.
 
 ## Next checkpoint
 
-Run the remaining deterministic 0.954 coverage required by the active plan, especially `RUNTIME SHUTDOWN` if it is part of the cancellation/failure boundary set, and repeat the newly gated runtime scenarios on each supported target needed for framework verification. Record the exact target/framework for each successful run. Do not advance to 0.955 until Slice 5 completion is evidenced locally and the authoritative phase documents are updated.
+Run corrected `RUNTIME SHUTDOWN` on .NET 9. Then, if it passes, complete any remaining framework-matrix scenarios required by the active plan and record the exact successful target/framework results. Do not advance to 0.955 until Slice 5 completion is evidenced locally and the authoritative phase documents are updated.
 
 ## Current project state
 

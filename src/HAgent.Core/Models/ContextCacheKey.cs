@@ -42,12 +42,12 @@ namespace HAgent.Models
             Validate();
             return string.Join("|", new[]
             {
-                ComponentId,
-                ScopeType,
-                ScopeId ?? string.Empty,
-                ConfigurationVersion ?? string.Empty,
-                ResourceVersion ?? string.Empty,
-                FreshnessVersion ?? string.Empty
+                Escape(ComponentId),
+                Escape(ScopeType),
+                Escape(ScopeId),
+                Escape(ConfigurationVersion),
+                Escape(ResourceVersion),
+                Escape(FreshnessVersion)
             });
         }
 
@@ -59,6 +59,11 @@ namespace HAgent.Models
             ValidateOptional(ConfigurationVersion, 128, nameof(ConfigurationVersion));
             ValidateOptional(ResourceVersion, 128, nameof(ResourceVersion));
             ValidateOptional(FreshnessVersion, 128, nameof(FreshnessVersion));
+        }
+
+        private static string Escape(string value)
+        {
+            return (value ?? string.Empty).Replace("\\", "\\\\").Replace("|", "\\|");
         }
 
         private static void ValidateRequired(string value, int maximum, string name)

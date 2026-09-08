@@ -107,6 +107,56 @@ if (cache.TryGet(key, DateTimeOffset.UtcNow, out cached))
     CancellationToken.None);
 
 Console.WriteLine(execution.Snapshot.Context.Items[0].Id);";
+                case "Context Multi-Resource Retrieval": return @"var plan = new[]
+{
+    new ContextRetrievalSource
+    {
+        Source = memorySource,
+        Query = ""customer history"",
+        MaxItems = 5
+    },
+    new ContextRetrievalSource
+    {
+        Source = knowledgeSource,
+        Query = ""customer policy"",
+        MaxItems = 3
+    }
+};
+
+var snapshot = await new ContextAcquirer().AcquireAsync(
+    plan,
+    new ContextBudget
+    {
+        MaxItems = 8,
+        MaxCharacters = 12000,
+        MaxEstimatedTokens = 3000
+    },
+    CancellationToken.None);";
+                case "Context Policy Assembly": return @"var policy = new AiPolicySet();
+policy.Rules.Add(new AiPolicyRule
+{
+    Id = ""deny-sensitive-context"",
+    Outcome = AiPolicyOutcome.Deny,
+    Operations = { ""context.include"" },
+    ResourceTypes = { ""memory"" },
+    ResourceIds = { ""sensitive-42"" },
+    Reason = ""Policy denies this context candidate.""
+});
+
+var capabilities = AiResourceCapabilitySnapshot.Resolve(profile.ResourceCapabilities);
+var assembler = new ContextPolicyAssembler(
+    new ContextAcquirer(),
+    new ContextPolicyAdmissionEvaluator(
+        new DefaultAiPolicyEngine(policy),
+        capabilities));
+
+var result = await assembler.AcquireAsync(
+    sources,
+    budget,
+    new ContextAdmissionContext { AgentProfileId = ""assistant"" },
+    CancellationToken.None);
+
+Console.WriteLine(result.Snapshot.Items.Count);";
                 case "Task / Event Memory": return @"var taskId = ""task-42"";
 await memoryStore.SaveAsync(new MemoryRecord
 {

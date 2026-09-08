@@ -12,25 +12,25 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 7 checkpoint after 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 8 checkpoint after 0.954.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, 5, 6, and 7 have subsequently been verified by the user. Slice 7 was verified on 2026-09-09 with 37/37 HAgent.Tests passing and the deterministic public-API Context Execution Integration Example passing.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, 5, 6, 7, and 8 have subsequently been verified by the user. Slice 8 was verified on 2026-09-09 with 41/41 HAgent.Tests passing and deterministic public-API Context Multi-Resource Retrieval Examples passing on .NET Framework 4.8.1 and .NET 9.
 
 ## Current run
 
-**0.955 Slice 7 — VERIFIED.**
+**0.955 Slice 8 — VERIFIED.**
 
-Slice 7 carries the canonical provider-neutral `ContextSnapshot` from `AgentExecutionRequest` into an isolated `AgentExecutionSnapshot` and then into `ProviderExecutionRequest`. Provider adapters receive the context without Core imposing provider-specific transport/tokenization, and provider-side request mutation does not replace the execution-owned snapshot. Focused integration tests and a deterministic public-API `HAgent.Example` scenario cover successful transport and provider-failure/context-preservation behavior.
+Slice 8 adds an explicit per-source bounded retrieval plan across the standard provider-neutral context source categories while preserving one global item/character/token budget, deterministic source ordering, cancellation, provenance, snapshot isolation, and provider neutrality. Source enablement and authorization remain outside the retrieval contract.
 
 ## Next action
 
-Select and document the next bounded 0.955 implementation slice based on the remaining roadmap requirements before starting implementation. Do not treat 0.955 as complete yet; bounded retrieval across resource types, policy/permission-aware assembly, and the full phase-level Example verification matrix remain outstanding.
+Implement the next bounded slice: **0.955 Slice 9 — Policy/permission-aware context assembly**. Add the provider-neutral enforcement boundary between retrieval and ranking/assembly using the existing host/resource policy and effective capability model; cover allowed, denied, disabled, scope/ownership, deterministic exclusion reasons, and safe diagnostics. Keep authorization out of prompt text and do not create a parallel authorization model.
 
 ## Current blockers
 
-No verification blocker remains for Slice 7. The connected session cannot execute the local .NET/WinForms build or Example; the 37/37 test and Example results recorded here were run by the user locally.
+No verification blocker remains for Slice 8. The connected session cannot execute the local .NET/WinForms build or Example; the 41/41 test and Example results recorded here were run by the user locally.
 
 ## Current project state
 
@@ -599,11 +599,18 @@ The complete 0.954 implementation and verification sequence is complete.
    - Deterministic public-API `HAgent.Example` Context Execution Integration verification passed on 2026-09-09, including execution-snapshot context, provider request context, provenance/source preservation, provider-request mutation isolation, and deterministic fake-adapter transport.
    - Provider-failure/context-preservation behavior is covered by the focused integration verification.
 
-8. **Bounded multi-resource retrieval — CURRENT**
-   - Extend the canonical context acquisition boundary with an explicit per-source retrieval plan so different provider-neutral sources can receive distinct bounded queries and candidate limits in deterministic source order.
-   - Cover the standard context source categories without coupling Core to domain-specific resource implementations: memory, knowledge, skill, conversation, host-context, tool-description, and instruction.
-   - Preserve the existing global item/character/token budget, cancellation, provenance, snapshot isolation, and provider neutrality. Source enablement/authorization remains outside this slice for the later policy-aware assembly slice.
-   - Verification target: focused Core tests plus deterministic public-API `HAgent.Example` coverage showing distinct bounded requests across multiple source categories and global budget enforcement.
+8. **Bounded multi-resource retrieval — VERIFIED**
+   - Core now supports an explicit per-source retrieval plan so provider-neutral sources can receive distinct bounded queries and candidate limits in deterministic source order.
+   - Standard source categories are represented without coupling Core to domain-specific resource implementations: memory, knowledge, skill, conversation, host-context, tool-description, and instruction.
+   - The existing global item/character/token budget, cancellation, provenance, snapshot isolation, and provider neutrality remain authoritative. Source enablement/authorization is intentionally outside this slice.
+   - `HAgent.Tests` completed with 41/41 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Multi-Resource Retrieval verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, including distinct per-source queries, per-source candidate limits, global budget enforcement, deterministic source order, provenance preservation, and no provider request.
+
+9. **Policy/permission-aware context assembly — CURRENT**
+   - Introduce a provider-neutral authorization/enforcement boundary between retrieval and ranking/assembly so sources and candidates are admitted only when explicitly allowed by host/resource policy and effective capability state.
+   - Preserve the existing retrieval, ranking, compaction, provenance, scope, and execution-snapshot contracts; policy decisions must remain enforcement metadata rather than prompt text.
+   - Cover source disabled/denied behavior, scope/ownership boundaries, deterministic exclusion reasons, and safe diagnostics without exposing payloads or creating a parallel authorization model.
+   - Verification target: focused Core policy/assembly tests plus deterministic public-API `HAgent.Example` coverage showing allowed, denied, and disabled sources/candidates with provider request absent unless separately exercising execution integration.
 
 ### Verification rule
 

@@ -9,8 +9,10 @@ namespace HAgent.Abstractions
     {
         Task<IReadOnlyList<AiProvider>> GetProvidersAsync(CancellationToken cancellationToken = default(CancellationToken));
         Task<IReadOnlyList<AiAgent>> GetAgentsAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task<AiPolicySet> GetPolicySetAsync(CancellationToken cancellationToken = default(CancellationToken));
         Task SaveProviderAsync(AiProvider provider, CancellationToken cancellationToken = default(CancellationToken));
         Task SaveAgentAsync(AiAgent agent, CancellationToken cancellationToken = default(CancellationToken));
+        Task SavePolicySetAsync(AiPolicySet policy, CancellationToken cancellationToken = default(CancellationToken));
         Task DeleteProviderAsync(string providerId, CancellationToken cancellationToken = default(CancellationToken));
         Task DeleteAgentAsync(string agentId, CancellationToken cancellationToken = default(CancellationToken));
     }

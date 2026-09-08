@@ -108,7 +108,7 @@ The execution snapshot continues to carry the independently captured agent/provi
 
 ## Execution snapshot provenance
 
-`AiInstructionSnapshot` contains cloned source and conflict records. `AgentExecutionSnapshot.InstructionSnapshot` captures a cloned instruction snapshot so later caller-owned mutation cannot alter the captured provenance objects. Execution integration is implemented and verified by the user through the deterministic Example integration scenario.
+`AiInstructionSnapshot` contains cloned source and conflict records. `AgentExecutionSnapshot.InstructionSnapshot` captures a cloned instruction snapshot so later caller-owned mutation cannot alter the captured provenance objects.
 
 ## Boundary rules
 
@@ -122,4 +122,4 @@ The execution snapshot continues to carry the independently captured agent/provi
 
 ## Verification status
 
-Slices 1–4 were verified by the user on 2026-09-08 through `COGNITION INSTRUCTIONS`. Slice 4 specifically verified effective instruction snapshot capture before provider transport, provider transport parity, caller-source mutation isolation, lower-authority external exclusion, and execution/principal provenance. Final 0.954 framework-wide verification remains the current Slice 5 checkpoint before advancing to 0.955.
+0.954 was verified and closed on 2026-09-08. Slices 1–4 were verified through `COGNITION INSTRUCTIONS` on both .NET Framework 4.8.1 and .NET 9. Slice 5 deterministic runtime coverage was verified with the reported supported-target matrix: `.NET 9` — `RUNTIME TERMINAL STATE`, `RUNTIME CONCURRENCY`, `RUNTIME OVERRIDES`, `RUNTIME STALE RESULTS`, `RUNTIME SHUTDOWN`; `.NET Framework 4.8.1` — `RUNTIME INSTANCES`, `RUNTIME OVERRIDES`, `RUNTIME STALE RESULTS`, `RUNTIME SHUTDOWN`. The deterministic runtime examples use local/in-memory provider infrastructure; configuration-driven `RUNTIME EXECUTION` remains a separate live-provider Example and is not a milestone gate.

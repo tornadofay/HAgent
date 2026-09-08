@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Providers.OpenAICompatible;
+using HAgent.Runtime;
 using HAgent.WinForms.Forms;
 
 namespace HAgent.WinForms

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Models;
 using HAgent.WinForms.Forms;
+using HAgent.WinForms.Helpers;
 
 namespace HAgent.WinForms.UI.Configuration.Agents
 {

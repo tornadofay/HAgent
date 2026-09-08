@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Models;
+using HAgent.Runtime;
 using HAgent.WinForms.Forms;
 using HAgent.WinForms.Helpers;
 

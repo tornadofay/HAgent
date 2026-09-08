@@ -175,5 +175,8 @@ These documents are architectural guidance, not claims that HAgent invented the 
 - `docs/architecture/50-workspaces.md` — workspace communication.
 - `docs/architecture/70-external-host-integration.md` — generic host integration.
 - `docs/architecture/80-knowledge-memory-learning.md` — detailed knowledge, skills, memory, learning, capability policy, and management architecture.
+- `docs/architecture/91-winforms-configuration-maintenance.md` — configuration UI maintenance.
+- `docs/architecture/92-human-intervention.md` — human intervention and approval boundaries.
+- `docs/architecture/93-example-host-maintenance.md` — Example host feature-group, child-tab, registration, edit, removal, and verification rules.
 - `docs/research/2026-09-persistent-cognitive-runtime-comparison.md` — detailed research comparison and recommended HAgent changes.
 - `docs/storage.md` — persistence and storage boundaries.

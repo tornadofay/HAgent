@@ -4,6 +4,16 @@ using HAgent.Models;
 namespace HAgent.Models
 {
     /// <summary>
+    /// Describes the host authorization state for a context source.
+    /// </summary>
+    public enum ContextHostAuthorizationState
+    {
+        NotRequired = 0,
+        Allowed = 1,
+        Denied = 2
+    }
+
+    /// <summary>
     /// Safe metadata describing why a context source or item was admitted or excluded.
     /// Payload content is never carried by this decision contract.
     /// </summary>
@@ -17,6 +27,8 @@ namespace HAgent.Models
         public string ItemType { get; set; }
         public AiResourceCapabilityState ResourceCapabilityState { get; set; }
         public AiPolicyDecision PolicyDecision { get; set; }
+        public ContextHostAuthorizationState HostAuthorizationState { get; set; }
+        public string HostAuthorizationReason { get; set; }
 
         public ContextAdmissionDecision Clone()
         {
@@ -29,7 +41,9 @@ namespace HAgent.Models
                 ItemId = ItemId,
                 ItemType = ItemType,
                 ResourceCapabilityState = ResourceCapabilityState,
-                PolicyDecision = ClonePolicyDecision(PolicyDecision)
+                PolicyDecision = ClonePolicyDecision(PolicyDecision),
+                HostAuthorizationState = HostAuthorizationState,
+                HostAuthorizationReason = HostAuthorizationReason
             };
         }
 

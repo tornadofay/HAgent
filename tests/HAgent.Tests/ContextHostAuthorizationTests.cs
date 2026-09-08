@@ -66,7 +66,7 @@ namespace HAgent.Tests
             });
             policy.Validate();
 
-            var result = await CreateAssembler(policy, host, sourceKindOverride: "data").RetrieveCandidatesAsync(
+            var result = await CreateAssembler(policy, host).RetrieveCandidatesAsync(
                 new[] { CreatePlan(source) },
                 CreateContext(),
                 CancellationToken.None);
@@ -161,8 +161,7 @@ namespace HAgent.Tests
 
         private static ContextPolicyAssembler CreateAssembler(
             AiPolicySet policy,
-            IDataAccessAuthorizer hostAuthorizer,
-            string sourceKindOverride = null)
+            IDataAccessAuthorizer hostAuthorizer)
         {
             policy.Validate();
             var engine = new DefaultAiPolicyEngine(policy);

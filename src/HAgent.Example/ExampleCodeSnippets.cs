@@ -56,6 +56,16 @@ await policy.ProcessAsync(
 });
 
 var bounded = builder.Build(messages);";
+                case "Context Ranking": return @"var ranked = new ContextRanker().Rank(
+    candidates,
+    new ContextRankingOptions
+    {
+        FreshnessReference = DateTimeOffset.UtcNow,
+        Deduplicate = true
+    });
+
+foreach (var item in ranked)
+    Console.WriteLine(item.Id);";
                 case "Task / Event Memory": return @"var taskId = ""task-42"";
 await memoryStore.SaveAsync(new MemoryRecord
 {

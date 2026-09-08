@@ -16,5 +16,10 @@ namespace HAgent.Abstractions
             ContextSourceRequest request,
             ContextBudget budget,
             CancellationToken cancellationToken = default(CancellationToken));
+
+        Task<ContextSnapshot> AcquireAsync(
+            IReadOnlyList<ContextRetrievalSource> sources,
+            ContextBudget budget,
+            CancellationToken cancellationToken = default(CancellationToken));
     }
 }

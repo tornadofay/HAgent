@@ -1,6 +1,4 @@
 using System;
-using System.Drawing;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Models;
@@ -39,16 +37,27 @@ namespace HAgent.WinForms.UI.Configuration.Tools
 
         private void Build()
         {
-            var root = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
+            var root = CreateListPageRoot();
+            root.Controls.Add(CreateListContent());
+            root.Controls.Add(CreateActionBar());
             root.Controls.Add(CreateHeader("Tools", "Predefined and custom capability definitions. The host application owns actual execution."));
-            var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 50, WrapContents = false, BackColor = Surface, Padding = new Padding(0, 2, 0, 0) };
+            Controls.Add(root);
+        }
+
+        private Control CreateActionBar()
+        {
+            var actions = CreateActionPanel();
             var add = CreateActionButton("+  Add custom tool", 158);
             var delete = CreateActionButton("Delete selected", 132, true);
             add.Click += async delegate { await EditAsync(null); };
             delete.Click += async delegate { await DeleteSelectedAsync(); };
             actions.Controls.Add(add);
             actions.Controls.Add(delete);
+            return actions;
+        }
 
+        private Control CreateListContent()
+        {
             ConfigureList(_list);
             _list.Columns.Add("Tool", 220);
             _list.Columns.Add("Category", 130);
@@ -59,9 +68,7 @@ namespace HAgent.WinForms.UI.Configuration.Tools
             {
                 if (_list.SelectedItems.Count > 0) await EditAsync((AiTool)_list.SelectedItems[0].Tag);
             };
-            root.Controls.Add(_list);
-            root.Controls.Add(actions);
-            Controls.Add(root);
+            return _list;
         }
 
         private async Task EditAsync(AiTool existing)
@@ -87,7 +94,7 @@ namespace HAgent.WinForms.UI.Configuration.Tools
             if (tool == null) return;
             if (tool.IsBuiltIn)
             {
-                HMessage.ShowInformation(FindForm(), "Predefined tools are supplied by the host and cannot be deleted here.", "Tool");
+                HMessage.ShowInformation(FindForm(), "Predefined tools are supplied by the host application and cannot be deleted here.", "Tool");
                 return;
             }
             if (HMessage.ShowDelete(FindForm(), "Delete tool '" + tool.Name + "'?", "Delete tool") != DialogResult.Yes) return;

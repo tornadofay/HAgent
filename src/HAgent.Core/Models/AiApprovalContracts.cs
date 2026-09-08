@@ -6,28 +6,56 @@ using System.Threading.Tasks;
 
 namespace HAgent.Models
 {
-    public enum AiApprovalRequestKind
+    public enum AiInterventionRequestKind
     {
         Approval,
-        Deferral
+        Deferral,
+        Intervention
     }
 
-    public enum AiApprovalRequestStatus
+    public enum AiInterventionTargetKind
+    {
+        Execution,
+        Tool,
+        PlanStep,
+        Goal,
+        LearningCandidate,
+        ConsequentialAction
+    }
+
+    public enum AiInterventionAction
+    {
+        Inspect,
+        Approve,
+        Reject,
+        Pause,
+        Resume,
+        Cancel,
+        Retire,
+        Shutdown,
+        Redirect,
+        Defer
+    }
+
+    public enum AiInterventionRequestStatus
     {
         Pending,
         Approved,
         Rejected,
         Cancelled,
-        Expired
+        Expired,
+        Completed
     }
 
-    public sealed class AiApprovalRequest
+    public sealed class AiInterventionRequest
     {
-        public AiApprovalRequest()
+        public AiInterventionRequest()
         {
             RequestId = Guid.NewGuid().ToString("N");
-            Kind = AiApprovalRequestKind.Approval;
-            Status = AiApprovalRequestStatus.Pending;
+            Kind = AiInterventionRequestKind.Approval;
+            TargetKind = AiInterventionTargetKind.ConsequentialAction;
+            RequestedAction = AiInterventionAction.Approve;
+            Status = AiInterventionRequestStatus.Pending;
             Operation = string.Empty;
             ResourceType = string.Empty;
             ResourceId = string.Empty;
@@ -38,13 +66,16 @@ namespace HAgent.Models
             ExecutionId = string.Empty;
             ToolId = string.Empty;
             Reason = string.Empty;
+            ResolutionReason = string.Empty;
             RequesterIdentity = new AgentIdentityContext();
             CreatedAt = DateTimeOffset.UtcNow;
         }
 
         public string RequestId { get; private set; }
-        public AiApprovalRequestKind Kind { get; private set; }
-        public AiApprovalRequestStatus Status { get; private set; }
+        public AiInterventionRequestKind Kind { get; private set; }
+        public AiInterventionTargetKind TargetKind { get; private set; }
+        public AiInterventionAction RequestedAction { get; private set; }
+        public AiInterventionRequestStatus Status { get; private set; }
         public string Operation { get; private set; }
         public string ResourceType { get; private set; }
         public string ResourceId { get; private set; }
@@ -61,8 +92,10 @@ namespace HAgent.Models
         public DateTimeOffset CreatedAt { get; private set; }
         public DateTimeOffset? ResolvedAt { get; private set; }
 
-        internal static AiApprovalRequest Create(
-            AiApprovalRequestKind kind,
+        internal static AiInterventionRequest Create(
+            AiInterventionRequestKind kind,
+            AiInterventionTargetKind targetKind,
+            AiInterventionAction requestedAction,
             string operation,
             string resourceType,
             string resourceId,
@@ -78,11 +111,13 @@ namespace HAgent.Models
             if (string.IsNullOrWhiteSpace(operation)) throw new ArgumentException("Operation is required.", nameof(operation));
             if (string.IsNullOrWhiteSpace(resourceType)) throw new ArgumentException("Resource type is required.", nameof(resourceType));
 
-            return new AiApprovalRequest
+            return new AiInterventionRequest
             {
                 RequestId = Guid.NewGuid().ToString("N"),
                 Kind = kind,
-                Status = AiApprovalRequestStatus.Pending,
+                TargetKind = targetKind,
+                RequestedAction = requestedAction,
+                Status = AiInterventionRequestStatus.Pending,
                 Operation = operation.Trim(),
                 ResourceType = resourceType.Trim(),
                 ResourceId = resourceId == null ? string.Empty : resourceId.Trim(),
@@ -98,12 +133,13 @@ namespace HAgent.Models
             };
         }
 
-        internal void Resolve(AiApprovalRequestStatus status, AgentIdentityContext responderIdentity, string reason)
+        internal void Resolve(AiInterventionRequestStatus status, AgentIdentityContext responderIdentity, string reason)
         {
-            if (Status != AiApprovalRequestStatus.Pending)
-                throw new InvalidOperationException("Approval request is no longer pending: " + RequestId);
-            if (status != AiApprovalRequestStatus.Approved && status != AiApprovalRequestStatus.Rejected &&
-                status != AiApprovalRequestStatus.Cancelled && status != AiApprovalRequestStatus.Expired)
+            if (Status != AiInterventionRequestStatus.Pending)
+                throw new InvalidOperationException("Intervention request is no longer pending: " + RequestId);
+            if (status != AiInterventionRequestStatus.Approved && status != AiInterventionRequestStatus.Rejected &&
+                status != AiInterventionRequestStatus.Cancelled && status != AiInterventionRequestStatus.Expired &&
+                status != AiInterventionRequestStatus.Completed)
                 throw new ArgumentOutOfRangeException(nameof(status));
 
             Status = status;
@@ -112,12 +148,14 @@ namespace HAgent.Models
             ResolvedAt = DateTimeOffset.UtcNow;
         }
 
-        public AiApprovalRequest Clone()
+        public AiInterventionRequest Clone()
         {
-            var clone = new AiApprovalRequest
+            return new AiInterventionRequest
             {
                 RequestId = RequestId,
                 Kind = Kind,
+                TargetKind = TargetKind,
+                RequestedAction = RequestedAction,
                 Status = Status,
                 Operation = Operation,
                 ResourceType = ResourceType,
@@ -135,14 +173,15 @@ namespace HAgent.Models
                 CreatedAt = CreatedAt,
                 ResolvedAt = ResolvedAt
             };
-            return clone;
         }
     }
 
-    public interface IAiApprovalWorkflow
+    public interface IAiInterventionWorkflow
     {
-        Task<AiApprovalRequest> CreateAsync(
-            AiApprovalRequestKind kind,
+        Task<AiInterventionRequest> CreateAsync(
+            AiInterventionRequestKind kind,
+            AiInterventionTargetKind targetKind,
+            AiInterventionAction requestedAction,
             string operation,
             string resourceType,
             string resourceId,
@@ -156,25 +195,27 @@ namespace HAgent.Models
             AgentIdentityContext requesterIdentity,
             CancellationToken cancellationToken = default(CancellationToken));
 
-        Task<AiApprovalRequest> GetAsync(string requestId, CancellationToken cancellationToken = default(CancellationToken));
+        Task<AiInterventionRequest> GetAsync(string requestId, CancellationToken cancellationToken = default(CancellationToken));
 
-        Task<AiApprovalRequest> ResolveAsync(
+        Task<AiInterventionRequest> ResolveAsync(
             string requestId,
-            AiApprovalRequestStatus resolution,
+            AiInterventionRequestStatus resolution,
             AgentIdentityContext responderIdentity,
             string reason,
             CancellationToken cancellationToken = default(CancellationToken));
 
-        Task<IReadOnlyList<AiApprovalRequest>> GetPendingAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task<IReadOnlyList<AiInterventionRequest>> GetPendingAsync(CancellationToken cancellationToken = default(CancellationToken));
     }
 
-    public sealed class InMemoryAiApprovalWorkflow : IAiApprovalWorkflow
+    public sealed class InMemoryAiInterventionWorkflow : IAiInterventionWorkflow
     {
         private readonly object _sync = new object();
-        private readonly Dictionary<string, AiApprovalRequest> _requests = new Dictionary<string, AiApprovalRequest>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, AiInterventionRequest> _requests = new Dictionary<string, AiInterventionRequest>(StringComparer.OrdinalIgnoreCase);
 
-        public Task<AiApprovalRequest> CreateAsync(
-            AiApprovalRequestKind kind,
+        public Task<AiInterventionRequest> CreateAsync(
+            AiInterventionRequestKind kind,
+            AiInterventionTargetKind targetKind,
+            AiInterventionAction requestedAction,
             string operation,
             string resourceType,
             string resourceId,
@@ -189,9 +230,9 @@ namespace HAgent.Models
             CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var request = AiApprovalRequest.Create(
-                kind, operation, resourceType, resourceId, correlationId, hostCorrelationId,
-                agentProfileId, runtimeInstanceId, executionId, toolId, reason, requesterIdentity);
+            var request = AiInterventionRequest.Create(
+                kind, targetKind, requestedAction, operation, resourceType, resourceId, correlationId,
+                hostCorrelationId, agentProfileId, runtimeInstanceId, executionId, toolId, reason, requesterIdentity);
             lock (_sync)
             {
                 _requests.Add(request.RequestId, request);
@@ -199,22 +240,22 @@ namespace HAgent.Models
             return Task.FromResult(request.Clone());
         }
 
-        public Task<AiApprovalRequest> GetAsync(string requestId, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<AiInterventionRequest> GetAsync(string requestId, CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(requestId)) throw new ArgumentException("Request ID is required.", nameof(requestId));
             lock (_sync)
             {
-                AiApprovalRequest request;
+                AiInterventionRequest request;
                 if (!_requests.TryGetValue(requestId, out request))
-                    return Task.FromResult<AiApprovalRequest>(null);
+                    return Task.FromResult<AiInterventionRequest>(null);
                 return Task.FromResult(request.Clone());
             }
         }
 
-        public Task<AiApprovalRequest> ResolveAsync(
+        public Task<AiInterventionRequest> ResolveAsync(
             string requestId,
-            AiApprovalRequestStatus resolution,
+            AiInterventionRequestStatus resolution,
             AgentIdentityContext responderIdentity,
             string reason,
             CancellationToken cancellationToken = default(CancellationToken))
@@ -223,25 +264,25 @@ namespace HAgent.Models
             if (string.IsNullOrWhiteSpace(requestId)) throw new ArgumentException("Request ID is required.", nameof(requestId));
             lock (_sync)
             {
-                AiApprovalRequest request;
+                AiInterventionRequest request;
                 if (!_requests.TryGetValue(requestId, out request))
-                    throw new InvalidOperationException("Approval request was not found: " + requestId);
+                    throw new InvalidOperationException("Intervention request was not found: " + requestId);
                 request.Resolve(resolution, responderIdentity, reason);
                 return Task.FromResult(request.Clone());
             }
         }
 
-        public Task<IReadOnlyList<AiApprovalRequest>> GetPendingAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<IReadOnlyList<AiInterventionRequest>> GetPendingAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             lock (_sync)
             {
                 var pending = _requests.Values
-                    .Where(x => x.Status == AiApprovalRequestStatus.Pending)
+                    .Where(x => x.Status == AiInterventionRequestStatus.Pending)
                     .Select(x => x.Clone())
                     .ToList()
                     .AsReadOnly();
-                return Task.FromResult<IReadOnlyList<AiApprovalRequest>>(pending);
+                return Task.FromResult<IReadOnlyList<AiInterventionRequest>>(pending);
             }
         }
     }

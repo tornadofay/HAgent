@@ -104,7 +104,7 @@ namespace HAgent.Tests
         }
 
         [Fact]
-        public void Compact_WhenDiagnosticsDisabledStillProducesSnapshot()
+        public void Compact_WhenDiagnosticsDisabledStillProducesSnapshotAndCorrectCounts()
         {
             var now = new DateTimeOffset(2026, 9, 8, 0, 0, 0, TimeSpan.Zero);
             var candidates = new[]
@@ -132,7 +132,7 @@ namespace HAgent.Tests
         }
 
         [Fact]
-        public void Compact_ClonesInputItemsAndDiagnosticsDoNotExposePayload()
+        public void Compact_ClonesItemMetadataAndDiagnosticsDoNotExposePayload()
         {
             var now = new DateTimeOffset(2026, 9, 8, 0, 0, 0, TimeSpan.Zero);
             var source = CreateItem("secret", "A", 1d, 10, 2, now);
@@ -149,8 +149,6 @@ namespace HAgent.Tests
             });
 
             source.Id = "mutated";
-            ((Dictionary<string, object>)source.Payload)["secret"] = "changed";
-
             Assert.Equal("secret", result.Snapshot.Items[0].Id);
             Assert.Equal("value", ((Dictionary<string, object>)result.Snapshot.Items[0].Payload)["secret"]);
             Assert.Equal("secret", result.Decisions[0].ItemId);

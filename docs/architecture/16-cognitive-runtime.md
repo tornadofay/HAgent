@@ -1,0 +1,154 @@
+# Persistent Cognitive Runtime
+
+## Purpose
+
+HAgent's Persistent Cognitive Runtime is a long-lived cognitive layer above individual executions. It maintains provider-neutral cognitive state for a live runtime agent and coordinates events, beliefs, attention, goals, intentions, plans, memory, learning, and probabilistic reasoning.
+
+The cognitive runtime does not assume that one cognitive architecture is universally correct. It provides a stable cognitive kernel and an extensible cognitive-strategy layer so new research can be implemented, evaluated, versioned, and replaced without redesigning the runtime substrate.
+
+## Core separation
+
+```text
+Cognitive Kernel
+    -> persistent state, lifecycle, events, revision, history, governance
+
+Cognitive Strategy
+    -> how the agent interprets state and chooses cognitive actions
+
+Reasoning Requirement
+    -> what reasoning capability is needed
+
+Execution Planner
+    -> where/how that reasoning executes
+
+Provider / Model
+    -> concrete inference capability
+```
+
+The LLM is a replaceable reasoning component inside the cognitive runtime, not the cognitive runtime itself.
+
+## First strategy
+
+HAgent's first reference strategy is **Adaptive Hybrid Cognition (AHC)**.
+
+AHC prefers deterministic cognition when the current state and available policies are sufficient. When uncertainty, novelty, ambiguity, risk, conflict, planning depth, missing knowledge, or other conditions exceed deterministic coverage, AHC escalates to an appropriate reasoning capability. It may choose a lightweight model, a stronger model, multiple reasoning passes, or no model at all.
+
+AHC must not depend on a single provider or model family.
+
+## Cognitive state
+
+A runtime instance may maintain, subject to enabled capabilities and persistence policy:
+
+- Belief State and belief provenance/confidence/validity.
+- Working cognitive state.
+- Bounded attended state / Global Workspace frame.
+- Goals and goal hierarchy/priority.
+- Intentions and commitments.
+- Plans, steps, operators, dependencies, checkpoints, expected effects, and failure state.
+- Memory references and retrieved context.
+- Skills and reusable procedures.
+- Experiences and execution outcomes.
+- Cognitive revision history.
+- Activation, waiting, sleeping, recovery, and lifecycle state.
+
+Host-owned domain state remains authoritative. HAgent records interpretations, proposals, and cognitive state; it does not become the source of truth for the host world.
+
+## Deterministic cognition and reasoning escalation
+
+The runtime should evaluate whether it can progress without probabilistic reasoning before invoking an LLM.
+
+The decision may consider:
+
+- confidence and uncertainty;
+- novelty and similarity to known situations;
+- goal relevance and urgency;
+- consequences of an incorrect decision;
+- belief conflicts or invalidated assumptions;
+- available deterministic operators/skills/policies;
+- planning horizon and branching;
+- available knowledge and memory;
+- tool requirements;
+- latency, quota, concurrency, and cost policy.
+
+These signals describe the current reasoning requirement; they are not a promise that HAgent can calculate an objectively correct universal difficulty score.
+
+When probabilistic reasoning is required, the cognition strategy produces a provider-neutral `ReasoningRequirement`. The existing Execution Planner then selects and admits a concrete target. This preserves the separation between cognitive planning and execution planning.
+
+## Belief revision
+
+Observations and execution outcomes can make previous beliefs stale, uncertain, contradicted, or invalid.
+
+Belief revision must be explicit and versioned. A revision may invalidate dependent goals, intentions, plan steps, or learned assumptions. Newer cognitive state must win over stale asynchronous results through the same concurrency and revision protections used by execution state.
+
+## Goals, intentions, plans, and impasses
+
+Goals describe desired states or outcomes. Intentions represent adopted commitments. Plans describe executable structures for reaching goals.
+
+Operators and cognitive actions provide explicit transitions with preconditions, effects, applicability, and bounded execution semantics. Routine progress should continue deterministically when possible.
+
+An **Impasse** represents a bounded state in which current deterministic cognition cannot safely or confidently continue. An impasse can trigger additional deliberation, information gathering, plan revision, or human intervention according to policy.
+
+## Cognitive actions
+
+Not every cognitive transition is an external tool call. The cognitive layer may expose provider-neutral internal actions such as:
+
+```text
+RecallMemory
+RetrieveKnowledge
+SelectSkill
+CreateGoal
+ReviseGoal
+AdoptIntention
+CreatePlan
+RevisePlan
+MarkBeliefStale
+RequestDeliberation
+RequestInformation
+Wait
+Sleep
+Wake
+EmitObservation
+```
+
+External tools remain separately governed capabilities and retain normal authorization and side-effect boundaries.
+
+## Learning and proceduralization
+
+Experience is distinct from memory, skills, policies, and cognitive strategy.
+
+A successful or informative experience may produce governed candidates for:
+
+```text
+Experience
+    -> Memory / Reflection
+    -> Knowledge candidate
+    -> Skill candidate
+    -> Policy candidate
+    -> Cognitive improvement candidate
+    -> validation/evaluation
+    -> versioned adoption or rejection
+```
+
+Repeated successful reasoning may be partially proceduralized so future occurrences can be handled deterministically. Proceduralization must be evidence-based, versioned, reversible, and policy-governed. Learning must never silently rewrite the cognitive kernel.
+
+## Extensible cognition
+
+Cognitive strategy is a replaceable extension point. Future research may introduce strategies with their own names, policies, state requirements, or reasoning approaches while consuming the same HAgent cognitive kernel and execution boundary.
+
+Strategies should be independently evaluable on the same scenarios. HAgent should be able to compare success, recovery, unnecessary model usage, latency, cost, determinism, and long-horizon behavior before promoting a strategy as a default.
+
+## Live cognition workbench
+
+`HAgent.WinForms` should provide a complete runtime Cognition Workbench for authorized operators. It should expose the current strategy/version, beliefs, goals, intentions, attention, global workspace, plans and current step, memory, knowledge, skills, experiences, events, executions, reasoning decisions, learning candidates, and full cognitive history.
+
+Authorized intervention should be performed through runtime APIs, not direct mutation. Operations such as inserting or editing beliefs, creating or reprioritizing goals, revising intentions/plans, injecting observations, requesting deliberation, and pausing/resuming runtime activity must be version-checked, atomic, attributable, auditable, and protected from stale-result overwrite.
+
+## Architectural constraints
+
+- No domain-specific world model in `HAgent.Core`.
+- No assumption that LLM reasoning is authoritative.
+- No claim that AHC is the final or universally correct cognitive architecture.
+- No direct authorization through model output, memory, or prompts.
+- No automatic kernel rewriting from learned behavior.
+- No coupling between cognitive strategy and a specific model/provider.
+- Persistent cognitive state remains separate from live transport/session objects and secrets.

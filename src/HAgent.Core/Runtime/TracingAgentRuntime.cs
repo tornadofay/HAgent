@@ -10,21 +10,14 @@ namespace HAgent.Runtime
 {
     /// <summary>
     /// Provider-neutral runtime decorator that creates a root execution trace and observes
-    /// canonical lifecycle, policy, and context integration boundaries.
+    /// the canonical execution lifecycle. Other HAgent boundaries have dedicated tracing producers.
     /// </summary>
     public sealed class TracingAgentRuntime : IAgentRuntime
     {
-        private sealed class ExecutionTraceState
-        {
-            public ITraceSpan Root;
-            public ITraceSpan Policy;
-            public ITraceSpan Context;
-        }
-
         private readonly IAgentRuntime _inner;
         private readonly ITraceRecorder _recorder;
-        private readonly ConcurrentDictionary<string, ExecutionTraceState> _executions =
-            new ConcurrentDictionary<string, ExecutionTraceState>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, ITraceSpan> _executions =
+            new ConcurrentDictionary<string, ITraceSpan>(StringComparer.OrdinalIgnoreCase);
 
         public TracingAgentRuntime(IAgentRuntime inner, ITraceRecorder recorder)
         {
@@ -80,11 +73,14 @@ namespace HAgent.Runtime
                 var current = TraceAmbient.Current;
                 if (current != null)
                 {
-                    var matching = FindRootByTrace(current.TraceId);
-                    if (matching != null)
-                        matching.Root.TryComplete(cancellationToken.IsCancellationRequested
+                    var root = FindRootByTrace(current.TraceId);
+                    if (root != null)
+                    {
+                        root.TryComplete(cancellationToken.IsCancellationRequested
                             ? TraceSpanStatus.Cancelled
                             : TraceSpanStatus.Timeout);
+                        RemoveCompletedRoot(root);
+                    }
                 }
                 throw;
             }
@@ -93,9 +89,12 @@ namespace HAgent.Runtime
                 var current = TraceAmbient.Current;
                 if (current != null)
                 {
-                    var matching = FindRootByTrace(current.TraceId);
-                    if (matching != null)
-                        matching.Root.TryComplete(TraceSpanStatus.Failed);
+                    var root = FindRootByTrace(current.TraceId);
+                    if (root != null)
+                    {
+                        root.TryComplete(TraceSpanStatus.Failed);
+                        RemoveCompletedRoot(root);
+                    }
                 }
                 throw;
             }
@@ -141,62 +140,16 @@ namespace HAgent.Runtime
                     Metadata = metadata
                 });
 
-                var state = new ExecutionTraceState { Root = root };
-                _executions[execution.Id] = state;
+                _executions[execution.Id] = root;
                 TraceAmbient.Set(root.Context, correlation);
                 return;
             }
 
-            ExecutionTraceState traceState;
+            ITraceSpan traceState;
             if (!_executions.TryGetValue(execution.Id, out traceState))
                 return;
 
-            TraceAmbient.Set(traceState.Root.Context, traceState.Root.Record.Correlation);
-
-            if (execution.State == AgentExecutionState.Running)
-            {
-                if (traceState.Policy == null && execution.PolicyDecision != null)
-                {
-                    var metadata = new TraceMetadata();
-                    metadata.Add("policy.outcome", execution.PolicyDecision.Outcome.ToString());
-                    if (!string.IsNullOrWhiteSpace(execution.PolicyDecision.RuleId))
-                        metadata.Add("policy.rule.id", execution.PolicyDecision.RuleId);
-                    if (!string.IsNullOrWhiteSpace(execution.PolicyDecision.Reason))
-                        metadata.Add("policy.reason", execution.PolicyDecision.Reason.Length > 512
-                            ? execution.PolicyDecision.Reason.Substring(0, 512)
-                            : execution.PolicyDecision.Reason);
-
-                    traceState.Policy = _recorder.StartSpan(new TraceSpanStartOptions
-                    {
-                        ParentContext = traceState.Root.Context,
-                        OperationName = "policy.evaluate",
-                        Kind = "Policy",
-                        Correlation = traceState.Root.Record.Correlation,
-                        Metadata = metadata
-                    });
-                    traceState.Policy.TryComplete(execution.PolicyDecision.IsDenied || execution.PolicyDecision.RequiresApproval
-                        ? TraceSpanStatus.Rejected
-                        : execution.PolicyDecision.IsDeferred
-                            ? TraceSpanStatus.Skipped
-                            : TraceSpanStatus.Succeeded);
-                }
-
-                if (traceState.Context == null && execution.Snapshot != null && execution.Snapshot.Context != null)
-                {
-                    var metadata = new TraceMetadata();
-                    metadata.Add("context.selected.items", execution.Snapshot.Context.UsedItems.ToString());
-                    metadata.Add("context.sources", execution.Snapshot.Context.SourceCount.ToString());
-                    traceState.Context = _recorder.StartSpan(new TraceSpanStartOptions
-                    {
-                        ParentContext = traceState.Root.Context,
-                        OperationName = "context.assemble",
-                        Kind = "Context",
-                        Correlation = traceState.Root.Record.Correlation,
-                        Metadata = metadata
-                    });
-                    traceState.Context.TryComplete(TraceSpanStatus.Succeeded);
-                }
-            }
+            TraceAmbient.Set(traceState.Context, traceState.Record.Correlation);
 
             if (execution.State == AgentExecutionState.Succeeded ||
                 execution.State == AgentExecutionState.Failed ||
@@ -208,35 +161,19 @@ namespace HAgent.Runtime
 
         private void CompleteRoot(AgentExecution execution)
         {
-            ExecutionTraceState state;
-            if (!_executions.TryRemove(execution.Id, out state) || state.Root.Record.IsCompleted)
+            ITraceSpan root;
+            if (!_executions.TryRemove(execution.Id, out root))
+                return;
+            if (root.Record.IsCompleted)
                 return;
 
-            CompleteRoot(state.Root, execution.State, execution.FailureKind);
-        }
-
-        private ExecutionTraceState FindRootByTrace(string traceId)
-        {
-            foreach (var pair in _executions)
-            {
-                if (pair.Value.Root.Record.TraceId == traceId)
-                    return pair.Value;
-            }
-            return null;
-        }
-
-        private static void CompleteRoot(ITraceSpan root, AgentExecutionState state, AgentExecutionFailureKind failureKind)
-        {
-            if (root == null || root.Record.IsCompleted)
-                return;
-
-            switch (state)
+            switch (execution.State)
             {
                 case AgentExecutionState.Succeeded:
                     root.TryComplete(TraceSpanStatus.Succeeded);
                     break;
                 case AgentExecutionState.Cancelled:
-                    root.TryComplete(failureKind == AgentExecutionFailureKind.Timeout
+                    root.TryComplete(execution.FailureKind == AgentExecutionFailureKind.Timeout
                         ? TraceSpanStatus.Timeout
                         : TraceSpanStatus.Cancelled);
                     break;
@@ -247,6 +184,31 @@ namespace HAgent.Runtime
                     root.TryComplete(TraceSpanStatus.Unset);
                     break;
             }
+        }
+
+        private void RemoveCompletedRoot(ITraceSpan completed)
+        {
+            if (completed == null)
+                return;
+            foreach (var pair in _executions)
+            {
+                if (ReferenceEquals(pair.Value, completed))
+                {
+                    ITraceSpan ignored;
+                    _executions.TryRemove(pair.Key, out ignored);
+                    return;
+                }
+            }
+        }
+
+        private ITraceSpan FindRootByTrace(string traceId)
+        {
+            foreach (var pair in _executions)
+            {
+                if (pair.Value.Record.TraceId == traceId)
+                    return pair.Value;
+            }
+            return null;
         }
     }
 }

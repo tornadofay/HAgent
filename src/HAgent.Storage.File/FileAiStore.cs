@@ -16,6 +16,7 @@ namespace HAgent.Storage.File
         {
             public List<AiProvider> Providers { get; set; } = new List<AiProvider>();
             public List<AiAgent> Agents { get; set; } = new List<AiAgent>();
+            public AiPolicySet Policy { get; set; } = new AiPolicySet();
         }
 
         private readonly string _path;
@@ -40,6 +41,16 @@ namespace HAgent.Storage.File
             lock (_sync) return Task.FromResult<IReadOnlyList<AiAgent>>(_data.Agents.ToList().AsReadOnly());
         }
 
+        public Task<AiPolicySet> GetPolicySetAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            lock (_sync)
+            {
+                var policy = _data.Policy ?? new AiPolicySet();
+                policy.Validate();
+                return Task.FromResult(policy.Clone());
+            }
+        }
+
         public Task SaveProviderAsync(AiProvider provider, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (_sync)
@@ -59,6 +70,18 @@ namespace HAgent.Storage.File
                 var index = _data.Agents.FindIndex(x => x.Id == agent.Id);
                 if (index >= 0) _data.Agents[index] = agent;
                 else _data.Agents.Add(agent);
+                Persist();
+            }
+            return Task.CompletedTask;
+        }
+
+        public Task SavePolicySetAsync(AiPolicySet policy, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            policy.Validate();
+            lock (_sync)
+            {
+                _data.Policy = policy.Clone();
                 Persist();
             }
             return Task.CompletedTask;
@@ -93,7 +116,9 @@ namespace HAgent.Storage.File
             {
                 if (!System.IO.File.Exists(_path)) return new Data();
                 var json = System.IO.File.ReadAllText(_path);
-                return JsonSerializer.Deserialize<Data>(json, Options) ?? new Data();
+                var data = JsonSerializer.Deserialize<Data>(json, Options) ?? new Data();
+                if (data.Policy == null) data.Policy = new AiPolicySet();
+                return data;
             }
             catch (Exception ex)
             {

@@ -2,41 +2,49 @@
 
 **Lightweight, provider-neutral AI cognition and execution runtime for .NET applications.**
 
-HAgent provides the reusable infrastructure needed to connect software to LLMs without forcing a specific application architecture or domain model. The project is intended to support any software environment that requires LLM-driven behavior, from simple conversational programs to business software, services, games, simulations, automation, developer tools, and other hosts.
+HAgent provides reusable infrastructure for connecting software to LLMs and building long-lived agent behavior without forcing a specific application architecture or domain model. It is intended for conversational software, business applications, services, games, simulations, automation, developer tools, and other host environments.
 
-> Status: **Foundational architecture hardening is now planned before Phase 0.96.**
+> Status: **0.953 Unified Policy Engine is the current implementation milestone.**
 >
-> Completed foundation: **0.95 Generic External Host Integration**.
+> Completed major foundation: **0.95 Generic External Host Integration**, verified on .NET Framework 4.8.1 and .NET 9.
 >
-> Next architectural foundations: **Identity, Events, Policy, Prompt Governance, Context Engineering, Observability, Evaluation, Agent Lifecycle, Human Intervention, Goal/Plan Recovery, and Provider Adapter Lifecycle**.
+> Next foundations: **Prompt / Instruction Governance, Context Engineering, Observability, Evaluation, Agent Lifecycle, Human Intervention, Goal / Plan Recovery, Provider Adapter Lifecycle, Configuration / Storage / Portability, and Capability-Aware Execution**.
+>
+> Longer-term direction: **Persistent Cognitive Runtime with an extensible Cognitive Kernel and pluggable Cognitive Strategies**.
 >
 > Targets: **.NET Framework 4.8.1 and .NET 9**.
 
-## What HAgent provides
+## What HAgent is
+
+HAgent separates reusable cognition/execution infrastructure from the domain logic of the host application.
 
 ```text
 Host application
         |
-Generic execution/context
+        |  generic request + bounded context
+        v
++------------------------------------------------+
+|                     HAgent                     |
+|                                                |
+|  Cognitive Kernel + Cognitive Strategies       |
+|  Agent Runtime Instances                       |
+|  Execution / Providers / Model Targets        |
+|  Skills / Knowledge / Memory / Learning        |
+|  Tools / Structured Output / Policies         |
+|  Events / Context / Telemetry                  |
+|  Workspaces / Coordination                     |
++------------------------------------------------+
         |
-Runtime agent instances
-        |
-+-- provider/model execution
-+-- skills and reusable skill sets
-+-- knowledge/wiki retrieval
-+-- scoped memory
-+-- controlled learning and review
-+-- structured tools
-+-- structured model output
-+-- asynchronous lifecycle/cancellation
-+-- workspaces and multi-agent coordination
+        v
+Host-owned domain state, authorization,
+scheduling, persistence, and side effects
 ```
 
-A host may use one configured agent or create many independent runtime instances from reusable profiles.
+The host remains authoritative for its own business state and security decisions. HAgent provides the generic cognition and execution layer around that state.
 
 ## Architecture direction
 
-HAgent is being built as two complementary layers:
+HAgent is intentionally built as two complementary levels:
 
 ```text
 HAgent
@@ -44,20 +52,31 @@ HAgent
 ├── Execution Engine
 │   ├── provider/model execution
 │   ├── context and memory integration
-│   ├── tools and structured output
-│   ├── capability-aware target selection
+│   ├── structured tools and output
+│   ├── capability-aware target planning
 │   └── cancellation / timeout / lifecycle safety
 │
 └── Persistent Cognitive Runtime
-    ├── events
-    ├── attention
+    ├── persistent cognitive state
+    ├── event-driven activation
+    ├── beliefs + revision
+    ├── attention / global workspace
     ├── goals / intentions
-    ├── plans
-    ├── reactive / deliberative decisions
-    └── long-lived agent state
+    ├── plans / operators / impasses
+    ├── deterministic vs deliberative decisions
+    ├── experience / memory / learning
+    └── replaceable cognitive strategies
 ```
 
-The execution engine remains usable directly. Persistent cognition is an optional higher-level runtime built on the same generic execution contracts.
+The execution engine remains useful directly. Persistent cognition is a higher-level runtime built on the same provider-neutral execution contracts.
+
+### Cognitive Kernel vs Cognitive Strategy
+
+The **Cognitive Kernel** is the stable runtime substrate for cognitive state, lifecycle, history, revision, persistence boundaries, and governance.
+
+A **Cognitive Strategy** determines how that state is interpreted and which cognitive actions are selected. The first reference strategy is **Adaptive Hybrid Cognition (AHC)**. It is deliberately not treated as the only or final cognitive architecture; future strategies can be evaluated and replaced without redesigning the kernel.
+
+The cognitive runtime can choose deterministic behavior when rules, state, memory, or learned procedures are sufficient, and request probabilistic reasoning only when needed. The LLM is therefore a replaceable reasoning component, not the entire agent architecture.
 
 ## Basic usage
 
@@ -69,82 +88,109 @@ var response = await ai.SendAsync(
 Console.WriteLine(response.Text);
 ```
 
-Plain string messaging is the convenience entry point. The canonical generic execution boundary is `AgentExecutionRequest`, which can carry multiple messages, host-supplied bounded context, host correlation identity, execution options, and structured-output requirements without embedding host-domain concepts in HAgent.Core.
+Plain string messaging is the convenience entry point. The canonical generic execution boundary is `AgentExecutionRequest`, which can carry multiple messages, bounded host context, host correlation identity, execution options, and structured-output requirements without embedding host-domain concepts in HAgent.Core.
 
 ## Capability model
 
 HAgent separates four related concepts:
 
-- **Skills** are reusable executable capabilities/procedures. They are shared definitions referenced by agents, not copied into every runtime instance.
+- **Skills** are reusable executable capabilities/procedures with stable identity and versioning.
 - **Knowledge** is reusable retrievable information. A **Wiki** is one managed persistent knowledge source within the broader knowledge system.
 - **Memory** is scoped experience/state, including working, episodic, semantic, procedural, and future memory families.
-- **Learning** analyzes execution experience and creates typed candidates for memory, knowledge, or skill improvement. Promotion is controlled by `LearningMode` and policy rather than treating LLM output as automatically authoritative.
+- **Learning** analyzes experience and can create typed candidates for memory, knowledge, skill improvement, policy changes, or governed cognitive improvement. It is not model-weight training.
 
-Resources are scope-aware. Runtime instances inherit profile capability configuration and may apply runtime-only `Inherit`/`Enabled`/`Disabled` overrides without mutating the persistent profile.
+Resources are scope-aware. Runtime instances inherit profile configuration and can apply runtime-only `Inherit` / `Enabled` / `Disabled` overrides without mutating the persistent profile.
 
-## Provider/model capability model
+Learning promotion is governed by policy, provenance, validation, authorization, and evaluation rather than treating model output as automatically authoritative.
 
-HAgent must not assume that a provider or model supports every feature exposed by the generic API. Execution targets can differ by provider, deployment/account policy, model/version, capabilities, context/output limits, quotas, rate limits, concurrency limits, and current availability.
+## Provider and execution capability model
 
-The capability-aware execution design treats requested features as requirements and evaluates them against the selected execution target before sending a provider request. Capabilities such as structured output, tool calling, reasoning, image input/output, audio, embeddings, and future modalities may be `Supported`, `Unsupported`, or `Unknown`, with runtime/account policy distinguished from model-declared capability.
+HAgent does not assume that every provider or model supports every feature exposed by the generic API. Execution targets can differ by provider, account/project, endpoint, model/deployment, capability, limits, quotas, rate limits, concurrency capacity, health, latency, and policy.
 
-When a required capability is unavailable, HAgent must fail or apply an explicitly configured fallback/degradation policy rather than silently sending an incompatible request.
+Requested features are evaluated against the selected execution target before provider transport. Capabilities such as structured output, tool calling, reasoning, image/audio/video input or output, embeddings, and future task types may be `Supported`, `Unsupported`, or `Unknown`.
 
-## Foundational architecture work
+Required capability failures must produce an explicit failure or use an explicitly configured fallback/degradation policy; incompatible requests are not silently sent to a target.
 
-Before Phase 0.96, the roadmap now establishes these cross-cutting foundations:
+The architecture distinguishes three decisions:
 
 ```text
-0.951 Identity / Tenancy / User Context
-0.952 First-Class Event Subsystem
-0.953 Unified Policy Engine
-0.954 Prompt / Instruction Governance
-0.955 Context Engineering
-0.956 Observability / Distributed Tracing
-0.957 Evaluation / Quality Measurement
-0.958 Agent Lifecycle / Health Management
-0.959 Human-in-the-Loop / Intervention
-0.9591 Goal / Plan Persistence / Recovery
-0.9592 Provider Ecosystem / Adapter Lifecycle
-0.96 Capability-Aware Execution
-0.97 Persistent Cognitive Runtime
+Cognitive Strategy
+    = how should the agent reason and manage cognitive state?
+
+Reasoning Requirement
+    = what kind of reasoning capability is needed now?
+
+Execution Planner
+    = where/how should that reasoning execute?
 ```
 
-These phases strengthen the generic platform around execution and cognition rather than tying HAgent to a particular host application.
+This separation lets cognition request the type of reasoning it needs without hard-coding a provider or model into the cognitive architecture.
+
+## Roadmap position
+
+The current roadmap is intentionally ordered as architectural foundations first, then capability-aware execution, then persistent cognition:
+
+```text
+0.95   Generic External Host Integration             complete
+0.951  Identity / Tenancy / User Context
+0.952  First-Class Event Subsystem                   complete
+0.953  Unified Policy Engine                         current
+0.954  Prompt / Instruction Governance
+0.955  Context Engineering
+0.956  Observability / Distributed Tracing
+0.957  Evaluation / Quality Measurement
+0.958  Agent Lifecycle / Health
+0.959  Human-in-the-Loop / Intervention
+0.9591 Goal / Plan Persistence / Recovery
+0.9592 Provider Ecosystem / Adapter Lifecycle
+0.96.x Configuration / Storage / Portability Evolution
+0.96   Capability-Aware Execution
+0.97   Persistent Cognitive Runtime
+0.10   Workspaces / Routing / Chat                   paused
+0.11   Knowledge / Skills / Memory Governance
+1.0    Collaboration / Workflows
+```
+
+The pre-0.96 phases establish common identity, events, policy, instruction trust, context assembly, tracing, evaluation, lifecycle, intervention, durable goal/plan recovery, provider-adapter boundaries, and configuration/storage contracts so later execution and cognition layers consume shared foundations instead of reinventing them.
+
+The detailed ordered roadmap is in [`roadmap.md`](roadmap.md), with modular source documents under [`docs/roadmap/`](docs/roadmap/).
 
 ## Current capabilities
 
-The verified foundation includes:
+The verified foundation currently includes:
 
-- provider/model routing and capability discovery;
-- execution lifecycle, retries, timeout, cancellation, diagnostics, and stale-result protection;
+- provider/agent configuration and routing;
+- execution lifecycle, timeout, cancellation, retries, diagnostics, and failure reporting;
 - persistent sessions and multiple memory forms;
-- context budgeting and lightweight memory retrieval;
-- normalized responses and streaming;
-- structured tool definitions, validation, transport, loops, persistence, and per-agent assignment;
-- WinForms UI Context and control adapters;
+- context budgeting and memory retrieval;
+- capability discovery and normalized responses;
+- streaming contracts and live streaming;
+- structured tool definitions, registry, schema validation, provider transport, bounded tool loops, persistence, and per-agent assignment;
+- WinForms UI Context with Form/UserControl attachment;
 - semantic and bound/native data-source discovery;
-- application-object discovery with bounded inspection;
+- CurrencyManager/current-item/source relationships;
+- control-to-source relationship discovery;
+- bounded application-object discovery;
 - provider-neutral structured data projection/query contracts;
-- HAgent-owned storage configuration for File, SQL Server, and MySQL backends;
-- application-specific File storage layout;
+- HAgent-owned storage configuration for File, SQL Server, and MySQL;
 - HAgent-owned SQL Server/MySQL database bootstrap foundations;
-- bounded internal HAgent data inspection and payload-free execution audit;
-- runtime agent instances with independent memory, concurrency, stale-result, shutdown, scheduling, and optional runtime-state persistence;
+- bounded internal inventory, memory, conversation, and execution-audit read tools;
+- payload-free execution auditing with configurable bounded retention;
+- runtime-instance identity, scope, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, host-controlled scheduling, shutdown semantics, and optional runtime-state persistence;
 - provider-neutral workspace participants, message metadata, default-recipient routing, and coordinator/specialist role policy;
 - canonical generic host execution requests with bounded host context and host correlation;
-- distinct provider-facing execution requests and native/fallback structured-output transport;
+- provider-facing request isolation and structured-output transport/fallback;
 - verified external-consumer compatibility on .NET Framework 4.8.1 and .NET 9.
 
-The remaining architecture phases add a unified event model, policy evaluation, trusted instruction composition, mature context assembly, tracing, evaluation, agent health/control, durable plan recovery, and a stronger provider adapter lifecycle before higher-level persistent cognition depends on them.
+These are implementation foundations, not a claim that the complete roadmap is finished. The current milestone remains the Unified Policy Engine and the subsequent hardening phases are still being developed.
 
-## Generic host integration target
+## Generic host integration
 
-HAgent is designed to be the generic LLM cognition/execution layer for host software. The host remains authoritative for domain state, lifecycle, scheduling, persistence, authorization, and side effects.
+HAgent is designed to be embedded into host software without taking ownership of the host's domain model.
 
-The generic integration target includes:
+The generic integration model supports:
 
-- arbitrary bounded host input/context;
+- arbitrary bounded host input and context;
 - host-supplied correlation identities;
 - host-defined structured output schemas with validation;
 - cancellation, timeout, and safe late-completion handling;
@@ -154,7 +200,7 @@ The generic integration target includes:
 - optional multi-agent coordination and workspace communication;
 - scoped knowledge, skills, memory, and controlled learning.
 
-HAgent provides its own provider-neutral event and cognitive contracts, but does not require a host to adopt a particular domain event system, command system, scheduler, authorization framework, or UI framework.
+The host remains responsible for domain state, scheduling, authorization, host persistence, and side effects. HAgent does not require the host to adopt a particular domain event system, command system, scheduler, authorization framework, or UI framework.
 
 ## HAgent storage
 
@@ -168,9 +214,7 @@ Supported storage backends are:
 
 HAgent storage is for providers, models, execution targets, agents, tools, memory, conversations, skills, knowledge/wiki, learning candidates, policies, runtime metadata, execution audit data, and other HAgent-owned records. A storage backend must never be treated as permission to inspect or modify the host application's business database.
 
-Provider API keys are persisted with provider configuration and encrypted at rest. There is no separate provider secret-reference or vault architecture. SQL Server/MySQL configuration can therefore be shared by multiple authorized HAgent processes or machines connected to the same HAgent database. Storage-server passwords remain part of the runtime connection configuration rather than ordinary HAgent provider records.
-
-Configuration export/import is planned as a versioned portable representation of HAgent-owned configuration. Normal export excludes provider credentials; an explicitly requested credential-bearing export can include encrypted API keys protected by the export mechanism.
+Provider API keys are persisted with provider configuration and encrypted at rest. Shared SQL Server/MySQL configuration can therefore be used by multiple authorized HAgent processes or machines connected to the same HAgent database. Configuration export/import is planned as a versioned portable representation; normal export excludes provider credentials.
 
 ## WinForms Context
 
@@ -180,31 +224,34 @@ The public concept is **UI Context / Control Adapters**, not generic form serial
 
 `DataTable` is optional. Native/bound sources, lazy adapters, paging, projections, and bounded extraction are preferred.
 
-## Management UI target
+## Management UI direction
 
-`HAgent.WinForms` will provide administration for:
+The planned `HAgent.WinForms` administration surface includes:
 
 ```text
 General
     system/default policies and discovery settings
 
-Providers
-    connection settings, API credentials, discovery status
-
-Models
-    logical models, execution targets, capabilities, limits, health, cost
+Providers / Models
+    connection settings, credentials, discovery, targets, capabilities,
+    limits, health, cost, and execution compatibility
 
 Agents
-    AI selection, Skills, Knowledge, Memory, Learning, effective configuration
+    AI selection, Skills, Knowledge, Memory, Learning, effective configuration,
+    cognitive strategy and runtime state
+
+Cognition Workbench
+    live beliefs, attention, goals, intentions, plans, memory,
+    experience, reasoning decisions, history, and governed intervention
 
 Learning Review
     pending suggestions -> inspect -> approve/reject
 
 Wiki / Knowledge Manager
-    new / edit / delete / search / relationships / used-by agents
+    create / edit / delete / search / relationships / used-by agents
 
 Skill Manager
-    new / edit / delete / version / relationships / used-by agents
+    create / edit / delete / version / relationships / used-by agents
 
 Storage
     File / SQL Server / MySQL configuration and verification
@@ -213,7 +260,7 @@ Configuration Export / Import
     versioned package, compatibility validation, optional encrypted credentials
 ```
 
-The agent knowledge view is extensible: known resource types may have specialized panels while future/unknown resource types remain visible through a generic resource inventory contract.
+Known resource types may receive specialized panels while future/unknown resource types remain visible through a generic resource inventory contract.
 
 ## Tools
 
@@ -234,35 +281,42 @@ Tool definitions are separate from executable handlers. Handlers remain runtime-
 
 The model is a requester, not an authority.
 
-Permissions, authorization, approvals, limits, cancellation, prompt/instruction trust, and host-side validation remain outside model output. HAgent database storage is dedicated to HAgent's own persistence and does not provide implicit access to host application tables. Structured data contracts are not raw SQL access. Learning promotion is likewise controlled outside the model by policy and authorization.
+Permissions, authorization, approvals, limits, cancellation, instruction trust, and host-side validation remain outside model output. HAgent database storage is dedicated to HAgent's own persistence and does not provide implicit access to host application tables. Structured data contracts are not raw SQL access. Learning promotion and cognitive intervention are likewise controlled through explicit policy and authorization.
 
 ## Example application
 
 `HAgent.Example` is the manual developer/verification application, separate from `HAgent.Tests`.
 
-Meaningful capabilities should have runnable Example verification using public APIs and a reproducible C# snippet.
+Meaningful capabilities should have runnable Example verification using public APIs and reproducible C# snippets.
 
 ## Project structure
 
-- `HAgent.Core` — provider-neutral models, runtime, context, memory, knowledge, skills, learning, tools, event, policy, tracing, evaluation, and coordination contracts.
+- `HAgent.Core` — provider-neutral models, runtime, cognition contracts, context, memory, knowledge, skills, learning, tools, events, policy, tracing, evaluation, and coordination contracts.
 - `HAgent.Providers.OpenAICompatible` — OpenAI-compatible provider transport and capabilities.
 - `HAgent.Storage.File` — file configuration, encrypted provider credentials, memory, conversations, skills/wiki, and learning persistence.
 - `HAgent.Storage.SqlServer` — HAgent-owned SQL Server persistence and schema bootstrap.
 - `HAgent.Storage.MySql` — HAgent-owned MySQL persistence and schema bootstrap.
-- `HAgent.WinForms` — management UI and WinForms UI Context/control adapters.
+- `HAgent.WinForms` — management UI, UI Context/control adapters, and the planned Cognitive Runtime Workbench.
 - `HAgent.Example` — manual verification host.
 - `HAgent.Tests` — automated tests.
 - `samples/HAgent.ExternalConsumer` — broad external-host integration smoke sample.
 
 ## Documentation
 
-- `docs/architecture/` — stable architecture and boundaries.
-- `docs/plan/` — master direction, current state, and active implementation.
-- `docs/roadmap/` — ordered implementation path, including completed foundations and future phases.
-- `docs/storage.md` — storage-specific details.
-- `AGENTS.md` — engineering invariants.
+- [`docs/architecture/`](docs/architecture/) — stable architecture and boundaries.
+- [`docs/plan/`](docs/plan/) — master direction, current state, and active implementation.
+- [`docs/roadmap/`](docs/roadmap/) — ordered implementation path, including completed foundations and future phases.
+- [`docs/research/`](docs/research/) — research and comparative architectural analysis.
+- [`docs/storage.md`](docs/storage.md) — storage-specific details.
+- [`AGENTS.md`](AGENTS.md) — engineering invariants.
 
-Root `plan.md` and `roadmap.md` are generated views from the modular source documents.
+Important architectural references include:
+
+- [`docs/architecture/16-cognitive-runtime.md`](docs/architecture/16-cognitive-runtime.md) — persistent cognitive runtime, Cognitive Kernel, Cognitive Strategies, beliefs, planning, learning, and workbench architecture.
+- [`docs/architecture/15-research-foundations.md`](docs/architecture/15-research-foundations.md) — research lineage and cognitive-architecture mapping.
+- [`docs/research/2026-09-persistent-cognitive-runtime-comparison.md`](docs/research/2026-09-persistent-cognitive-runtime-comparison.md) — detailed research comparison and recommended evolution.
+
+Root [`plan.md`](plan.md) and [`roadmap.md`](roadmap.md) are generated views from the modular source documents; update the source documents rather than editing those generated files directly.
 
 ## Supported targets
 

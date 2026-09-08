@@ -16,7 +16,7 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-Policy persistence, runtime provider enforcement, tool policy enforcement, policy-first host data authorization, and the profile/runtime resource capability boundary were verified locally by the user on 2026-09-08. The implementation now also contains typed learning-promotion policy requests and explicit learning-candidate review/promotion transitions. The matching learning-policy Example verification is the current local checkpoint.
+Policy persistence, runtime provider enforcement, tool policy enforcement, policy-first host data authorization, the profile/runtime resource capability boundary, and learning-promotion policy/candidate transitions were verified locally by the user on 2026-09-08. The implementation now also contains a bounded process-local approval/defer workflow integrated with policy-gated tool execution. The matching approval workflow Example verification is the current local checkpoint.
 
 ## Work ownership
 
@@ -24,11 +24,11 @@ The active implementation plan is the authoritative scope for the current task. 
 
 ## Current blockers
 
-None recorded. Resource capabilities are verified. Learning-promotion policy and candidate transition implementation is present; only its local Example verification remains before marking that slice verified.
+None recorded. Resource capabilities and learning-promotion policy are verified. The bounded approval/defer workflow implementation is present; only its local Example verification remains before marking that slice verified.
 
 ## Next checkpoint
 
-Run `Learning Policy → Run learning promotion test` after pulling current `master`. It must verify typed candidate/scope/evidence/provenance/contradiction policy matching, policy provenance, `Allow`/`RequireApproval`/`Deny` outcomes, and guarded `Proposed` → `PendingReview`/`Approved` → `Promoted` and rejection transitions.
+Run `Approval Workflow → Run approval workflow test` after pulling current `master`. It must verify pending approval/deferral requests, policy provenance, correlation and requester identity propagation, explicit resolution, terminal-state protection, and that approval/defer decisions never execute the protected tool handler.
 
 ## Current project state
 

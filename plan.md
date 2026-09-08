@@ -22,27 +22,28 @@ Slice 1 — Instruction source and authority contracts — was verified by the u
 
 Slice 2 — Instruction composition and conflict handling — was verified by the user on 2026-09-08 through `COGNITION INSTRUCTIONS`, covering canonical additive composition, deterministic conflict resolution, disabled/invalid source containment, and sensitive-content exclusion from diagnostics.
 
-Slice 3 — Resource and external-content boundaries — is implemented but not yet locally verified. The implementation adds canonical source factories for Skills, Knowledge, Memory, tool descriptions, runtime/host context, user input, and external content, plus explicit source availability state. The Example now verifies trusted-resource authority, untrusted external origin, disabled/unavailable containment, and resistance to lower-authority override.
+Slice 3 — Resource and external-content boundaries — was verified by the user on 2026-09-08 through the updated `COGNITION INSTRUCTIONS` result, covering trusted-resource authority/trust, lower-authority external/user content, disabled/unavailable source handling, and resistance to lower-authority override.
+
+Slice 4 — Execution integration — is now implemented but not yet locally verified. The execution request accepts provider-neutral instruction sources; `DefaultAgentRuntime` composes them through the canonical composer after target selection, captures a cloned effective instruction snapshot before the execution enters `Running`, and passes the same composed text to provider transport.
 
 ## Current run
 
-**Verified checkpoint/blocker — 0.954 Slice 3 awaiting local Example verification.**
+**Verified checkpoint/blocker — 0.954 Slice 4 awaiting local Example verification.**
 
-- Resource source factory: `src/HAgent.Core/Models/AiInstructionSourceFactory.cs`.
-- Availability state: `src/HAgent.Core/Models/AiInstructionContracts.cs`.
-- Composition boundary: `src/HAgent.Core/Runtime/AiInstructionComposer.cs`.
+- Execution request contract: `src/HAgent.Core/Models/AgentExecutionRequest.cs`.
+- Execution snapshot capture: `src/HAgent.Core/Models/AgentExecutionSnapshot.cs` and `src/HAgent.Core/Models/AgentExecution.cs`.
+- Runtime integration: `src/HAgent.Core/Runtime/DefaultAgentRuntime.cs`.
 - Example verification: `src/HAgent.Example/MainForm.InstructionContractsTests.cs`.
-- Architecture: `docs/architecture/11-instruction-governance.md` and `docs/architecture/80-knowledge-memory-learning.md`.
 - Required verification: build/run `HAgent.Example` and execute **COGNITION INSTRUCTIONS → Run instruction contract test**.
-- Expected additional result: resource sources use trusted-resource authority/trust, external content remains lower-authority/untrusted, disabled/unavailable sources stay diagnosable without entering effective instructions, and lower-authority resource/external/user content cannot override trusted resource instructions.
+- Expected result: effective instruction snapshot is captured before provider transport, provider receives the same composed instruction set, caller mutation after capture does not alter the execution snapshot/provider prompt, lower-authority external content is excluded, and execution/principal provenance is preserved.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed. Slice 3 remains a verified checkpoint/blocker until the updated Example is run successfully by the user.
+This connected session cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed. Slice 4 remains a verified checkpoint/blocker until the updated Example is run successfully by the user.
 
 ## Next checkpoint
 
-After the updated `COGNITION INSTRUCTIONS` result passes locally, update this file and `docs/plan/20-active.md` to mark Slice 3 complete, then make only **0.954 Slice 4 — Execution integration** current. Do not start Slice 4 before Slice 3 verification.
+After the updated `COGNITION INSTRUCTIONS` result passes locally, update this file and `docs/plan/20-active.md` to mark Slice 4 complete, then continue only with **0.954 Slice 5 — Example coverage and framework verification**. Do not advance to 0.955 until the complete 0.954 milestone is verified.
 
 ## Current project state
 
@@ -588,20 +589,22 @@ Only one slice is **CURRENT** at a time. Each slice must reach a verified checkp
    - Completion: canonical instruction composition produces a deterministic provider-neutral snapshot and rejects/contains invalid authority transitions.
    - Verification: User executed the updated `COGNITION INSTRUCTIONS` and confirmed additive composition, deterministic conflicts, disabled/invalid containment, and secret-safe diagnostics.
 
-3. **Resource and external-content boundaries — CURRENT**
+3. **Resource and external-content boundaries — VERIFIED**
    - Scope: Integrate the canonical first-class Skills, Knowledge, Memory, tool descriptions, runtime context, host context, user content, and externally retrieved content with explicit trust/provenance semantics while keeping authorization outside prompt text. Do not implement mature resource governance here; consume the Phase 0.8 resource substrate and preserve the later Phase 0.9575 governance boundary.
    - Entry: Slice 2 verified.
    - Implementation: `AiInstructionSourceFactory` provides the provider-neutral mapping; `AiInstructionAvailability` distinguishes available, disabled, and unavailable sources; `AiInstructionComposer` excludes unavailable sources while preserving bounded metadata-only diagnostics; the Example exercises the trust boundary.
    - Completion: lower-authority/untrusted content cannot erase higher-authority policy or instruction layers, and disabled/unavailable sources remain diagnosable.
-   - Verification: build/run `HAgent.Example` and execute **COGNITION INSTRUCTIONS → Run instruction contract test**.
+   - Verification: user executed **COGNITION INSTRUCTIONS → Run instruction contract test** on 2026-09-08 and confirmed trusted-resource authority/trust, external-content boundaries, unavailable-source handling, and lower-authority override resistance.
 
-4. **Execution integration**
+4. **Execution integration — CURRENT**
    - Scope: Feed the effective instruction snapshot into the existing execution boundary without creating a second execution/prompt engine and preserve active-execution snapshot isolation.
-   - Entry: instruction model and composition are stable.
-   - Completion: running executions retain immutable effective instruction state even when source configuration changes.
+   - Entry: Slices 1–3 verified.
+   - Implementation: `AgentExecutionRequest.InstructionSources` carries host/resource instruction sources; `DefaultAgentRuntime` selects the execution target, composes the canonical instruction set once, captures a cloned `AgentExecutionSnapshot.InstructionSnapshot` before entering `Running`, and passes the same composed effective instruction text to provider transport. Caller-owned source mutations therefore cannot alter the captured execution instructions.
+   - Completion: running executions retain immutable effective instruction state even when source configuration changes, and provider transport consumes the same effective composition rather than rebuilding it through a second prompt engine.
+   - Verification: build/run `HAgent.Example` and execute **COGNITION INSTRUCTIONS → Run instruction contract test**. The updated scenario must confirm effective snapshot capture, provider transport parity, caller-source mutation isolation, and execution/principal provenance.
 
 5. **Example coverage and framework verification**
-   - Scope: Add deterministic public-API Example scenarios for precedence, conflicts, untrusted content, disabled resources, provenance, snapshot isolation, cancellation/failure boundaries, and supported framework targets.
+   - Scope: Complete deterministic public-API Example scenarios for precedence, conflicts, untrusted content, disabled resources, provenance, snapshot isolation, cancellation/failure boundaries, and supported framework targets.
    - Entry: implementation is stable.
    - Completion: the new Example coverage passes locally on the supported targets and the authoritative phase documents record verification.
 

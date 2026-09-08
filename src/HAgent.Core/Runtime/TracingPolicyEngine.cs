@@ -39,15 +39,18 @@ namespace HAgent.Runtime
             if (!string.IsNullOrWhiteSpace(context.ProviderId))
                 metadata.Add("policy.provider.id", context.ProviderId);
 
+            var parent = TraceAmbient.Current;
+            var correlation = TraceAmbient.CurrentCorrelation ?? new TraceCorrelation();
             var span = _recorder.StartSpan(new TraceSpanStartOptions
             {
-                ParentContext = TraceAmbient.Current,
+                ParentContext = parent,
                 OperationName = "policy.evaluate",
                 Kind = "Policy",
+                Correlation = correlation,
                 Metadata = metadata
             });
 
-            using (TraceAmbient.Push(span.Context))
+            using (TraceAmbient.Push(span.Context, correlation))
             {
                 try
                 {
@@ -58,22 +61,15 @@ namespace HAgent.Runtime
                         return null;
                     }
 
-                    var decisionMetadata = span.Record.Metadata;
-                    if (decision.IsDenied || decision.RequiresApproval)
-                        decisionMetadata.Add("policy.outcome", decision.Outcome.ToString());
-                    else if (decision.IsDeferred)
-                        decisionMetadata.Add("policy.outcome", decision.Outcome.ToString());
-                    else
-                        decisionMetadata.Add("policy.outcome", decision.Outcome.ToString());
-
+                    span.Record.Metadata.Add("policy.outcome", decision.Outcome.ToString());
                     if (!string.IsNullOrWhiteSpace(decision.RuleId))
-                        decisionMetadata.Add("policy.rule.id", decision.RuleId);
+                        span.Record.Metadata.Add("policy.rule.id", decision.RuleId);
                     if (!string.IsNullOrWhiteSpace(decision.Reason))
                     {
                         var boundedReason = decision.Reason.Length > 512
                             ? decision.Reason.Substring(0, 512)
                             : decision.Reason;
-                        decisionMetadata.Add("policy.reason", boundedReason);
+                        span.Record.Metadata.Add("policy.reason", boundedReason);
                     }
 
                     span.TryComplete(decision.IsDenied || decision.RequiresApproval

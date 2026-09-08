@@ -18,8 +18,17 @@ namespace HAgent.WinForms
             Directory.CreateDirectory(basePath);
             var store = new HAgent.Storage.File.FileAiStore(Path.Combine(basePath, "configuration", "settings.json"));
             var toolStore = new HAgent.Storage.File.FileToolStore(Path.Combine(basePath, "configuration", "tools", "tools.json"));
+            var interventionStore = new HAgent.Storage.File.FileAiInterventionStore(Path.Combine(basePath, "configuration", "interventions", "requests.json"));
+            var interventionWorkflow = new StoreBackedAiInterventionWorkflow(interventionStore);
             var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(Path.Combine(basePath, "secrets"));
-            ShowMainAISettingsForm(store, secrets, owner, null, toolStore);
+            try
+            {
+                ShowMainAISettingsForm(store, secrets, owner, null, toolStore, interventionWorkflow, null, null);
+            }
+            finally
+            {
+                interventionStore.Dispose();
+            }
         }
 
         public static UiAutomationPermissions LoadUiPermissions()
@@ -42,7 +51,10 @@ namespace HAgent.WinForms
             ISecretStore secrets,
             IWin32Window owner = null,
             IEnumerable<IAiProviderAdapter> adapters = null,
-            IToolStore toolStore = null)
+            IToolStore toolStore = null,
+            IAiInterventionWorkflow interventionWorkflow = null,
+            AiInterventionCoordinator interventionCoordinator = null,
+            AgentIdentityContext currentIdentity = null)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (secrets == null) throw new ArgumentNullException(nameof(secrets));
@@ -51,7 +63,14 @@ namespace HAgent.WinForms
                 ? new InMemoryToolRegistry()
                 : new PersistentToolRegistry(toolStore);
 
-            using (var form = new Forms.AISettingsForm(store, secrets, adapters, tools))
+            using (var form = new Forms.AISettingsForm(
+                store,
+                secrets,
+                adapters,
+                tools,
+                interventionWorkflow,
+                interventionCoordinator,
+                currentIdentity))
                 form.ShowDialog(owner);
         }
 

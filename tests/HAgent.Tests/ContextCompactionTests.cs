@@ -82,7 +82,7 @@ namespace HAgent.Tests
             var now = new DateTimeOffset(2026, 9, 8, 0, 0, 0, TimeSpan.Zero);
             var candidates = new[]
             {
-                CreateItem("too-large", "A", 1d, 90, 9, now),
+                CreateItem("too-large", "A", 1d, 90, 11, now),
                 CreateItem("later-fit", "B", 0.9d, 10, 1, now)
             };
 

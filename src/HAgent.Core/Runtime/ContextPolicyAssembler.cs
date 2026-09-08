@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -47,30 +46,19 @@ namespace HAgent.Runtime
 
                 var sourceDecision = _admissionEvaluator.EvaluateSource(source, context);
                 decisions.Add(sourceDecision.Clone());
-                if (sourceDecision.Allowed)
-                    admittedSources.Add(new AdmittedContextRetrievalSource(source, _admissionEvaluator, context, decisions));
+                if (!sourceDecision.Allowed)
+                    continue;
+
+                admittedSources.Add(new ContextRetrievalSource
+                {
+                    Source = new FilteringContextSource(source.Source, _admissionEvaluator, source, context, decisions),
+                    Query = source.Query,
+                    MaxItems = source.MaxItems
+                });
             }
 
             var snapshot = await _acquirer.AcquireAsync(admittedSources, budget, cancellationToken).ConfigureAwait(false);
             return new ContextPolicyAssemblyResult(snapshot, decisions.AsReadOnly());
-        }
-
-        private sealed class AdmittedContextRetrievalSource : ContextRetrievalSource
-        {
-            private readonly IContextAdmissionEvaluator _evaluator;
-            private readonly ContextAdmissionContext _context;
-            private readonly IList<ContextAdmissionDecision> _decisions;
-
-            public AdmittedContextRetrievalSource(
-                ContextRetrievalSource source,
-                IContextAdmissionEvaluator evaluator,
-                ContextAdmissionContext context,
-                IList<ContextAdmissionDecision> decisions)
-            {
-                Source = new FilteringContextSource(source.Source, evaluator, source, context, decisions);
-                Query = source.Query;
-                MaxItems = source.MaxItems;
-            }
         }
 
         private sealed class FilteringContextSource : IContextSource
@@ -88,11 +76,11 @@ namespace HAgent.Runtime
                 ContextAdmissionContext context,
                 IList<ContextAdmissionDecision> decisions)
             {
-                _inner = inner;
-                _evaluator = evaluator;
-                _source = source;
-                _context = context.Clone();
-                _decisions = decisions;
+                _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+                _evaluator = evaluator ?? throw new ArgumentNullException(nameof(evaluator));
+                _source = source ?? throw new ArgumentNullException(nameof(source));
+                _context = context == null ? throw new ArgumentNullException(nameof(context)) : context.Clone();
+                _decisions = decisions ?? throw new ArgumentNullException(nameof(decisions));
             }
 
             public string Id { get { return _inner.Id; } }

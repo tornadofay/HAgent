@@ -4,7 +4,7 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.953 Unified Policy Engine — CURRENT
 
-Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, pre-transport runtime enforcement, and effective-policy execution snapshots. The remaining work completes policy integration across persistence, authorization, resources, learning, approvals, and UI.
+Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, pre-transport runtime enforcement, effective-policy execution snapshots, canonical persistence, policy-gated tool invocation, and policy-first composition with host data authorization.
 
 ### Objective
 
@@ -23,24 +23,31 @@ Create one coherent policy boundary for HAgent decisions without making the mode
 - `AgentExecution.PolicyDecision` capture.
 - `AgentExecutionSnapshot.EffectivePolicy` deep-cloned into the execution snapshot.
 - Runtime policy enforcement after execution-target selection and before provider transport.
-- Deterministic Example verification for engine behavior, snapshot isolation, runtime policy capture, and provider-call prevention under denial.
+- Canonical policy persistence through File, SQL Server, and MySQL `IAiStore` implementations.
+- Default runtime loading of the persisted policy when no explicit evaluator is injected.
+- Tool invocation policy enforcement before executable handlers, with policy decision/provenance captured in `ToolExecutionResult`.
+- Tool loops capture one effective policy evaluator for the lifetime of the loop.
+- `PolicyDataAccessAuthorizer` composes HAgent policy with the host `IDataAccessAuthorizer`, ensuring policy restrictions are evaluated before host authorization while preserving host authority.
+- `DataAuthorizationRequest` carries canonical `AgentIdentityContext` for policy composition.
+- Deterministic Example verification for engine behavior, snapshot isolation, persistence, runtime provider-call prevention, tool denial/approval/allow, and policy-before-host-authorization behavior.
 
-### Next implementation slices
+### Remaining implementation slices
 
-1. Persist policy configuration through File, SQL Server, and MySQL without mixing it into provider/agent transport configuration.
-2. Integrate host authorization callbacks at HAgent enforcement boundaries without replacing host authority.
-3. Apply policy to tool invocation and resource access before side effects occur.
-4. Integrate resource enablement and runtime `Inherit` / `Enabled` / `Disabled` semantics.
-5. Add learning-promotion policy, review requirements, and typed approval transitions.
-6. Add bounded human approval/defer workflow integration.
-7. Add management UI for policy rules, scope, precedence, provenance, and effective decisions.
-8. Expand deterministic Example coverage for persistence, authorization callbacks, tool denial, resource gating, inheritance, runtime overrides, approval, and recovery.
+1. Integrate resource enablement and runtime `Inherit` / `Enabled` / `Disabled` semantics.
+2. Integrate learning-promotion policy, review requirements, and typed approval transitions.
+3. Add bounded human approval/defer workflow integration.
+4. Add management UI for policy rules, scope, precedence, provenance, and effective decisions.
+5. Expand deterministic Example verification and backend-specific live verification where configured.
 
 ### Architectural boundaries
 
 The policy engine is provider-neutral and deterministic. It evaluates HAgent policy state; it does not authenticate principals, own host business authorization, or directly perform application side effects.
 
 Prompt/instruction text is never a policy enforcement mechanism. A model may request an action, but the appropriate runtime enforcement boundary must independently decide whether the action can occur.
+
+For structured data access, HAgent policy can restrict a request before the host authorization callback is consulted, but a policy allow never grants application authorization. The host callback remains authoritative.
+
+For tool execution, `Deny`, `RequireApproval`, and `Defer` are enforced before the registered handler runs. A tool handler is never treated as an authorization boundary by itself.
 
 ## Verification rule
 

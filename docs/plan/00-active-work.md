@@ -21,23 +21,24 @@ Slice 3 — Resource and external-content boundaries — was verified by the use
 
 Slice 4 — Execution integration — was verified by the user on 2026-09-08 through the updated `COGNITION INSTRUCTIONS` result, covering effective snapshot capture before provider transport, provider transport parity, caller-source mutation isolation, lower-authority external exclusion, and execution/principal provenance.
 
-Slice 5 — Example coverage and framework verification — is current. The first runtime checks exposed Example-host setup coupling: deterministic examples must not require the manually selected configured agent, while `RUNTIME EXECUTION` remains an intentionally configuration-driven live execution example.
+Slice 5 — Example coverage and framework verification — is current. Deterministic runtime examples that were coupled to selected-agent UI state have been corrected to self-contained local scenarios.
 
 ## Current run
 
-**Verified checkpoint/blocker — 0.954 Slice 5 deterministic runtime example setup correction awaiting local verification.**
+**Verified checkpoint — 0.954 Slice 5 deterministic runtime coverage verified for the reported runs; final framework verification remains.**
 
-- `RUNTIME TERMINAL STATE` was corrected to provision an in-memory agent/provider and no longer require selected-agent UI state; the user then verified caller cancellation and timeout terminal-state protection successfully.
-- `RUNTIME CONCURRENCY` is self-contained with an in-memory store/local adapter and the user verified concurrent overlap, distinct execution/correlation identities, successful completion, model selection, and instance isolation.
-- `RUNTIME STALE RESULTS` was found to have the same selected-agent dependency and has now been corrected to use an in-memory agent/provider/local adapter while preserving its stale-revision contract.
-- `RUNTIME OVERRIDES` was found to have the same selected-agent dependency and has now been corrected to use an in-memory agent/provider and in-memory memory store while preserving override, snapshot, profile-isolation, and cross-instance memory checks.
-- `RUNTIME EXECUTION` intentionally uses the selected configured agent/provider and is not a deterministic 0.954 gate.
-- Framework instruction verification is already complete on .NET Framework 4.8.1 and .NET 9 through `COGNITION INSTRUCTIONS`.
+- `RUNTIME TERMINAL STATE` passed after correction: caller cancellation and timeout completed before late provider completion, and late responses did not overwrite terminal state.
+- `RUNTIME CONCURRENCY` passed: two independent instances overlapped successfully with distinct execution/correlation identities and instance isolation after retirement.
+- `RUNTIME OVERRIDES` passed after correction: runtime overrides applied to the execution snapshot without mutating the reusable profile, and independent memory ownership was verified.
+- `RUNTIME STALE RESULTS` passed after correction: execution revisions advanced from 1 to 2, the older result became non-current, the newer result remained current until retirement, and retirement invalidated current-result status.
+- `RUNTIME EXECUTION` remains a configuration-driven live example using the selected configured agent/provider and is not a deterministic Slice 5 gate by itself.
+- The four runtime results above were supplied by the user, but the supported framework target(s) used for those runs were not explicitly identified; do not treat them as complete framework-matrix evidence yet.
+- `COGNITION INSTRUCTIONS` has already been verified by the user on .NET Framework 4.8.1 and .NET 9.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. The deterministic runtime Example corrections are committed but not locally verified. No local build/test success is claimed.
+This connected session cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed from this session.
 
 ## Next checkpoint
 
-Run `RUNTIME STALE RESULTS` and `RUNTIME OVERRIDES` from the **Execution** feature group using the corrected Example. Verify the same scenarios on each supported framework target used for the 0.954 Example verification. Do not treat configuration-driven `RUNTIME EXECUTION` as a deterministic 0.954 gate when it only exercises the live selected-agent/provider path. Continue with additional Slice 5 coverage only where it directly verifies a remaining 0.954 requirement.
+Run the remaining deterministic 0.954 coverage required by the active plan, especially `RUNTIME SHUTDOWN` if it is part of the cancellation/failure boundary set, and repeat the newly gated runtime scenarios on each supported target needed for framework verification. Record the exact target/framework for each successful run. Do not advance to 0.955 until Slice 5 completion is evidenced locally and the authoritative phase documents are updated.

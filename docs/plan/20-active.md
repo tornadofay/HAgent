@@ -4,7 +4,7 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.953 Unified Policy Engine — CURRENT
 
-Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, pre-transport runtime enforcement, effective-policy execution snapshots, canonical persistence, policy-gated tool invocation, policy-first composition with host data authorization, profile/runtime resource capability resolution, and typed learning-promotion policy evaluation with explicit candidate approval transitions.
+Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, pre-transport runtime enforcement, effective-policy execution snapshots, canonical persistence, policy-gated tool invocation, policy-first composition with host data authorization, profile/runtime resource capability resolution, typed learning-promotion policy evaluation with explicit candidate approval transitions, and a bounded approval/defer workflow.
 
 ### Objective
 
@@ -24,7 +24,7 @@ Create one coherent policy boundary for HAgent decisions without making the mode
 - `AgentExecutionSnapshot.EffectivePolicy` deep-cloned into the execution snapshot.
 - Runtime policy enforcement after execution-target selection and before provider transport.
 - Canonical policy persistence through File, SQL Server, and MySQL `IAiStore` implementations.
-- Default runtime loading of the persisted policy when no explicit evaluator is injected.
+- Default runtime loading of the persisted policy when no explicitly injected evaluator is supplied.
 - Tool invocation policy enforcement before executable handlers, with policy decision/provenance captured in `ToolExecutionResult`.
 - Tool loops capture one effective policy evaluator for the lifetime of the loop.
 - `PolicyDataAccessAuthorizer` composes HAgent policy with the host `IDataAccessAuthorizer`, ensuring policy restrictions are evaluated before host authorization while preserving host authority.
@@ -37,13 +37,16 @@ Create one coherent policy boundary for HAgent decisions without making the mode
 - `AiLearningPromotionRequest` maps candidate type, proposed scope, confidence/evidence, provenance, contradiction, retention, source identity, and optional learning mode into the unified `learning.promote` policy operation.
 - `AiLearningPromotionPolicy` evaluates learning promotion through the existing `IAiPolicyEngine`; no parallel learning authorization evaluator exists.
 - `AiLearningCandidate` provides explicit `Proposed`, `PendingReview`, `Approved`, `Rejected`, and `Promoted` states with guarded transitions. `Allow`, `RequireApproval`, `Defer`, and `Deny` map to the corresponding promotion lifecycle states.
-- Deterministic Example coverage for engine behavior, persistence, runtime provider-call prevention, tool denial/approval/allow, policy-before-host-authorization, resource capability resolution/persistence/tool gating, and learning promotion/review transitions.
+- `AiApprovalRequest` and `IAiApprovalWorkflow` provide bounded process-local approval/deferral state for policy outcomes requiring review.
+- Approval requests preserve operation/resource identity, HAgent and host correlation, agent/runtime/execution identity where known, requester identity, policy reason, and terminal responder metadata.
+- Approval resolution is explicit and terminal; resolving an approval never executes the protected operation or silently resumes an execution.
+- Deterministic Example coverage for engine behavior, persistence, runtime provider-call prevention, tool denial/approval/allow, policy-before-host-authorization, resource capability resolution/persistence/tool gating, learning promotion/review transitions, and approval/deferral workflow lifecycle.
+- WinForms policy management surface with policy-rule editing, explicit precedence fields, effective-decision inspection, and agent resource-capability inspection.
 
 ### Remaining implementation slices
 
-1. Add bounded human approval/defer workflow integration.
-2. Add management UI for policy rules, scope, precedence, provenance, effective decisions, and resource capability state.
-3. Expand deterministic Example verification and backend-specific live verification where configured.
+1. Verify the new policy management UI locally on .NET Framework 4.8.1 and .NET 9.
+2. Expand deterministic Example verification and backend-specific live verification where configured.
 
 ### Architectural boundaries
 
@@ -54,6 +57,8 @@ Resource enablement is a separate configuration capability layer. It determines 
 Profile resource configuration is the default layer. Runtime `Inherit` / `Enabled` / `Disabled` overrides are runtime-only and do not mutate the persistent profile. Effective state is captured into the execution snapshot so later profile/runtime edits cannot alter an already-created execution.
 
 Learning promotion is another enforcement use of the same policy boundary. Typed learning metadata is supplied as policy context; policy may permit, require review, defer, or deny promotion. Candidate lifecycle transitions are explicit and terminal states cannot be bypassed. Approved candidates still require a separate repository/promotion operation; no candidate object directly mutates authoritative Knowledge or Skills.
+
+Approval and deferral are explicit review-state boundaries. `RequireApproval` and `Defer` may create bounded pending requests, but approval state is not authorization by itself and does not silently resume execution. Full durable intervention, pause/resume, cancellation, and operator lifecycle semantics remain owned by the later human-intervention foundation.
 
 Prompt/instruction text is never a policy enforcement mechanism. A model may request an action, but the appropriate runtime enforcement boundary must independently decide whether the action can occur.
 

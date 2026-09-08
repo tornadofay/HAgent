@@ -72,6 +72,12 @@ Acquisition obtains candidate information. Retrieval selects information from a 
 
 The Core acquisition boundary is `IContextSource`, which exposes only a bounded `ContextSourceRequest` and returns provider-neutral `ContextItem` candidates. `IContextAcquirer` consumes sources in the caller-supplied order, passes each source an isolated request copy, enforces the configured item/character/token limits, propagates cancellation, and produces an execution-owned `ContextSnapshot`. Acquisition does not authorize a source, rank candidates, deduplicate them, compact them, or contact a provider.
 
+`ContextRetrievalSource` is the per-source retrieval-plan entry. It binds one `IContextSource` to its own bounded query and candidate limit. The acquirer executes these entries in deterministic plan order, clamps each source request to the remaining global item budget, and then applies the global character/token bounds to returned candidates. This permits memory, knowledge, skill, conversation, host-context, tool-description, and instruction producers to receive different retrieval intent while sharing one provider-neutral assembly boundary.
+
+`ContextSourceKinds` provides the standard producer category identifiers for those seven source families. They are string constants rather than a closed enum so future provider-neutral resource types can introduce their own kinds without changing the canonical context model.
+
+The per-source retrieval plan is an input/selection mechanism, not an authorization mechanism. Source enablement, permissions, resource capability state, and instruction authority remain separate policy boundaries and must be enforced before or during the later policy-aware assembly stage.
+
 When a hard estimated-token budget is configured, a candidate without a token estimate is not admitted because its cost cannot be proven to fit the hard bound. When no token budget is configured, known token usage may still be reported while remaining token capacity stays unspecified.
 
 Cognitive attention is a separate decision. Cognition may identify goals, focus, or required evidence; context engineering translates those decisions into bounded evidence. Context engineering must not become an implicit second cognitive planner.

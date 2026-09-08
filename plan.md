@@ -9,26 +9,30 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current task
 
-- **Phase:** 0.959 Human-in-the-Loop / Intervention
+- **Phase:** 0.954 Prompt and Instruction Governance
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Complete the canonical intervention lifecycle, execution control, concurrency/stale-state hardening, additional targets, durable persistence, management UI, expanded Example verification, and final framework/backend verification defined by the active implementation plan.
+- **Scope:** Complete the ordered 0.954 slices only: Example UI prerequisite, instruction source/authority contracts, deterministic instruction composition/conflict handling, resource/external-content boundaries, execution integration, and final Example/framework verification.
 
 ## Current checkpoint
 
-Slice 1 execution intervention control was verified locally by the user on 2026-09-08 through the `EXECUTION INTERVENTION` Example, including pause/resume/cancel lifecycle and late provider response protection. Slice 2 concurrency/stale-state hardening is implemented in source with target state/version evidence, per-execution resolution serialization, explicit stale expiry, teardown-race handling, and a deterministic `INTERVENTION HARDENING` Example, but that new Example has not yet been locally executed in this connected environment.
+The current 0.954 entry prerequisite is implemented in `HAgent.Example` through `src/HAgent.Example/MainForm.ExampleOrganization.cs`: architecture-level feature tabs are created, Context and Runtime use nested focused sub-tabs, and the ahead-of-roadmap Learning candidate intervention example is restored to the visible Cognition group. The prerequisite has not been locally verified in this connected environment.
 
-## Work ownership
+## Current run
 
-The active implementation plan is the authoritative scope for the current task. Do not start a parallel implementation of the same capability unless the active scope is explicitly changed.
+**Verified checkpoint/blocker — Example UI prerequisite awaiting local verification.**
+
+- Implementation present: `MainForm.ExampleOrganization.cs`.
+- Required verification: build/run `HAgent.Example`; confirm top-level feature grouping and nested examples are usable, confirm `LEARNING INTERVENTION` is visible under `Cognition`, and confirm existing examples remain independently runnable.
+- Environment limitation: this session has GitHub repository access only; there is no local checkout or executable code build/test workflow available here. The repository's only GitHub Actions workflow is documentation generation, so it cannot substitute for the required local Example verification.
 
 ## Current blockers
 
-Local verification of the new intervention-hardening slice is not available through the connected environment because the repository has no executable code build/test workflow exposed here and there is no local checkout in this session. The user must run the updated Example after pulling the latest commits before Slice 2 can be marked verified and Slice 3 can begin.
+The 0.954 implementation cannot begin until the Example UI prerequisite is locally verified, as required by `docs/plan/20-active.md`. No claim of local build/test success is made in this run.
 
 ## Next checkpoint
 
-Build and run HAgent Example, then execute **INTERVENTION HARDENING → Run intervention concurrency/stale-state test**. Verify terminal stale requests resolve as `Expired`, target state/version evidence is captured, conflicting concurrent requests produce one applied transition and one stale request, paused work remains blocked until a fresh resume intervention, and duplicate responder resolution cannot apply a second transition.
+After local Example verification succeeds, mark the prerequisite complete and make **0.954 slice 1 — Instruction source and authority contracts** the sole current slice. Do not begin slice 1 before that prerequisite is verified.
 
 ## Current project state
 

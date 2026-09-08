@@ -100,6 +100,47 @@ Model / Runtime request
 
 An approved intervention does not bypass a later authorization or capability check. Every consequential operation must still pass its normal runtime, policy, authorization, capability, budget, and host-side validation boundaries.
 
+## Execution control integration
+
+Execution intervention is applied by the existing `DefaultAgentRuntime`; the intervention coordinator does not execute providers or create a second runtime. Each active execution receives one private control state and one linked cancellation source owned by that runtime's intervention coordinator.
+
+The control model is cooperative:
+
+```text
+Running
+  |
+  +--> Paused --------> Running
+  |
+  +--> Cancelling ----> terminal Cancelled execution
+```
+
+Pause does not attempt hard preemption of an in-flight provider call. The runtime checks the control gate at interruptible execution boundaries and again before committing a provider response. This means a pause requested while transport is already in progress is applied before the response becomes authoritative.
+
+Cancellation is different: it propagates through the execution's linked cancellation token immediately. The runtime therefore completes the caller-facing execution without waiting for a non-cooperative provider task, while the existing terminal-state protection prevents any late provider response from overwriting the cancelled execution.
+
+The public host-facing path is:
+
+```text
+HAgentClient
+    |
+    +--> ExecutionChanged
+    +--> RequestExecutionInterventionAsync
+    +--> ResolveInterventionRequestAsync
+    +--> GetExecutionControlStateAsync
+    |
+    v
+DefaultAgentRuntime
+    |
+    v
+AiInterventionCoordinator
+    |
+    +--> canonical intervention workflow
+    +--> execution control state
+    +--> linked cancellation token
+```
+
+The host supplies requester/responder identity and remains responsible for authenticating and authorizing those principals. Direct mutation helpers remain runtime-internal so a host cannot bypass the intervention request lifecycle through the coordinator.
+
 ## Intervention targets
 
 The model must support intervention at boundaries rather than assuming that every intervention controls a whole agent process:
@@ -201,6 +242,8 @@ The phase should evolve in this order:
 6. Expose management UI and diagnostics from the same canonical state.
 7. Add deterministic Example verification for every lifecycle and race-sensitive transition.
 
+The execution-control portion of step 3 is now implemented in the canonical runtime path. The remaining steps must not assume that this implementation already solves stale-request concurrency, additional targets, persistence, or UI semantics.
+
 ## Invariants
 
 - There is one intervention contract and one intervention lifecycle model.
@@ -212,3 +255,4 @@ The phase should evolve in this order:
 - Free-form operator text is metadata, never executable instructions.
 - No UI-specific intervention semantics are allowed to diverge from Core contracts.
 - No provider adapter owns human-intervention policy or lifecycle.
+- Execution pause/resume/cancel remain controls over the existing runtime execution path; they never create a second execution engine.

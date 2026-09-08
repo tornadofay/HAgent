@@ -41,17 +41,18 @@ Only one slice is **CURRENT** at a time. Each slice must reach a verified checkp
    - Completion: lower-authority/untrusted content cannot erase higher-authority policy or instruction layers, and disabled/unavailable sources remain diagnosable.
    - Verification: user executed **COGNITION INSTRUCTIONS → Run instruction contract test** on 2026-09-08 and confirmed trusted-resource authority/trust, external-content boundaries, unavailable-source handling, and lower-authority override resistance.
 
-4. **Execution integration — CURRENT**
+4. **Execution integration — VERIFIED**
    - Scope: Feed the effective instruction snapshot into the existing execution boundary without creating a second execution/prompt engine and preserve active-execution snapshot isolation.
    - Entry: Slices 1–3 verified.
    - Implementation: `AgentExecutionRequest.InstructionSources` carries host/resource instruction sources; `DefaultAgentRuntime` selects the execution target, composes the canonical instruction set once, captures a cloned `AgentExecutionSnapshot.InstructionSnapshot` before entering `Running`, and passes the same composed effective instruction text to provider transport. Caller-owned source mutations therefore cannot alter the captured execution instructions.
    - Completion: running executions retain immutable effective instruction state even when source configuration changes, and provider transport consumes the same effective composition rather than rebuilding it through a second prompt engine.
-   - Verification: build/run `HAgent.Example` and execute **COGNITION INSTRUCTIONS → Run instruction contract test**. The updated scenario must confirm effective snapshot capture, provider transport parity, caller-source mutation isolation, and execution/principal provenance.
+   - Verification: user executed **COGNITION INSTRUCTIONS → Run instruction contract test** on 2026-09-08 and confirmed effective snapshot capture, provider transport parity, caller-source mutation isolation, lower-authority exclusion, and execution/principal provenance.
 
-5. **Example coverage and framework verification**
+5. **Example coverage and framework verification — CURRENT**
    - Scope: Complete deterministic public-API Example scenarios for precedence, conflicts, untrusted content, disabled resources, provenance, snapshot isolation, cancellation/failure boundaries, and supported framework targets.
-   - Entry: implementation is stable.
+   - Entry: execution integration verified.
    - Completion: the new Example coverage passes locally on the supported targets and the authoritative phase documents record verification.
+   - Verification: run the complete 0.954 Example verification set on the supported targets, including the existing deterministic execution/cancellation/failure scenarios and the `COGNITION INSTRUCTIONS` scenario, then record the exact successful framework results.
 
 6. **Advance to 0.955 Context Engineering**
    - Scope: Only after 0.954 is verified, update the active plan to the next roadmap phase.

@@ -65,6 +65,8 @@ namespace HAgent.Models
             RuntimeInstanceId = string.Empty;
             ExecutionId = string.Empty;
             ToolId = string.Empty;
+            TargetState = string.Empty;
+            TargetStateVersion = 0;
             Reason = string.Empty;
             ResolutionReason = string.Empty;
             RequesterIdentity = new AgentIdentityContext();
@@ -85,6 +87,8 @@ namespace HAgent.Models
         public string RuntimeInstanceId { get; private set; }
         public string ExecutionId { get; private set; }
         public string ToolId { get; private set; }
+        public string TargetState { get; private set; }
+        public long TargetStateVersion { get; private set; }
         public string Reason { get; private set; }
         public AgentIdentityContext RequesterIdentity { get; private set; }
         public AgentIdentityContext ResponderIdentity { get; private set; }
@@ -106,7 +110,9 @@ namespace HAgent.Models
             string executionId,
             string toolId,
             string reason,
-            AgentIdentityContext requesterIdentity)
+            AgentIdentityContext requesterIdentity,
+            string targetState,
+            long targetStateVersion)
         {
             if (string.IsNullOrWhiteSpace(operation)) throw new ArgumentException("Operation is required.", nameof(operation));
             if (string.IsNullOrWhiteSpace(resourceType)) throw new ArgumentException("Resource type is required.", nameof(resourceType));
@@ -127,6 +133,8 @@ namespace HAgent.Models
                 RuntimeInstanceId = runtimeInstanceId ?? string.Empty,
                 ExecutionId = executionId ?? string.Empty,
                 ToolId = toolId ?? string.Empty,
+                TargetState = targetState ?? string.Empty,
+                TargetStateVersion = targetStateVersion,
                 Reason = reason ?? string.Empty,
                 RequesterIdentity = requesterIdentity == null ? new AgentIdentityContext() : requesterIdentity.Clone(),
                 CreatedAt = DateTimeOffset.UtcNow
@@ -135,8 +143,9 @@ namespace HAgent.Models
 
         internal void Resolve(AiInterventionRequestStatus status, AgentIdentityContext responderIdentity, string reason)
         {
-            if (Status != AiInterventionRequestStatus.Pending)
-                throw new InvalidOperationException("Intervention request is no longer pending: " + RequestId);
+            if (Status != AiInterventionRequestStatus.Pending &&
+                !(Status == AiInterventionRequestStatus.Approved && status == AiInterventionRequestStatus.Expired))
+                throw new InvalidOperationException("Intervention request is no longer resolvable: " + RequestId);
             if (status != AiInterventionRequestStatus.Approved &&
                 status != AiInterventionRequestStatus.Rejected &&
                 status != AiInterventionRequestStatus.Cancelled &&
@@ -178,6 +187,8 @@ namespace HAgent.Models
                 RuntimeInstanceId = RuntimeInstanceId,
                 ExecutionId = ExecutionId,
                 ToolId = ToolId,
+                TargetState = TargetState,
+                TargetStateVersion = TargetStateVersion,
                 Reason = Reason,
                 RequesterIdentity = RequesterIdentity == null ? new AgentIdentityContext() : RequesterIdentity.Clone(),
                 ResponderIdentity = ResponderIdentity == null ? null : ResponderIdentity.Clone(),
@@ -205,7 +216,9 @@ namespace HAgent.Models
             string toolId,
             string reason,
             AgentIdentityContext requesterIdentity,
-            CancellationToken cancellationToken = default(CancellationToken));
+            CancellationToken cancellationToken = default(CancellationToken),
+            string targetState = null,
+            long targetStateVersion = 0);
 
         Task<AiInterventionRequest> GetAsync(string requestId, CancellationToken cancellationToken = default(CancellationToken));
 
@@ -245,12 +258,15 @@ namespace HAgent.Models
             string toolId,
             string reason,
             AgentIdentityContext requesterIdentity,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default(CancellationToken),
+            string targetState = null,
+            long targetStateVersion = 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var request = AiInterventionRequest.Create(
                 kind, targetKind, requestedAction, operation, resourceType, resourceId, correlationId,
-                hostCorrelationId, agentProfileId, runtimeInstanceId, executionId, toolId, reason, requesterIdentity);
+                hostCorrelationId, agentProfileId, runtimeInstanceId, executionId, toolId, reason,
+                requesterIdentity, targetState, targetStateVersion);
             lock (_sync)
             {
                 _requests.Add(request.RequestId, request);

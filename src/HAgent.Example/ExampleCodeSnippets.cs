@@ -66,6 +66,21 @@ var bounded = builder.Build(messages);";
 
 foreach (var item in ranked)
     Console.WriteLine(item.Id);";
+                case "Context Compaction": return @"var result = new ContextCompactor().Compact(
+    rankedCandidates,
+    new ContextCompactionOptions
+    {
+        TargetBudget = new ContextBudget
+        {
+            MaxItems = 20,
+            MaxCharacters = 80000,
+            MaxEstimatedTokens = 16000
+        },
+        CaptureDiagnostics = true
+    });
+
+foreach (var decision in result.Decisions)
+    Console.WriteLine(decision.ItemId + "": "" + decision.Reason);";
                 case "Task / Event Memory": return @"var taskId = ""task-42"";
 await memoryStore.SaveAsync(new MemoryRecord
 {

@@ -1,6 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
+using HAgent.Abstractions;
 
 namespace HAgent.Models
 {
@@ -109,7 +108,7 @@ namespace HAgent.Models
     public static class AiLearningPromotionPolicy
     {
         public static AiPolicyDecision Evaluate(
-            Abstractions.IAiPolicyEngine policyEngine,
+            IAiPolicyEngine policyEngine,
             AiLearningPromotionRequest request)
         {
             if (policyEngine == null) throw new ArgumentNullException(nameof(policyEngine));
@@ -207,7 +206,7 @@ namespace HAgent.Models
                 case AiLearningCandidateStatus.Promoted:
                     throw InvalidTransition(target);
                 default:
-                    throw InvalidOperationException("Unknown learning candidate status: " + Status.ToString());
+                    throw new InvalidOperationException("Unknown learning candidate status: " + Status.ToString());
             }
 
             Status = target;

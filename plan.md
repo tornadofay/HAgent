@@ -12,25 +12,27 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.956 Observability and Distributed Tracing
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Begin the ordered 0.956 observability/tracing foundation after verified completion of 0.955 Context Engineering.
+- **Scope:** Build the ordered 0.956 observability/tracing foundation after verified completion of 0.955 Context Engineering.
 
 ## Current checkpoint
 
-Phase 0.955 Context Engineering was verified and closed by the user on 2026-09-09. Its final Slice 11 verification completed with 56/56 HAgent.Tests passing and the deterministic Context Host Authorization Example passing on .NET Framework 4.8.1 and .NET 9. The full 0.955 roadmap requirements and verification matrix are now marked complete.
+0.956 Slice 1 architecture/contract reconciliation is complete. The authoritative observability architecture is `docs/architecture/22-observability.md`. It defines trace/span identity and parentage, preserves existing execution/host/runtime/event correlation identities, establishes default-deny bounded metadata and sink-side redaction, separates tracing from event dispatch, authorization, execution audit, and transcript storage, and defines the provider-neutral in-memory-first implementation boundary.
+
+No tracing implementation was started during Slice 1.
 
 ## Current run
 
-**0.956 Slice 1 architecture/contract reconciliation — CURRENT.**
+**0.956 Slice 2 trace identity and span lifecycle contracts — CURRENT.**
 
-The current slice is to reconcile existing diagnostics, execution audit, correlation IDs, lifecycle events, policy decisions, provider/tool/context boundaries, and runtime state against the 0.956 requirements and define the smallest provider-neutral trace/span contract without implementing the full tracing system in the same run.
+The current slice is to implement only the provider-neutral Core trace context/span contracts and the in-memory recorder boundary defined by `docs/architecture/22-observability.md`, with matching deterministic `HAgent.Tests` and public-API `HAgent.Example` verification.
 
 ## Next action
 
-Review the 0.956 roadmap, current-state document, existing diagnostics/audit/correlation contracts, event subsystem, and execution/provider boundaries. Produce the authoritative observability architecture and identify the exact first contract implementation slice. No full tracing implementation should be started until this architecture checkpoint is complete.
+Implement the trace identity/context/span lifecycle contracts and bounded metadata representation. Add the focused unit tests and matching Example scenario for hierarchy, correlation propagation, redaction-safe metadata, terminal status, and deterministic ordering. Do not begin Slice 3 in the same run.
 
 ## Current blockers
 
-No known implementation blocker. The connected session can inspect and modify repository source, but local .NET/WinForms build and Example execution remain user-side verification steps.
+No known architecture blocker. Local .NET/WinForms build and Example execution remain user-side verification steps for this connected session.
 
 ## Current project state
 
@@ -558,13 +560,18 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
 
 ### 0.956 Run-sized execution plan
 
-1. **Observability contract inventory and architecture review — CURRENT CHECKPOINT**
-   - Reconcile the existing diagnostics, execution audit, correlation IDs, lifecycle events, policy decisions, provider execution boundaries, tool activity, context assembly, and runtime state against the authoritative 0.956 observability requirements.
-   - Define the smallest provider-neutral trace/span contract needed to correlate HAgent operations without creating a second event system or coupling Core to a telemetry vendor.
-   - Establish the canonical relationship between existing execution/correlation identifiers and future trace/span/parent relationships.
-   - Define the safe metadata boundary for traces: secrets, credentials, sensitive payloads, and raw prompts/responses remain excluded by default; redaction must be explicit and bounded.
-   - Identify which existing observability mechanisms are retained as producers/adapters and which missing contracts must be introduced in later slices.
-   - This slice is architecture/contract reconciliation only; do not implement the full tracing system in the same run.
+1. **Observability contract inventory and architecture review — VERIFIED**
+   - Reconciled existing execution/correlation identity, identity context, execution audit, lifecycle state, event correlation/causation, policy decisions, tool-call context, context/admission diagnostics, and provider boundaries against the 0.956 requirements.
+   - Added the authoritative provider-neutral observability architecture in `docs/architecture/22-observability.md`.
+   - Established that trace/span identity is a new observability relationship and does not replace `ExecutionId`, `AgentExecution.CorrelationId`, `HostCorrelationId`, runtime identity, event IDs, or causation IDs.
+   - Established bounded default-deny trace metadata, explicit redaction before sinks, vendor-neutral sampling/retention semantics, and the separation between tracing, event dispatch, authorization, execution audit, and transcript/payload storage.
+   - Identified the exact first implementation boundary: **0.956 Slice 2 — Trace identity and span lifecycle contracts**, with focused `HAgent.Tests` and matching public-API `HAgent.Example` verification.
+   - No tracing implementation, exporter, persistence, UI, or broad runtime instrumentation was started in this slice.
+
+2. **Trace identity and span lifecycle contracts — CURRENT**
+   - Introduce the provider-neutral Core trace context/span contracts and in-memory recorder boundary defined by `docs/architecture/22-observability.md`.
+   - Add matching deterministic `HAgent.Tests` coverage and public-API `HAgent.Example` verification for hierarchy, correlation propagation, redaction-safe metadata, terminal status, and deterministic ordering.
+   - Do not begin Slice 3 in the same run.
 
 ### Verification rule
 

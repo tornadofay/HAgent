@@ -593,9 +593,9 @@ The complete 0.954 implementation and verification sequence is complete.
    - Deterministic public-API `HAgent.Example` Context Cache verification passed on 2026-09-09, including valid reuse, scope/configuration/resource/freshness isolation, expiration invalidation, snapshot mutation isolation, and no provider request.
 
 7. **Execution/provider integration and deterministic Example verification — CURRENT**
-   - Scope: integrate the canonical context pipeline with execution/provider-facing boundaries without moving provider tokenization into Core.
-   - The integration must preserve execution-owned snapshot isolation, honor ranking/compaction results, maintain provenance/diagnostic safety, and keep provider transport as an adapter concern.
-   - Verification target: focused Core/integration tests plus matching deterministic public-API `HAgent.Example` verification using a fake/provider-neutral adapter, including successful context transport and important boundary/failure behavior.
+   - Core now carries an optional canonical `ContextSnapshot` from `AgentExecutionRequest` into an execution-owned `AgentExecutionSnapshot` and then into `ProviderExecutionRequest`.
+   - Provider adapters receive provider-neutral context without Core imposing provider-specific tokenization or prompt formatting. Adapter-side request mutation does not replace the execution-owned snapshot.
+   - Verification target: focused Core/integration tests plus matching deterministic public-API `HAgent.Example` coverage using an in-process fake adapter, including successful context transport and provider-failure/context-preservation behavior.
 
 ### Verification rule
 

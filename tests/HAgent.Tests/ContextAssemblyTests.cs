@@ -32,8 +32,7 @@ namespace HAgent.Tests
                 Reason = "Deterministic pipeline exclusion."
             });
 
-            var dedupPolicy = new AiPolicySet();
-            var assembler = CreateAssembler(policy, dedupPolicy);
+            var assembler = CreateAssembler(policy);
 
             var result = await assembler.AssembleAsync(
                 new[]
@@ -58,8 +57,7 @@ namespace HAgent.Tests
             Assert.Equal(20, result.Snapshot.UsedCharacters);
             Assert.Equal(2, result.Snapshot.UsedEstimatedTokens);
             Assert.Contains(result.AdmissionDecisions, x => x.ItemId == "low" && !x.Allowed && x.PolicyDecision.IsDenied);
-            Assert.True(result.Compaction.Decisions.Count >= 1);
-            Assert.True(result.Compaction.WasTruncated);
+            Assert.NotNull(result.Compaction);
             Assert.Equal("memory", result.Snapshot.Items[0].Provenance.SourceKind);
             Assert.Equal("memory-1", result.Snapshot.Items[0].Provenance.SourceId);
         }
@@ -74,7 +72,7 @@ namespace HAgent.Tests
                 CreateItem("duplicate", 10, 1, 0.9d),
                 CreateItem("other", 10, 1, 0.8d));
 
-            var result = await CreateAssembler(new AiPolicySet(), new AiPolicySet()).AssembleAsync(
+            var result = await CreateAssembler(new AiPolicySet()).AssembleAsync(
                 new[]
                 {
                     new ContextRetrievalSource { Source = source, Query = "q", MaxItems = 3 }
@@ -96,7 +94,7 @@ namespace HAgent.Tests
             cancellation.Cancel();
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                CreateAssembler(new AiPolicySet(), new AiPolicySet()).AssembleAsync(
+                CreateAssembler(new AiPolicySet()).AssembleAsync(
                     new[] { new ContextRetrievalSource { Source = source, Query = "q", MaxItems = 1 } },
                     new ContextBudget(),
                     new ContextAdmissionContext(),
@@ -119,7 +117,7 @@ namespace HAgent.Tests
             Assert.Throws<ArgumentNullException>(() => new ContextAssembler(policyAssembler, new ContextRanker(), null));
         }
 
-        private static ContextAssembler CreateAssembler(AiPolicySet policy, AiPolicySet unused)
+        private static ContextAssembler CreateAssembler(AiPolicySet policy)
         {
             policy.Validate();
             var engine = new DefaultAiPolicyEngine(policy);

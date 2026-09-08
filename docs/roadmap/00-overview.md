@@ -15,8 +15,8 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.951 — Identity, Tenancy + User Context — **completed and verified**
 - 0.952 — First-Class Event Subsystem — completed and verified
 - 0.953 — Unified Policy Engine — completed for its verified runtime/persistence/resource/learning-policy foundation
-- 0.954 — Prompt + Instruction Governance — **current ordered milestone**
-- 0.955 — Context Engineering — planned architectural foundation
+- 0.954 — Prompt + Instruction Governance — **completed and verified on .NET Framework 4.8.1 and .NET 9**
+- 0.955 — Context Engineering — **current ordered milestone**
 - 0.956 — Observability + Distributed Tracing — planned architectural foundation
 - 0.957 — Evaluation + Quality Measurement — planned architectural foundation
 - 0.9575 — Knowledge, Skills, Memory Governance + Learning — planned mature resource/governance phase
@@ -84,9 +84,9 @@ The current ordered foundations are:
         ↓
 0.953 Unified Policy Engine
         ↓
-0.954 Prompt / Instruction Governance
+0.954 Prompt / Instruction Governance — verified
         ↓
-0.955 Context Engineering
+0.955 Context Engineering — current
         ↓
 0.956 Observability / Tracing
         ↓

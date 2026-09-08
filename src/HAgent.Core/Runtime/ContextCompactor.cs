@@ -115,7 +115,7 @@ namespace HAgent.Runtime
                 usedEstimatedTokens,
                 sourceIds.Count);
 
-            return new ContextCompactionResult(snapshot, decisions);
+            return new ContextCompactionResult(snapshot, decisions, rankedCandidates.Count);
         }
     }
 }

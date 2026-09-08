@@ -34,6 +34,7 @@ namespace HAgent.Example
             // verification available without changing the ordered roadmap milestone.
             AddLearningCandidateInterventionTab();
             OrganizeExampleTabs();
+            NormalizeExampleTabContentLayouts();
         }
 
         private void OrganizeExampleTabs()
@@ -175,6 +176,50 @@ namespace HAgent.Example
             return nested;
         }
 
+        private void NormalizeExampleTabContentLayouts()
+        {
+            foreach (TabPage featurePage in _tabs.TabPages)
+                NormalizeControlsRecursive(featurePage);
+        }
+
+        private static void NormalizeControlsRecursive(Control root)
+        {
+            var page = root as TabPage;
+            var layout = root as TableLayoutPanel;
+            if (page != null && page.Controls.Count == 1)
+                layout = page.Controls[0] as TableLayoutPanel;
+
+            if (layout != null && layout.RowCount == 4 && layout.Controls.Count >= 4)
+            {
+                // The Description + Expected result content is intentionally one combined
+                // label. Give it enough height for wrapping instead of introducing a second
+                // competing information panel.
+                layout.RowStyles[0] = new RowStyle(SizeType.Absolute, 44);
+                layout.RowStyles[1] = new RowStyle(SizeType.Percent, 52);
+                layout.RowStyles[2] = new RowStyle(SizeType.Percent, 31);
+                layout.RowStyles[3] = new RowStyle(SizeType.Absolute, 48);
+
+                var details = layout.GetControlFromPosition(0, 2) as Label;
+                if (details != null)
+                {
+                    details.AutoEllipsis = false;
+                    details.AutoSize = false;
+                    details.Padding = new Padding(1, 8, 20, 4);
+                }
+
+                var note = layout.GetControlFromPosition(0, 3) as Label;
+                if (note != null)
+                {
+                    note.AutoEllipsis = false;
+                    note.AutoSize = false;
+                    note.Padding = new Padding(1, 5, 20, 2);
+                }
+            }
+
+            foreach (Control child in root.Controls)
+                NormalizeControlsRecursive(child);
+        }
+
         private static string GetExampleSubGroup(string title)
         {
             var key = (title ?? string.Empty).Trim().ToUpperInvariant();
@@ -188,8 +233,10 @@ namespace HAgent.Example
 
             if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY")
                 return "Runtime Instances";
-            if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING")
-                return key.Contains("INTERVENTION") ? "Intervention" : "Execution";
+            if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING")
+                return "Intervention";
+            if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RUNTIME EXECUTION")
+                return "Execution";
             if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION")
                 return "Planning & Capacity";
             if (key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY")

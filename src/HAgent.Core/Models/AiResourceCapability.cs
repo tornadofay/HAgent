@@ -5,10 +5,6 @@ using System.Linq;
 
 namespace HAgent.Models
 {
-    /// <summary>
-    /// Runtime/profile state for one governed HAgent resource or resource family.
-    /// Inherit means that the next lower configuration layer decides the effective state.
-    /// </summary>
     public enum AiResourceCapabilityState
     {
         Inherit,
@@ -52,10 +48,6 @@ namespace HAgent.Models
         }
     }
 
-    /// <summary>
-    /// Profile-level resource/capability defaults or runtime-only overrides.
-    /// Exact resource entries override family/type entries. Inherit continues resolution.
-    /// </summary>
     public sealed class AiResourceCapabilityPolicy
     {
         public AiResourceCapabilityPolicy()
@@ -75,6 +67,7 @@ namespace HAgent.Models
             var normalizedType = NormalizeRequired(resourceType, nameof(resourceType));
             var normalizedId = NormalizeOptional(resourceId);
             var existing = Entries.FirstOrDefault(x =>
+                x != null &&
                 string.Equals(NormalizeRequired(x.ResourceType, nameof(x.ResourceType)), normalizedType, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(NormalizeOptional(x.ResourceId), normalizedId, StringComparison.OrdinalIgnoreCase));
 
@@ -139,7 +132,7 @@ namespace HAgent.Models
                 if (type != null && type.State != AiResourceCapabilityState.Inherit)
                     return type;
             }
-            else if (exact != null)
+            else if (exact != null && exact.State != AiResourceCapabilityState.Inherit)
             {
                 return exact;
             }
@@ -160,20 +153,37 @@ namespace HAgent.Models
         }
     }
 
+    public sealed class AiResourceCapabilitySnapshotEntry
+    {
+        internal AiResourceCapabilitySnapshotEntry(string resourceType, string resourceId, AiResourceCapabilityState state)
+        {
+            ResourceType = resourceType;
+            ResourceId = resourceId;
+            State = state;
+        }
+
+        public string ResourceType { get; private set; }
+        public string ResourceId { get; private set; }
+        public AiResourceCapabilityState State { get; private set; }
+    }
+
     /// <summary>
-    /// Immutable-for-execution effective resource state. No entry can remain Inherit.
+    /// Effective resource state captured for one execution. Every represented entry is Enabled or Disabled;
+    /// unspecified resources resolve to Enabled by default.
     /// </summary>
     public sealed class AiResourceCapabilitySnapshot
     {
         private readonly IReadOnlyDictionary<string, AiResourceCapabilityState> _states;
 
-        private AiResourceCapabilitySnapshot(IReadOnlyDictionary<string, AiResourceCapabilityState> states, IReadOnlyList<AiResourceCapabilityEntry> entries)
+        private AiResourceCapabilitySnapshot(
+            IReadOnlyDictionary<string, AiResourceCapabilityState> states,
+            IReadOnlyList<AiResourceCapabilitySnapshotEntry> entries)
         {
             _states = states;
             Entries = entries;
         }
 
-        public IReadOnlyList<AiResourceCapabilityEntry> Entries { get; private set; }
+        public IReadOnlyList<AiResourceCapabilitySnapshotEntry> Entries { get; private set; }
 
         public bool IsEnabled(string resourceType, string resourceId = null)
         {
@@ -182,33 +192,34 @@ namespace HAgent.Models
 
         public AiResourceCapabilityState GetState(string resourceType, string resourceId = null)
         {
-            var type = resourceType == null ? string.Empty : resourceType.Trim();
+            if (string.IsNullOrWhiteSpace(resourceType))
+                throw new ArgumentException("Resource type is required.", nameof(resourceType));
+
+            var type = resourceType.Trim();
             var id = string.IsNullOrWhiteSpace(resourceId) ? string.Empty : resourceId.Trim();
-            var key = MakeKey(type, id);
-
             AiResourceCapabilityState state;
-            if (_states.TryGetValue(key, out state))
+            if (_states.TryGetValue(MakeKey(type, id), out state))
                 return state;
-
             if (!string.IsNullOrEmpty(id) && _states.TryGetValue(MakeKey(type, string.Empty), out state))
                 return state;
-
             return AiResourceCapabilityState.Enabled;
         }
 
         public AiResourceCapabilitySnapshot Clone()
         {
             var states = new Dictionary<string, AiResourceCapabilityState>(_states, StringComparer.OrdinalIgnoreCase);
-            var entries = Entries.Select(x => x.Clone()).ToList().AsReadOnly();
-            return new AiResourceCapabilitySnapshot(new ReadOnlyDictionary<string, AiResourceCapabilityState>(states), entries);
+            var entries = new List<AiResourceCapabilitySnapshotEntry>();
+            foreach (var entry in Entries)
+                entries.Add(new AiResourceCapabilitySnapshotEntry(entry.ResourceType, entry.ResourceId, entry.State));
+            return new AiResourceCapabilitySnapshot(
+                new ReadOnlyDictionary<string, AiResourceCapabilityState>(states),
+                entries.AsReadOnly());
         }
 
         public void Validate()
         {
             foreach (var entry in Entries)
             {
-                if (entry == null) throw new ArgumentException("Effective resource capability entries cannot contain null values.", nameof(Entries));
-                entry.Validate();
                 if (entry.State == AiResourceCapabilityState.Inherit)
                     throw new ArgumentException("Effective resource capability snapshots cannot contain Inherit entries.", nameof(Entries));
             }
@@ -229,18 +240,15 @@ namespace HAgent.Models
 
             var orderedKeys = keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
             var states = new Dictionary<string, AiResourceCapabilityState>(StringComparer.OrdinalIgnoreCase);
-            var effectiveEntries = new List<AiResourceCapabilityEntry>();
+            var effectiveEntries = new List<AiResourceCapabilitySnapshotEntry>();
             foreach (var key in orderedKeys)
             {
-                SplitKey(key, out var type, out var id);
+                string type;
+                string id;
+                SplitKey(key, out type, out id);
                 var state = ResolveState(profilePolicy, runtimePolicy, type, id);
                 states[key] = state;
-                effectiveEntries.Add(new AiResourceCapabilityEntry
-                {
-                    ResourceType = type,
-                    ResourceId = id,
-                    State = state
-                });
+                effectiveEntries.Add(new AiResourceCapabilitySnapshotEntry(type, id, state));
             }
 
             var snapshot = new AiResourceCapabilitySnapshot(
@@ -250,7 +258,11 @@ namespace HAgent.Models
             return snapshot;
         }
 
-        private static AiResourceCapabilityState ResolveState(AiResourceCapabilityPolicy profile, AiResourceCapabilityPolicy runtime, string resourceType, string resourceId)
+        private static AiResourceCapabilityState ResolveState(
+            AiResourceCapabilityPolicy profile,
+            AiResourceCapabilityPolicy runtime,
+            string resourceType,
+            string resourceId)
         {
             var runtimeEntry = runtime.Find(resourceType, resourceId);
             if (runtimeEntry != null && runtimeEntry.State != AiResourceCapabilityState.Inherit)

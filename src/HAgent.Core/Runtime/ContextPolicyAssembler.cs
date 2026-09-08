@@ -9,24 +9,25 @@ namespace HAgent.Runtime
 {
     /// <summary>
     /// Applies the canonical policy/resource admission boundary to context sources and candidates.
+    /// Host-owned data authorization is invoked only for sources that explicitly opt into that boundary.
     /// Final ranking and bounded assembly are separate stages.
     /// </summary>
     public sealed class ContextPolicyAssembler
     {
         private readonly IContextAcquirer _acquirer;
         private readonly IContextAdmissionEvaluator _admissionEvaluator;
+        private readonly IDataAccessAuthorizer _hostAuthorizer;
 
         public ContextPolicyAssembler(
             IContextAcquirer acquirer,
-            IContextAdmissionEvaluator admissionEvaluator)
+            IContextAdmissionEvaluator admissionEvaluator,
+            IDataAccessAuthorizer hostAuthorizer = null)
         {
             _acquirer = acquirer ?? throw new ArgumentNullException(nameof(acquirer));
             _admissionEvaluator = admissionEvaluator ?? throw new ArgumentNullException(nameof(admissionEvaluator));
+            _hostAuthorizer = hostAuthorizer;
         }
 
-        /// <summary>
-        /// Legacy bounded policy-aware acquisition used by focused admission scenarios.
-        /// </summary>
         public async Task<ContextPolicyAssemblyResult> AcquireAsync(
             IReadOnlyList<ContextRetrievalSource> sources,
             ContextBudget budget,
@@ -49,9 +50,6 @@ namespace HAgent.Runtime
             return new ContextPolicyAssemblyResult(snapshot, retrieval.Decisions);
         }
 
-        /// <summary>
-        /// Retrieves per-source bounded candidates and applies source/item admission without consuming the final assembly budget.
-        /// </summary>
         public async Task<ContextPolicyRetrievalResult> RetrieveCandidatesAsync(
             IReadOnlyList<ContextRetrievalSource> sources,
             ContextAdmissionContext context,
@@ -71,8 +69,16 @@ namespace HAgent.Runtime
                     throw new ArgumentException("Context retrieval sources cannot contain null values.", nameof(sources));
 
                 var sourceDecision = _admissionEvaluator.EvaluateSource(source, context);
-                decisions.Add(sourceDecision.Clone());
                 if (!sourceDecision.Allowed)
+                {
+                    decisions.Add(sourceDecision.Clone());
+                    continue;
+                }
+
+                var hostAuthorized = await AuthorizeHostDataSourceAsync(source, context, sourceDecision, cancellationToken)
+                    .ConfigureAwait(false);
+                decisions.Add(hostAuthorized.Clone());
+                if (!hostAuthorized.Allowed)
                     continue;
 
                 var request = source.CreateRequest();
@@ -99,6 +105,130 @@ namespace HAgent.Runtime
             }
 
             return new ContextPolicyRetrievalResult(candidates, decisions);
+        }
+
+        private async Task<ContextAdmissionDecision> AuthorizeHostDataSourceAsync(
+            ContextRetrievalSource source,
+            ContextAdmissionContext context,
+            ContextAdmissionDecision sourceDecision,
+            CancellationToken cancellationToken)
+        {
+            var dataSource = source.Source as IContextDataAuthorizationSource;
+            if (dataSource == null)
+            {
+                sourceDecision.HostAuthorizationState = ContextHostAuthorizationState.NotRequired;
+                sourceDecision.HostAuthorizationReason = "Host data authorization is not required for this source.";
+                return sourceDecision;
+            }
+
+            sourceDecision.HostAuthorizationState = ContextHostAuthorizationState.Denied;
+            if (_hostAuthorizer == null)
+            {
+                sourceDecision.Allowed = false;
+                sourceDecision.Reason = "Context source requires host data authorization, but no host authorizer is available.";
+                sourceDecision.HostAuthorizationReason = "Host authorization is unavailable; access was denied.";
+                return sourceDecision;
+            }
+
+            var request = CreateHostAuthorizationRequest(source, dataSource, context);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            bool authorized;
+            try
+            {
+                authorized = await _hostAuthorizer.AuthorizeAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                sourceDecision.Allowed = false;
+                sourceDecision.Reason = "Context source host authorization could not be completed; access was denied.";
+                sourceDecision.HostAuthorizationReason = "Host authorization failed closed.";
+                return sourceDecision;
+            }
+
+            if (!authorized)
+            {
+                sourceDecision.Allowed = false;
+                sourceDecision.Reason = "Context source was denied by host data authorization.";
+                sourceDecision.HostAuthorizationReason = "Host authorization denied access.";
+                return sourceDecision;
+            }
+
+            sourceDecision.HostAuthorizationState = ContextHostAuthorizationState.Allowed;
+            sourceDecision.HostAuthorizationReason = "Host authorization allowed access.";
+            return sourceDecision;
+        }
+
+        private static DataAuthorizationRequest CreateHostAuthorizationRequest(
+            ContextRetrievalSource source,
+            IContextDataAuthorizationSource dataSource,
+            ContextAdmissionContext context)
+        {
+            var query = dataSource.AuthorizationQuery;
+            if (query != null)
+                query.Validate();
+
+            return new DataAuthorizationRequest
+            {
+                Operation = dataSource.AuthorizationOperation,
+                SourceId = source.Source.Id,
+                RuntimeIdentity = context.RuntimeInstanceId ?? string.Empty,
+                Identity = context.Identity == null ? new AgentIdentityContext() : context.Identity.Clone(),
+                RuntimeContext = CloneRuntimeContext(dataSource.AuthorizationRuntimeContext),
+                Query = CloneQuery(query)
+            };
+        }
+
+        private static IReadOnlyDictionary<string, object> CloneRuntimeContext(
+            IReadOnlyDictionary<string, object> runtimeContext)
+        {
+            var clone = new Dictionary<string, object>(StringComparer.Ordinal);
+            if (runtimeContext == null)
+                return clone;
+
+            foreach (var pair in runtimeContext)
+                clone[pair.Key] = pair.Value;
+            return clone;
+        }
+
+        private static DataQueryRequest CloneQuery(DataQueryRequest query)
+        {
+            if (query == null)
+                return null;
+
+            var clone = new DataQueryRequest
+            {
+                Fields = new List<string>(query.Fields),
+                Filters = new List<DataFilterCondition>(),
+                Sorts = new List<DataSort>(),
+                Skip = query.Skip,
+                Take = query.Take
+            };
+
+            foreach (var filter in query.Filters)
+            {
+                clone.Filters.Add(new DataFilterCondition
+                {
+                    Field = filter.Field,
+                    Operator = filter.Operator,
+                    Value = filter.Value
+                });
+            }
+
+            foreach (var sort in query.Sorts)
+            {
+                clone.Sorts.Add(new DataSort
+                {
+                    Field = sort.Field,
+                    Descending = sort.Descending
+                });
+            }
+
+            return clone;
         }
 
         private sealed class CandidateListContextSource : IContextSource

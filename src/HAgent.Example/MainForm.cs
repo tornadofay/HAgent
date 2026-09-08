@@ -65,6 +65,7 @@ namespace HAgent.Example
             GetActionsPanel().Controls.Add(_clearOutputButton);
 
             AddFeatureTabs();
+            AddContextContractsTab();
             AddInternalInventoryTab();
             AddInternalMemoryTab();
             AddAuditLifecycleTab();

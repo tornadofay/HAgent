@@ -79,6 +79,7 @@ namespace HAgent.Example
                 executionSnapshot.EffectiveResourceCapabilities.GetState("knowledge", sharedKnowledgeId) != AiResourceCapabilityState.Disabled)
                 throw new InvalidOperationException("Execution resource capability snapshot changed after source configuration mutation.");
 
+            profile.ResourceCapabilities.Set("memory", AiResourceCapabilityState.Disabled);
             var path = Path.Combine(Path.GetTempPath(), "HAgent-ResourceCapabilities-" + Guid.NewGuid().ToString("N") + ".json");
             try
             {
@@ -88,7 +89,8 @@ namespace HAgent.Example
                 var persistedAgents = await reopened.GetAgentsAsync(CancellationToken.None).ConfigureAwait(true);
                 var persisted = persistedAgents.Count == 0 ? null : persistedAgents[0];
                 if (persisted == null || persisted.ResourceCapabilities == null ||
-                    persisted.ResourceCapabilities.GetState("memory") != AiResourceCapabilityState.Enabled ||
+                    persisted.ResourceCapabilities.GetState("memory") != AiResourceCapabilityState.Disabled ||
+                    persisted.ResourceCapabilities.GetState("tool", gatedToolId) != AiResourceCapabilityState.Disabled ||
                     persisted.ResourceCapabilities.Entries.Count != profile.ResourceCapabilities.Entries.Count)
                     throw new InvalidOperationException("Agent resource capability configuration did not persist its canonical state.");
             }
@@ -143,16 +145,16 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Runtime Enabled override did not re-enable the tool capability.");
 
             instanceOverrides.ResourceCapabilityOverrides.Set("tool", gatedToolId, AiResourceCapabilityState.Disabled);
-            var stillEnabled = await client.ExecuteToolAsync(
+            var stillDenied = await client.ExecuteToolAsync(
                 instance,
                 gatedToolId,
                 "resource-tool-call-44",
-                new Dictionary<string, object> { { "value", "snapshot" } },
+                new Dictionary<string, object> { { "value", "blocked-again" } },
                 CancellationToken.None,
                 "resource-host-correlation-44",
                 new AgentIdentityContext(tenantId: "tenant-42", userId: "user-42"));
-            if (stillEnabled.Succeeded || invocationCount != 1)
-                throw new InvalidOperationException("Runtime resource capability changes were not applied deterministically.");
+            if (stillDenied.Succeeded || invocationCount != 1 || stillDenied.ResourceCapabilityState != AiResourceCapabilityState.Disabled)
+                throw new InvalidOperationException("Runtime Disabled override did not block the tool after it had been enabled.");
 
             Write(
                 "RESOURCE CAPABILITIES",

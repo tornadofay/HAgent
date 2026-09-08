@@ -16,7 +16,7 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-Policy persistence/default-runtime integration is implemented and was verified locally by the user on 2026-09-08. The next enforcement slice is implemented in source and includes policy-gated tool invocation plus policy-first composition with host data authorization. Matching deterministic Example verification is ready and is the next local checkpoint.
+Policy persistence, runtime provider enforcement, tool policy enforcement, and policy-first host data authorization were verified locally by the user on 2026-09-08. The current implementation also adds canonical profile resource capability state, runtime `Inherit` / `Enabled` / `Disabled` overrides, effective execution snapshots, resource persistence, and tool capability gating. The matching `HAgent.Example` resource capability test is the current local verification checkpoint.
 
 ## Work ownership
 
@@ -24,11 +24,11 @@ The active implementation plan is the authoritative scope for the current task. 
 
 ## Current blockers
 
-None recorded.
+None recorded. The resource-capability slice is implemented; only local Example verification remains before it can be marked verified.
 
 ## Next checkpoint
 
-Run the `Unified Policy` Example contract test after pulling the current master. It must verify the newly added tool denial/approval/allow cases and the policy-before-host-authorization data-access case in addition to the already passing persistence and runtime policy checks.
+Run `Resource Capabilities → Run resource capability test` after pulling current `master`. It must verify profile/runtime tri-state resolution, exact-resource precedence, default-enabled behavior, execution snapshot isolation, profile persistence, disabled-tool gating, and runtime re-enabling/disabling of the tool capability.
 
 ## Current project state
 
@@ -55,7 +55,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is the current implementation milestone. Its core evaluator, runtime enforcement, effective-policy execution snapshots, canonical policy-store contract, File/SQL Server/MySQL persistence paths, and policy/tool/data authorization integration are implemented. The 0.953 persistence/default-runtime path was locally verified by the user on 2026-09-08; the newly added tool/data authorization verification is now part of the next local Example run. The remaining foundational sequence is 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
+0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is the current implementation milestone. Its core evaluator, runtime enforcement, effective-policy execution snapshots, canonical policy-store contract, File/SQL Server/MySQL persistence paths, policy/tool/data authorization integration, and resource capability/tri-state implementation are now present. Policy persistence and the provider/tool/data authorization paths were locally verified by the user on 2026-09-08. The newly added resource capability Example verification is the current local checkpoint. The remaining foundational sequence is 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
 
 The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` is ordered as a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition both depend on its provider/model/target separation, credential persistence, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portability contracts.
 
@@ -94,7 +94,8 @@ The repository currently contains verified foundations for:
 - generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, verified external-consumer coverage on both supported target frameworks, and verified runtime-instance + canonical-request composition;
 - unified policy contracts, deterministic scoped evaluation, cost guards, policy provenance, pre-transport runtime enforcement, deep-cloned effective policy state in execution snapshots, and canonical File/SQL Server/MySQL policy persistence;
 - policy-gated tool invocation before executable handlers, including `Deny`, `RequireApproval`, and `Defer` enforcement and policy provenance in `ToolExecutionResult`;
-- policy-first composition with host `IDataAccessAuthorizer` for structured data operations, preserving host authorization as the final authority.
+- policy-first composition with host `IDataAccessAuthorizer` for structured data operations, preserving host authorization as the final authority;
+- canonical resource capability profiles with runtime `Inherit` / `Enabled` / `Disabled` overrides, deterministic effective-state snapshots, and tool gating before executable handlers (implementation present; Example verification pending).
 
 ## Foundational architecture hardening before 0.96
 
@@ -137,6 +138,8 @@ These phases are architectural foundations, not commitments that every feature m
 The foundational phases consume the storage evolution defined in `docs/roadmap/38-configuration-storage-and-portability.md`. The persistence model must directly support the new configuration architecture rather than preserve retired Agent provider/model fields.
 
 The unified policy set is now a canonical HAgent-owned configuration record exposed through `IAiStore`. File storage persists it with the main settings document; SQL Server and MySQL persist it in `HAgentPolicies`, and their HAgent database bootstrap paths create that table. The default runtime loads the current persisted policy asynchronously at execution creation when no explicitly injected policy engine is supplied, then captures the effective policy in the execution snapshot.
+
+Agent profile resource capability defaults are now part of the canonical `AiAgent` configuration and persist through the normal agent storage path. Runtime capability overrides remain transient and resolve above profile defaults into `AgentExecutionSnapshot.EffectiveResourceCapabilities`.
 
 Provider API keys are persisted with provider configuration and encrypted at rest. There is no separate provider secret-reference or vault architecture. Shared SQL Server/MySQL configuration can therefore be used by multiple authorized HAgent processes/machines. Configuration export/import is planned as a versioned portable representation with optional encrypted credential inclusion.
 

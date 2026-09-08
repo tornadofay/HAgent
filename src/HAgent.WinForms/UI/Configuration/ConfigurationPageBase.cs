@@ -20,10 +20,40 @@ namespace HAgent.WinForms.UI.Configuration
 
         protected Panel CreateHeader(string title, string description, int height = 70)
         {
-            var header = new Panel { Dock = DockStyle.Top, Height = height, BackColor = Surface };
+            var header = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Padding = new Padding(0, 2, 0, 0) };
             header.Controls.Add(new Label { Text = title, AutoSize = true, Left = 0, Top = 0, Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = Heading });
             header.Controls.Add(new Label { Text = description, AutoSize = true, Left = 1, Top = 35, Font = new Font("Segoe UI", 8.8f), ForeColor = Muted });
             return header;
+        }
+
+        protected static TableLayoutPanel CreateListPageRoot()
+        {
+            var root = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = Surface,
+                Padding = new Padding(0)
+            };
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            return root;
+        }
+
+        protected static FlowLayoutPanel CreateActionPanel()
+        {
+            return new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = Surface,
+                Padding = new Padding(0, 5, 0, 7),
+                Margin = new Padding(0)
+            };
         }
 
         protected static void ConfigureList(ListView list)
@@ -36,6 +66,7 @@ namespace HAgent.WinForms.UI.Configuration
             list.BackColor = Color.White;
             list.BorderStyle = BorderStyle.FixedSingle;
             list.Font = new Font("Segoe UI", 9f);
+            list.Margin = new Padding(0);
         }
 
         protected static HButton CreateActionButton(string text, int width, bool destructive = false)

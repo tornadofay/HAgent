@@ -108,7 +108,7 @@ The execution snapshot continues to carry the independently captured agent/provi
 
 ## Execution snapshot provenance
 
-`AiInstructionSnapshot` contains cloned source and conflict records. `AgentExecutionSnapshot.InstructionSnapshot` captures a cloned instruction snapshot so later caller-owned mutation cannot alter the captured provenance objects. Execution integration is implemented in 0.954 Slice 4; local Example verification remains the current checkpoint before the phase can advance.
+`AiInstructionSnapshot` contains cloned source and conflict records. `AgentExecutionSnapshot.InstructionSnapshot` captures a cloned instruction snapshot so later caller-owned mutation cannot alter the captured provenance objects. Execution integration is implemented and verified by the user through the deterministic Example integration scenario.
 
 ## Boundary rules
 
@@ -122,4 +122,4 @@ The execution snapshot continues to carry the independently captured agent/provi
 
 ## Verification status
 
-Slices 1–3 were verified by the user on 2026-09-08 through `COGNITION INSTRUCTIONS`. Slice 4 execution integration is implemented and has deterministic Example coverage, but the updated Example has not yet been locally executed in this connected environment. The current checkpoint is therefore **Slice 4 awaiting local verification**.
+Slices 1–4 were verified by the user on 2026-09-08 through `COGNITION INSTRUCTIONS`. Slice 4 specifically verified effective instruction snapshot capture before provider transport, provider transport parity, caller-source mutation isolation, lower-authority external exclusion, and execution/principal provenance. Final 0.954 framework-wide verification remains the current Slice 5 checkpoint before advancing to 0.955.

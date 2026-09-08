@@ -49,7 +49,15 @@ BEGIN
 END;
 IF COL_LENGTH(N'dbo.HAgentAgents', N'ToolIdsJson') IS NULL ALTER TABLE dbo.HAgentAgents ADD ToolIdsJson nvarchar(max) NULL;
 IF COL_LENGTH(N'dbo.HAgentAgents', N'ExecutionSelectionJson') IS NULL ALTER TABLE dbo.HAgentAgents ADD ExecutionSelectionJson nvarchar(max) NULL;
-IF COL_LENGTH(N'dbo.HAgentAgents', N'CapabilityRequirementsJson') IS NULL ALTER TABLE dbo.HAgentAgents ADD CapabilityRequirementsJson nvarchar(max) NULL;";
+IF COL_LENGTH(N'dbo.HAgentAgents', N'CapabilityRequirementsJson') IS NULL ALTER TABLE dbo.HAgentAgents ADD CapabilityRequirementsJson nvarchar(max) NULL;
+IF OBJECT_ID(N'dbo.HAgentPolicies', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.HAgentPolicies (
+        Id nvarchar(64) NOT NULL CONSTRAINT PK_HAgentPolicies PRIMARY KEY,
+        PolicyVersion nvarchar(128) NOT NULL,
+        PolicyJson nvarchar(max) NOT NULL
+    );
+END;";
             using (var connection = new SqlConnection(connectionString))
             using (var command = new SqlCommand(sql, connection))
             {
@@ -113,8 +121,45 @@ IF COL_LENGTH(N'dbo.HAgentAgents', N'CapabilityRequirementsJson') IS NULL ALTER 
             return list.AsReadOnly();
         }
 
+        public async Task<AiPolicySet> GetPolicySetAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            const string sql = "SELECT PolicyJson FROM dbo.HAgentPolicies WHERE Id=N'default';";
+            using (var connection = new SqlConnection(_connectionString))
+            using (var command = new SqlCommand(sql, connection))
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                if (value == null || value == DBNull.Value)
+                    return new AiPolicySet();
+
+                var policy = Deserialize<AiPolicySet>(Convert.ToString(value));
+                if (policy == null) throw new InvalidOperationException("Persisted HAgent policy configuration is invalid.");
+                policy.Validate();
+                return policy.Clone();
+            }
+        }
+
         public Task SaveProviderAsync(AiProvider p, CancellationToken cancellationToken = default(CancellationToken)) => ExecuteProviderAsync(p, cancellationToken);
         public Task SaveAgentAsync(AiAgent a, CancellationToken cancellationToken = default(CancellationToken)) => ExecuteAgentAsync(a, cancellationToken);
+
+        public async Task SavePolicySetAsync(AiPolicySet policy, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            policy.Validate();
+            const string sql = @"MERGE dbo.HAgentPolicies AS target
+USING (SELECT @Id Id) AS source ON target.Id=source.Id
+WHEN MATCHED THEN UPDATE SET PolicyVersion=@PolicyVersion, PolicyJson=@PolicyJson
+WHEN NOT MATCHED THEN INSERT (Id,PolicyVersion,PolicyJson) VALUES (@Id,@PolicyVersion,@PolicyJson);";
+            using (var connection = new SqlConnection(_connectionString))
+            using (var command = new SqlCommand(sql, connection))
+            {
+                command.Parameters.AddWithValue("@Id", "default");
+                command.Parameters.AddWithValue("@PolicyVersion", policy.Version);
+                command.Parameters.AddWithValue("@PolicyJson", JsonSerializer.Serialize(policy, JsonOptions));
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
 
         public async Task DeleteProviderAsync(string providerId, CancellationToken cancellationToken = default(CancellationToken))
         {

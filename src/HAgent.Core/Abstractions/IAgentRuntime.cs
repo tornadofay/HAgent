@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Models;
+using HAgent.Runtime;
 
 namespace HAgent.Abstractions
 {

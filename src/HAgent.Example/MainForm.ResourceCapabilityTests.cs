@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
+using HAgent.Storage.File;
 
 namespace HAgent.Example
 {
@@ -15,8 +17,8 @@ namespace HAgent.Example
             AddApiTab(
                 "Resource Capabilities",
                 "Run resource capability test",
-                "Verifies profile-level resource defaults, exact-resource precedence, runtime Inherit/Enabled/Disabled overrides, execution snapshot isolation, and tool gating before the executable handler.",
-                "Profile and runtime resource state should resolve deterministically, Inherit should fall through to the profile layer, unspecified resources should remain enabled, and disabled tools must never reach their handlers.",
+                "Verifies profile-level resource defaults, exact-resource precedence, runtime Inherit/Enabled/Disabled overrides, execution snapshot isolation, resource-policy persistence, and tool gating before the executable handler.",
+                "Profile and runtime resource state should resolve deterministically, Inherit should fall through to the profile layer, unspecified resources should remain enabled, persisted profile state should round-trip, and disabled tools must never reach their handlers.",
                 "No AI request is sent by this example.",
                 TestResourceCapabilityPolicyAsync,
                 "Capability boundary",
@@ -76,6 +78,25 @@ namespace HAgent.Example
             if (executionSnapshot.EffectiveResourceCapabilities.GetState("memory") != AiResourceCapabilityState.Disabled ||
                 executionSnapshot.EffectiveResourceCapabilities.GetState("knowledge", sharedKnowledgeId) != AiResourceCapabilityState.Disabled)
                 throw new InvalidOperationException("Execution resource capability snapshot changed after source configuration mutation.");
+
+            var path = Path.Combine(Path.GetTempPath(), "HAgent-ResourceCapabilities-" + Guid.NewGuid().ToString("N") + ".json");
+            try
+            {
+                var fileStore = new FileAiStore(path);
+                await fileStore.SaveAgentAsync(profile, CancellationToken.None).ConfigureAwait(true);
+                var reopened = new FileAiStore(path);
+                var persistedAgents = await reopened.GetAgentsAsync(CancellationToken.None).ConfigureAwait(true);
+                var persisted = persistedAgents.Count == 0 ? null : persistedAgents[0];
+                if (persisted == null || persisted.ResourceCapabilities == null ||
+                    persisted.ResourceCapabilities.GetState("memory") != AiResourceCapabilityState.Enabled ||
+                    persisted.ResourceCapabilities.Entries.Count != profile.ResourceCapabilities.Entries.Count)
+                    throw new InvalidOperationException("Agent resource capability configuration did not persist its canonical state.");
+            }
+            finally
+            {
+                try { if (File.Exists(path)) File.Delete(path); } catch { }
+                try { if (File.Exists(path + ".bak")) File.Delete(path + ".bak"); } catch { }
+            }
 
             var store = new InMemoryAiStore();
             await store.SaveAgentAsync(profile, CancellationToken.None).ConfigureAwait(true);
@@ -141,6 +162,7 @@ namespace HAgent.Example
                 "Exact resource precedence: verified." + Environment.NewLine +
                 "Unspecified resources default to Enabled: verified." + Environment.NewLine +
                 "Effective execution snapshot isolation: verified." + Environment.NewLine +
+                "Resource capability persistence round-trip: verified." + Environment.NewLine +
                 "Tool capability gating before handler: verified." + Environment.NewLine +
                 "Runtime Enabled override: verified." + Environment.NewLine +
                 "Runtime Disabled override: verified." + Environment.NewLine +

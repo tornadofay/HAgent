@@ -193,10 +193,6 @@ namespace HAgent.Example
             {
                 bool deeplyNested = IsDeeplyNestedExamplePage(page);
 
-                // Keep the normal layout unchanged for all existing examples. Runtime and
-                // Context have one additional Feature -> Sub-area -> Example tab level, so
-                // their description panel needs a little more fixed height to keep the
-                // Expected result section from crowding the wrapped description text.
                 layout.RowStyles[0] = new RowStyle(SizeType.Absolute, 44);
                 layout.RowStyles[1] = new RowStyle(SizeType.Percent, deeplyNested ? 45 : 52);
                 layout.RowStyles[2] = new RowStyle(SizeType.Absolute, deeplyNested ? 126 : 0);
@@ -240,8 +236,6 @@ namespace HAgent.Example
                 current = current.Parent;
             }
 
-            // Runtime/Context examples are the only pages currently using the extra
-            // Feature -> Sub-area -> Example hierarchy.
             return tabControlAncestors >= 2 &&
                    (GetExampleFeatureGroup(page.Text) == "Runtime" ||
                     GetExampleFeatureGroup(page.Text) == "Context");
@@ -251,7 +245,7 @@ namespace HAgent.Example
         {
             var key = (title ?? string.Empty).Trim().ToUpperInvariant();
 
-            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT BUDGET" || key == "CONTEXT RANKING" || key == "CONTEXT COMPACTION")
+            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT BUDGET" || key == "CONTEXT RANKING" || key == "CONTEXT COMPACTION" || key == "CONTEXT CACHE")
                 return "Context Core";
             if (key.StartsWith("UI ", StringComparison.Ordinal) || key == "APPLICATION OBJECT CONTEXT")
                 return "UI Context";
@@ -282,7 +276,7 @@ namespace HAgent.Example
             if (key.Contains("MEMORY") || key == "AUTOMATIC MEMORY" || key == "TASK / EVENT MEMORY" || key == "EPISODIC MEMORY")
                 return "Memory";
 
-            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT RANKING" || key == "CONTEXT COMPACTION" || key == "CONTEXT BUDGET" ||
+            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT RANKING" || key == "CONTEXT COMPACTION" || key == "CONTEXT CACHE" || key == "CONTEXT BUDGET" ||
                 key.StartsWith("UI ", StringComparison.Ordinal) || key == "APPLICATION OBJECT CONTEXT" || key == "DATA QUERY CONTRACT")
                 return "Context";
 

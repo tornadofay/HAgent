@@ -68,10 +68,34 @@ namespace HAgent.Runtime
             string hostCorrelationId,
             AgentIdentityContext identity)
         {
+            var policyEngine = await ResolvePolicyEngineAsync(cancellationToken).ConfigureAwait(false);
+            return await ExecuteToolInternalAsync(
+                agentId,
+                toolId,
+                toolCallId,
+                arguments,
+                cancellationToken,
+                hostCorrelationId,
+                identity,
+                policyEngine).ConfigureAwait(false);
+        }
+
+        private async Task<ToolExecutionResult> ExecuteToolInternalAsync(
+            string agentId,
+            string toolId,
+            string toolCallId,
+            IReadOnlyDictionary<string, object> arguments,
+            CancellationToken cancellationToken,
+            string hostCorrelationId,
+            AgentIdentityContext identity,
+            IAiPolicyEngine policyEngine)
+        {
             if (string.IsNullOrWhiteSpace(agentId))
                 throw new ArgumentException("Agent id is required.", nameof(agentId));
             if (string.IsNullOrWhiteSpace(toolId))
                 throw new ArgumentException("Tool id is required.", nameof(toolId));
+            if (policyEngine == null)
+                throw new ArgumentNullException(nameof(policyEngine));
 
             var correlationId = Guid.NewGuid().ToString("N");
             var startedAt = DateTimeOffset.UtcNow;
@@ -105,22 +129,51 @@ namespace HAgent.Runtime
                     effectiveIdentity);
             }
 
-            var context = new ToolExecutionContext
+            var policyDecision = policyEngine.Evaluate(new AiPolicyEvaluationContext
             {
-                CorrelationId = correlationId,
-                HostCorrelationId = hostCorrelationId ?? string.Empty,
-                AgentId = agentId,
+                Operation = "tool.invoke",
+                ResourceType = "tool",
+                ResourceId = toolId,
+                AgentProfileId = agentId,
                 ToolId = toolId,
-                ToolCallId = toolCallId ?? string.Empty,
-                Identity = effectiveIdentity,
-                Arguments = validation.Arguments,
-                CancellationToken = cancellationToken
-            };
+                CostStatus = AiCostStatus.Unknown,
+                RequestedCostPolicy = AiCostPolicy.NoRestriction,
+                Identity = effectiveIdentity
+            });
+
+            if (policyDecision == null)
+                throw new InvalidOperationException("The policy engine returned no tool execution decision.");
+
+            if (policyDecision.IsDenied || policyDecision.RequiresApproval || policyDecision.IsDeferred)
+            {
+                var blocked = CreateFailure(
+                    BuildPolicyFailure(policyDecision),
+                    correlationId,
+                    hostCorrelationId,
+                    agentId,
+                    toolId,
+                    toolCallId,
+                    startedAt,
+                    effectiveIdentity);
+                blocked.PolicyDecision = policyDecision;
+                return blocked;
+            }
 
             ToolExecutionResult result;
             try
             {
-                result = await tool.ExecuteAsync(context).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                result = await tool.ExecuteAsync(new ToolExecutionContext
+                {
+                    CorrelationId = correlationId,
+                    HostCorrelationId = hostCorrelationId ?? string.Empty,
+                    AgentId = agentId,
+                    ToolId = toolId,
+                    ToolCallId = toolCallId ?? string.Empty,
+                    Identity = effectiveIdentity,
+                    Arguments = validation.Arguments,
+                    CancellationToken = cancellationToken
+                }).ConfigureAwait(false);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
@@ -136,9 +189,32 @@ namespace HAgent.Runtime
             result.ToolId = toolId;
             result.ToolCallId = toolCallId ?? string.Empty;
             result.Identity = effectiveIdentity;
+            result.PolicyDecision = policyDecision;
             result.StartedAt = startedAt;
             result.CompletedAt = DateTimeOffset.UtcNow;
             return result;
+        }
+
+        private async Task<IAiPolicyEngine> ResolvePolicyEngineAsync(CancellationToken cancellationToken)
+        {
+            if (_configuredPolicyEngine != null)
+                return _configuredPolicyEngine;
+
+            var policy = await _store.GetPolicySetAsync(cancellationToken).ConfigureAwait(false);
+            if (policy == null)
+                policy = new AiPolicySet();
+            policy.Validate();
+            return new DefaultAiPolicyEngine(policy);
+        }
+
+        private static string BuildPolicyFailure(AiPolicyDecision decision)
+        {
+            var reason = string.IsNullOrWhiteSpace(decision.Reason) ? "No policy reason was supplied." : decision.Reason;
+            if (decision.RequiresApproval)
+                return "Tool execution requires approval by policy. " + reason;
+            if (decision.IsDeferred)
+                return "Tool execution was deferred by policy. " + reason;
+            return "Tool execution was denied by policy. " + reason;
         }
 
         private static ToolExecutionResult CreateFailure(

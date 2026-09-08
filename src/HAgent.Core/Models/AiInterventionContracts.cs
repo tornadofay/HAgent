@@ -137,15 +137,27 @@ namespace HAgent.Models
         {
             if (Status != AiInterventionRequestStatus.Pending)
                 throw new InvalidOperationException("Intervention request is no longer pending: " + RequestId);
-            if (status != AiInterventionRequestStatus.Approved && status != AiInterventionRequestStatus.Rejected &&
-                status != AiInterventionRequestStatus.Cancelled && status != AiInterventionRequestStatus.Expired &&
-                status != AiInterventionRequestStatus.Completed)
+            if (status != AiInterventionRequestStatus.Approved &&
+                status != AiInterventionRequestStatus.Rejected &&
+                status != AiInterventionRequestStatus.Cancelled &&
+                status != AiInterventionRequestStatus.Expired)
                 throw new ArgumentOutOfRangeException(nameof(status));
 
             Status = status;
             ResponderIdentity = responderIdentity == null ? new AgentIdentityContext() : responderIdentity.Clone();
             ResolutionReason = reason ?? string.Empty;
             ResolvedAt = DateTimeOffset.UtcNow;
+        }
+
+        internal void Complete(AgentIdentityContext responderIdentity, string reason)
+        {
+            if (Status != AiInterventionRequestStatus.Approved)
+                throw new InvalidOperationException("Only an approved intervention request can be completed: " + RequestId);
+
+            Status = AiInterventionRequestStatus.Completed;
+            if (responderIdentity != null)
+                ResponderIdentity = responderIdentity.Clone();
+            ResolutionReason = reason ?? ResolutionReason ?? string.Empty;
         }
 
         public AiInterventionRequest Clone()
@@ -200,6 +212,12 @@ namespace HAgent.Models
         Task<AiInterventionRequest> ResolveAsync(
             string requestId,
             AiInterventionRequestStatus resolution,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken));
+
+        Task<AiInterventionRequest> CompleteAsync(
+            string requestId,
             AgentIdentityContext responderIdentity,
             string reason,
             CancellationToken cancellationToken = default(CancellationToken));
@@ -268,6 +286,24 @@ namespace HAgent.Models
                 if (!_requests.TryGetValue(requestId, out request))
                     throw new InvalidOperationException("Intervention request was not found: " + requestId);
                 request.Resolve(resolution, responderIdentity, reason);
+                return Task.FromResult(request.Clone());
+            }
+        }
+
+        public Task<AiInterventionRequest> CompleteAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(requestId)) throw new ArgumentException("Request ID is required.", nameof(requestId));
+            lock (_sync)
+            {
+                AiInterventionRequest request;
+                if (!_requests.TryGetValue(requestId, out request))
+                    throw new InvalidOperationException("Intervention request was not found: " + requestId);
+                request.Complete(responderIdentity, reason);
                 return Task.FromResult(request.Clone());
             }
         }

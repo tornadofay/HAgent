@@ -17,11 +17,13 @@ Phase 0.954 Prompt and Instruction Governance was verified and closed by the use
 
 **0.955 Slice 5 implementation checkpoint — local verification pending.**
 
-Slice 5 is scoped to bounded provider-neutral compaction/truncation over already ranked candidates plus safe inclusion/exclusion diagnostics. The initial strategy is deterministic and tokenizer-free: candidates that do not fit the target item/character/token budget are excluded with explicit reasons; payloads are not rewritten or semantically summarized, and selected item provenance/scope metadata is preserved.
+Slice 5 implementation is now present in Core with `IContextCompactor`, deterministic `ContextCompactor`, explicit `ContextCompactionOptions`, safe `ContextCompactionDecision` diagnostics, and `ContextCompactionResult`. A matching public-API `HAgent.Example` Context Compaction scenario, Example classification/snippet support, focused xUnit coverage, and the authoritative context/Example-maintenance documentation have also been added. The strategy is deterministic and tokenizer-free: candidates that do not fit the target item/character/token budget are excluded with explicit reasons; payloads are not rewritten or semantically summarized, and selected item provenance/scope metadata is preserved.
+
+Local verification has not yet been performed for Slice 5. The expected next verification is the updated `HAgent.Tests` suite plus the Context → Context Core → Context Compaction Example on the supported local targets.
 
 ## Next action
 
-Implement the focused Slice 5 Core contracts/runtime and matching deterministic `HAgent.Example` verification, then run the focused/full local tests before closing the slice.
+Run the local tests and the new Context Compaction Example. Record the actual results before closing Slice 5 or selecting Slice 6.
 
 ## Current blockers
 

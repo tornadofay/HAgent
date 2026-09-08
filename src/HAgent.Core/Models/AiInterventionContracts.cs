@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using HAgent.Abstractions;
 
 namespace HAgent.Models
 {
@@ -69,6 +70,8 @@ namespace HAgent.Models
             ResolutionReason = string.Empty;
             RequesterIdentity = new AgentIdentityContext();
             CreatedAt = DateTimeOffset.UtcNow;
+            Version = 0;
+            TargetRevision = 0;
         }
 
         public string RequestId { get; private set; }
@@ -92,6 +95,17 @@ namespace HAgent.Models
         public DateTimeOffset CreatedAt { get; private set; }
         public DateTimeOffset? ResolvedAt { get; private set; }
 
+        /// <summary>
+        /// Optimistic-concurrency version for durable stores and race-safe lifecycle transitions.
+        /// </summary>
+        public long Version { get; private set; }
+
+        /// <summary>
+        /// Revision of the target observed when the request was created.
+        /// Target handlers use it to reject stale control requests.
+        /// </summary>
+        public long TargetRevision { get; private set; }
+
         internal static AiInterventionRequest Create(
             AiInterventionRequestKind kind,
             AiInterventionTargetKind targetKind,
@@ -106,10 +120,12 @@ namespace HAgent.Models
             string executionId,
             string toolId,
             string reason,
-            AgentIdentityContext requesterIdentity)
+            AgentIdentityContext requesterIdentity,
+            long targetRevision)
         {
             if (string.IsNullOrWhiteSpace(operation)) throw new ArgumentException("Operation is required.", nameof(operation));
             if (string.IsNullOrWhiteSpace(resourceType)) throw new ArgumentException("Resource type is required.", nameof(resourceType));
+            if (targetRevision < 0) throw new ArgumentOutOfRangeException(nameof(targetRevision));
 
             return new AiInterventionRequest
             {
@@ -129,7 +145,9 @@ namespace HAgent.Models
                 ToolId = toolId ?? string.Empty,
                 Reason = reason ?? string.Empty,
                 RequesterIdentity = requesterIdentity == null ? new AgentIdentityContext() : requesterIdentity.Clone(),
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
+                Version = 0,
+                TargetRevision = targetRevision
             };
         }
 
@@ -138,14 +156,26 @@ namespace HAgent.Models
             if (Status != AiInterventionRequestStatus.Pending)
                 throw new InvalidOperationException("Intervention request is no longer pending: " + RequestId);
             if (status != AiInterventionRequestStatus.Approved && status != AiInterventionRequestStatus.Rejected &&
-                status != AiInterventionRequestStatus.Cancelled && status != AiInterventionRequestStatus.Expired &&
-                status != AiInterventionRequestStatus.Completed)
-                throw new ArgumentOutOfRangeException(nameof(status));
+                status != AiInterventionRequestStatus.Cancelled && status != AiInterventionRequestStatus.Expired)
+                throw new ArgumentOutOfRangeException(nameof(status), "Only an explicit resolution state can resolve a pending intervention request.");
 
             Status = status;
             ResponderIdentity = responderIdentity == null ? new AgentIdentityContext() : responderIdentity.Clone();
             ResolutionReason = reason ?? string.Empty;
             ResolvedAt = DateTimeOffset.UtcNow;
+            ++Version;
+        }
+
+        internal void Complete(AgentIdentityContext responderIdentity, string reason)
+        {
+            if (Status != AiInterventionRequestStatus.Approved)
+                throw new InvalidOperationException("Only an approved intervention request can be completed: " + RequestId);
+
+            Status = AiInterventionRequestStatus.Completed;
+            ResponderIdentity = responderIdentity == null ? new AgentIdentityContext() : responderIdentity.Clone();
+            ResolutionReason = reason ?? string.Empty;
+            ResolvedAt = DateTimeOffset.UtcNow;
+            ++Version;
         }
 
         public AiInterventionRequest Clone()
@@ -171,7 +201,9 @@ namespace HAgent.Models
                 ResponderIdentity = ResponderIdentity == null ? null : ResponderIdentity.Clone(),
                 ResolutionReason = ResolutionReason ?? string.Empty,
                 CreatedAt = CreatedAt,
-                ResolvedAt = ResolvedAt
+                ResolvedAt = ResolvedAt,
+                Version = Version,
+                TargetRevision = TargetRevision
             };
         }
     }
@@ -193,7 +225,8 @@ namespace HAgent.Models
             string toolId,
             string reason,
             AgentIdentityContext requesterIdentity,
-            CancellationToken cancellationToken = default(CancellationToken));
+            CancellationToken cancellationToken = default(CancellationToken),
+            long targetRevision = 0);
 
         Task<AiInterventionRequest> GetAsync(string requestId, CancellationToken cancellationToken = default(CancellationToken));
 
@@ -204,7 +237,28 @@ namespace HAgent.Models
             string reason,
             CancellationToken cancellationToken = default(CancellationToken));
 
+        Task<AiInterventionRequest> CompleteAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken));
+
+        Task<AiInterventionRequest> ExpireAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken));
+
+        Task<AiInterventionRequest> WaitForResolutionAsync(
+            string requestId,
+            TimeSpan pollInterval,
+            CancellationToken cancellationToken = default(CancellationToken));
+
         Task<IReadOnlyList<AiInterventionRequest>> GetPendingAsync(CancellationToken cancellationToken = default(CancellationToken));
+
+        Task<IReadOnlyList<AiInterventionRequest>> SearchAsync(
+            AiInterventionQuery query,
+            CancellationToken cancellationToken = default(CancellationToken));
     }
 
     public sealed class InMemoryAiInterventionWorkflow : IAiInterventionWorkflow
@@ -227,12 +281,14 @@ namespace HAgent.Models
             string toolId,
             string reason,
             AgentIdentityContext requesterIdentity,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default(CancellationToken),
+            long targetRevision = 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var request = AiInterventionRequest.Create(
                 kind, targetKind, requestedAction, operation, resourceType, resourceId, correlationId,
-                hostCorrelationId, agentProfileId, runtimeInstanceId, executionId, toolId, reason, requesterIdentity);
+                hostCorrelationId, agentProfileId, runtimeInstanceId, executionId, toolId, reason,
+                requesterIdentity, targetRevision);
             lock (_sync)
             {
                 _requests.Add(request.RequestId, request);
@@ -272,18 +328,218 @@ namespace HAgent.Models
             }
         }
 
-        public Task<IReadOnlyList<AiInterventionRequest>> GetPendingAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<AiInterventionRequest> CompleteAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(requestId)) throw new ArgumentException("Request ID is required.", nameof(requestId));
             lock (_sync)
             {
-                var pending = _requests.Values
-                    .Where(x => x.Status == AiInterventionRequestStatus.Pending)
+                AiInterventionRequest request;
+                if (!_requests.TryGetValue(requestId, out request))
+                    throw new InvalidOperationException("Intervention request was not found: " + requestId);
+                request.Complete(responderIdentity, reason);
+                return Task.FromResult(request.Clone());
+            }
+        }
+
+        public Task<AiInterventionRequest> ExpireAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(requestId)) throw new ArgumentException("Request ID is required.", nameof(requestId));
+            lock (_sync)
+            {
+                AiInterventionRequest request;
+                if (!_requests.TryGetValue(requestId, out request))
+                    throw new InvalidOperationException("Intervention request was not found: " + requestId);
+                if (request.Status == AiInterventionRequestStatus.Pending)
+                    request.Resolve(AiInterventionRequestStatus.Expired, responderIdentity, reason);
+                return Task.FromResult(request.Clone());
+            }
+        }
+
+        public async Task<AiInterventionRequest> WaitForResolutionAsync(
+            string requestId,
+            TimeSpan pollInterval,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (pollInterval <= TimeSpan.Zero) pollInterval = TimeSpan.FromMilliseconds(50);
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var request = await GetAsync(requestId, cancellationToken).ConfigureAwait(false);
+                if (request == null) throw new InvalidOperationException("Intervention request was not found: " + requestId);
+                if (request.Status != AiInterventionRequestStatus.Pending)
+                    return request;
+                await Task.Delay(pollInterval, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        public Task<IReadOnlyList<AiInterventionRequest>> GetPendingAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return SearchAsync(new AiInterventionQuery { Status = AiInterventionRequestStatus.Pending }, cancellationToken);
+        }
+
+        public Task<IReadOnlyList<AiInterventionRequest>> SearchAsync(
+            AiInterventionQuery query,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            query = query ?? new AiInterventionQuery();
+            query.Validate();
+            lock (_sync)
+            {
+                var results = _requests.Values
+                    .Where(x => !query.Status.HasValue || x.Status == query.Status.Value)
+                    .Where(x => !query.TargetKind.HasValue || x.TargetKind == query.TargetKind.Value)
+                    .Where(x => string.IsNullOrWhiteSpace(query.TargetId) ||
+                                string.Equals(x.ResourceId, query.TargetId, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(x.ExecutionId, query.TargetId, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(x.ToolId, query.TargetId, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(x => x.CreatedAt)
+                    .Take(query.MaxResults)
                     .Select(x => x.Clone())
                     .ToList()
                     .AsReadOnly();
-                return Task.FromResult<IReadOnlyList<AiInterventionRequest>>(pending);
+                return Task.FromResult<IReadOnlyList<AiInterventionRequest>>(results);
             }
+        }
+    }
+
+    /// <summary>
+    /// Store-backed intervention workflow. Lifecycle transitions use optimistic concurrency and therefore remain safe
+    /// when more than one process resolves the same persisted request.
+    /// </summary>
+    public sealed class StoreBackedAiInterventionWorkflow : IAiInterventionWorkflow
+    {
+        private readonly IAiInterventionStore _store;
+
+        public StoreBackedAiInterventionWorkflow(IAiInterventionStore store)
+        {
+            _store = store ?? throw new ArgumentNullException(nameof(store));
+        }
+
+        public async Task<AiInterventionRequest> CreateAsync(
+            AiInterventionRequestKind kind,
+            AiInterventionTargetKind targetKind,
+            AiInterventionAction requestedAction,
+            string operation,
+            string resourceType,
+            string resourceId,
+            string correlationId,
+            string hostCorrelationId,
+            string agentProfileId,
+            string runtimeInstanceId,
+            string executionId,
+            string toolId,
+            string reason,
+            AgentIdentityContext requesterIdentity,
+            CancellationToken cancellationToken = default(CancellationToken),
+            long targetRevision = 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var request = AiInterventionRequest.Create(
+                kind, targetKind, requestedAction, operation, resourceType, resourceId, correlationId,
+                hostCorrelationId, agentProfileId, runtimeInstanceId, executionId, toolId, reason,
+                requesterIdentity, targetRevision);
+            await _store.CreateAsync(request, cancellationToken).ConfigureAwait(false);
+            return request.Clone();
+        }
+
+        public Task<AiInterventionRequest> GetAsync(string requestId, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _store.GetAsync(requestId, cancellationToken);
+        }
+
+        public async Task<AiInterventionRequest> ResolveAsync(
+            string requestId,
+            AiInterventionRequestStatus resolution,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return await TransitionAsync(requestId, responderIdentity, reason, false, resolution, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<AiInterventionRequest> CompleteAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return await TransitionAsync(requestId, responderIdentity, reason, true, AiInterventionRequestStatus.Completed, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<AiInterventionRequest> ExpireAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return await TransitionAsync(requestId, responderIdentity, reason, false, AiInterventionRequestStatus.Expired, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async Task<AiInterventionRequest> TransitionAsync(
+            string requestId,
+            AgentIdentityContext responderIdentity,
+            string reason,
+            bool complete,
+            AiInterventionRequestStatus resolution,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(requestId)) throw new ArgumentException("Request ID is required.", nameof(requestId));
+            for (var attempt = 0; attempt < 5; attempt++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var current = await _store.GetAsync(requestId, cancellationToken).ConfigureAwait(false);
+                if (current == null) throw new InvalidOperationException("Intervention request was not found: " + requestId);
+                var expectedVersion = current.Version;
+                if (complete)
+                    current.Complete(responderIdentity, reason);
+                else
+                    current.Resolve(resolution, responderIdentity, reason);
+
+                if (await _store.TryUpdateAsync(current, expectedVersion, cancellationToken).ConfigureAwait(false))
+                    return current.Clone();
+            }
+
+            throw new InvalidOperationException("Intervention request changed concurrently and could not be resolved safely: " + requestId);
+        }
+
+        public async Task<AiInterventionRequest> WaitForResolutionAsync(
+            string requestId,
+            TimeSpan pollInterval,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (pollInterval <= TimeSpan.Zero) pollInterval = TimeSpan.FromMilliseconds(100);
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var request = await _store.GetAsync(requestId, cancellationToken).ConfigureAwait(false);
+                if (request == null) throw new InvalidOperationException("Intervention request was not found: " + requestId);
+                if (request.Status != AiInterventionRequestStatus.Pending)
+                    return request;
+                await Task.Delay(pollInterval, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        public Task<IReadOnlyList<AiInterventionRequest>> GetPendingAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return SearchAsync(new AiInterventionQuery { Status = AiInterventionRequestStatus.Pending }, cancellationToken);
+        }
+
+        public Task<IReadOnlyList<AiInterventionRequest>> SearchAsync(
+            AiInterventionQuery query,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _store.SearchAsync(query, cancellationToken);
         }
     }
 }

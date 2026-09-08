@@ -97,7 +97,9 @@ namespace HAgent.Runtime
                 cancellationToken,
                 hostCorrelationId,
                 identity,
-                instance.Overrides == null ? null : instance.Overrides.ResourceCapabilityOverrides).ConfigureAwait(false);
+                instance.Overrides == null ? null : instance.Overrides.ResourceCapabilityOverrides,
+                instance.InstanceId,
+                string.Empty).ConfigureAwait(false);
         }
 
         private async Task<ToolExecutionResult> ExecuteToolAsync(
@@ -108,7 +110,9 @@ namespace HAgent.Runtime
             CancellationToken cancellationToken,
             string hostCorrelationId,
             AgentIdentityContext identity,
-            AiResourceCapabilityPolicy resourceCapabilityOverrides)
+            AiResourceCapabilityPolicy resourceCapabilityOverrides,
+            string runtimeInstanceId = null,
+            string executionId = null)
         {
             var policyEngine = await ResolvePolicyEngineAsync(cancellationToken).ConfigureAwait(false);
             return await ExecuteToolInternalAsync(
@@ -120,7 +124,9 @@ namespace HAgent.Runtime
                 hostCorrelationId,
                 identity,
                 policyEngine,
-                resourceCapabilityOverrides).ConfigureAwait(false);
+                resourceCapabilityOverrides,
+                runtimeInstanceId,
+                executionId).ConfigureAwait(false);
         }
 
         private async Task<ToolExecutionResult> ExecuteToolInternalAsync(
@@ -132,7 +138,9 @@ namespace HAgent.Runtime
             string hostCorrelationId,
             AgentIdentityContext identity,
             IAiPolicyEngine policyEngine,
-            AiResourceCapabilityPolicy resourceCapabilityOverrides)
+            AiResourceCapabilityPolicy resourceCapabilityOverrides,
+            string runtimeInstanceId = null,
+            string executionId = null)
         {
             if (string.IsNullOrWhiteSpace(agentId))
                 throw new ArgumentException("Agent id is required.", nameof(agentId));
@@ -199,6 +207,8 @@ namespace HAgent.Runtime
                 ResourceType = "tool",
                 ResourceId = toolId,
                 AgentProfileId = agentId,
+                RuntimeInstanceId = runtimeInstanceId ?? string.Empty,
+                ExecutionId = executionId ?? string.Empty,
                 ToolId = toolId,
                 CostStatus = AiCostStatus.Unknown,
                 RequestedCostPolicy = AiCostPolicy.NoRestriction,
@@ -222,6 +232,25 @@ namespace HAgent.Runtime
                     policyDecision,
                     resourceState,
                     resourceCapabilities);
+
+                if (policyDecision.RequiresApproval || policyDecision.IsDeferred)
+                {
+                    blocked.ApprovalRequest = await _approvalWorkflow.CreateAsync(
+                        policyDecision.RequiresApproval ? AiApprovalRequestKind.Approval : AiApprovalRequestKind.Deferral,
+                        "tool.invoke",
+                        "tool",
+                        toolId,
+                        correlationId,
+                        hostCorrelationId,
+                        agentId,
+                        runtimeInstanceId,
+                        executionId,
+                        toolId,
+                        policyDecision.Reason,
+                        effectiveIdentity,
+                        cancellationToken).ConfigureAwait(false);
+                }
+
                 return blocked;
             }
 

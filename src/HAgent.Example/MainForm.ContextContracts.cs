@@ -23,6 +23,7 @@ namespace HAgent.Example
             AddContextRankingTab();
             AddContextCompactionTab();
             AddContextCacheTab();
+            AddContextExecutionIntegrationTab();
         }
 
         private Task RunContextContractsTestAsync(string unused)

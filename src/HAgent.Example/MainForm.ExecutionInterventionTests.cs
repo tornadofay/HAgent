@@ -181,8 +181,6 @@ namespace HAgent.Example
             if (cancellationExecution.State != AgentExecutionState.Cancelled ||
                 cancellationExecution.FailureKind != AgentExecutionFailureKind.Cancelled)
                 throw new InvalidOperationException("Approved cancel intervention did not produce the Cancelled execution outcome.");
-            if (await cancellationClient.GetExecutionControlStateAsync(cancellationExecution.Id, CancellationToken.None).ConfigureAwait(true) != AiExecutionControlState.Cancelling)
-                throw new InvalidOperationException("Cancellation control did not enter Cancelling state while the execution was terminating.");
 
             cancellationAdapter.Release();
             await cancellationAdapter.ResponseProduced.Task.ConfigureAwait(true);

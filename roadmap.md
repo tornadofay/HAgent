@@ -2656,3 +2656,25 @@ Execution Planner / Runtime
 ```
 
 HAgent.Core remains provider-neutral; provider-specific knowledge stays behind adapter boundaries.
+
+Cognitive Workbench Controls
+
+Authorized users may insert, edit and invalidate beliefs; create, edit, reprioritize, suspend, resume and abandon goals; modify intentions where policy permits; request plan reconsideration; inject observations/events; request deliberation; and pause, resume, wake, sleep or retire a runtime.
+
+The UI must use HAgent runtime state-transition APIs and never write directly to persistence. Every mutation is atomic, version-aware, authorized and auditable. Record operator identity, timestamp, reason, UI action, previous revision and new revision.
+
+If the runtime revision changed since the UI read it, reject or refresh the mutation rather than silently merging it. Existing execution snapshots remain immutable and stale executions must not overwrite newer cognition.
+
+Cognitive Workbench History and Learning
+
+Show the complete cognitive timeline: events, belief changes, attention changes, goal and intention changes, plan revisions, impasses, deliberation, executions, outcomes, memory/experience creation, learning decisions, sleep/wake and recovery, including user interventions.
+
+Show learning as Experience -> Memory -> Reflection/Learning -> candidate skill/knowledge/policy -> validation/governance -> published version. Distinguish candidates from authoritative versions so users can see when repeated LLM reasoning becomes reusable deterministic behavior.
+
+Show the active cognitive strategy and version, such as Adaptive Hybrid Cognition (AHC). Future strategies must use the same generic workbench while allowing strategy-specific diagnostics. Historical state is initially read-only; future experimentation may branch from checkpoints without silently replacing live state.
+
+Cognitive Runtime Workbench
+
+Part of Phase 0.97.
+
+HAgent.WinForms must add a top-level Cognitions view for active runtime instances. It provides complete inspection of current runtime cognition: beliefs, goals, intentions, plans, attention, working state, memory, knowledge, skills, events, executions, learning and history.

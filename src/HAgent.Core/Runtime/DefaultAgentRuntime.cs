@@ -138,9 +138,6 @@ namespace HAgent.Runtime
             try
             {
                 Notify(execution);
-                execution.State = AgentExecutionState.Running;
-                execution.StartedAt = DateTimeOffset.UtcNow;
-                Notify(execution);
 
                 using (var timeoutCts = new CancellationTokenSource(options.Timeout))
                 using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
@@ -212,6 +209,22 @@ namespace HAgent.Runtime
                         if (candidates.Count == 0)
                             throw new InvalidOperationException("The selected execution target references a provider that is not available: " + selectedTarget.ProviderId);
 
+                        var instructionProvider = candidates.FirstOrDefault(x => _adapters.Any(adapter => adapter.CanHandle(x))) ?? candidates[0];
+                        var instructionComposition = AiInstructionComposer.Compose(
+                            BuildExecutionInstructionSources(
+                                instructionProvider,
+                                snapshot.Agent,
+                                options.SystemPromptLayers,
+                                request.InstructionSources,
+                                execution),
+                            DateTimeOffset.UtcNow);
+                        execution.CaptureInstructionSnapshot(instructionComposition.Snapshot);
+
+                        execution.State = AgentExecutionState.Running;
+                        execution.StartedAt = DateTimeOffset.UtcNow;
+                        Notify(execution);
+
+                        var effectiveSystemPrompt = instructionComposition.ComposedText;
                         var attempts = 0;
                         Exception lastError = null;
                         ProviderErrorKind lastErrorKind = ProviderErrorKind.Unknown;
@@ -242,7 +255,6 @@ namespace HAgent.Runtime
                                     var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
                                         ? string.Empty
                                         : await _secrets.GetAsync(provider.SecretId, token).ConfigureAwait(false);
-                                    var systemPrompt = BuildSystemPrompt(provider, snapshot.Agent, options.SystemPromptLayers);
                                     lastProviderName = provider.Name;
 
                                     var providerRequest = new ProviderExecutionRequest
@@ -251,7 +263,7 @@ namespace HAgent.Runtime
                                         Agent = snapshot.Agent,
                                         ExecutionTarget = selectedTarget,
                                         ApiKey = apiKey,
-                                        SystemPrompt = systemPrompt,
+                                        SystemPrompt = effectiveSystemPrompt,
                                         Messages = execution.Messages,
                                         StructuredOutput = request.StructuredOutput
                                     };
@@ -403,6 +415,157 @@ namespace HAgent.Runtime
             }
         }
 
+        private static IReadOnlyList<AiInstructionSource> BuildExecutionInstructionSources(
+            AiProvider provider,
+            AiAgent agent,
+            IEnumerable<SystemPromptLayer> executionLayers,
+            IEnumerable<AiInstructionSource> hostSources,
+            AgentExecution execution)
+        {
+            var sources = new List<AiInstructionSource>();
+            if (hostSources != null)
+            {
+                foreach (var source in hostSources)
+                {
+                    if (source == null) continue;
+                    var clone = source.Clone();
+                    StampExecutionProvenance(clone, execution);
+                    sources.Add(clone);
+                }
+            }
+
+            var capturedAt = DateTimeOffset.UtcNow;
+            if (provider != null && agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))
+            {
+                sources.Add(CreateExecutionSource(
+                    "provider",
+                    "Provider",
+                    AiInstructionSourceType.SystemPolicy,
+                    AiInstructionAuthority.SystemPolicy,
+                    AiInstructionTrustLevel.SystemTrusted,
+                    100,
+                    provider.DefaultSystemPrompt,
+                    "provider",
+                    provider.Id,
+                    execution,
+                    capturedAt));
+            }
+
+            if (!string.IsNullOrWhiteSpace(agent.SystemPrompt))
+            {
+                sources.Add(CreateExecutionSource(
+                    "agent",
+                    "Agent",
+                    AiInstructionSourceType.Agent,
+                    AiInstructionAuthority.Agent,
+                    AiInstructionTrustLevel.HAgentTrusted,
+                    200,
+                    agent.SystemPrompt,
+                    "agent",
+                    agent.Id,
+                    execution,
+                    capturedAt));
+            }
+
+            if (executionLayers != null)
+            {
+                foreach (var layer in executionLayers)
+                {
+                    if (layer == null || string.IsNullOrWhiteSpace(layer.Text)) continue;
+                    sources.Add(CreateExecutionSource(
+                        string.IsNullOrWhiteSpace(layer.Id) ? Guid.NewGuid().ToString("N") : layer.Id,
+                        string.IsNullOrWhiteSpace(layer.Name) ? "Execution instruction" : layer.Name,
+                        ResolveInstructionSourceType(layer.Id),
+                        ResolveInstructionAuthority(layer.Id),
+                        AiInstructionTrustLevel.HAgentTrusted,
+                        layer.Priority,
+                        layer.Text,
+                        "system-prompt-layer",
+                        layer.Id,
+                        execution,
+                        capturedAt));
+                }
+            }
+
+            return sources.AsReadOnly();
+        }
+
+        private static AiInstructionSource CreateExecutionSource(
+            string id,
+            string name,
+            AiInstructionSourceType sourceType,
+            AiInstructionAuthority authority,
+            AiInstructionTrustLevel trust,
+            int priority,
+            string content,
+            string sourceKind,
+            string sourceId,
+            AgentExecution execution,
+            DateTimeOffset capturedAt)
+        {
+            var source = new AiInstructionSource
+            {
+                Id = id,
+                Name = name,
+                SourceType = sourceType,
+                Authority = authority,
+                TrustLevel = trust,
+                Scope = new AiInstructionScope { ScopeType = "Execution", ScopeId = execution.Id },
+                Lifecycle = AiInstructionLifecycleState.Active,
+                Availability = AiInstructionAvailability.Available,
+                Priority = priority,
+                ConflictKey = string.Empty,
+                Version = "1",
+                CreatedAt = capturedAt,
+                UpdatedAt = capturedAt,
+                Content = content,
+                Provenance = new AiInstructionProvenance
+                {
+                    SourceKind = sourceKind,
+                    SourceId = sourceId,
+                    SourceVersion = "1",
+                    ExecutionId = execution.Id,
+                    RuntimeInstanceId = execution.RuntimeInstanceId ?? string.Empty,
+                    PrincipalId = execution.Identity == null ? string.Empty : execution.Identity.PrincipalId,
+                    CapturedAt = capturedAt
+                }
+            };
+            source.Validate();
+            return source;
+        }
+
+        private static void StampExecutionProvenance(AiInstructionSource source, AgentExecution execution)
+        {
+            if (source == null || source.Provenance == null) return;
+            source.Provenance.ExecutionId = execution.Id;
+            source.Provenance.RuntimeInstanceId = execution.RuntimeInstanceId ?? string.Empty;
+            source.Provenance.PrincipalId = execution.Identity == null ? string.Empty : execution.Identity.PrincipalId;
+            source.Provenance.CapturedAt = DateTimeOffset.UtcNow;
+        }
+
+        private static AiInstructionSourceType ResolveInstructionSourceType(string id)
+        {
+            switch ((id ?? string.Empty).Trim().ToUpperInvariant())
+            {
+                case "PROVIDER": return AiInstructionSourceType.SystemPolicy;
+                case "AGENT": return AiInstructionSourceType.Agent;
+                case "RUNTIME": return AiInstructionSourceType.RuntimeContext;
+                case "CONTEXT": return AiInstructionSourceType.HostContext;
+                default: return AiInstructionSourceType.SystemPolicy;
+            }
+        }
+
+        private static AiInstructionAuthority ResolveInstructionAuthority(string id)
+        {
+            switch ((id ?? string.Empty).Trim().ToUpperInvariant())
+            {
+                case "AGENT": return AiInstructionAuthority.Agent;
+                case "RUNTIME": return AiInstructionAuthority.Runtime;
+                case "CONTEXT": return AiInstructionAuthority.Runtime;
+                default: return AiInstructionAuthority.SystemPolicy;
+            }
+        }
+
         private static string BuildPlannerFailureSummary(AiExecutionPlan plan)
         {
             if (plan == null || plan.Evaluations == null || plan.Evaluations.Count == 0)
@@ -482,17 +645,6 @@ namespace HAgent.Runtime
             var multiplier = Math.Pow(2, Math.Max(0, retryNumber - 1));
             if (rateLimited) multiplier *= 2;
             return TimeSpan.FromMilliseconds(Math.Min(baseDelay.TotalMilliseconds * multiplier, 30000d));
-        }
-
-        private static string BuildSystemPrompt(AiProvider provider, AiAgent agent, IEnumerable<SystemPromptLayer> executionLayers)
-        {
-            var layers = new List<SystemPromptLayer>();
-            if (agent.UseProviderSystemPrompt && !string.IsNullOrWhiteSpace(provider.DefaultSystemPrompt))
-                layers.Add(new SystemPromptLayer("provider", "Provider", provider.DefaultSystemPrompt, 100));
-            if (!string.IsNullOrWhiteSpace(agent.SystemPrompt))
-                layers.Add(new SystemPromptLayer("agent", "Agent", agent.SystemPrompt, 200));
-            if (executionLayers != null) layers.AddRange(executionLayers);
-            return SystemPromptComposer.Compose(layers);
         }
 
         private void Notify(AgentExecution execution)

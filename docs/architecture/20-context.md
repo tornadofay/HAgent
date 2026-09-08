@@ -4,7 +4,7 @@ Context is bounded information made available to an HAgent execution by the host
 
 ## Context boundary
 
-A host may expose information from any environment through generic context mechanisms. Context may represent observations, state snapshots, events, records, objects, resources, structured data, conversation turns, memory, knowledge, skills, tool descriptions, or other execution-relevant information.
+A host may expose information from any environment through generic context mechanisms. Context may represent observations, state snapshots, events, records, objects, resources, conversation turns, memory, knowledge, skills, tool descriptions, or other execution-relevant information.
 
 HAgent must not require the host to convert every item to a plain string. Structured values remain structured until a provider-facing representation is required.
 
@@ -133,6 +133,26 @@ Compaction produces an execution-owned `ContextSnapshot` plus optional safe `Con
 
 Selected context items are cloned before snapshot construction and retain their original provenance, scope, quality metadata, and payload representation. Compaction never silently changes the semantic identity or provenance of a selected item.
 
+## Reuse and caching
+
+Reusable context components may be cached independently of execution assembly when their validity can be expressed explicitly. The canonical reusable cache identity is `ContextCacheKey`, which includes:
+
+```text
+component identity
+scope type + scope id
+configuration version
+resource version
+freshness version
+```
+
+The cache key is an ownership/validity boundary, not merely a content hash. A change in scope, configuration version, resource version, or freshness version produces a distinct cache identity rather than reusing an older private result. Cache entries also have an explicit expiration boundary for time-based freshness.
+
+`IContextCache` is a provider-neutral cache contract. The current Core implementation is `InMemoryContextCache`, which is thread-safe and stores reusable `ContextSnapshot` instances. Cache invalidation may be explicit or caused by expiration; version/freshness changes naturally miss the old entry because they use a different key.
+
+Reusable cached context must never become a mutable execution-owned shared snapshot. The `ContextSnapshot` model remains the canonical bounded result, and its defensive metadata access prevents callers from changing cached item state through returned item copies. Cache implementations must also retain the ownership boundaries encoded by the key when they are replaced by future persistent/distributed implementations.
+
+Caching must not leak private context across runtimes, users, tenants, or workspaces. Cache keys must reflect the ownership and validity boundaries that affect the represented data.
+
 ## Existing context mechanisms
 
 The existing generic `AgentExecutionRequest.HostContext` dictionary is a bounded host convenience input. It remains useful as an input form while 0.955 evolves, but is not the canonical multi-source context model.
@@ -177,14 +197,6 @@ compaction or truncation action
 
 Payload redaction follows the global observability/security rules. Explainability must never become an authorization bypass or secret-disclosure mechanism.
 
-## Reuse and caching
-
-Context sources and reusable context components may be cached when their scope, ownership, configuration version, resource version, and freshness rules permit it.
-
-Caching must not leak private context across runtimes, users, tenants, or workspaces. Cache keys must reflect the ownership and validity boundaries that affect the represented data.
-
-The assembled execution snapshot is never a mutable shared cache entry.
-
 ## Provider portability
 
 Core never requires a provider-specific tokenizer. Provider adapters may supply token estimates, capabilities, limits, or provider-native context transport. Unknown token accounting remains explicitly unknown rather than being treated as exact.
@@ -205,6 +217,8 @@ Acquisition / retrieval
 Ranking / deduplication
         ↓
 Compression / compaction / truncation
+        ↓
+Reusable cache where scope/version/freshness permits
         ↓
 Bounded Context Snapshot
         ↓

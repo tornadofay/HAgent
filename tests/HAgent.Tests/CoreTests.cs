@@ -11,8 +11,8 @@ namespace HAgent.Tests
         public async Task InMemoryStore_SavesProviderAndAgent()
         {
             var store = new InMemoryAiStore();
-            var provider = new AiProvider { Name = "Test" };
-            var agent = new AiAgent { Name = "Assistant", ProviderId = provider.Id };
+            var provider = new AiProvider { Name = "Test", DefaultModel = "demo", Kind = "openai-compatible" };
+            var agent = new AiAgent { Name = "Assistant" };
             await store.SaveProviderAsync(provider);
             await store.SaveAgentAsync(agent);
             Assert.Single(await store.GetProvidersAsync());
@@ -23,8 +23,8 @@ namespace HAgent.Tests
         public async Task Session_ReadReturnsUserAndAssistantMessages()
         {
             var store = new InMemoryAiStore();
-            var provider = new AiProvider { Name = "Test", DefaultModel = "demo" };
-            var agent = new AiAgent { Name = "Assistant", ProviderId = provider.Id };
+            var provider = new AiProvider { Name = "Test", DefaultModel = "demo", Kind = "openai-compatible" };
+            var agent = new AiAgent { Name = "Assistant" };
             await store.SaveProviderAsync(provider);
             await store.SaveAgentAsync(agent);
             var secrets = new FakeSecretStore();
@@ -49,7 +49,7 @@ namespace HAgent.Tests
                 {
                     AgentId = request.Agent.Id,
                     ProviderId = request.Provider.Id,
-                    Model = request.Agent.Model,
+                    Model = request.ExecutionTarget == null ? string.Empty : request.ExecutionTarget.ModelId,
                     Text = "echo: " + request.Messages[request.Messages.Count - 1].Content
                 });
         }

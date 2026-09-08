@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -10,7 +9,7 @@ namespace HAgent.Runtime
 {
     /// <summary>
     /// Canonical provider-neutral context assembly pipeline.
-    /// Order is policy admission, retrieval, ranking/deduplication, then bounded compaction.
+    /// Order is policy admission, bounded retrieval, ranking/deduplication, then final bounded compaction.
     /// </summary>
     public sealed class ContextAssembler : IContextAssembler
     {
@@ -37,18 +36,19 @@ namespace HAgent.Runtime
             if (sources == null) throw new ArgumentNullException(nameof(sources));
             if (budget == null) throw new ArgumentNullException(nameof(budget));
             if (admissionContext == null) throw new ArgumentNullException(nameof(admissionContext));
+            budget.Validate();
+            admissionContext.Validate();
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var policyResult = await _policyAssembler.AcquireAsync(
+            var policyResult = await _policyAssembler.RetrieveCandidatesAsync(
                 sources,
-                budget,
                 admissionContext,
                 cancellationToken).ConfigureAwait(false);
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var ranked = _ranker.Rank(policyResult.Snapshot.Items);
+            var ranked = _ranker.Rank(policyResult.Candidates);
             cancellationToken.ThrowIfCancellationRequested();
 
             var compaction = _compactor.Compact(
@@ -64,21 +64,8 @@ namespace HAgent.Runtime
 
             return new ContextAssemblyResult(
                 compaction.Snapshot,
-                CloneAdmissionDecisions(policyResult.Decisions),
+                policyResult.Decisions,
                 compaction);
-        }
-
-        private static IReadOnlyList<ContextAdmissionDecision> CloneAdmissionDecisions(
-            IReadOnlyList<ContextAdmissionDecision> decisions)
-        {
-            var clones = new List<ContextAdmissionDecision>();
-            foreach (var decision in decisions ?? new List<ContextAdmissionDecision>())
-            {
-                if (decision == null)
-                    continue;
-                clones.Add(decision.Clone());
-            }
-            return clones.AsReadOnly();
         }
     }
 }

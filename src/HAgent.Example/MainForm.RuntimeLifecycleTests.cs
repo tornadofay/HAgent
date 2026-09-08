@@ -1,12 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
-using HAgent.Storage.File;
 
 namespace HAgent.Example
 {
@@ -27,14 +24,35 @@ namespace HAgent.Example
 
         private async Task TestRuntimeShutdownAsync(string message)
         {
-            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var secrets = new ProtectedDataSecretStore(Path.Combine(_basePath, "secrets"));
-            var profile = GetSelectedAgent();
-            if (profile == null)
-                throw new InvalidOperationException("Select an agent first.");
+            var store = new InMemoryAiStore();
+            var provider = new AiProvider
+            {
+                Id = "runtime-shutdown-provider-42",
+                Name = "Runtime Shutdown Provider",
+                Kind = "RuntimeShutdownTest",
+                BaseUrl = "https://runtime-shutdown.test/v1",
+                DefaultModel = "runtime-shutdown-model-42",
+                Enabled = true
+            };
+            var profile = new AiAgent
+            {
+                Id = "runtime-shutdown-profile-42",
+                Name = "Runtime Shutdown Test Profile",
+                ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = AiSelectionMode.Auto,
+                    Fallback = AiFallbackMode.TryNextCandidate,
+                    CostPolicy = AiCostPolicy.NoRestriction
+                },
+                CapabilityRequirements = new AiCapabilityRequirements(),
+                Enabled = true
+            };
+
+            await store.SaveProviderAsync(provider).ConfigureAwait(true);
+            await store.SaveAgentAsync(profile).ConfigureAwait(true);
 
             var adapter = new RuntimeShutdownTestAdapter();
-            var client = new HAgentClient(store, secrets, new[] { adapter });
+            var client = new HAgentClient(store, new NullSecretStore(), new[] { adapter });
             var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Task);
             var options = new AgentExecutionOptions
             {
@@ -88,6 +106,13 @@ namespace HAgent.Example
                 "New execution after shutdown: rejected");
         }
 
+        private sealed class NullSecretStore : ISecretStore
+        {
+            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken)) { return Task.FromResult(string.Empty); }
+            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken)) { return Task.CompletedTask; }
+            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken)) { return Task.CompletedTask; }
+        }
+
         private sealed class RuntimeShutdownTestAdapter : IAiProviderAdapter
         {
             public readonly TaskCompletionSource<bool> Started = new TaskCompletionSource<bool>();
@@ -97,7 +122,7 @@ namespace HAgent.Example
 
             public bool CanHandle(AiProvider provider)
             {
-                return provider != null;
+                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
             }
 
             public async Task<AIResponse> SendAsync(

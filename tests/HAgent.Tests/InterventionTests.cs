@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -95,13 +94,9 @@ namespace HAgent.Tests
                 null,
                 new DefaultAiPolicyEngine(policy));
 
-            var waiting = new TaskCompletionSource<AgentExecution>(TaskCreationOptions.RunContinuationsAsynchronously);
-            client.InterventionWorkflow.GetType();
-            client.InterventionCoordinator.GetType();
             var runtimeChanged = client.ExecuteAsync(agent.Id, "hello");
             Assert.False(runtimeChanged.IsCompleted);
 
-            // The request becomes visible through the shared workflow while the runtime task is waiting.
             AiInterventionRequest request = null;
             for (var i = 0; i < 100 && request == null; i++)
             {
@@ -115,9 +110,9 @@ namespace HAgent.Tests
             Assert.Equal(AiInterventionAction.Approve, request.RequestedAction);
             Assert.Equal("model.invoke", request.Operation);
 
-            var execution = await client.GetInterventionRequestAsync(request.RequestId);
-            Assert.NotNull(execution);
-            Assert.Equal(AiInterventionRequestStatus.Pending, execution.Status);
+            var pendingRequest = await client.GetInterventionRequestAsync(request.RequestId);
+            Assert.NotNull(pendingRequest);
+            Assert.Equal(AiInterventionRequestStatus.Pending, pendingRequest.Status);
 
             await client.ResolveInterventionRequestAsync(
                 request.RequestId,
@@ -138,119 +133,149 @@ namespace HAgent.Tests
         public async Task Execution_PauseResume_UsesTargetRevision_AndRejectsStaleRequests()
         {
             var setup = await CreateDelayedClientAsync();
-            var task = setup.Client.ExecuteAsync(setup.Agent.Id, "pause");
-            var execution = await WaitForRunningExecutionAsync(setup.Client);
+            var executionChanged = new TaskCompletionSource<AgentExecution>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<AgentExecutionEventArgs> handler = (s, e) =>
+            {
+                if (e.Execution.State == AgentExecutionState.Running) executionChanged.TrySetResult(e.Execution);
+            };
+            setup.Client.ExecutionChanged += handler;
+            try
+            {
+                var task = setup.Client.ExecuteAsync(setup.Agent.Id, "pause");
+                var execution = await executionChanged.Task.ConfigureAwait(false);
 
-            var pauseRequest = await setup.Client.InterventionWorkflow.CreateAsync(
-                AiInterventionRequestKind.Intervention,
-                AiInterventionTargetKind.Execution,
-                AiInterventionAction.Pause,
-                "execution.pause",
-                "execution",
-                execution.Id,
-                execution.CorrelationId,
-                string.Empty,
-                setup.Agent.Id,
-                string.Empty,
-                execution.Id,
-                string.Empty,
-                "pause execution",
-                new AgentIdentityContext(userId: "operator"),
-                CancellationToken.None,
-                execution.ControlRevision);
-            await setup.Client.ResolveInterventionRequestAsync(
-                pauseRequest.RequestId,
-                AiInterventionRequestStatus.Approved,
-                new AgentIdentityContext(userId: "operator"),
-                "pause approved");
-            var applied = await setup.Client.ApplyInterventionRequestAsync(
-                pauseRequest.RequestId,
-                new AgentIdentityContext(userId: "operator"),
-                "pause applied");
-            Assert.True(applied.Applied);
+                var pauseRequest = await setup.Client.InterventionWorkflow.CreateAsync(
+                    AiInterventionRequestKind.Intervention,
+                    AiInterventionTargetKind.Execution,
+                    AiInterventionAction.Pause,
+                    "execution.pause",
+                    "execution",
+                    execution.Id,
+                    execution.CorrelationId,
+                    string.Empty,
+                    setup.Agent.Id,
+                    string.Empty,
+                    execution.Id,
+                    string.Empty,
+                    "pause execution",
+                    new AgentIdentityContext(userId: "operator"),
+                    CancellationToken.None,
+                    execution.ControlRevision);
+                await setup.Client.ResolveInterventionRequestAsync(
+                    pauseRequest.RequestId,
+                    AiInterventionRequestStatus.Approved,
+                    new AgentIdentityContext(userId: "operator"),
+                    "pause approved");
+                var applied = await setup.Client.ApplyInterventionRequestAsync(
+                    pauseRequest.RequestId,
+                    new AgentIdentityContext(userId: "operator"),
+                    "pause applied");
+                Assert.True(applied.Applied);
 
-            await Task.Delay(50);
-            Assert.Equal(AgentExecutionState.Paused, execution.State);
+                await Task.Delay(50);
+                Assert.Equal(AgentExecutionState.Paused, execution.State);
 
-            var staleResume = await setup.Client.InterventionWorkflow.CreateAsync(
-                AiInterventionRequestKind.Intervention,
-                AiInterventionTargetKind.Execution,
-                AiInterventionAction.Resume,
-                "execution.resume",
-                "execution",
-                execution.Id,
-                execution.CorrelationId,
-                string.Empty,
-                setup.Agent.Id,
-                string.Empty,
-                execution.Id,
-                string.Empty,
-                "stale resume",
-                new AgentIdentityContext(userId: "operator"),
-                CancellationToken.None,
-                execution.ControlRevision - 1);
-            await setup.Client.ResolveInterventionRequestAsync(staleResume.RequestId, AiInterventionRequestStatus.Approved, new AgentIdentityContext(userId: "operator"), "approved");
-            var staleResult = await setup.Client.ApplyInterventionRequestAsync(staleResume.RequestId, new AgentIdentityContext(userId: "operator"));
-            Assert.True(staleResult.IsStale);
+                var staleResume = await setup.Client.InterventionWorkflow.CreateAsync(
+                    AiInterventionRequestKind.Intervention,
+                    AiInterventionTargetKind.Execution,
+                    AiInterventionAction.Resume,
+                    "execution.resume",
+                    "execution",
+                    execution.Id,
+                    execution.CorrelationId,
+                    string.Empty,
+                    setup.Agent.Id,
+                    string.Empty,
+                    execution.Id,
+                    string.Empty,
+                    "stale resume",
+                    new AgentIdentityContext(userId: "operator"),
+                    CancellationToken.None,
+                    execution.ControlRevision - 1);
+                await setup.Client.ResolveInterventionRequestAsync(staleResume.RequestId, AiInterventionRequestStatus.Approved, new AgentIdentityContext(userId: "operator"), "approved");
+                var staleResult = await setup.Client.ApplyInterventionRequestAsync(staleResume.RequestId, new AgentIdentityContext(userId: "operator"));
+                Assert.True(staleResult.IsStale);
 
-            var resumeRequest = await setup.Client.InterventionWorkflow.CreateAsync(
-                AiInterventionRequestKind.Intervention,
-                AiInterventionTargetKind.Execution,
-                AiInterventionAction.Resume,
-                "execution.resume",
-                "execution",
-                execution.Id,
-                execution.CorrelationId,
-                string.Empty,
-                setup.Agent.Id,
-                string.Empty,
-                execution.Id,
-                string.Empty,
-                "resume execution",
-                new AgentIdentityContext(userId: "operator"),
-                CancellationToken.None,
-                execution.ControlRevision);
-            await setup.Client.ResolveInterventionRequestAsync(resumeRequest.RequestId, AiInterventionRequestStatus.Approved, new AgentIdentityContext(userId: "operator"), "resume approved");
-            var resumed = await setup.Client.ApplyInterventionRequestAsync(resumeRequest.RequestId, new AgentIdentityContext(userId: "operator"));
-            Assert.True(resumed.Applied);
-            setup.Release.SetResult(true);
+                await setup.Client.ResolveInterventionRequestAsync(staleResume.RequestId, AiInterventionRequestStatus.Rejected, new AgentIdentityContext(userId: "operator"), "stale");
 
-            var result = await task;
-            Assert.Equal(AgentExecutionState.Succeeded, result.State);
+                var resumeRequest = await setup.Client.InterventionWorkflow.CreateAsync(
+                    AiInterventionRequestKind.Intervention,
+                    AiInterventionTargetKind.Execution,
+                    AiInterventionAction.Resume,
+                    "execution.resume",
+                    "execution",
+                    execution.Id,
+                    execution.CorrelationId,
+                    string.Empty,
+                    setup.Agent.Id,
+                    string.Empty,
+                    execution.Id,
+                    string.Empty,
+                    "resume execution",
+                    new AgentIdentityContext(userId: "operator"),
+                    CancellationToken.None,
+                    execution.ControlRevision);
+                await setup.Client.ResolveInterventionRequestAsync(resumeRequest.RequestId, AiInterventionRequestStatus.Approved, new AgentIdentityContext(userId: "operator"), "resume approved");
+                var resumed = await setup.Client.ApplyInterventionRequestAsync(resumeRequest.RequestId, new AgentIdentityContext(userId: "operator"));
+                Assert.True(resumed.Applied);
+                setup.Release.SetResult(true);
+
+                var result = await task;
+                Assert.Equal(AgentExecutionState.Succeeded, result.State);
+            }
+            finally
+            {
+                setup.Client.ExecutionChanged -= handler;
+                if (!setup.Release.Task.IsCompleted) setup.Release.TrySetResult(true);
+            }
         }
 
         [Fact]
         public async Task Execution_InterventionCancel_MakesExecutionTerminalAndCancelsProviderWait()
         {
             var setup = await CreateDelayedClientAsync();
-            var task = setup.Client.ExecuteAsync(setup.Agent.Id, "cancel");
-            var execution = await WaitForRunningExecutionAsync(setup.Client);
+            var executionChanged = new TaskCompletionSource<AgentExecution>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<AgentExecutionEventArgs> handler = (s, e) =>
+            {
+                if (e.Execution.State == AgentExecutionState.Running) executionChanged.TrySetResult(e.Execution);
+            };
+            setup.Client.ExecutionChanged += handler;
+            try
+            {
+                var task = setup.Client.ExecuteAsync(setup.Agent.Id, "cancel");
+                var execution = await executionChanged.Task.ConfigureAwait(false);
 
-            var request = await setup.Client.InterventionWorkflow.CreateAsync(
-                AiInterventionRequestKind.Intervention,
-                AiInterventionTargetKind.Execution,
-                AiInterventionAction.Cancel,
-                "execution.cancel",
-                "execution",
-                execution.Id,
-                execution.CorrelationId,
-                string.Empty,
-                setup.Agent.Id,
-                string.Empty,
-                execution.Id,
-                string.Empty,
-                "cancel execution",
-                new AgentIdentityContext(userId: "operator"),
-                CancellationToken.None,
-                execution.ControlRevision);
-            await setup.Client.ResolveInterventionRequestAsync(request.RequestId, AiInterventionRequestStatus.Approved, new AgentIdentityContext(userId: "operator"), "cancel approved");
-            var applied = await setup.Client.ApplyInterventionRequestAsync(request.RequestId, new AgentIdentityContext(userId: "operator"));
-            Assert.True(applied.Applied);
+                var request = await setup.Client.InterventionWorkflow.CreateAsync(
+                    AiInterventionRequestKind.Intervention,
+                    AiInterventionTargetKind.Execution,
+                    AiInterventionAction.Cancel,
+                    "execution.cancel",
+                    "execution",
+                    execution.Id,
+                    execution.CorrelationId,
+                    string.Empty,
+                    setup.Agent.Id,
+                    string.Empty,
+                    execution.Id,
+                    string.Empty,
+                    "cancel execution",
+                    new AgentIdentityContext(userId: "operator"),
+                    CancellationToken.None,
+                    execution.ControlRevision);
+                await setup.Client.ResolveInterventionRequestAsync(request.RequestId, AiInterventionRequestStatus.Approved, new AgentIdentityContext(userId: "operator"), "cancel approved");
+                var applied = await setup.Client.ApplyInterventionRequestAsync(request.RequestId, new AgentIdentityContext(userId: "operator"));
+                Assert.True(applied.Applied);
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
-            Assert.Equal(AgentExecutionState.Cancelled, execution.State);
-            var completed = await setup.Client.GetInterventionRequestAsync(request.RequestId);
-            Assert.Equal(AiInterventionRequestStatus.Completed, completed.Status);
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+                Assert.Equal(AgentExecutionState.Cancelled, execution.State);
+                var completed = await setup.Client.GetInterventionRequestAsync(request.RequestId);
+                Assert.Equal(AiInterventionRequestStatus.Completed, completed.Status);
+            }
+            finally
+            {
+                setup.Client.ExecutionChanged -= handler;
+                if (!setup.Release.Task.IsCompleted) setup.Release.TrySetResult(true);
+            }
         }
 
         private static async Task<(HAgentClient Client, AiAgent Agent, TaskCompletionSource<bool> Release)> CreateDelayedClientAsync()
@@ -263,26 +288,6 @@ namespace HAgent.Tests
             var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var client = new HAgentClient(store, new EmptySecretStore(), new[] { new BlockingEchoAdapter(release.Task) });
             return (client, agent, release);
-        }
-
-        private static async Task<AgentExecution> WaitForRunningExecutionAsync(HAgentClient client)
-        {
-            var events = new List<AgentExecution>();
-            EventHandler<AgentExecutionEventArgs> handler = (s, e) => { if (e.Execution.State == AgentExecutionState.Running) lock (events) events.Add(e.Execution); };
-            client.GetType();
-            var runtimeField = typeof(HAgentClient).GetField("_runtime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            var runtime = (IAgentRuntime)runtimeField.GetValue(client);
-            runtime.ExecutionChanged += handler;
-            try
-            {
-                for (var i = 0; i < 100; i++)
-                {
-                    lock (events) if (events.Count > 0) return events[0];
-                    await Task.Delay(10);
-                }
-            }
-            finally { runtime.ExecutionChanged -= handler; }
-            throw new InvalidOperationException("No running execution event was observed.");
         }
 
         private sealed class ImmediateEchoAdapter : IAiProviderAdapter

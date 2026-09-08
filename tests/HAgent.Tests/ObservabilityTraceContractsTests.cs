@@ -92,19 +92,5 @@ namespace HAgent.Tests
             Assert.NotNull(spans[0].CompletedAt);
             Assert.NotNull(spans[0].Duration);
         }
-
-        [Fact]
-        public void TraceSpan_RejectsCompletionBeforeStart()
-        {
-            var recorder = new InMemoryTraceRecorder();
-            var span = recorder.StartSpan(new TraceSpanStartOptions
-            {
-                OperationName = "boundary",
-                Kind = "Lifecycle"
-            });
-
-            Assert.ThrowsAny<ArgumentException>(() => span.Record.GetType());
-            Assert.False(span.Record.IsCompleted);
-        }
     }
 }

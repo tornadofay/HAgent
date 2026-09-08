@@ -1,11 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 
 namespace HAgent.Models
 {
     /// <summary>
     /// Canonical provider-neutral ownership/scope metadata for context.
+    /// ScopeType should use the canonical HAgent scope names when applicable.
     /// </summary>
     public sealed class ContextScope
     {
@@ -97,7 +96,6 @@ namespace HAgent.Models
             Id = Guid.NewGuid().ToString("N");
             Source = string.Empty;
             Type = string.Empty;
-            Payload = null;
             Provenance = new ContextProvenance();
             Trust = 0d;
             Importance = 0d;
@@ -247,41 +245,6 @@ namespace HAgent.Models
                 throw new ArgumentOutOfRangeException(nameof(Query));
             if (MaxItems < 1 || MaxItems > maximumItems)
                 throw new ArgumentOutOfRangeException(nameof(MaxItems));
-        }
-    }
-
-    /// <summary>
-    /// Immutable provider-neutral context collection produced by a later assembly stage.
-    /// This contract is intentionally snapshot-only; it performs no retrieval or ranking.
-    /// </summary>
-    public sealed class ContextSnapshot
-    {
-        public ContextSnapshot(IEnumerable<ContextItem> items, ContextBudget budget)
-        {
-            if (items == null) throw new ArgumentNullException(nameof(items));
-            if (budget == null) throw new ArgumentNullException(nameof(budget));
-
-            var clones = new List<ContextItem>();
-            foreach (var item in items)
-            {
-                if (item == null) throw new ArgumentException("Context snapshot cannot contain null items.", nameof(items));
-                item.Validate();
-                clones.Add(item.Clone());
-            }
-
-            var copiedBudget = budget.Clone();
-            copiedBudget.Validate();
-
-            Items = new ReadOnlyCollection<ContextItem>(clones);
-            Budget = copiedBudget;
-        }
-
-        public IReadOnlyList<ContextItem> Items { get; private set; }
-        public ContextBudget Budget { get; private set; }
-
-        public ContextSnapshot Clone()
-        {
-            return new ContextSnapshot(Items, Budget);
         }
     }
 }

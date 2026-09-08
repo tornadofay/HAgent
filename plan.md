@@ -20,17 +20,17 @@ Phase 0.954 Prompt and Instruction Governance was verified and closed by the use
 
 ## Current run
 
-**0.955 Slice 8 — VERIFIED.**
+**0.955 Slice 9 implementation checkpoint — local verification pending.**
 
-Slice 8 adds an explicit per-source bounded retrieval plan across the standard provider-neutral context source categories while preserving one global item/character/token budget, deterministic source ordering, cancellation, provenance, snapshot isolation, and provider neutrality. Source enablement and authorization remain outside the retrieval contract.
+Slice 9 adds a provider-neutral policy-aware admission boundary between retrieval and ranking/assembly. It composes the existing unified `IAiPolicyEngine` with the effective `AiResourceCapabilitySnapshot`, blocks denied/approval-required/deferred sources before retrieval, blocks disabled sources before retrieval, and filters denied candidates before global budget assembly. Admission diagnostics contain bounded metadata only and never carry context payloads.
 
 ## Next action
 
-Implement the next bounded slice: **0.955 Slice 9 — Policy/permission-aware context assembly**. Add the provider-neutral enforcement boundary between retrieval and ranking/assembly using the existing host/resource policy and effective capability model; cover allowed, denied, disabled, scope/ownership, deterministic exclusion reasons, and safe diagnostics. Keep authorization out of prompt text and do not create a parallel authorization model.
+Run the updated `HAgent.Tests` suite and the Context → Context Core → Context Policy Assembly Example. The new focused test file currently adds 5 tests, so the expected full suite count is **46 tests**. Verify the Example on .NET Framework 4.8.1 and .NET 9. Record actual results before closing Slice 9 or selecting the next milestone.
 
 ## Current blockers
 
-No verification blocker remains for Slice 8. The connected session cannot execute the local .NET/WinForms build or Example; the 41/41 test and Example results recorded here were run by the user locally.
+No known source-level blocker remains after the composition fix for the sealed `ContextRetrievalSource` contract. The connected session cannot execute the local .NET/WinForms build or Example; Slice 9 has not been claimed verified.
 
 ## Current project state
 

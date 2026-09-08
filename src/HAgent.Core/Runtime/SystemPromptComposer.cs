@@ -1,49 +1,50 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using HAgent.Models;
 
 namespace HAgent.Runtime
 {
     /// <summary>
-    /// Composes system-prompt layers without replacement semantics.
-    /// Lower layers are additive and must not be treated as authorization overrides.
+    /// Compatibility-shaped facade over the canonical provider-neutral instruction composer.
+    /// Lower layers remain additive and are never treated as authorization overrides.
     /// </summary>
     public static class SystemPromptComposer
     {
         public static string Compose(IEnumerable<SystemPromptLayer> layers)
         {
-            if (layers == null) return string.Empty;
-
-            var ordered = layers
-                .Where(x => x != null && !string.IsNullOrWhiteSpace(x.Text))
-                .OrderBy(x => x.Priority)
-                .ToList();
-
-            if (ordered.Count == 0) return string.Empty;
-
-            var builder = new StringBuilder();
-            foreach (var layer in ordered)
+            var sources = new List<AiInstructionSource>();
+            foreach (var layer in layers ?? Enumerable.Empty<SystemPromptLayer>())
             {
-                if (builder.Length > 0)
-                    builder.AppendLine().AppendLine();
+                if (layer == null || string.IsNullOrWhiteSpace(layer.Text))
+                    continue;
 
-                var title = string.IsNullOrWhiteSpace(layer.Name)
-                    ? layer.Id
-                    : layer.Name;
-
-                if (!string.IsNullOrWhiteSpace(title))
+                sources.Add(new AiInstructionSource
                 {
-                    builder.Append("[System Prompt Layer: ")
-                        .Append(title.Trim())
-                        .AppendLine("]");
-                }
-
-                builder.Append(layer.Text.Trim());
+                    Id = string.IsNullOrWhiteSpace(layer.Id) ? Guid.NewGuid().ToString("N") : layer.Id,
+                    Name = layer.Name,
+                    SourceType = ResolveSourceType(layer.Id),
+                    Authority = ResolveAuthority(layer.Id),
+                    TrustLevel = AiInstructionTrustLevel.HAgentTrusted,
+                    Scope = new AiInstructionScope(),
+                    Lifecycle = AiInstructionLifecycleState.Active,
+                    Priority = layer.Priority,
+                    ConflictKey = string.Empty,
+                    Version = "1",
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow,
+                    Content = layer.Text,
+                    Provenance = new AiInstructionProvenance
+                    {
+                        SourceKind = "system-prompt-layer",
+                        SourceId = layer.Id,
+                        SourceVersion = "1",
+                        CapturedAt = DateTimeOffset.UtcNow
+                    }
+                });
             }
 
-            return builder.ToString();
+            return AiInstructionComposer.Compose(sources).ComposedText;
         }
 
         public static SystemPromptLayer Create(string id, string name, string text, int priority)
@@ -52,6 +53,29 @@ namespace HAgent.Runtime
                 throw new ArgumentException("Prompt layer text is required.", nameof(text));
 
             return new SystemPromptLayer(id, name, text, priority);
+        }
+
+        private static AiInstructionSourceType ResolveSourceType(string id)
+        {
+            switch ((id ?? string.Empty).Trim().ToUpperInvariant())
+            {
+                case "PROVIDER": return AiInstructionSourceType.SystemPolicy;
+                case "AGENT": return AiInstructionSourceType.Agent;
+                case "RUNTIME": return AiInstructionSourceType.RuntimeContext;
+                case "CONTEXT": return AiInstructionSourceType.HostContext;
+                default: return AiInstructionSourceType.SystemPolicy;
+            }
+        }
+
+        private static AiInstructionAuthority ResolveAuthority(string id)
+        {
+            switch ((id ?? string.Empty).Trim().ToUpperInvariant())
+            {
+                case "AGENT": return AiInstructionAuthority.Agent;
+                case "RUNTIME": return AiInstructionAuthority.Runtime;
+                case "CONTEXT": return AiInstructionAuthority.Runtime;
+                default: return AiInstructionAuthority.SystemPolicy;
+            }
         }
     }
 }

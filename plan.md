@@ -613,11 +613,13 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 46/46 tests passing on 2026-09-09.
    - Deterministic public-API `HAgent.Example` Context Policy Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering allowed, denied, and disabled admission paths plus provenance and safe diagnostics.
 
-10. **Instruction-authority separation — CURRENT**
-   - Ensure instruction-origin context remains distinguishable from ordinary evidence and cannot gain authority merely by being present in the generic context pipeline.
-   - Preserve the existing 0.954 instruction-governance boundary: instruction precedence/authority stays in the instruction subsystem, while context policy may decide eligibility without rewriting instruction semantics.
-   - Define deterministic admission metadata for instruction-origin context and safe handling of lower-authority or ordinary evidence so it cannot silently replace, erase, or override authoritative instruction layers.
-   - Verification target: focused Core tests plus deterministic public-API Example coverage showing instruction-origin context remains provenance-labeled and cannot alter instruction authority merely through context inclusion.
+10. **End-to-end bounded context assembly pipeline — CURRENT**
+   - Add one provider-neutral orchestration boundary that composes the existing policy-aware retrieval, deterministic ranking/deduplication, and deterministic compaction stages into one canonical bounded `ContextSnapshot` result.
+   - Preserve the existing stage boundaries and ownership rules: policy/permission admission remains before ranking, ranking remains before compaction, and execution/provider integration remains downstream.
+   - The pipeline must aggregate safe stage diagnostics without copying payloads, preserve provenance/scope across all stages, honor the final global budget, remain provider-neutral, and propagate cancellation.
+   - Do not duplicate the 0.954 instruction-governance engine. Instruction authority/precedence remains owned by `AiInstructionComposer`; the context pipeline only carries provider-neutral evidence and its provenance.
+   - Verification target: focused end-to-end Core tests plus a deterministic public-API `HAgent.Example` showing allowed/denied candidates flowing through retrieval → policy admission → ranking/deduplication → compaction into the final bounded snapshot, with no provider request.
+   - Completion target: after this slice passes, reconcile the full 0.955 verification matrix and determine whether all roadmap requirements are satisfied before closing the phase.
 
 ### Verification rule
 

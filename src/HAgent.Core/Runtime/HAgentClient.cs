@@ -47,7 +47,20 @@ namespace HAgent.Runtime
         public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions, IConversationMemoryPolicy memoryPolicy, IExecutionAuditStore auditStore, ExecutionAuditOptions auditOptions)
             : this(store, secrets, adapters, router, memory, conversations, contextOptions, memoryPolicy, auditStore, auditOptions, null) { }
 
-        public HAgentClient(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IProviderRouter router, IMemoryStore memory, IConversationStore conversations, ConversationContextOptions contextOptions, IConversationMemoryPolicy memoryPolicy, IExecutionAuditStore auditStore, ExecutionAuditOptions auditOptions, IAiPolicyEngine policyEngine)
+        public HAgentClient(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IProviderRouter router,
+            IMemoryStore memory,
+            IConversationStore conversations,
+            ConversationContextOptions contextOptions,
+            IConversationMemoryPolicy memoryPolicy,
+            IExecutionAuditStore auditStore,
+            ExecutionAuditOptions auditOptions,
+            IAiPolicyEngine policyEngine,
+            IAiInterventionWorkflow interventionWorkflow = null,
+            IAiInterventionAuthorizer interventionAuthorizer = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
@@ -71,7 +84,9 @@ namespace HAgent.Runtime
                 auditOptions,
                 _executionPlanner,
                 _executionTargetCatalog,
-                policyEngine);
+                policyEngine,
+                interventionWorkflow,
+                interventionAuthorizer);
         }
 
         public ConversationContextOptions ContextOptions { get { return _contextBuilder.Options; } }

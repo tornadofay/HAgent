@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,12 @@ namespace HAgent.Runtime
     {
         public IAiInterventionWorkflow InterventionWorkflow { get { return _runtime.InterventionWorkflow; } }
         public AiInterventionCoordinator InterventionCoordinator { get { return _runtime.InterventionCoordinator; } }
+
+        public event EventHandler<AgentExecutionEventArgs> ExecutionChanged
+        {
+            add { _runtime.ExecutionChanged += value; }
+            remove { _runtime.ExecutionChanged -= value; }
+        }
 
         public void RegisterInterventionTargetHandler(IAiInterventionTargetHandler handler)
         {

@@ -102,6 +102,85 @@ Explicit rejection is allowed from proposed, pending-review, or approved state. 
 
 `RequireApproval` and `Defer` are first-class decisions. They must not be represented as instructions hidden inside prompts. The later human-intervention and admission layers consume these outcomes and determine how the request proceeds.
 
+## Policy configuration UI evolution
+
+The WinForms Policy page is a human-oriented configuration surface over the provider-neutral policy contracts. The UI must become progressively more understandable without changing or weakening the underlying policy model.
+
+### Rule management
+
+The rule editor should use semantic selectors and readable values wherever HAgent has enough configuration information to provide them. Internal identifiers such as agent IDs, tool IDs, resource IDs, provider IDs, and scope IDs should not normally require manual GUID entry.
+
+The target experience is:
+
+```text
+Scope       -> Global / Tenant / Agent / Runtime / Resource / Tool / ...
+Agent       -> selectable configured agent, when applicable
+Tool        -> selectable registered tool, when applicable
+Resource    -> selectable known resource/resource type, when applicable
+Provider    -> selectable configured provider, when applicable
+Operation   -> selectable supported operation
+Outcome     -> Allow / Deny / Require approval / Defer
+Priority    -> explicit numeric precedence
+Conditions  -> only conditions relevant to the selected scope/resources
+Reason      -> human-readable explanation
+```
+
+The UI may continue to expose the canonical identifiers for advanced scenarios, diagnostics, or objects that cannot yet be resolved to friendly names, but raw identifiers are an implementation detail rather than the preferred administrator workflow.
+
+The editor must prevent invalid combinations where the UI can detect them and must preserve the engine's deterministic precedence semantics. UI ordering or declaration order must never become an alternative precedence mechanism.
+
+### Effective Decisions
+
+Effective Decisions is a read-only diagnostic view of policy evaluation, not a second decision engine and not a place to edit authorization state.
+
+The target experience should let an administrator inspect a representative or supplied evaluation context and see:
+
+```text
+Decision             -> Allow / Deny / Require approval / Defer / Not applicable
+Selected rule        -> human-readable rule name/reason
+Policy version       -> evaluated version
+Scope                -> matched scope
+Priority             -> selected priority
+Why it matched      -> relevant constraints
+Why it won         -> precedence/provenance information
+Built-in guard       -> when a built-in policy guard contributed
+```
+
+When practical, the view should show the important evaluation inputs as readable labels rather than internal IDs. It should make clear that the displayed decision is an evaluation result for a specific context and policy version, not a mutable permission record.
+
+### Agent Capabilities
+
+Agent Capabilities is the human-facing view of profile resource capability defaults plus runtime overrides and effective resolution. It should be organized around agents and capabilities/resources, not around raw persistence rows.
+
+The target experience is a per-agent capability matrix or equivalent editor:
+
+```text
+Agent            Capability/Resource      Profile        Runtime        Effective
+Support Agent    Web                       Enabled        Inherit        Enabled
+Support Agent    CRM                       Enabled        Disabled       Disabled
+Research Agent   Web                       Disabled       Enabled        Enabled
+```
+
+The UI must preserve the distinction between:
+
+- profile state: persistent default for the agent profile;
+- runtime override: transient `Inherit` / `Enabled` / `Disabled` value;
+- effective state: deterministic result used by the execution snapshot.
+
+`Inherit` is not an effective state. The UI should explain where the effective value came from when useful, especially when a runtime override or exact-resource rule changes the result.
+
+The capability editor must never imply that an enabled capability grants authorization. Policy and host authorization boundaries remain authoritative.
+
+### Data sources for friendly UI
+
+The configuration UI should obtain display names from the existing HAgent configuration/runtime registries where available: configured agents, registered tools, configured providers, known resource types/resources, and supported operations. It must not duplicate those registries or create a second source of truth merely for display.
+
+Unknown or stale IDs must remain diagnosable. The UI should show a clear unresolved label rather than silently changing or deleting a rule.
+
+### Evolution rule
+
+The implementation should first preserve the canonical policy contracts and engine behavior, then improve the presentation and editing layer. Future UI work must not introduce UI-specific authorization semantics, a second precedence engine, parallel capability state, or persistence formats that diverge from the core contracts.
+
 ## Enforcement boundary
 
 Prompt content is never the security or policy enforcement mechanism. A model can request an operation, but executable tools, provider calls, data access, learning promotion, and other side effects must pass the appropriate host/runtime enforcement boundary.

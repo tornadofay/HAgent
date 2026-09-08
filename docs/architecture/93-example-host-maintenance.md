@@ -1,0 +1,188 @@
+# HAgent Example Host Maintenance Guide
+
+## Purpose
+
+`HAgent.Example` is the manual developer/verification host. Its UI is organized by architecture and capability, not by implementation file or class name.
+
+The top-level Example tabs are **feature groups**. Each feature group contains a nested `TabControl`; each child tab represents one independently runnable example scenario.
+
+This structure is required so the Example host can grow without becoming a single flat list of dozens of unrelated tabs.
+
+## UI structure
+
+```text
+HAgent Example
+├── Core
+│   ├── Messaging
+│   ├── Session
+│   └── Persistent Session
+├── Memory
+│   ├── Memory
+│   ├── Automatic Memory
+│   └── ...
+├── Context
+├── Tools
+├── Providers
+├── Policy
+├── Events
+├── Identity
+│   ├── Identity Snapshot
+│   ├── Identity Execution
+│   ├── Identity Tool
+│   └── Identity Isolation
+├── Runtime
+├── Workspace
+├── Cognition
+├── Configuration
+└── Diagnostics
+```
+
+The exact child examples evolve with the implementation. The architectural grouping is the stable concern.
+
+## Canonical implementation
+
+The grouping shell is implemented in:
+
+`src/HAgent.Example/MainForm.ExampleOrganization.cs`
+
+Important members:
+
+- `ExampleFeatureOrder` defines the order of top-level feature groups.
+- `OrganizeExampleTabs()` moves the existing child `TabPage` instances into the appropriate feature group and creates the nested `TabControl`.
+- `GetExampleFeatureGroup(string title)` maps an example title to its architecture-level group.
+- `MainForm.OnLoad` must add all Example tabs that participate in grouping before calling `OrganizeExampleTabs()`.
+
+Individual test implementations remain in focused partial files such as `MainForm.IdentityTests.cs`, `MainForm.PolicyTests.cs`, `MainForm.ExecutionPlannerTests.cs`, and related files. The organization shell should not contain test implementation logic.
+
+## Adding a new top-level feature group
+
+Create a new group only when the examples represent a meaningful architecture/capability boundary. Do not create a group for one class, one provider, or one implementation detail.
+
+1. Add the group name to `ExampleFeatureOrder` at the desired position.
+2. Add a title-to-group rule in `GetExampleFeatureGroup` for the child example titles that belong to that group.
+3. Keep the new examples in focused partial files/components rather than putting their test implementation into `MainForm.ExampleOrganization.cs`.
+4. Add or register the child tabs before `OrganizeExampleTabs()` runs.
+5. Verify the new group is visible as a top-level tab and its examples appear as nested child tabs.
+
+Example:
+
+```csharp
+private static readonly string[] ExampleFeatureOrder =
+{
+    "Core",
+    "Memory",
+    "Context",
+    "Tools",
+    "Providers",
+    "Policy",
+    "Events",
+    "Identity",
+    "Runtime",
+    "Workspace",
+    "Cognition",
+    "New Feature",
+    "Configuration",
+    "Diagnostics"
+};
+```
+
+Then classify its child titles explicitly:
+
+```csharp
+if (key == "NEW FEATURE CONTRACT" || key == "NEW FEATURE PERSISTENCE")
+    return "New Feature";
+```
+
+## Adding a child example to an existing group
+
+Do not edit the grouping shell just because a child example is added when the existing classification rule already handles it.
+
+1. Implement the example in a focused partial file.
+2. Register it with the normal `AddApiTab(...)`, specialized tab method, or feature-specific registration method.
+3. Give it a stable, descriptive title that makes its architecture boundary obvious.
+4. Ensure the registration occurs before `OrganizeExampleTabs()`.
+5. Confirm `GetExampleFeatureGroup` classifies the title into the intended existing group.
+6. Keep the example independently runnable and deterministic where the capability permits deterministic verification.
+
+Prefer explicit title rules over broad accidental matches when a name could belong to more than one architecture area.
+
+## Editing an existing example
+
+Edit the focused partial file that owns the example. For example:
+
+```text
+MainForm.IdentityTests.cs
+MainForm.PolicyTests.cs
+MainForm.ExecutionInterventionHardeningTests.cs
+MainForm.ExecutionPlannerTests.cs
+```
+
+Do not move test logic into `MainForm.ExampleOrganization.cs`. That file owns presentation grouping only.
+
+Changing an example title may change its group. When a title changes, re-check `GetExampleFeatureGroup` and the Example UI documentation if the architecture classification changes.
+
+## Removing an example
+
+Remove the child example's registration and obsolete implementation from its focused partial file. Do not remove the parent feature group merely because one child was removed; the grouping shell automatically omits empty groups.
+
+If the removed example was the only scenario for a feature group, decide whether the architecture boundary still deserves a group. Remove the group from `ExampleFeatureOrder` only when that top-level feature is no longer represented by any Example scenario.
+
+Do not leave hidden, unreachable, or duplicate registration paths behind.
+
+## Registration order and lifecycle
+
+All child tabs must exist before `OrganizeExampleTabs()` is called. A common failure mode is registering a tab from `Application.Idle` or another later callback; that tab will bypass the initial grouping pass and appear outside the expected feature group.
+
+The canonical initialization sequence is:
+
+```text
+Build shell
+    ↓
+Register feature/example tabs
+    ↓
+Add special ahead-of-roadmap examples that are intentionally retained
+    ↓
+OrganizeExampleTabs()
+    ↓
+Show grouped Example UI
+```
+
+Do not add delayed tab registration merely to work around initialization order. Correct the initialization sequence instead.
+
+## Classification rules
+
+Examples should be grouped according to the architecture/capability they verify. Typical boundaries include:
+
+- **Core** — basic messaging/session behavior.
+- **Memory** — explicit, automatic, episodic, task/event, and related memory capabilities.
+- **Context** — generic context, UI context, data relationships, bounded queries, and discovery.
+- **Tools** — tool definitions, registry, validation, loops, persistence, and assignment.
+- **Providers** — adapters, provider transport, capabilities, normalization, and streaming.
+- **Policy** — unified policy and policy-governed approval/defer behavior.
+- **Events** — event contracts and event lifecycle behavior.
+- **Identity** — deployment, tenant, principal, user, session, workspace, ownership, propagation, and isolation examples.
+- **Runtime** — execution lifecycle, runtime instances, intervention, scheduling, quotas/admission, execution planning, auditing, and runtime capability controls.
+- **Workspace** — workspace routing, roles, participants, and workspace behavior.
+- **Cognition** — learning candidates, learning intervention, cognition workbench/runtime behavior, and future cognitive-state scenarios.
+- **Configuration** — examples specifically demonstrating configuration behavior.
+- **Diagnostics** — internal inventory or diagnostic inspection examples.
+
+These are guidelines, not permission to force unrelated scenarios into an existing group. When a new capability introduces a genuinely distinct architectural boundary, add a new top-level group deliberately.
+
+## Verification requirements
+
+After changing Example organization or registration:
+
+1. Build `HAgent.Example` on the supported target being used.
+2. Run the application.
+3. Verify the expected top-level feature groups and nested child tabs are present.
+4. Open affected child tabs and confirm their existing run actions still work.
+5. For new or changed capabilities, run their deterministic verification and record the result in the appropriate roadmap/active-work document.
+
+Do not claim Example UI or test success based only on source inspection.
+
+## Relationship to repository rules
+
+This guide implements the Example requirements in `AGENTS.md`: architecture-level top-level feature tabs, nested tabs for multiple examples, focused partial files, independently understandable scenarios, deterministic verification, and no loss or duplication of Example capabilities.
+
+When `AGENTS.md` changes, this maintenance guide must remain consistent with the global repository rules and should be updated when the Example UI contract changes.

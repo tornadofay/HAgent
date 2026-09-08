@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
+using HAgent.Runtime;
 
 namespace HAgent.Example
 {
@@ -113,6 +114,44 @@ namespace HAgent.Example
             {
             }
 
+            var policyBlockedHostAuthorizer = new ExampleDataAccessAuthorizer(true);
+            var dataPolicy = new AiPolicySet { Version = "data-policy-42" };
+            var dataPolicyRule = new AiPolicyRule
+            {
+                Id = "deny-data-source-policy-42",
+                Name = "Data source policy denial",
+                Scope = AiPolicyScopeKind.Resource,
+                ScopeId = "orders-policy-blocked",
+                Priority = 100,
+                Outcome = AiPolicyOutcome.Deny,
+                Reason = "This data source is blocked by unified HAgent policy."
+            };
+            dataPolicyRule.Operations.Add("data.query");
+            dataPolicyRule.ResourceTypes.Add("data-source");
+            dataPolicyRule.ResourceIds.Add("orders-policy-blocked");
+            dataPolicy.Rules.Add(dataPolicyRule);
+
+            var policyAuthorizer = new PolicyDataAccessAuthorizer(
+                new DefaultAiPolicyEngine(dataPolicy),
+                policyBlockedHostAuthorizer);
+            var policyDeniedSource = new InMemoryDataQuerySource(
+                new[] { Row(1, "Alice", 120) },
+                schema,
+                policyAuthorizer,
+                "orders-policy-blocked",
+                "example-agent",
+                executionPolicy);
+            try
+            {
+                await policyDeniedSource.QueryAsync(request, CancellationToken.None);
+                throw new InvalidOperationException("Unified policy allowed a blocked data source to reach execution.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+            if (policyBlockedHostAuthorizer.LastRequest != null)
+                throw new InvalidOperationException("Unified policy denial did not stop the operation before the host authorization callback.");
+
             var observed = authorizer.LastRequest;
             if (observed == null || observed.Operation != DataAccessOperation.ProjectionQuery ||
                 !string.Equals(observed.SourceId, "orders", StringComparison.Ordinal) ||
@@ -196,6 +235,7 @@ namespace HAgent.Example
                 "Authoritative schema rejected the non-approved Secret field." + Environment.NewLine +
                 "Projection/query permission accepted the authorized source and rejected the denied source." + Environment.NewLine +
                 "Host authorization callback received operation, source, runtime identity, and query context." + Environment.NewLine +
+                "Unified policy denied a blocked data source before the host authorization callback." + Environment.NewLine +
                 "Execution policy rejected a page above the result budget." + Environment.NewLine +
                 "Caller cancellation was propagated through authorization/execution." + Environment.NewLine +
                 "Execution timeout was enforced by the source policy." + Environment.NewLine +

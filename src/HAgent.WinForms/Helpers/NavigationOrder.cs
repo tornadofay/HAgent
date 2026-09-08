@@ -7,6 +7,7 @@ using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.Forms;
+using HAgent.WinForms.Helpers.Button;
 
 namespace HAgent.WinForms.Helpers
 {

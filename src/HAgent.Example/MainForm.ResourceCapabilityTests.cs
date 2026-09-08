@@ -132,7 +132,7 @@ namespace HAgent.Example
 
             var instanceOverrides = new AgentRuntimeOverrides();
             instanceOverrides.ResourceCapabilityOverrides.Set("tool", gatedToolId, AiResourceCapabilityState.Enabled);
-            var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.User, instanceOverrides);
+            var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Session, instanceOverrides);
             var allowed = await client.ExecuteToolAsync(
                 instance,
                 gatedToolId,

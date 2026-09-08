@@ -165,9 +165,13 @@ These mechanisms are implementation evidence and producer/adaptor boundaries, no
 
 ## Execution integration
 
-The result of context engineering is a bounded context snapshot associated with one execution. The assembled snapshot is immutable from the execution's point of view so later provider configuration, agent configuration, resource state, or host collection changes cannot mutate already-running work.
+The result of context engineering is a bounded context snapshot associated with one execution. A host may provide a prepared `ContextSnapshot` through the canonical `AgentExecutionRequest.Context`. The runtime captures an isolated copy into `AgentExecutionSnapshot.Context` before provider execution, so later mutation of the host request or source snapshot cannot affect running work.
 
-The current Core snapshot contract is `ContextSnapshot`. It defensively copies the selected items and budget at construction and returns defensive item/budget copies to callers. It records the selected item count, character usage, estimated-token usage when knowable, remaining budget dimensions, source count, creation time, and contract version. The snapshot is not a mutable shared cache entry and is not a provider transport representation.
+`ContextSnapshot` remains the immutable-from-caller canonical bounded result. It defensively copies the selected items and budget at construction and exposes defensive copies. It records selected item count, character usage, estimated-token usage when knowable, remaining budget dimensions, source count, creation time, and contract version. The snapshot is not a mutable shared cache entry and is not itself a provider transport representation.
+
+The provider-facing `ProviderExecutionRequest.Context` carries the execution-captured provider-neutral snapshot across the adapter boundary. Provider adapters decide whether and how to transform that context into provider-specific messages, structured content, or another transport representation. Core does not embed provider tokenization or prompt-formatting rules into the context model.
+
+The provider request object may be mutated by adapter code without mutating the execution-owned context snapshot. Context provenance, scope, budget evidence, and bounded selection remain available at the provider boundary for adapters that support them.
 
 The snapshot preserves, at minimum:
 
@@ -178,8 +182,6 @@ selection and compaction evidence where safe
 source/provenance metadata
 creation/version information
 ```
-
-The provider-facing adapter may transform this snapshot into messages or another transport structure, but that transport representation is not the canonical context model.
 
 ## Diagnostics and explainability
 
@@ -217,8 +219,6 @@ Acquisition / retrieval
 Ranking / deduplication
         ↓
 Compression / compaction / truncation
-        ↓
-Reusable cache where scope/version/freshness permits
         ↓
 Bounded Context Snapshot
         ↓

@@ -29,6 +29,7 @@ namespace HAgent.Example
         {
             base.OnLoad(e);
 
+            AddIdentityFeatureTabs();
             // This example was implemented ahead of the roadmap order. Keep its public-API
             // verification available without changing the ordered roadmap milestone.
             AddLearningCandidateInterventionTab();
@@ -50,9 +51,7 @@ namespace HAgent.Example
                 var group = GetExampleFeatureGroup(page.Text);
                 List<TabPage> target;
                 if (!grouped.TryGetValue(group, out target))
-                {
                     target = grouped["Core"];
-                }
                 target.Add(page);
             }
 

@@ -175,6 +175,20 @@ namespace HAgent.Example
                 null,
                 null,
                 new DefaultAiPolicyEngine(deferPolicy));
+            deferredClient.RegisterTool(new DelegateAgentTool(new AiTool
+            {
+                Id = toolId,
+                Name = "approval_tool",
+                Description = "Deterministic approval workflow tool.",
+                InputSchemaJson = "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"additionalProperties\":false}",
+                Type = AiToolType.Application,
+                Enabled = true
+            }, context =>
+            {
+                handlerInvocations++;
+                return Task.FromResult(ToolExecutionResult.Success("executed"));
+            }));
+
             var deferred = await deferredClient.ExecuteToolAsync(
                 agentId,
                 toolId,
@@ -204,6 +218,9 @@ namespace HAgent.Example
             var pendingFinal = await deferredClient.GetPendingApprovalRequestsAsync(CancellationToken.None).ConfigureAwait(true);
             if (pendingFinal.Count != 0)
                 throw new InvalidOperationException("Resolved requests remained in the pending approval collection.");
+
+            if (handlerInvocations != 0)
+                throw new InvalidOperationException("Approval/defer workflow resolution unexpectedly executed the protected tool.");
 
             Write(
                 "APPROVAL WORKFLOW",

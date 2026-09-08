@@ -7,4 +7,7 @@
     <Version>0.1.8</Version>
     <Description>Lightweight provider and agent runtime for .NET.</Description>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="10.0.11" />
+  </ItemGroup>
 </Project>

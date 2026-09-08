@@ -56,14 +56,7 @@ namespace HAgent.Models
                 throw new ArgumentNullException(nameof(instructionSnapshot));
             if (State != Runtime.AgentExecutionState.Created)
                 throw new InvalidOperationException("The instruction snapshot can only be captured before execution starts.");
-            Snapshot = new AgentExecutionSnapshot(
-                Snapshot.Agent,
-                Snapshot.Providers,
-                null,
-                Snapshot.HostContext,
-                Snapshot.Identity,
-                Snapshot.EffectivePolicy,
-                instructionSnapshot);
+            Snapshot.CaptureInstructionSnapshot(instructionSnapshot);
         }
 
         public bool IsCompleted

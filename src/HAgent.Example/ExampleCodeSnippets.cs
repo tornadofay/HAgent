@@ -144,13 +144,15 @@ policy.Rules.Add(new AiPolicyRule
 });
 
 var capabilities = AiResourceCapabilitySnapshot.Resolve(profile.ResourceCapabilities);
-var assembler = new ContextPolicyAssembler(
-    new ContextAcquirer(),
-    new ContextPolicyAdmissionEvaluator(
-        new DefaultAiPolicyEngine(policy),
-        capabilities));
+var admission = new ContextPolicyAdmissionEvaluator(
+    new DefaultAiPolicyEngine(policy),
+    capabilities);
+var assembler = new ContextAssembler(
+    new ContextPolicyAssembler(new ContextAcquirer(), admission),
+    new ContextRanker(),
+    new ContextCompactor());
 
-var result = await assembler.AcquireAsync(
+var result = await assembler.AssembleAsync(
     sources,
     budget,
     new ContextAdmissionContext { AgentProfileId = ""assistant"" },

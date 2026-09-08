@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # Roadmap source files intentionally use a stable, human-readable filename scheme.
 # Keep assembly order explicit here so adding a new roadmap source does not depend
-# on lexical filename ordering (for example, 0.10 vs 0.97 or auxiliary 0.97 files).
+# on lexical filename ordering (for example, 0.10 vs 0.97 or auxiliary 0.97 phases).
 ROADMAP_ORDER = [
     "00-overview.md",
     "10-foundation.md",
@@ -20,9 +20,10 @@ ROADMAP_ORDER = [
     "955-context-engineering.md",
     "956-observability-tracing.md",
     "957-evaluation-quality-measurement.md",
+    "9575-resource-governance-learning.md",
     "958-agent-lifecycle-health.md",
-    "959-human-intervention.md",
     "9591-goal-plan-persistence-recovery.md",
+    "959-human-intervention.md",
     "9592-provider-ecosystem-adapter-lifecycle.md",
     "38-configuration-storage-and-portability.md",
     "36-capability-aware-execution.md",
@@ -31,7 +32,6 @@ ROADMAP_ORDER = [
     "cognitive-workbench-controls.md",
     "cognitive-workbench-learning.md",
     "40-workspaces-chat.md",
-    "45-knowledge-skills-memory-learning.md",
     "50-collaboration-workflows.md",
     "60-platform-and-release.md",
 ]

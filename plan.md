@@ -12,25 +12,27 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 2 checkpoint after 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 4 checkpoint after 0.954.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slice 2 was subsequently verified by the user on both .NET Framework 4.8.1 and .NET 9.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, and 4 have subsequently been verified by the user. Slice 4 was verified on 2026-09-08 with 24/24 HAgent.Tests passing and the deterministic public-API Context Ranking Example passing.
 
 ## Current run
 
-**0.955 Slice 3 implementation checkpoint — local verification pending.**
+**0.955 Slice 5 implementation checkpoint — local verification pending.**
 
-Slice 3 now contains bounded provider-neutral context acquisition plus an execution-owned `ContextSnapshot`. Acquisition validates source/contracts, enforces item/character/token hard bounds, propagates cancellation, preserves supplied source order, and isolates the snapshot from caller-owned mutable item/request state. Deterministic xUnit coverage and public-API `HAgent.Example` coverage have been added. Local .NET build/test and Example execution for Slice 3 have not been performed in this connected session.
+Slice 5 implementation is now present in Core with `IContextCompactor`, deterministic `ContextCompactor`, explicit `ContextCompactionOptions`, safe `ContextCompactionDecision` diagnostics, and `ContextCompactionResult`. A matching public-API `HAgent.Example` Context Compaction scenario, Example classification/snippet support, focused xUnit coverage, and the authoritative context/Example-maintenance documentation have also been added. The strategy is deterministic and tokenizer-free: candidates that do not fit the target item/character/token budget are excluded with explicit reasons; payloads are not rewritten or semantically summarized, and selected item provenance/scope metadata is preserved.
+
+Local verification has not yet been performed for Slice 5. The expected next verification is the updated `HAgent.Tests` suite plus the Context → Context Core → Context Compaction Example on the supported local targets.
 
 ## Next action
 
-Run the targeted solution/tests and the new context-acquisition Example on both .NET Framework 4.8.1 and .NET 9. Record the actual results before closing Slice 3 or selecting Slice 4.
+Run the local tests and the new Context Compaction Example. Record the actual results before closing Slice 5 or selecting Slice 6.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 3 verification success is claimed.
+This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 5 verification success is claimed yet.
 
 ## Current project state
 
@@ -573,12 +575,17 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 20/20 tests passing on 2026-09-08.
    - Deterministic public-API `HAgent.Example` Context Acquisition verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-08.
 
-4. **Ranking, deterministic prioritization, and deduplication — CURRENT**
-   - Scope: provider-neutral candidate ranking and deterministic prioritization using available relevance/importance/trust/freshness/estimated-cost evidence, plus duplicate elimination with stable tie-breaking.
-   - Must remain independent of provider tokenization, prompt construction, persistence, caching, WinForms, and execution integration.
-   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for ranking order, deterministic ties, duplicate handling, and bounded metadata preservation.
+4. **Ranking, deterministic prioritization, and deduplication — VERIFIED**
+   - Core provides provider-neutral candidate ranking and deterministic prioritization using available relevance/importance/trust/freshness/estimated-cost evidence.
+   - Duplicate IDs are eliminated with stable tie-breaking while preserving the highest-ranked candidate's metadata.
+   - `HAgent.Tests` completed with 24/24 tests passing on 2026-09-08.
+   - Deterministic public-API `HAgent.Example` Context Ranking verification passed on 2026-09-08, including ranking order, deterministic ties, duplicate retention, provenance/scope preservation, and no provider request.
 
-5. **Compaction, truncation, and provenance-preserving diagnostics — PLANNED**
+5. **Compaction, truncation, and provenance-preserving diagnostics — CURRENT**
+   - Scope: bounded compaction over already ranked provider-neutral candidates, deterministic truncation to an explicit target budget, and safe inclusion/exclusion diagnostics that retain source/provenance metadata.
+   - The first strategy is deliberately deterministic and tokenizer-free: it may exclude lower-ranked candidates that do not fit, but it must not rewrite or summarize payloads or invent provider-specific token counts.
+   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for bounded selection, item/character/token exclusions, unknown-token handling, provenance preservation, and diagnostic reasons.
+
 6. **Cache-safe reusable context components — PLANNED**
 7. **Execution/provider integration and deterministic Example verification — PLANNED**
 

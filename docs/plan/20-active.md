@@ -33,12 +33,18 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 24/24 tests passing on 2026-09-08.
    - Deterministic public-API `HAgent.Example` Context Ranking verification passed on 2026-09-08, including ranking order, deterministic ties, duplicate retention, provenance/scope preservation, and no provider request.
 
-5. **Compaction, truncation, and provenance-preserving diagnostics — CURRENT**
-   - Scope: bounded compaction over already ranked provider-neutral candidates, deterministic truncation to an explicit target budget, and safe inclusion/exclusion diagnostics that retain source/provenance metadata.
-   - The first strategy is deliberately deterministic and tokenizer-free: it may exclude lower-ranked candidates that do not fit, but it must not rewrite or summarize payloads or invent provider-specific token counts.
-   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for bounded selection, item/character/token exclusions, unknown-token handling, provenance preservation, and diagnostic reasons.
+5. **Compaction, truncation, and provenance-preserving diagnostics — VERIFIED**
+   - Core provides bounded compaction over already ranked provider-neutral candidates, deterministic truncation to an explicit target budget, and safe inclusion/exclusion diagnostics retaining source metadata without exposing payloads.
+   - The first strategy is deterministic and tokenizer-free: it excludes candidates that cannot fit the target item/character/token budget, handles unknown token estimates explicitly when a hard token budget exists, and never rewrites or semantically summarizes payloads.
+   - `HAgent.Tests` completed with 29/29 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Compaction verification passed on 2026-09-09, including bounded selection, character/token/unknown-token exclusions, explicit diagnostics, provenance/scope preservation, and no provider request.
 
-6. **Cache-safe reusable context components — PLANNED**
+6. **Cache-safe reusable context components — CURRENT**
+   - Scope: define reusable context component/cache contracts that remain safe across runtime, user, tenant, workspace, configuration/version, resource-version, and freshness boundaries.
+   - Cache identity must be explicit and ownership-aware; private context must not leak across independently scoped runtimes or users.
+   - Reusable components must remain distinct from mutable execution-owned `ContextSnapshot` instances.
+   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for cache-key isolation, version/freshness invalidation, reuse of valid components, and snapshot isolation.
+
 7. **Execution/provider integration and deterministic Example verification — PLANNED**
 
 ### Verification rule

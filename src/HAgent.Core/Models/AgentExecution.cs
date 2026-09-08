@@ -50,6 +50,22 @@ namespace HAgent.Models
             get { return Snapshot == null ? new AgentIdentityContext() : Snapshot.Identity; }
         }
 
+        internal void CaptureInstructionSnapshot(AiInstructionSnapshot instructionSnapshot)
+        {
+            if (instructionSnapshot == null)
+                throw new ArgumentNullException(nameof(instructionSnapshot));
+            if (State != Runtime.AgentExecutionState.Created)
+                throw new InvalidOperationException("The instruction snapshot can only be captured before execution starts.");
+            Snapshot = new AgentExecutionSnapshot(
+                Snapshot.Agent,
+                Snapshot.Providers,
+                null,
+                Snapshot.HostContext,
+                Snapshot.Identity,
+                Snapshot.EffectivePolicy,
+                instructionSnapshot);
+        }
+
         public bool IsCompleted
         {
             get

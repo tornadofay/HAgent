@@ -18,6 +18,7 @@ namespace HAgent.Models
             ApiKey = string.Empty;
             SystemPrompt = string.Empty;
             Messages = new ReadOnlyCollection<AIMessage>(new List<AIMessage>());
+            Context = null;
             StructuredOutput = null;
             Tools = new ReadOnlyCollection<AiTool>(new List<AiTool>());
             Progress = null;
@@ -29,6 +30,13 @@ namespace HAgent.Models
         public string ApiKey { get; set; }
         public string SystemPrompt { get; set; }
         public IReadOnlyList<AIMessage> Messages { get; set; }
+
+        /// <summary>
+        /// Optional execution-owned provider-neutral context snapshot captured from the canonical host request.
+        /// Provider adapters decide how this context is transported; Core does not dictate provider formatting.
+        /// </summary>
+        public ContextSnapshot Context { get; set; }
+
         public StructuredOutputOptions StructuredOutput { get; set; }
         public IReadOnlyList<AiTool> Tools { get; set; }
         public IProgress<AIResponseDelta> Progress { get; set; }
@@ -49,6 +57,13 @@ namespace HAgent.Models
                 throw new ArgumentException("At least one provider message is required.", nameof(Messages));
             if (Messages.Count > 128)
                 throw new ArgumentOutOfRangeException(nameof(Messages), "A maximum of 128 messages is supported per provider request.");
+
+            if (Context != null)
+            {
+                Context.Budget.Validate();
+                if (Context.Items.Count != Context.UsedItems)
+                    throw new ArgumentException("Provider context snapshot item count is inconsistent.", nameof(Context));
+            }
 
             if (StructuredOutput != null)
                 StructuredOutput.Validate();

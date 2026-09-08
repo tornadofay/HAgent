@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 
@@ -15,8 +17,8 @@ namespace HAgent.Example
                 "Cognition Instructions",
                 "Run instruction contract test",
                 "Creates provider-neutral instruction sources with explicit authority, trust, scope, lifecycle, conflict, and provenance metadata, then verifies deterministic precedence and snapshot isolation.",
-                "Source validation, authority separation, precedence, conflict representation, provenance-preserving snapshot cloning, resource trust boundaries, and unavailable-source handling should all report verified.",
-                "No AI request is sent by this example.",
+                "Source validation, authority separation, precedence, conflict representation, provenance-preserving snapshot cloning, resource trust boundaries, unavailable-source handling, and execution snapshot integration should all report verified.",
+                "Uses one deterministic local provider adapter; no external provider is contacted.",
                 TestInstructionContractsAsync,
                 "Instruction boundary",
                 "Prompt composition consumes provider-neutral source records. Authorization and capability enforcement remain separate code boundaries.");
@@ -171,6 +173,8 @@ namespace HAgent.Example
                     throw new InvalidOperationException("Instruction content leaked into diagnostics.");
             }
 
+            await TestExecutionInstructionIntegrationAsync().ConfigureAwait(true);
+
             Write("COGNITION INSTRUCTIONS", string.Join(Environment.NewLine, new[]
             {
                 "Instruction source creation/validation: verified.",
@@ -187,10 +191,106 @@ namespace HAgent.Example
                 "External content remains lower-authority and untrusted: verified.",
                 "Disabled/unavailable resources remain diagnosable without entering effective instructions: verified.",
                 "Lower-authority resource/external/user content cannot override trusted resource instructions: verified.",
+                "Execution captures the effective instruction snapshot before provider transport: verified.",
+                "Provider transport receives the same composed effective instructions: verified.",
+                "Execution instruction snapshot remains isolated after caller-source mutation: verified.",
+                "Execution source provenance captures execution/runtime/principal context: verified.",
                 "Source types covered: SystemPolicy, Agent, Skill, Knowledge, Memory, ToolDescription, RuntimeContext, HostContext, UserInput, ExternalContent."
             }));
+        }
 
-            await Task.CompletedTask;
+        private async Task TestExecutionInstructionIntegrationAsync()
+        {
+            const string providerId = "instruction-runtime-provider-42";
+            const string agentId = "instruction-runtime-agent-42";
+
+            var store = new InMemoryAiStore();
+            await store.SaveProviderAsync(new AiProvider
+            {
+                Id = providerId,
+                Name = "Instruction Runtime Provider",
+                Kind = "InstructionRuntimeTest",
+                BaseUrl = "https://invalid.local/",
+                DefaultModel = "instruction-model-42",
+                DefaultSystemPrompt = "Use the provider baseline.",
+                Enabled = true
+            }).ConfigureAwait(true);
+            await store.SaveAgentAsync(new AiAgent
+            {
+                Id = agentId,
+                Name = "Instruction Runtime Agent",
+                SystemPrompt = "Answer using the agent baseline.",
+                Enabled = true
+            }).ConfigureAwait(true);
+
+            var trusted = AiInstructionSourceFactory.CreateResource(
+                AiInstructionSourceType.Skill,
+                "execution-trusted-42",
+                "Use the captured trusted instruction.",
+                "1",
+                new AiInstructionScope { ScopeType = "Execution", ScopeId = "execution-pending" },
+                "execution-boundary-42");
+            var external = AiInstructionSourceFactory.CreateExternalContent(
+                "execution-external-42",
+                "UNTRUSTED CONTENT MUST NOT ENTER THE EFFECTIVE INSTRUCTION.",
+                "Deterministic hostile external fixture.",
+                "1",
+                new AiInstructionScope { ScopeType = "Execution", ScopeId = "execution-pending" },
+                "execution-boundary-42");
+
+            var adapter = new CapturingInstructionAdapter();
+            var runtime = new DefaultAgentRuntime(
+                store,
+                new EmptySecretStore(),
+                new IAiProviderAdapter[] { adapter });
+
+            var executionTask = runtime.ExecuteAsync(
+                new AgentExecutionRequest
+                {
+                    AgentId = agentId,
+                    Messages = new List<AIMessage> { new AIMessage("user", "Instruction integration test.") },
+                    Identity = new AgentIdentityContext(principalId: "principal-42"),
+                    InstructionSources = new[] { trusted, external },
+                    Options = new AgentExecutionOptions
+                    {
+                        Timeout = TimeSpan.FromSeconds(5),
+                        MaxProviderAttempts = 1,
+                        MaxRetriesPerProvider = 0,
+                        RuntimeInstanceId = "runtime-42",
+                        RuntimeInstanceRevision = 7
+                    }
+                },
+                CancellationToken.None);
+
+            await adapter.Started.Task.ConfigureAwait(true);
+            trusted.Content = "MUTATED AFTER EXECUTION CAPTURE.";
+            trusted.Provenance.Evidence = "MUTATED EVIDENCE.";
+            external.Content = "MUTATED HOSTILE CONTENT.";
+            adapter.Release();
+
+            var execution = await executionTask.ConfigureAwait(true);
+            if (execution == null || execution.State != AgentExecutionState.Succeeded)
+                throw new InvalidOperationException("Instruction-integrated execution did not succeed.");
+            if (execution.Snapshot == null || execution.Snapshot.InstructionSnapshot == null)
+                throw new InvalidOperationException("Execution did not retain its effective instruction snapshot.");
+
+            var effectiveTrusted = execution.Snapshot.InstructionSnapshot.Sources
+                .FirstOrDefault(x => x.Id == trusted.Id);
+            if (effectiveTrusted == null)
+                throw new InvalidOperationException("Trusted execution instruction was not captured.");
+            if (effectiveTrusted.Content != "Use the captured trusted instruction.")
+                throw new InvalidOperationException("Execution instruction snapshot was affected by caller mutation.");
+            if (effectiveTrusted.Provenance.ExecutionId != execution.Id ||
+                effectiveTrusted.Provenance.RuntimeInstanceId != "runtime-42" ||
+                effectiveTrusted.Provenance.PrincipalId != "principal-42")
+                throw new InvalidOperationException("Execution instruction provenance did not capture the effective execution context.");
+            if (execution.Snapshot.InstructionSnapshot.Sources.Any(x => x.Id == external.Id))
+                throw new InvalidOperationException("Lower-authority external content entered the effective execution instruction snapshot.");
+            if (adapter.SystemPrompt == null ||
+                adapter.SystemPrompt.IndexOf("Use the captured trusted instruction.", StringComparison.Ordinal) < 0 ||
+                adapter.SystemPrompt.IndexOf("UNTRUSTED CONTENT MUST NOT ENTER THE EFFECTIVE INSTRUCTION.", StringComparison.Ordinal) >= 0 ||
+                adapter.SystemPrompt.IndexOf("MUTATED AFTER EXECUTION CAPTURE.", StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Provider transport did not receive the immutable effective instruction composition.");
         }
 
         private static AiInstructionSource CreateInstructionSource(
@@ -231,6 +331,44 @@ namespace HAgent.Example
                     CapturedAt = capturedAt
                 }
             };
+        }
+
+        private sealed class CapturingInstructionAdapter : IAiProviderAdapter
+        {
+            private readonly TaskCompletionSource<bool> _release = new TaskCompletionSource<bool>();
+
+            public readonly TaskCompletionSource<bool> Started = new TaskCompletionSource<bool>();
+            public string SystemPrompt { get; private set; }
+
+            public string Kind { get { return "InstructionRuntimeTest"; } }
+            public string DisplayName { get { return "Instruction Runtime Test Adapter"; } }
+
+            public bool CanHandle(AiProvider provider)
+            {
+                return provider != null && provider.Kind == Kind;
+            }
+
+            public async Task<AIResponse> SendAsync(
+                ProviderExecutionRequest request,
+                CancellationToken cancellationToken)
+            {
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request));
+
+                SystemPrompt = request.SystemPrompt;
+                Started.TrySetResult(true);
+                await _release.Task.ConfigureAwait(false);
+                return new AIResponse
+                {
+                    Text = "INSTRUCTION-RUNTIME-OK",
+                    ProviderId = request.Provider == null ? string.Empty : request.Provider.Id
+                };
+            }
+
+            public void Release()
+            {
+                _release.TrySetResult(true);
+            }
         }
     }
 }

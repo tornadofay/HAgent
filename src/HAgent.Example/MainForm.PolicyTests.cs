@@ -20,8 +20,8 @@ namespace HAgent.Example
             AddApiTab(
                 "Unified Policy",
                 "Run policy contract test",
-                "Verifies deterministic policy outcomes, runtime enforcement before provider transport, provenance, scoped matching, and cost restrictions.",
-                "A policy decision must be reproducible from the same inputs and must block prohibited provider execution before transport is invoked.",
+                "Verifies deterministic policy outcomes, runtime enforcement before provider transport, provenance, scoped matching, cost restrictions, and effective policy snapshot isolation.",
+                "A policy decision must be reproducible from the same inputs, the exact effective policy must be captured by the execution snapshot, and prohibited provider execution must be blocked before transport is invoked.",
                 "Uses only local deterministic adapters and in-memory state.",
                 TestPolicyEngineAsync,
                 "Policy boundary",
@@ -71,6 +71,18 @@ namespace HAgent.Example
             policy.Rules.Add(agentApproval);
 
             var engine = new DefaultAiPolicyEngine(policy);
+            var effectivePolicy = engine.GetPolicySnapshot();
+            if (effectivePolicy == null || effectivePolicy.Version != policy.Version || effectivePolicy.Rules.Count != policy.Rules.Count)
+                throw new InvalidOperationException("Policy engine did not expose a complete effective policy snapshot.");
+            if (ReferenceEquals(effectivePolicy, policy) || ReferenceEquals(effectivePolicy.Rules[0], policy.Rules[0]))
+                throw new InvalidOperationException("Policy snapshot reused caller-owned policy state.");
+
+            effectivePolicy.Version = "mutated-copy";
+            effectivePolicy.Rules[0].Name = "Mutated copy";
+            var unaffectedSnapshot = engine.GetPolicySnapshot();
+            if (unaffectedSnapshot.Version != "policy-contract-42" || unaffectedSnapshot.Rules[0].Name != "System default")
+                throw new InvalidOperationException("Policy engine state changed after mutation of a returned policy snapshot.");
+
             var context = new AiPolicyEvaluationContext
             {
                 Operation = "tool.invoke",
@@ -157,6 +169,7 @@ namespace HAgent.Example
                 "RequireApproval outcome: verified." + Environment.NewLine +
                 "Tenant/resource/tool matching: verified." + Environment.NewLine +
                 "Decision provenance and policy version: verified." + Environment.NewLine +
+                "Effective policy snapshot cloning/isolation: verified." + Environment.NewLine +
                 "FreeOnly paid/unknown cost denial: verified." + Environment.NewLine +
                 "FreePreferred behavior: verified." + Environment.NewLine +
                 "Deterministic tie-breaking: verified." + Environment.NewLine +
@@ -244,6 +257,13 @@ namespace HAgent.Example
 
             if (terminal == null)
                 throw new InvalidOperationException("Runtime policy denial did not produce a terminal execution.");
+            if (terminal.Snapshot == null || terminal.Snapshot.EffectivePolicy == null)
+                throw new InvalidOperationException("Runtime execution did not capture an effective policy snapshot.");
+            if (terminal.Snapshot.EffectivePolicy.Version != "runtime-policy-42")
+                throw new InvalidOperationException("Runtime execution captured the wrong effective policy version.");
+            if (terminal.Snapshot.EffectivePolicy.Rules.Count != 1 ||
+                terminal.Snapshot.EffectivePolicy.Rules[0].Id != "deny-policy-runtime-provider")
+                throw new InvalidOperationException("Runtime execution did not capture the complete effective policy state.");
             if (terminal.PolicyDecision == null || !terminal.PolicyDecision.IsDenied)
                 throw new InvalidOperationException("Runtime execution did not capture the denying policy decision.");
             if (terminal.PolicyDecision.RuleId != "deny-policy-runtime-provider")

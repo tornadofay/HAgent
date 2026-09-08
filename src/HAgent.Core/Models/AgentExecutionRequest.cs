@@ -20,6 +20,7 @@ namespace HAgent.Models
             ExecutionSelection = null;
             CapabilityRequirements = null;
             Tools = new ReadOnlyCollection<AiTool>(new List<AiTool>());
+            InstructionSources = new ReadOnlyCollection<AiInstructionSource>(new List<AiInstructionSource>());
             Streaming = false;
             Progress = null;
             StructuredOutput = null;
@@ -51,6 +52,12 @@ namespace HAgent.Models
         /// Optional host-owned tool definitions for this execution.
         /// </summary>
         public IReadOnlyList<AiTool> Tools { get; set; }
+
+        /// <summary>
+        /// Optional provider-neutral instruction sources contributed by the host or resource layer.
+        /// These are composed by the runtime into the effective execution instruction snapshot.
+        /// </summary>
+        public IReadOnlyList<AiInstructionSource> InstructionSources { get; set; }
 
         /// <summary>
         /// Requests streaming transport when true. The runtime selects a streaming-capable target.
@@ -101,6 +108,9 @@ namespace HAgent.Models
 
             if (Tools != null && Tools.Count > 128)
                 throw new ArgumentOutOfRangeException(nameof(Tools), "A maximum of 128 tools is supported per execution request.");
+
+            if (InstructionSources != null && InstructionSources.Count > 256)
+                throw new ArgumentOutOfRangeException(nameof(InstructionSources), "A maximum of 256 instruction sources is supported per execution request.");
 
             if (StructuredOutput != null)
                 StructuredOutput.Validate();

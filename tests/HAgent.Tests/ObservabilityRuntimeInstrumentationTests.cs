@@ -106,7 +106,7 @@ namespace HAgent.Tests
                 Correlation = rootCorrelation
             });
 
-            using (TracePropagation.Push(root.Context))
+            using (TracePropagation.Push(root.Context, root.Record.Correlation))
             {
                 var tool = new TracingAgentTool(new TestAgentTool(), recorder);
                 var toolResult = await tool.ExecuteAsync(new ToolExecutionContext

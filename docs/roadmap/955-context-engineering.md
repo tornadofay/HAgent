@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — context contracts, acquisition, ranking, deterministic compaction, reusable caching, and execution/provider integration are verified; bounded multi-resource retrieval, policy/permission-aware assembly, and the complete phase verification matrix remain.**
+**In progress — context contracts, acquisition, ranking, deterministic compaction, reusable caching, execution/provider integration, and bounded multi-resource retrieval are verified; policy/permission-aware assembly and the complete phase verification matrix remain.**
 
 ## Goal
 
@@ -31,6 +31,15 @@ Make context assembly a first-class HAgent subsystem that selects, ranks, bounds
 - Slice 5: deterministic compaction/truncation and provenance-preserving diagnostics — verified 2026-09-09 with 29/29 HAgent.Tests and deterministic Example coverage.
 - Slice 6: cache-safe reusable context components — verified 2026-09-09 with 34/34 HAgent.Tests and deterministic public-API Example coverage.
 - Slice 7: execution/provider integration and request isolation — verified 2026-09-09 with 37/37 HAgent.Tests and deterministic public-API Context Execution Integration Example coverage.
+- Slice 8: bounded multi-resource retrieval — verified 2026-09-09 with 41/41 HAgent.Tests and deterministic public-API Example coverage on .NET Framework 4.8.1 and .NET 9.
+
+## Current implementation checkpoint
+
+- Slice 9: policy/permission-aware context assembly — implementation checkpoint; local verification pending.
+- The implementation composes the existing unified `IAiPolicyEngine` with the execution's effective `AiResourceCapabilitySnapshot`.
+- Denied/approval-required/deferred sources are excluded before their source callback is queried; disabled sources are excluded before retrieval.
+- Candidates are evaluated before global budget assembly so denied candidates cannot consume the bounded context budget.
+- Admission decisions contain bounded metadata only and do not carry context payloads or translate policy into prompt text.
 
 ## Architectural outcome
 
@@ -42,6 +51,8 @@ Policy + permissions
 Attention / relevance
         ↓
 Retrieval
+        ↓
+Policy-aware admission
         ↓
 Ranking / deduplication
         ↓

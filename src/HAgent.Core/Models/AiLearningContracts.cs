@@ -125,12 +125,13 @@ namespace HAgent.Models
     {
         private readonly object _sync = new object();
         private long _revision;
+        private AiLearningCandidateStatus _status;
 
         public AiLearningCandidate()
         {
             Id = Guid.NewGuid().ToString("N");
             Type = AiLearningCandidateType.Memory;
-            Status = AiLearningCandidateStatus.Proposed;
+            _status = AiLearningCandidateStatus.Proposed;
             ProposedScope = string.Empty;
             Provenance = string.Empty;
             Evidence = string.Empty;
@@ -143,7 +144,6 @@ namespace HAgent.Models
         public string Id { get; set; }
         public AiLearningCandidateType Type { get; set; }
         public AiLearningCandidateStatus Status { get { lock (_sync) { return _status; } } }
-        private AiLearningCandidateStatus _status;
         public long Revision { get { lock (_sync) { return _revision; } } }
         public string ProposedScope { get; set; }
         public string Provenance { get; set; }

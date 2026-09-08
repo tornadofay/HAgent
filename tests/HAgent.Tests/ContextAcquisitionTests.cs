@@ -59,7 +59,7 @@ namespace HAgent.Tests
             });
 
             var snapshot = await new ContextAcquirer().AcquireAsync(
-                new[] { source },
+                new IContextSource[] { source },
                 new ContextSourceRequest { MaxItems = 10 },
                 new ContextBudget { MaxItems = 10, MaxCharacters = 100, MaxEstimatedTokens = 10 },
                 CancellationToken.None);
@@ -78,7 +78,7 @@ namespace HAgent.Tests
             var item = source.Item;
 
             var snapshot = await new ContextAcquirer().AcquireAsync(
-                new[] { source },
+                new IContextSource[] { source },
                 request,
                 new ContextBudget { MaxItems = 5, MaxCharacters = 100, MaxEstimatedTokens = 10 },
                 CancellationToken.None);
@@ -106,7 +106,7 @@ namespace HAgent.Tests
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 new ContextAcquirer().AcquireAsync(
-                    new[] { first, second },
+                    new IContextSource[] { first, second },
                     new ContextSourceRequest { MaxItems = 10 },
                     new ContextBudget { MaxItems = 10, MaxCharacters = 100, MaxEstimatedTokens = 20 },
                     cancellation.Token));

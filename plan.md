@@ -577,10 +577,20 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - Identified the exact first implementation boundary: **0.956 Slice 2 — Trace identity and span lifecycle contracts**, with focused `HAgent.Tests` and matching public-API `HAgent.Example` verification.
    - No tracing implementation, exporter, persistence, UI, or broad runtime instrumentation was started in this slice.
 
-2. **Trace identity and span lifecycle contracts — CURRENT**
-   - Introduce the provider-neutral Core trace context/span contracts and in-memory recorder boundary defined by `docs/architecture/22-observability.md`.
-   - Add matching deterministic `HAgent.Tests` coverage and public-API `HAgent.Example` verification for hierarchy, correlation propagation, redaction-safe metadata, terminal status, and deterministic ordering.
-   - Do not begin Slice 3 in the same run.
+2. **Trace identity and span lifecycle contracts — VERIFIED**
+   - Implemented the provider-neutral Core trace context/span contracts and in-memory recorder boundary defined by `docs/architecture/22-observability.md`.
+   - Added focused `HAgent.Tests` coverage for hierarchy, correlation propagation, bounded redacted/omitted metadata, terminal completion protection, and deterministic ordering.
+   - Added and classified the matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Tracing`.
+   - **User verification — 2026-09-09:** solution build succeeded after pull; `HAgent.Tests` completed with **59/59 tests passed**.
+   - **User Example verification — .NET Framework 4.8.1, 2026-09-09 01:37:** `Observability Tracing` succeeded, verifying hierarchy, execution/host/runtime/event correlation, redaction/omitted metadata, terminal statuses/late completion rejection, deterministic recorder order, and no provider request.
+   - **User Example verification — .NET 9, 2026-09-09 01:38:** same public-API scenario succeeded with the same contract checks.
+   - No Slice 3 implementation was started in this run.
+
+3. **Trace-producing runtime instrumentation and propagation — CURRENT**
+   - Add the first runtime producers that create/propagate trace context through canonical execution, provider, tool, event, policy, and context boundaries without duplicating those subsystem contracts.
+   - Preserve execution, host, runtime, event, and identity correlation independently from TraceId/SpanId relationships.
+   - Add focused deterministic `HAgent.Tests` coverage and matching public-API `HAgent.Example` verification for propagation across the first integrated boundaries, including terminal/failure/cancellation paths exposed by those producers.
+   - Do not begin Slice 4 in the same run.
 
 ### Verification rule
 

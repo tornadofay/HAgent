@@ -6,26 +6,55 @@ namespace HAgent.Runtime
 {
     internal static class TraceAmbient
     {
-        private static readonly AsyncLocal<TraceContext> CurrentValue = new AsyncLocal<TraceContext>();
+        private sealed class AmbientState
+        {
+            public TraceContext Context;
+            public TraceCorrelation Correlation;
+        }
+
+        private static readonly AsyncLocal<AmbientState> CurrentValue = new AsyncLocal<AmbientState>();
 
         public static TraceContext Current
         {
-            get { return CurrentValue.Value; }
+            get { return CurrentValue.Value == null ? null : CurrentValue.Value.Context; }
+        }
+
+        public static TraceCorrelation CurrentCorrelation
+        {
+            get { return CurrentValue.Value == null || CurrentValue.Value.Correlation == null ? null : CurrentValue.Value.Correlation.Clone(); }
         }
 
         public static IDisposable Push(TraceContext context)
         {
+            return Push(context, null);
+        }
+
+        public static IDisposable Push(TraceContext context, TraceCorrelation correlation)
+        {
             var previous = CurrentValue.Value;
-            CurrentValue.Value = context;
+            CurrentValue.Value = new AmbientState
+            {
+                Context = context,
+                Correlation = correlation == null ? null : correlation.Clone()
+            };
             return new Scope(previous);
+        }
+
+        public static void Set(TraceContext context, TraceCorrelation correlation)
+        {
+            CurrentValue.Value = new AmbientState
+            {
+                Context = context,
+                Correlation = correlation == null ? null : correlation.Clone()
+            };
         }
 
         private sealed class Scope : IDisposable
         {
-            private readonly TraceContext _previous;
+            private readonly AmbientState _previous;
             private int _disposed;
 
-            public Scope(TraceContext previous)
+            public Scope(AmbientState previous)
             {
                 _previous = previous;
             }

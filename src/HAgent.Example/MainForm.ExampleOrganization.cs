@@ -30,6 +30,7 @@ namespace HAgent.Example
             base.OnLoad(e);
 
             AddIdentityFeatureTabs();
+            AddObservabilityTracingTab();
             // This example was implemented ahead of the roadmap order. Keep its public-API
             // verification available without changing the ordered roadmap milestone.
             AddLearningCandidateInterventionTab();
@@ -113,14 +114,20 @@ namespace HAgent.Example
         private static bool RequiresExampleSubGroups(string group)
         {
             return string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(group, "Runtime", StringComparison.OrdinalIgnoreCase);
+                   string.Equals(group, "Runtime", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase);
         }
 
         private static Control CreateExampleSubGroups(List<TabPage> pages)
         {
-            var subgroupOrder = string.Equals(GetExampleFeatureGroup(pages[0].Text), "Context", StringComparison.OrdinalIgnoreCase)
-                ? new[] { "Context Core", "UI Context", "Data Access Context" }
-                : new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
+            string[] subgroupOrder;
+            var group = GetExampleFeatureGroup(pages[0].Text);
+            if (string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase))
+                subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
+            else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase))
+                subgroupOrder = new[] { "Observability", "Other Diagnostics" };
+            else
+                subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
 
             var grouped = new Dictionary<string, List<TabPage>>(StringComparer.OrdinalIgnoreCase);
             foreach (var subgroup in subgroupOrder)
@@ -251,6 +258,8 @@ namespace HAgent.Example
                 return "UI Context";
             if (key == "DATA QUERY CONTRACT")
                 return "Data Access Context";
+            if (key == "OBSERVABILITY TRACING")
+                return "Observability";
 
             if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY")
                 return "Runtime Instances";
@@ -295,6 +304,9 @@ namespace HAgent.Example
 
             if (key.Contains("IDENTITY"))
                 return "Identity";
+
+            if (key.Contains("TRACE") || key.Contains("OBSERVABILITY"))
+                return "Diagnostics";
 
             if (key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION")
                 return "Runtime";

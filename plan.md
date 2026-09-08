@@ -16,7 +16,7 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-Policy persistence, runtime provider enforcement, tool policy enforcement, and policy-first host data authorization were verified locally by the user on 2026-09-08. The current implementation also adds canonical profile resource capability state, runtime `Inherit` / `Enabled` / `Disabled` overrides, effective execution snapshots, resource persistence, and tool capability gating. The matching `HAgent.Example` resource capability test is the current local verification checkpoint.
+Policy persistence, runtime provider enforcement, tool policy enforcement, policy-first host data authorization, and the profile/runtime resource capability boundary were verified locally by the user on 2026-09-08. The implementation now also contains typed learning-promotion policy requests and explicit learning-candidate review/promotion transitions. The matching learning-policy Example verification is the current local checkpoint.
 
 ## Work ownership
 
@@ -24,11 +24,11 @@ The active implementation plan is the authoritative scope for the current task. 
 
 ## Current blockers
 
-None recorded. The resource-capability slice is implemented; only local Example verification remains before it can be marked verified.
+None recorded. Resource capabilities are verified. Learning-promotion policy and candidate transition implementation is present; only its local Example verification remains before marking that slice verified.
 
 ## Next checkpoint
 
-Run `Resource Capabilities → Run resource capability test` after pulling current `master`. It must verify profile/runtime tri-state resolution, exact-resource precedence, default-enabled behavior, execution snapshot isolation, profile persistence, disabled-tool gating, and runtime re-enabling/disabling of the tool capability.
+Run `Learning Policy → Run learning promotion test` after pulling current `master`. It must verify typed candidate/scope/evidence/provenance/contradiction policy matching, policy provenance, `Allow`/`RequireApproval`/`Deny` outcomes, and guarded `Proposed` → `PendingReview`/`Approved` → `Promoted` and rejection transitions.
 
 ## Current project state
 
@@ -642,7 +642,7 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.953 Unified Policy Engine — CURRENT
 
-Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, pre-transport runtime enforcement, effective-policy execution snapshots, canonical persistence, policy-gated tool invocation, policy-first composition with host data authorization, and profile/runtime resource capability resolution.
+Phase 0.953 is the current foundational hardening milestone. HAgent now has provider-neutral policy contracts, deterministic evaluation, cost guarding, pre-transport runtime enforcement, effective-policy execution snapshots, canonical persistence, policy-gated tool invocation, policy-first composition with host data authorization, profile/runtime resource capability resolution, and typed learning-promotion policy evaluation with explicit candidate approval transitions.
 
 ### Objective
 
@@ -672,14 +672,16 @@ Create one coherent policy boundary for HAgent decisions without making the mode
 - Deterministic effective resource resolution with exact-resource precedence, type-level fallback, runtime-over-profile precedence, and default `Enabled` behavior.
 - `AgentExecutionSnapshot.EffectiveResourceCapabilities` captures the resolved resource state for an execution.
 - Tool execution consumes the effective resource capability snapshot and blocks disabled tool resources before the executable handler.
-- Deterministic Example coverage for engine behavior, persistence, runtime provider-call prevention, tool denial/approval/allow, policy-before-host-authorization, and resource capability resolution/persistence/tool gating.
+- `AiLearningPromotionRequest` maps candidate type, proposed scope, confidence/evidence, provenance, contradiction, retention, source identity, and optional learning mode into the unified `learning.promote` policy operation.
+- `AiLearningPromotionPolicy` evaluates learning promotion through the existing `IAiPolicyEngine`; no parallel learning authorization evaluator exists.
+- `AiLearningCandidate` provides explicit `Proposed`, `PendingReview`, `Approved`, `Rejected`, and `Promoted` states with guarded transitions. `Allow`, `RequireApproval`, `Defer`, and `Deny` map to the corresponding promotion lifecycle states.
+- Deterministic Example coverage for engine behavior, persistence, runtime provider-call prevention, tool denial/approval/allow, policy-before-host-authorization, resource capability resolution/persistence/tool gating, and learning promotion/review transitions.
 
 ### Remaining implementation slices
 
-1. Integrate learning-promotion policy, review requirements, and typed approval transitions.
-2. Add bounded human approval/defer workflow integration.
-3. Add management UI for policy rules, scope, precedence, provenance, effective decisions, and resource capability state.
-4. Expand deterministic Example verification and backend-specific live verification where configured.
+1. Add bounded human approval/defer workflow integration.
+2. Add management UI for policy rules, scope, precedence, provenance, effective decisions, and resource capability state.
+3. Expand deterministic Example verification and backend-specific live verification where configured.
 
 ### Architectural boundaries
 
@@ -688,6 +690,8 @@ The policy engine is provider-neutral and deterministic. It evaluates HAgent pol
 Resource enablement is a separate configuration capability layer. It determines whether an HAgent-owned or explicitly governed resource is enabled for a profile/runtime; it is not equivalent to provider capability discovery and it never grants host authorization.
 
 Profile resource configuration is the default layer. Runtime `Inherit` / `Enabled` / `Disabled` overrides are runtime-only and do not mutate the persistent profile. Effective state is captured into the execution snapshot so later profile/runtime edits cannot alter an already-created execution.
+
+Learning promotion is another enforcement use of the same policy boundary. Typed learning metadata is supplied as policy context; policy may permit, require review, defer, or deny promotion. Candidate lifecycle transitions are explicit and terminal states cannot be bypassed. Approved candidates still require a separate repository/promotion operation; no candidate object directly mutates authoritative Knowledge or Skills.
 
 Prompt/instruction text is never a policy enforcement mechanism. A model may request an action, but the appropriate runtime enforcement boundary must independently decide whether the action can occur.
 

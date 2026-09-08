@@ -20,13 +20,13 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.951 — Identity, Tenancy + User Context — planned architectural foundation
 - 0.952 — First-Class Event Subsystem — planned architectural foundation
 - 0.953 — Unified Policy Engine — planned architectural foundation
-- 0.954 — Prompt + Instruction Governance — planned architectural foundation
+- 0.954 — Prompt + Instruction Governance — **current ordered milestone**
 - 0.955 — Context Engineering — planned architectural foundation
 - 0.956 — Observability + Distributed Tracing — planned architectural foundation
 - 0.957 — Evaluation + Quality Measurement — planned architectural foundation
 - 0.958 — Agent Lifecycle + Health Management — planned architectural foundation
-- 0.959 — Human-in-the-Loop + Intervention — planned architectural foundation
-- 0.9591 — Goal/Plan Persistence + Recovery — planned foundation
+- 0.9591 — Goal/Plan Persistence + Recovery — **ordered before 0.959**; planned foundation
+- 0.959 — Human-in-the-Loop + Intervention — planned architectural foundation; ahead-of-roadmap execution intervention implementation exists
 - 0.9592 — Provider Ecosystem + Adapter Lifecycle — planned provider-platform foundation
 - 0.96.x — Configuration, Storage + Portability Evolution — cross-cutting foundation for 0.96/0.97
 - 0.96 — Capability-Aware Execution — planned major execution foundation
@@ -36,11 +36,13 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 1.0 — Collaboration + Workflows
 - Later — extensibility, developer platform, release hardening, and other ecosystem work
 
-The pre-0.96 foundation phases intentionally precede capability-aware execution because they define reusable identity, events, policy, instruction trust, context assembly, tracing, evaluation, lifecycle/intervention, durable goal/plan recovery, provider adapter boundaries, and configuration/storage evolution that later execution and cognition layers should consume rather than reinvent.
+The pre-0.96 foundation phases intentionally precede capability-aware execution because they define reusable identity, events, policy, instruction trust, context assembly, tracing, evaluation, lifecycle, durable goal/plan recovery, human intervention, provider adapter boundaries, and configuration/storage evolution that later execution and cognition layers should consume rather than reinvent.
 
 Phase 0.11 builds on memory, skills, and knowledge primitives already present in HAgent and later provides mature scoped resource governance, learning review/promotion, capability inheritance, runtime overrides, and management UI. Phase 0.97 may consume existing resource primitives before the complete 0.11 governance layer is finished, but must not create a parallel resource architecture.
 
 Phase 0.95 is a completed cross-cutting runtime/API hardening phase. It established the generic execution boundary for arbitrary hosts: host input/context, host correlation, structured output contracts and validation, provider-facing request isolation, execution terminality, tool identity propagation, runtime snapshot isolation, provider-native structured-output transport, and external-consumer verification. It does not introduce any host-specific domain dependency.
+
+The ordered 0.9591 Goal/Plan Persistence + Recovery phase is placed before 0.959 Human-in-the-Loop/Intervention because durable goal/plan revisions, checkpoints, and recovery state provide the persistent authority that later goal and plan-step intervention should govern. Execution-level intervention remains independently useful and may exist as ahead-of-roadmap implementation without making 0.959 current.
 
 The configuration/storage evolution phase establishes the persistence model required by capability-aware execution and persistent cognition: provider/model/target separation, encrypted provider credentials, global settings, resource relationships, shared database deployment, cache invalidation, and portable configuration export/import. It is ordered before 0.96 even though its historical source filename contains `38`.
 

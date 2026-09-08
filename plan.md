@@ -45,7 +45,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.959 Human-in-the-Loop / Intervention — CURRENT; 0.9591–0.9592 remain foundational hardening ahead of 0.96 Capability-Aware Execution.**
+**0.954 Prompt and Instruction Governance — CURRENT.**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -55,9 +55,11 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.959 Human-in-the-Loop / Intervention is the current implementation milestone. Its canonical provider-neutral intervention request/lifecycle contract, bounded in-memory workflow, tool approval/defer integration, and deterministic approval/defer verification are present. Runtime application, concurrency hardening, broader targets, persistence, management UI, expanded Example coverage, and final framework/backend verification remain in the run-sized active plan.
+0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.954 Prompt and Instruction Governance is the current ordered foundational milestone. Its authoritative plan is `docs/plan/20-active.md` and its detailed requirements are in `docs/roadmap/954-prompt-instruction-governance.md`.
 
-The remaining foundational sequence is 0.9591 Goal/Plan Persistence/Recovery and 0.9592 Provider Ecosystem/Adapter Lifecycle, followed by 0.96 Capability-Aware Execution. The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` remains a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition both depend on its provider/model/target separation, credential persistence, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portability contracts.
+The remaining foundational sequence is 0.955 Context Engineering, 0.956 Observability/Tracing, 0.957 Evaluation/Quality Measurement, 0.958 Agent Lifecycle/Health, 0.9591 Goal/Plan Persistence/Recovery, and 0.959 Human-in-the-Loop/Intervention. Phase 0.9591 is intentionally ordered before 0.959 because durable goal/plan revisions, checkpoints, and recovery state provide the persistent authority for later goal/plan intervention. 0.9592 Provider Ecosystem/Adapter Lifecycle follows these foundations, then 0.96 Capability-Aware Execution.
+
+The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` remains a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition both depend on its provider/model/target separation, credential persistence, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portability contracts.
 
 0.96 Capability-Aware Execution follows these foundations and addresses heterogeneous capabilities, the same logical model exposed by multiple providers, provider/account/project restrictions, model/task-specific constraints, quotas, rate limits and future quota dimensions, concurrency capacity, operational availability, long-running inference, capability-aware candidate selection, fallback/degradation, and proactive admission control.
 
@@ -97,7 +99,7 @@ The repository currently contains verified foundations for:
 - policy-first composition with host `IDataAccessAuthorizer` for structured data operations, preserving host authorization as the final authority;
 - canonical resource capability profiles with runtime `Inherit` / `Enabled` / `Disabled` overrides, deterministic effective-state snapshots, resource persistence, and tool gating before executable handlers;
 - typed learning-promotion requests evaluated through the unified policy engine, plus explicit learning-candidate `Proposed` / `PendingReview` / `Approved` / `Rejected` / `Promoted` transition rules;
-- canonical provider-neutral human-intervention requests, bounded approval/defer workflow, and deterministic Example verification for the current intervention foundation.
+- canonical provider-neutral human-intervention requests, bounded approval/defer workflow, execution intervention control, concurrency/stale-state hardening, and deterministic Example verification for the verified ahead-of-roadmap intervention slices.
 
 ## Foundational architecture hardening before 0.96
 
@@ -120,9 +122,9 @@ The foundational sequence is now:
         ↓
 0.958 Agent Lifecycle / Health
         ↓
-0.959 Human-in-the-Loop / Intervention
-        ↓
 0.9591 Goal / Plan Persistence / Recovery
+        ↓
+0.959 Human-in-the-Loop / Intervention
         ↓
 0.9592 Provider Ecosystem / Adapter Lifecycle
         ↓
@@ -133,9 +135,9 @@ The foundational sequence is now:
 0.97 Persistent Cognitive Runtime
 ```
 
-These phases are architectural foundations, not commitments that every feature must be fully completed before any implementation can begin. A later phase may consume a stable contract from an earlier phase while implementation continues iteratively.
+The numbered roadmap is the default implementation order. Ahead-of-roadmap code may remain in source when it is coherent and does not create a parallel architecture, but it must not be counted as completion of a milestone until that milestone becomes current and its full requirements are verified.
 
-### Storage implications
+## Storage implications
 
 The foundational phases consume the storage evolution defined in `docs/roadmap/38-configuration-storage-and-portability.md`. The persistence model must directly support the new configuration architecture rather than preserve retired Agent provider/model fields.
 
@@ -145,7 +147,7 @@ Agent profile resource capability defaults are now part of the canonical `AiAgen
 
 Learning-promotion decisions are now represented as normal `AiPolicyDecision` outcomes on `learning.promote`, with typed candidate metadata carried as bounded policy attributes. This keeps learning governed by the single policy engine rather than adding a parallel learning authorization mechanism. Candidate persistence/target repositories and human intervention remain separate phases.
 
-Human intervention is now a canonical provider-neutral workflow boundary built on the existing approval/defer policy boundary. Runtime execution control, persistence, and management UI are being added through the ordered run-sized plan in `docs/plan/20-active.md` rather than through parallel approval or execution subsystems.
+Human intervention is implemented ahead of its ordered milestone only as a coherent canonical workflow boundary. Execution-level intervention and concurrency/stale-state hardening have deterministic local Example verification; durable persistence, management UI, broader target support, and remaining lifecycle controls are not treated as complete.
 
 Provider API keys are persisted with provider configuration and encrypted at rest. There is no separate provider secret-reference or vault architecture. Shared SQL Server/MySQL configuration can therefore be used by multiple authorized HAgent processes/machines. Configuration export/import is planned as a versioned portable representation with optional encrypted credential inclusion.
 
@@ -226,7 +228,7 @@ Provider/model administration should eventually show execution-target identity, 
 
 ## Active implementation
 
-The active implementation plan is `docs/plan/20-active.md`. It is currently organized into seven run-sized 0.959 intervention slices; only one slice is current at a time and each must reach a verified checkpoint before the next begins. The first slice is the execution control boundary.
+The active implementation plan is `docs/plan/20-active.md`. It is currently the ordered 0.954 Prompt and Instruction Governance plan; only one slice is current at a time and each must reach a verified checkpoint before the next begins.
 
 ## Verification rule
 

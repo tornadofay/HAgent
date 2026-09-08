@@ -14,6 +14,7 @@ namespace HAgent.Models
         public bool Enabled { get; set; }
         public AiExecutionSelectionPolicy ExecutionSelection { get; set; }
         public AiCapabilityRequirements CapabilityRequirements { get; set; }
+        public AiResourceCapabilityPolicy ResourceCapabilities { get; set; }
 
         public AiAgent()
         {
@@ -27,6 +28,7 @@ namespace HAgent.Models
             Enabled = true;
             ExecutionSelection = new AiExecutionSelectionPolicy();
             CapabilityRequirements = new AiCapabilityRequirements();
+            ResourceCapabilities = new AiResourceCapabilityPolicy();
         }
     }
 }

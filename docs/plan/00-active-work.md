@@ -15,13 +15,29 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current run
 
-**0.956 Slice 3 trace-producing runtime instrumentation and propagation — CURRENT.**
+**0.956 Slice 3 trace-producing runtime instrumentation and propagation — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
 
-The current slice is to add the first runtime producers that create and propagate trace context through the canonical execution, provider, tool, event, policy, and context boundaries without duplicating those subsystem contracts.
+The current slice adds dedicated provider-neutral tracing producers around canonical execution lifecycle, policy, provider, tool, context, and event boundaries. Existing subsystem contracts remain authoritative, and trace identity remains separate from execution/host/runtime/event correlation.
+
+## Implemented in Slice 3
+
+- `TracingAgentRuntime` creates and completes execution-root spans from canonical runtime lifecycle events and restores an outer ambient trace context after nested execution.
+- `TracingPolicyEngine` records policy evaluation outcome/rule/reason as bounded metadata without changing policy authority.
+- `TracingProviderAdapter` records provider invocation and preserves execution correlation without sending trace state in provider payloads.
+- `TracingAgentTool` records tool execution while explicitly omitting raw arguments/results.
+- `TracingContextAssembler` records context assembly metadata without copying context payloads.
+- `TracingEventDispatcher` traces event publication and handler execution and propagates trace context through the cloned `EventEnvelope` without copying payload/context.
+- `TracePropagation` exposes explicit provider-neutral propagation scopes.
+- `EventEnvelope.TraceContext` carries optional trace propagation metadata while retaining event correlation and causation separately.
+- Focused `HAgent.Tests` and a matching `HAgent.Example` scenario cover success, hierarchy, correlation, tool/context/event propagation, payload exclusion, failure, cancellation, and nested propagation restoration.
 
 ## Next action
 
-Inspect the existing execution/provider/tool/event/policy/context integration seams and implement only the first bounded instrumentation slice. Preserve execution, host, runtime, event, and identity correlation separately from TraceId/SpanId. Add focused deterministic `HAgent.Tests` coverage plus the matching public-API `HAgent.Example` scenario for integrated propagation and terminal/failure/cancellation paths exposed by the producers. Do not begin Slice 4 in the same run.
+After pulling the current branch, build the solution, run the full `HAgent.Tests` suite, then run the exact matching Example scenario on both supported targets:
+
+**HAgent.Example → Diagnostics → Observability → Observability Runtime Instrumentation → Run instrumentation test**
+
+Do not mark Slice 3 verified until the local build/test result and both Example results are supplied. Do not begin Slice 4 in the same run.
 
 ## Verification evidence for Slice 2
 

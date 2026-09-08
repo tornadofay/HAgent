@@ -12,7 +12,7 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.8 — Data Access + Authorization + Internal Storage **and first-class resource foundations** — substantially implemented
 - 0.9 — Runtime Agent Instances complete and locally verified
 - 0.95 — Generic External Host Integration **complete and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.951 — Identity, Tenancy + User Context — planned architectural foundation
+- 0.951 — Identity, Tenancy + User Context — **completed and verified**
 - 0.952 — First-Class Event Subsystem — completed and verified
 - 0.953 — Unified Policy Engine — completed for its verified runtime/persistence/resource/learning-policy foundation
 - 0.954 — Prompt + Instruction Governance — **current ordered milestone**

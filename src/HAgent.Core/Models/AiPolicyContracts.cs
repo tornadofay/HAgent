@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace HAgent.Models
 {
@@ -37,6 +38,7 @@ namespace HAgent.Models
         }
 
         public string Version { get; set; }
+        [JsonInclude]
         public IList<AiPolicyRule> Rules { get; private set; }
 
         public AiPolicySet Clone()
@@ -92,12 +94,19 @@ namespace HAgent.Models
         public int Priority { get; set; }
         public AiPolicyOutcome Outcome { get; set; }
         public string Reason { get; set; }
+        [JsonInclude]
         public IList<string> Operations { get; private set; }
+        [JsonInclude]
         public IList<string> ResourceTypes { get; private set; }
+        [JsonInclude]
         public IList<string> ResourceIds { get; private set; }
+        [JsonInclude]
         public IList<string> ToolIds { get; private set; }
+        [JsonInclude]
         public IList<string> ProviderIds { get; private set; }
+        [JsonInclude]
         public IList<string> ExecutionTargetIds { get; private set; }
+        [JsonInclude]
         public IDictionary<string, string> Attributes { get; private set; }
 
         public AiPolicyRule Clone()
@@ -199,6 +208,7 @@ namespace HAgent.Models
         public AiCostStatus CostStatus { get; set; }
         public AiCostPolicy RequestedCostPolicy { get; set; }
         public AgentIdentityContext Identity { get; set; }
+        [JsonInclude]
         public IDictionary<string, string> Attributes { get; private set; }
 
         public AiPolicyEvaluationContext Clone()

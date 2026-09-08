@@ -456,7 +456,6 @@ namespace HAgent.Runtime
                     _resumeSignal.TrySetResult(true);
                 }
                 _cancellation.Dispose();
-                ResolutionGate.Dispose();
             }
 
             private static TaskCompletionSource<bool> CreateCompletedSignal()

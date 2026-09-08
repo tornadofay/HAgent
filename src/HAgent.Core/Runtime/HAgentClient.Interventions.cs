@@ -116,10 +116,9 @@ namespace HAgent.Runtime
                 throw new InvalidOperationException("Intervention request was not found: " + requestId);
 
             if (request.TargetKind == AiInterventionTargetKind.LearningCandidate &&
-                (request.RequestedAction == AiInterventionAction.Approve || request.RequestedAction == AiInterventionAction.Reject) &&
-                resolution == AiInterventionRequestStatus.Approved)
+                (request.RequestedAction == AiInterventionAction.Approve || request.RequestedAction == AiInterventionAction.Reject))
             {
-                return await ResolveLearningCandidateInterventionAsync(request, responderIdentity, reason, cancellationToken).ConfigureAwait(false);
+                return await ResolveLearningCandidateInterventionAsync(request, resolution, responderIdentity, reason, cancellationToken).ConfigureAwait(false);
             }
 
             var controllable = _runtime as IInterventionControllableRuntime;
@@ -143,6 +142,7 @@ namespace HAgent.Runtime
 
         private async Task<AiInterventionRequest> ResolveLearningCandidateInterventionAsync(
             AiInterventionRequest request,
+            AiInterventionRequestStatus resolution,
             AgentIdentityContext responderIdentity,
             string reason,
             CancellationToken cancellationToken)
@@ -167,6 +167,21 @@ namespace HAgent.Runtime
                     throw new InvalidOperationException("Intervention request was not found: " + request.RequestId);
                 if (current.Status != AiInterventionRequestStatus.Pending)
                     throw new InvalidOperationException("Intervention request is no longer pending: " + request.RequestId);
+
+                if (resolution != AiInterventionRequestStatus.Approved)
+                {
+                    if (resolution != AiInterventionRequestStatus.Rejected &&
+                        resolution != AiInterventionRequestStatus.Cancelled &&
+                        resolution != AiInterventionRequestStatus.Expired)
+                        throw new ArgumentOutOfRangeException(nameof(resolution));
+
+                    return await _interventionWorkflow.ResolveAsync(
+                        current.RequestId,
+                        resolution,
+                        responderIdentity,
+                        reason,
+                        cancellationToken).ConfigureAwait(false);
+                }
 
                 string staleReason;
                 if (!candidate.TryApplyIntervention(

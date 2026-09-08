@@ -42,6 +42,8 @@ namespace HAgent.Models
         public string ToolCallId { get; set; }
         public AgentIdentityContext Identity { get; set; }
         public AiPolicyDecision PolicyDecision { get; set; }
+        public AiResourceCapabilitySnapshot EffectiveResourceCapabilities { get; set; }
+        public AiResourceCapabilityState ResourceCapabilityState { get; set; }
         public DateTimeOffset StartedAt { get; set; }
         public DateTimeOffset? CompletedAt { get; set; }
         public TimeSpan? Duration
@@ -60,6 +62,7 @@ namespace HAgent.Models
             ToolCallId = string.Empty;
             Identity = new AgentIdentityContext();
             PolicyDecision = new AiPolicyDecision();
+            ResourceCapabilityState = AiResourceCapabilityState.Enabled;
             StartedAt = DateTimeOffset.UtcNow;
         }
 

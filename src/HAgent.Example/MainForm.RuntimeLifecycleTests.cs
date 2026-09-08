@@ -106,12 +106,12 @@ namespace HAgent.Example
                 "New execution after shutdown: rejected");
         }
 
-        private sealed class NullSecretStore : ISecretStore
-        {
-            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken)) { return Task.FromResult(string.Empty); }
-            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken)) { return Task.CompletedTask; }
-            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken)) { return Task.CompletedTask; }
-        }
+        //private sealed class NullSecretStore : ISecretStore
+        //{
+        //    public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken)) { return Task.FromResult(string.Empty); }
+        //    public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken)) { return Task.CompletedTask; }
+        //    public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken)) { return Task.CompletedTask; }
+        //}
 
         private sealed class RuntimeShutdownTestAdapter : IAiProviderAdapter
         {

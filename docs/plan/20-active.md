@@ -46,10 +46,12 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 34/34 tests passing on 2026-09-09.
    - Deterministic public-API `HAgent.Example` Context Cache verification passed on 2026-09-09, including valid reuse, scope/configuration/resource/freshness isolation, expiration invalidation, snapshot mutation isolation, and no provider request.
 
-7. **Execution/provider integration and deterministic Example verification — CURRENT**
-   - Core now carries an optional canonical `ContextSnapshot` from `AgentExecutionRequest` into an execution-owned `AgentExecutionSnapshot` and then into `ProviderExecutionRequest`.
+7. **Execution/provider integration and deterministic Example verification — VERIFIED**
+   - Core carries the optional canonical `ContextSnapshot` from `AgentExecutionRequest` into an isolated `AgentExecutionSnapshot` and then into `ProviderExecutionRequest`.
    - Provider adapters receive provider-neutral context without Core imposing provider-specific tokenization or prompt formatting. Adapter-side request mutation does not replace the execution-owned snapshot.
-   - Verification target: focused Core/integration tests plus matching deterministic public-API `HAgent.Example` coverage using an in-process fake adapter, including successful context transport and provider-failure/context-preservation behavior.
+   - `HAgent.Tests` completed with 37/37 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Execution Integration verification passed on 2026-09-09, including execution-snapshot context, provider request context, provenance/source preservation, provider-request mutation isolation, and deterministic fake-adapter transport.
+   - Provider-failure/context-preservation behavior is covered by the focused integration verification.
 
 ### Verification rule
 

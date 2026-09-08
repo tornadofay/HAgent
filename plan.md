@@ -55,7 +55,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is the current implementation milestone. The remaining foundational sequence is 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
+0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is the current implementation milestone. Its core evaluator, runtime enforcement, and effective-policy execution-snapshot architecture are implemented; the new snapshot behavior still requires the matching local Example verification before being considered verified. The remaining foundational sequence is 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
 
 The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` is ordered as a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition both depend on its provider/model/target separation, credential persistence, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portability contracts.
 
@@ -91,7 +91,8 @@ The repository currently contains verified foundations for:
 - automatic payload-free execution auditing with configurable bounded retention;
 - runtime-instance identity, scope, runtime-only overrides, independent memory ownership, concurrent execution, stale-result protection, host-controlled scheduling, shutdown semantics, and optional runtime-state persistence;
 - provider-neutral workspace participants, message metadata, default-recipient routing, and coordinator/specialist role policy;
-- generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, verified external-consumer coverage on both supported target frameworks, and verified runtime-instance + canonical-request composition.
+- generic host execution requests with multiple messages, host correlation identity, bounded host context, provider-facing request isolation, native structured-output transport/fallback, terminal-state protection, runtime snapshot isolation, verified external-consumer coverage on both supported target frameworks, and verified runtime-instance + canonical-request composition;
+- unified policy contracts, deterministic scoped evaluation, cost guards, policy provenance, pre-transport runtime enforcement, and implementation of deep-cloned effective policy state in execution snapshots (new snapshot verification pending local execution).
 
 ## Foundational architecture hardening before 0.96
 

@@ -93,7 +93,8 @@ namespace HAgent.Runtime
             ToolIds = x.ToolIds == null ? new List<string>() : new List<string>(x.ToolIds),
             Enabled = x.Enabled,
             ExecutionSelection = x.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : x.ExecutionSelection.Clone(),
-            CapabilityRequirements = x.CapabilityRequirements == null ? new AiCapabilityRequirements() : x.CapabilityRequirements.Clone()
+            CapabilityRequirements = x.CapabilityRequirements == null ? new AiCapabilityRequirements() : x.CapabilityRequirements.Clone(),
+            ResourceCapabilities = x.ResourceCapabilities == null ? new AiResourceCapabilityPolicy() : x.ResourceCapabilities.Clone()
         };
     }
 }

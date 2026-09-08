@@ -4,25 +4,25 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current task
 
-- **Phase:** 0.955 Context Engineering
+- **Phase:** 0.956 Observability and Distributed Tracing
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 10 checkpoint.
+- **Scope:** Begin the ordered 0.956 observability/tracing foundation after verified completion of 0.955 Context Engineering.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, 5, 6, 7, 8, 9, and 10 have subsequently been verified by the user. Slice 10 was verified on 2026-09-09 with 50/50 HAgent.Tests passing and deterministic public-API Context Assembly Examples passing on .NET Framework 4.8.1 and .NET 9.
+Phase 0.955 Context Engineering was verified and closed by the user on 2026-09-09. Its final Slice 11 verification completed with 56/56 HAgent.Tests passing and the deterministic Context Host Authorization Example passing on .NET Framework 4.8.1 and .NET 9. The full 0.955 roadmap requirements and verification matrix are now marked complete.
 
 ## Current run
 
-**0.955 Slice 11 implementation checkpoint — local verification pending.**
+**0.956 Slice 1 architecture/contract reconciliation — CURRENT.**
 
-Slice 11 adds an opt-in host authorization boundary for protected data-backed context sources. Sources implementing `IContextDataAuthorizationSource` are checked through the existing host-owned `IDataAccessAuthorizer` after HAgent policy/capability admission and before source retrieval. Host authorization decisions fail closed when unavailable or denied, carry the canonical identity/source/query context through cloned authorization requests, propagate cancellation, and remain metadata-only in context diagnostics.
+The current slice is to reconcile existing diagnostics, execution audit, correlation IDs, lifecycle events, policy decisions, provider/tool/context boundaries, and runtime state against the 0.956 requirements and define the smallest provider-neutral trace/span contract without implementing the full tracing system in the same run.
 
 ## Next action
 
-Run the updated `HAgent.Tests` suite and the Context → Context Core → Context Host Authorization Example. The Slice 11 tests currently add 6 tests, so the expected full suite count is **56 tests**. Verify the Example on .NET Framework 4.8.1 and .NET 9. Record actual results before closing Slice 11 or selecting the final 0.955 phase-verification step.
+Review the 0.956 roadmap, current-state document, existing diagnostics/audit/correlation contracts, event subsystem, and execution/provider boundaries. Produce the authoritative observability architecture and identify the exact first contract implementation slice. No full tracing implementation should be started until this architecture checkpoint is complete.
 
 ## Current blockers
 
-No known source-level blocker remains. The connected session cannot execute the local .NET/WinForms build or Example; Slice 11 has not been claimed verified.
+No known implementation blocker. The connected session can inspect and modify repository source, but local .NET/WinForms build and Example execution remain user-side verification steps.

@@ -12,7 +12,15 @@ Data-operation permissions may separately control discovery, projection/query, e
 
 Authorization answers whether a specific requested operation is allowed for a specific runtime identity and context. `IDataAccessAuthorizer` is a provider-neutral callback contract for request-specific data operations; its execution is runtime-owned and is never persisted as ordinary agent/tool configuration.
 
+`PolicyDataAccessAuthorizer` composes HAgent policy with the host callback for structured data access. HAgent policy is evaluated first. A policy `Deny`, `RequireApproval`, or `Defer` blocks the operation before the host callback is invoked. A policy `Allow` or `NotApplicable` never authorizes the operation by itself; the host callback still decides whether the application-owned data operation is allowed.
+
+`DataAuthorizationRequest` carries the canonical `AgentIdentityContext` in addition to the host runtime context. HAgent evaluates the identity supplied by the host; it does not authenticate the principal.
+
 Discovery metadata, object provenance, UI bindings, agent instructions, and role names never grant authorization by themselves.
+
+## Tool enforcement
+
+Executable tool handlers are an HAgent capability boundary. The unified policy engine evaluates `tool.invoke` before the handler is called. Policy denial, approval requirements, and deferral therefore prevent tool side effects before execution. Registered handlers remain runtime-owned and are never serialized as configuration.
 
 ## Approval
 

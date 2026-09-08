@@ -12,8 +12,9 @@ The canonical contracts are:
 - `AiPolicyRule` — scoped rule with explicit outcome, priority, match constraints, and provenance text.
 - `AiPolicyEvaluationContext` — deterministic input describing operation, identity, agent/runtime/execution, resource, tool, provider, target, cost state, and bounded attributes.
 - `AiPolicyDecision` — normalized result including outcome, policy version, selected rule, scope, priority, reason, and built-in status.
-- `IAiPolicyEngine` — provider-neutral evaluator boundary. It also exposes an owned clone of the effective policy through `GetPolicySnapshot()`.
+- `IAiPolicyEngine` — provider-neutral evaluator boundary. It exposes an owned clone of the effective policy through `GetPolicySnapshot()`.
 - `AgentExecutionSnapshot.EffectivePolicy` — the deep-cloned policy state captured for the lifetime of one execution.
+- `IAiStore.GetPolicySetAsync` / `SavePolicySetAsync` — the canonical persistence boundary for the current HAgent policy set.
 
 Supported outcomes are `NotApplicable`, `Allow`, `Deny`, `RequireApproval`, and `Defer`.
 
@@ -59,10 +60,18 @@ Prompt content is never the security or policy enforcement mechanism. A model ca
 
 A policy set has an explicit version. `DefaultAiPolicyEngine` snapshots the supplied policy when constructed. `GetPolicySnapshot()` returns another deep clone, so callers cannot mutate engine-owned policy state.
 
-When an execution begins, `DefaultAgentRuntime` obtains an owned policy clone and captures it in `AgentExecutionSnapshot.EffectivePolicy` alongside the agent/provider/runtime identity snapshot. The execution therefore retains the complete effective policy state and policy version that governed the run even if the source policy object is later edited or replaced.
+When an execution begins, `DefaultAgentRuntime` obtains the effective policy before creating `AgentExecutionSnapshot`. An explicitly configured policy engine supplies its owned snapshot; otherwise the runtime loads the canonical policy from `IAiStore` asynchronously and creates an immutable-for-the-run evaluator from that snapshot. `AgentExecutionSnapshot.EffectivePolicy` then retains a deep clone of the exact policy state and version that govern the execution.
 
-The execution continues to use the policy engine that supplied that captured state, so the recorded `PolicyDecision.PolicyVersion` and snapshot policy version identify the same policy generation. Future mutable policy repositories can use this boundary for deterministic refresh/invalidation without allowing an in-flight execution to observe later edits.
+The default runtime path therefore uses persisted HAgent policy configuration, while hosts may inject an explicit evaluator for deliberately isolated policy composition or tests. No synchronous database or network call is used to load policy.
+
+Because the policy is captured at execution creation, later persistence changes do not modify an active run. Future cache/invalidation work may replace or refresh the policy source between executions, but must preserve this execution-level isolation invariant.
+
+## Persistence
+
+Policy persistence is backend-neutral at `IAiStore` and currently represented by one HAgent-owned policy set per configuration store. The File backend stores the policy with the HAgent settings document. SQL Server and MySQL use an HAgent-owned `HAgentPolicies` table containing the explicit policy version and serialized canonical policy set.
+
+The SQL Server/MySQL HAgent bootstrap paths create the policy table during normal HAgent database provisioning. Missing persisted policy resolves to the valid empty policy set; malformed persisted policy is rejected rather than silently replaced.
 
 ## Current implementation
 
-Phase 0.953 currently implements the core contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime enforcement, and effective-policy execution snapshots. Persistent policy storage, learning-promotion rules, resource tri-state integration, host authorization integration, approval workflow, and policy management UI remain subsequent slices.
+Phase 0.953 currently implements the core contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime enforcement, effective-policy execution snapshots, and policy persistence through the HAgent File/SQL Server/MySQL configuration stores. Host authorization integration, tool/resource policy enforcement, runtime tri-state integration, learning-promotion rules, human approval workflow, policy management UI, and full cross-backend live verification remain subsequent slices.

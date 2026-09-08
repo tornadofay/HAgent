@@ -27,12 +27,17 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 20/20 tests passing on 2026-09-08.
    - Deterministic public-API `HAgent.Example` Context Acquisition verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-08.
 
-4. **Ranking, deterministic prioritization, and deduplication — CURRENT**
-   - Scope: provider-neutral candidate ranking and deterministic prioritization using available relevance/importance/trust/freshness/estimated-cost evidence, plus duplicate elimination with stable tie-breaking.
-   - Must remain independent of provider tokenization, prompt construction, persistence, caching, WinForms, and execution integration.
-   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for ranking order, deterministic ties, duplicate handling, and bounded metadata preservation.
+4. **Ranking, deterministic prioritization, and deduplication — VERIFIED**
+   - Core provides provider-neutral candidate ranking and deterministic prioritization using available relevance/importance/trust/freshness/estimated-cost evidence.
+   - Duplicate IDs are eliminated with stable tie-breaking while preserving the highest-ranked candidate's metadata.
+   - `HAgent.Tests` completed with 24/24 tests passing on 2026-09-08.
+   - Deterministic public-API `HAgent.Example` Context Ranking verification passed on 2026-09-08, including ranking order, deterministic ties, duplicate retention, provenance/scope preservation, and no provider request.
 
-5. **Compaction, truncation, and provenance-preserving diagnostics — PLANNED**
+5. **Compaction, truncation, and provenance-preserving diagnostics — CURRENT**
+   - Scope: bounded compaction over already ranked provider-neutral candidates, deterministic truncation to an explicit target budget, and safe inclusion/exclusion diagnostics that retain source/provenance metadata.
+   - The first strategy is deliberately deterministic and tokenizer-free: it may exclude lower-ranked candidates that do not fit, but it must not rewrite or summarize payloads or invent provider-specific token counts.
+   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for bounded selection, item/character/token exclusions, unknown-token handling, provenance preservation, and diagnostic reasons.
+
 6. **Cache-safe reusable context components — PLANNED**
 7. **Execution/provider integration and deterministic Example verification — PLANNED**
 

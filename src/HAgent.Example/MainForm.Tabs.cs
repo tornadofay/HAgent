@@ -53,8 +53,8 @@ namespace HAgent.Example
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 88));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
             var editors = new TableLayoutPanel
             {
@@ -133,28 +133,27 @@ namespace HAgent.Example
             {
                 Text = "Description / Expected result\r\n" + description + "\r\n\r\nExpected result\r\n" + expected,
                 Dock = DockStyle.Fill,
-                AutoSize = true,
-                MaximumSize = new Size(0, 0),
                 ForeColor = Text,
                 Font = new Font("Segoe UI", 9f),
-                Padding = new Padding(1, 8, 20, 4),
+                Padding = new Padding(1, 7, 20, 4),
                 AutoEllipsis = false,
-                UseMnemonic = false
+                UseMnemonic = false,
+                AutoSize = false
             };
             layout.Controls.Add(details, 0, 2);
 
-            layout.Controls.Add(new Label
+            var note = new Label
             {
                 Text = noteTitle + ": " + noteText,
                 Dock = DockStyle.Fill,
-                AutoSize = true,
-                MaximumSize = new Size(0, 0),
                 ForeColor = Muted,
                 Font = new Font("Segoe UI", 8.6f),
-                Padding = new Padding(1, 4, 20, 6),
+                Padding = new Padding(1, 4, 20, 5),
                 AutoEllipsis = false,
-                UseMnemonic = false
-            }, 0, 3);
+                UseMnemonic = false,
+                AutoSize = false
+            };
+            layout.Controls.Add(note, 0, 3);
 
             page.Controls.Add(layout);
             _tabs.TabPages.Add(page);

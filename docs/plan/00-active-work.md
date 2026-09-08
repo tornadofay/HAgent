@@ -17,11 +17,11 @@ Phase 0.954 Prompt and Instruction Governance was verified and closed by the use
 
 **0.955 Slice 7 implementation checkpoint — local verification pending.**
 
-Slice 7 is scoped to integrating the canonical context pipeline with execution/provider-facing boundaries while preserving Core/provider separation. The integration must consume the execution-owned context snapshot, honor ranking/compaction results, preserve provenance/diagnostic safety, and keep provider-specific transport/tokenization inside the adapter boundary.
+Slice 7 now carries the canonical provider-neutral `ContextSnapshot` from `AgentExecutionRequest` into an isolated `AgentExecutionSnapshot` and then into `ProviderExecutionRequest`. Provider adapters receive the context without Core imposing provider-specific transport/tokenization, and provider-side request mutation does not replace the execution-owned snapshot. Focused integration tests and a deterministic public-API `HAgent.Example` scenario cover successful transport and provider-failure/context-preservation behavior.
 
 ## Next action
 
-Implement the focused Slice 7 Core/integration boundary and matching deterministic public-API `HAgent.Example` verification using a fake/provider-neutral adapter, then run the focused/full local tests before closing the slice.
+Run the updated `HAgent.Tests` suite and the Context → Context Core → Context Execution Integration Example. Record the actual results before closing Slice 7 or selecting the next milestone.
 
 ## Current blockers
 

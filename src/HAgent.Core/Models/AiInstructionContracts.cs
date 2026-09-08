@@ -49,6 +49,13 @@ namespace HAgent.Models
         Revoked = 3
     }
 
+    public enum AiInstructionAvailability
+    {
+        Available = 0,
+        Disabled = 1,
+        Unavailable = 2
+    }
+
     public enum AiInstructionConflictDisposition
     {
         Unresolved = 0,
@@ -175,6 +182,7 @@ namespace HAgent.Models
             TrustLevel = AiInstructionTrustLevel.UserSupplied;
             Scope = new AiInstructionScope();
             Lifecycle = AiInstructionLifecycleState.Active;
+            Availability = AiInstructionAvailability.Available;
             Priority = 0;
             ConflictKey = string.Empty;
             Version = string.Empty;
@@ -190,6 +198,7 @@ namespace HAgent.Models
         public AiInstructionTrustLevel TrustLevel { get; set; }
         public AiInstructionScope Scope { get; set; }
         public AiInstructionLifecycleState Lifecycle { get; set; }
+        public AiInstructionAvailability Availability { get; set; }
         public int Priority { get; set; }
         public string ConflictKey { get; set; }
         public string Version { get; set; }
@@ -202,7 +211,8 @@ namespace HAgent.Models
 
         public bool IsActiveAt(DateTimeOffset at)
         {
-            return Lifecycle == AiInstructionLifecycleState.Active &&
+            return Availability == AiInstructionAvailability.Available &&
+                   Lifecycle == AiInstructionLifecycleState.Active &&
                    (!NotBefore.HasValue || at >= NotBefore.Value) &&
                    (!ExpiresAt.HasValue || at < ExpiresAt.Value);
         }
@@ -218,6 +228,7 @@ namespace HAgent.Models
                 TrustLevel = TrustLevel,
                 Scope = Scope == null ? new AiInstructionScope() : Scope.Clone(),
                 Lifecycle = Lifecycle,
+                Availability = Availability,
                 Priority = Priority,
                 ConflictKey = ConflictKey,
                 Version = Version,
@@ -251,6 +262,8 @@ namespace HAgent.Models
                 throw new ArgumentOutOfRangeException(nameof(TrustLevel));
             if (!Enum.IsDefined(typeof(AiInstructionLifecycleState), Lifecycle))
                 throw new ArgumentOutOfRangeException(nameof(Lifecycle));
+            if (!Enum.IsDefined(typeof(AiInstructionAvailability), Availability))
+                throw new ArgumentOutOfRangeException(nameof(Availability));
             if (Scope == null)
                 throw new ArgumentException("Instruction scope is required.", nameof(Scope));
             Scope.Validate();

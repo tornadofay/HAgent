@@ -76,7 +76,7 @@ The Core acquisition boundary is `IContextSource`, which exposes only a bounded 
 
 `ContextSourceKinds` provides the standard producer category identifiers for those seven source families. They are string constants rather than a closed enum so future provider-neutral resource types can introduce their own kinds without changing the canonical context model.
 
-The per-source retrieval plan is an input/selection mechanism, not an authorization mechanism. Source enablement, permissions, resource capability state, and instruction authority remain separate policy boundaries and must be enforced before or during the later policy-aware assembly stage.
+The per-source retrieval plan is an input/selection mechanism, not an authorization mechanism. Source enablement, permissions, resource capability state, and instruction authority remain separate policy boundaries and must be enforced before or during the policy-aware assembly stage.
 
 When a hard estimated-token budget is configured, a candidate without a token estimate is not admitted because its cost cannot be proven to fit the hard bound. When no token budget is configured, known token usage may still be reported while remaining token capacity stays unspecified.
 
@@ -107,6 +107,18 @@ Context engineering must respect policy, permissions, resource capability state,
 Discovery is evidence, not authorization. A discovered control, data source, object, memory entry, knowledge item, Skill, or tool description does not become executable or readable merely because it was discovered.
 
 Instruction authority and context usefulness are different concepts. Instruction sources remain governed by instruction governance. Context items may carry trust/provenance and may originate from an instruction source, but ordinary evidence must not be silently promoted into an instruction or authority boundary.
+
+### Policy-aware admission
+
+Policy-aware context assembly is a distinct enforcement stage between retrieval and ranking. The canonical `ContextPolicyAssembler` first evaluates each `ContextRetrievalSource` with the existing `IAiPolicyEngine` and an execution-supplied `AiResourceCapabilitySnapshot`. A denied or disabled source is excluded before its underlying `IContextSource` is queried.
+
+For an admitted source, returned candidates are evaluated before the global assembly budget is applied. Candidate admission uses the same policy engine with operation `context.include`, the source kind as resource type, the candidate ID as resource ID, and bounded attributes for candidate/source metadata. A denied, approval-required, or deferred candidate is excluded, so excluded material cannot consume context budget merely by being retrieved.
+
+`ContextPolicyAdmissionEvaluator` composes the existing policy and capability authorities; it does not create a second authorization model. `ContextAdmissionDecision` records only bounded decision metadata such as source/item identity, capability state, policy outcome, selected rule, reason, and item type. Payload content is never copied into diagnostics.
+
+Resource capability state is configuration gating, not authorization. The unified policy engine remains the policy authority, and the host remains authoritative for any separate host authorization boundary required by the resource. Policy decisions are enforcement metadata and must never be translated into prompt text as a substitute for execution-time enforcement.
+
+All policy/capability evaluation inputs are cloned at the admission boundary, and admitted context items continue through the existing clone-and-snapshot path. Therefore later mutation of host policy/input objects does not modify the assembled execution snapshot.
 
 ## Ranking and relevance
 
@@ -221,6 +233,8 @@ Policy + permissions
 Attention / relevance hints
         ↓
 Acquisition / retrieval
+        ↓
+Policy-aware admission
         ↓
 Ranking / deduplication
         ↓

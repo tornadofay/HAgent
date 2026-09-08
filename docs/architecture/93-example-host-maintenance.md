@@ -22,6 +22,10 @@ HAgent Example
 │   └── ...
 ├── Context
 │   ├── Context Core
+│   │   ├── Context Contracts
+│   │   ├── Context Acquisition
+│   │   ├── Context Ranking
+│   │   ├── Context Compaction
 │   │   └── Context Budget
 │   ├── UI Context
 │   │   ├── UI Context
@@ -222,7 +226,7 @@ Examples should be grouped according to the architecture/capability they verify.
 
 - **Core** — basic messaging/session behavior.
 - **Memory** — explicit, automatic, episodic, task/event, and related memory capabilities.
-- **Context** — generic context, UI context, data relationships, bounded queries, and discovery.
+- **Context** — generic context, UI context, data relationships, bounded queries, discovery, ranking, compaction, and context budget behavior.
 - **Tools** — tool definitions, registry, validation, loops, persistence, and assignment.
 - **Providers** — adapters, provider transport, capabilities, normalization, and streaming.
 - **Policy** — unified policy and policy-governed approval/defer behavior.
@@ -247,7 +251,7 @@ Diagnostics       = execution auditing and related operational inspection
 Current Context sub-areas are:
 
 ```text
-Context Core      = generic context budgeting and related core context behavior
+Context Core      = generic context contracts, budgets, acquisition, ranking, deduplication, compaction, truncation, and related provider-neutral context behavior
 UI Context        = WinForms/control/data-source/object discovery and relationships
 Data Access Context = provider-neutral structured data query contracts
 ```

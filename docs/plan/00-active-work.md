@@ -17,14 +17,23 @@ No tracing implementation was started during Slice 1.
 
 ## Current run
 
-**0.956 Slice 2 trace identity and span lifecycle contracts — CURRENT.**
+**0.956 Slice 2 trace identity and span lifecycle contracts — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
 
-The current slice is to implement only the provider-neutral Core trace context/span contracts and the in-memory recorder boundary defined by `docs/architecture/22-observability.md`, with matching deterministic `HAgent.Tests` and public-API `HAgent.Example` verification.
+The current slice implements only the provider-neutral Core trace context/span contracts and in-memory recorder boundary defined by `docs/architecture/22-observability.md`, with matching deterministic `HAgent.Tests` and public-API `HAgent.Example` verification.
+
+Implemented in this checkpoint:
+
+- `TraceContext` for immutable provider-neutral trace propagation.
+- `TraceCorrelation` for existing HAgent identity/correlation references without replacing them.
+- bounded `TraceMetadata` with explicit redacted/omitted representations and no arbitrary object serialization.
+- `TraceSpan` / `ITraceSpan` for lifecycle, parentage, timestamps, status, duration, and terminal completion protection.
+- `ITraceRecorder` and `InMemoryTraceRecorder` with deterministic insertion sequencing.
+- focused `HAgent.Tests` contract coverage and a public-API `HAgent.Example` scenario covering hierarchy, correlation propagation, redaction-safe metadata, terminal status, and ordering.
 
 ## Next action
 
-Implement the trace identity/context/span lifecycle contracts and bounded metadata representation. Add the focused unit tests and matching Example scenario for hierarchy, correlation propagation, redaction-safe metadata, terminal status, and deterministic ordering. Do not begin Slice 3 in the same run.
+Run the repository's required verification for Slice 2: build the affected projects, run the focused/full `HAgent.Tests` suite as appropriate, and run the matching `HAgent.Example` scenario. Only after successful local verification should this slice be marked verified and Slice 3 selected.
 
 ## Current blockers
 
-No known architecture blocker. Local .NET/WinForms build and Example execution remain user-side verification steps for this connected session.
+The connected session can inspect and modify repository source, but it does not have a local .NET/WinForms execution environment for the repository. Therefore Slice 2 remains an implementation checkpoint pending the required local verification.

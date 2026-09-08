@@ -94,23 +94,108 @@ namespace HAgent.Example
                 };
                 layout.Controls.Add(title, 0, 0);
 
-                var nested = new TabControl
-                {
-                    Dock = DockStyle.Fill,
-                    Font = new Font("Segoe UI", 9f),
-                    Padding = new Point(12, 5),
-                    Multiline = false
-                };
-                foreach (var page in pagesInGroup)
-                    nested.TabPages.Add(page);
+                Control content;
+                if (RequiresExampleSubGroups(group))
+                    content = CreateExampleSubGroups(pagesInGroup);
+                else
+                    content = CreateExampleTabControl(pagesInGroup);
 
-                layout.Controls.Add(nested, 0, 1);
+                layout.Controls.Add(content, 0, 1);
                 featurePage.Controls.Add(layout);
                 _tabs.TabPages.Add(featurePage);
             }
 
             if (_tabs.TabPages.Count > 0)
                 _tabs.SelectedIndex = 0;
+        }
+
+        private static bool RequiresExampleSubGroups(string group)
+        {
+            return string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(group, "Runtime", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static Control CreateExampleSubGroups(List<TabPage> pages)
+        {
+            var subgroupOrder = string.Equals(GetExampleFeatureGroup(pages[0].Text), "Context", StringComparison.OrdinalIgnoreCase)
+                ? new[] { "Context Core", "UI Context", "Data Access Context" }
+                : new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
+
+            var grouped = new Dictionary<string, List<TabPage>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var subgroup in subgroupOrder)
+                grouped[subgroup] = new List<TabPage>();
+
+            foreach (var page in pages)
+            {
+                var subgroup = GetExampleSubGroup(page.Text);
+                List<TabPage> target;
+                if (!grouped.TryGetValue(subgroup, out target))
+                    target = grouped[subgroupOrder[0]];
+                target.Add(page);
+            }
+
+            var subTabs = new TabControl
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 9f),
+                Padding = new Point(12, 5),
+                Multiline = false
+            };
+
+            foreach (var subgroup in subgroupOrder)
+            {
+                List<TabPage> childPages = grouped[subgroup];
+                if (childPages.Count == 0)
+                    continue;
+
+                var subgroupPage = new TabPage(subgroup)
+                {
+                    BackColor = Color.FromArgb(248, 248, 252),
+                    Padding = new Padding(8)
+                };
+                var examples = CreateExampleTabControl(childPages);
+                subgroupPage.Controls.Add(examples);
+                subTabs.TabPages.Add(subgroupPage);
+            }
+
+            return subTabs;
+        }
+
+        private static TabControl CreateExampleTabControl(List<TabPage> pages)
+        {
+            var nested = new TabControl
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 9f),
+                Padding = new Point(12, 5),
+                Multiline = false
+            };
+            foreach (var page in pages)
+                nested.TabPages.Add(page);
+            return nested;
+        }
+
+        private static string GetExampleSubGroup(string title)
+        {
+            var key = (title ?? string.Empty).Trim().ToUpperInvariant();
+
+            if (key == "CONTEXT BUDGET")
+                return "Context Core";
+            if (key.StartsWith("UI ", StringComparison.Ordinal) || key == "APPLICATION OBJECT CONTEXT")
+                return "UI Context";
+            if (key == "DATA QUERY CONTRACT")
+                return "Data Access Context";
+
+            if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY")
+                return "Runtime Instances";
+            if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING")
+                return key.Contains("INTERVENTION") ? "Intervention" : "Execution";
+            if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION")
+                return "Planning & Capacity";
+            if (key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY")
+                return "Diagnostics";
+
+            return "Execution";
         }
 
         private static string GetExampleFeatureGroup(string title)

@@ -648,7 +648,7 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.959 Human-in-the-Loop and Intervention — CURRENT
 
-Phase 0.959 is the current intervention foundation. HAgent now has a canonical provider-neutral intervention request/lifecycle contract built on the bounded approval/defer boundary from 0.953. Execution intervention control is implemented at the canonical runtime boundary, but this slice remains unverified because the repository currently has no code build/test workflow available through the connected environment.
+Phase 0.959 is the current intervention foundation. HAgent now has a canonical provider-neutral intervention request/lifecycle contract built on the bounded approval/defer boundary from 0.953. Execution intervention control and execution-target concurrency/stale-state hardening are implemented; the hardening slice remains unverified in this connected environment because there is no executable repository build/test workflow and no local checkout.
 
 ### Objective
 
@@ -656,34 +656,40 @@ Allow authorized humans or host applications to inspect and control active HAgen
 
 ### Completed in this milestone so far
 
-- Canonical `AiInterventionRequest` with request identity, target kind, requested action, lifecycle status, execution/resource context, HAgent/host correlation, requester/responder identity, policy reason, and resolution metadata.
+- Canonical `AiInterventionRequest` with request identity, target kind, requested action, lifecycle status, execution/resource context, HAgent/host correlation, requester/responder identity, policy reason, target state/version evidence, and resolution metadata.
 - `IAiInterventionWorkflow` and bounded in-memory implementation with cloned request boundaries and terminal-state protection.
-- Intervention lifecycle now requires `Pending -> Approved -> Completed` for an accepted intervention; `Pending -> Completed` is no longer allowed.
+- Intervention lifecycle requires `Pending -> Approved -> Completed` for an accepted intervention; stale application may terminate as `Approved -> Expired`; terminal requests cannot be resolved again.
 - Tool execution creates canonical intervention requests for `RequireApproval` and `Defer`, with explicit tool target and requested-action semantics.
 - Tool execution results expose the intervention request.
 - Deterministic Example approval/defer verification uses the canonical intervention API.
 - Obsolete approval-only contract/facade files were removed in favor of the intervention model.
-- `DefaultAgentRuntime` now owns the canonical execution intervention coordinator and links intervention cancellation into the existing execution cancellation path.
+- `DefaultAgentRuntime` owns the canonical execution intervention coordinator and links intervention cancellation into the existing execution cancellation path.
 - Execution pause/resume/cancel requests use the shared `HAgentClient` intervention workflow and do not introduce a second execution engine.
 - `HAgentClient.ExecutionChanged` and execution intervention APIs expose the host-facing control boundary through public APIs.
-- A deterministic Example scenario now covers execution pause/resume/cancel and late-response protection; it has been added but not yet executed in this environment.
+- The `EXECUTION INTERVENTION` Example passed local verification on 2026-09-08, covering pause/resume/cancel lifecycle, public execution events, terminal cancellation, and late provider response protection.
+- Execution intervention requests now capture the observed control state and monotonic control-state version.
+- Competing execution interventions are serialized per execution and stale requests resolve deterministically to `Expired`.
+- Duplicate responder resolution is protected by request lifecycle state, and a stale request remains queryable with its responder and stale reason.
+- A deterministic `INTERVENTION HARDENING` Example scenario has been added for terminal staleness, conflicting concurrent requests, paused-state blocking, and duplicate responders.
 
 ### Run-sized execution plan
 
 Only one slice is **CURRENT** at a time. Each slice must reach a verified checkpoint before the next slice begins.
 
-1. **CURRENT — Execution control boundary**
+1. **Complete — Execution control boundary**
    - Scope: Integrate intervention application into the existing canonical runtime/execution lifecycle for pause, resume, and cancellation; preserve the existing execution engine and terminal-state rules.
    - Entry: Canonical intervention workflow and execution lifecycle contracts exist.
    - Implementation state: Complete in source; focused Example verification added.
-   - Verification state: **BLOCKED** — no executable repository build/test workflow is available through the connected environment, and local repository checkout is unavailable in this session.
+   - Verification state: **VERIFIED** — user executed the `EXECUTION INTERVENTION` Example on 2026-09-08 and all expected lifecycle, cancellation, and late-response assertions passed.
    - Completion: Controlled execution can be paused/resumed/cancelled through the intervention boundary without a second execution engine, and focused deterministic verification passes in an executable environment.
-   - Next smallest step after verification: race/stale-state hardening.
 
-2. **Concurrency and stale-state hardening**
-   - Scope: Make intervention state transitions deterministic under concurrent requests, duplicate requests, late provider completion, retirement, shutdown, and already-terminal executions.
+2. **CURRENT — Concurrency and stale-state hardening**
+   - Scope: Make intervention state transitions deterministic under concurrent requests, duplicate responders, late provider completion, retirement/shutdown teardown, and already-terminal executions.
    - Entry: Slice 1 passes its focused lifecycle verification.
+   - Implementation state: Complete in source; deterministic Example verification added.
+   - Verification state: **BLOCKED** — no executable repository build/test workflow is available through the connected environment, and local repository checkout is unavailable in this session.
    - Completion: concurrency/stale-request tests pass and late results cannot overwrite terminal outcomes.
+   - Next smallest step after verification: additional intervention targets.
 
 3. **Additional intervention targets**
    - Scope: Extend the same canonical intervention mechanism to plan steps, goals, learning candidates, and consequential actions where defined by the architecture.

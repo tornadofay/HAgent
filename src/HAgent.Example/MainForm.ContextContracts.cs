@@ -18,6 +18,8 @@ namespace HAgent.Example
                 RunContextContractsTestAsync,
                 "Context contract boundary",
                 "This slice establishes reusable Core contracts only. Ranking, compaction, caching, provider transport, and execution integration remain later slices.");
+
+            AddContextAcquisitionTab();
         }
 
         private Task RunContextContractsTestAsync(string unused)

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
-using HAgent.Storage.File;
 
 namespace HAgent.Example
 {
@@ -21,20 +20,41 @@ namespace HAgent.Example
                 "Runtime terminal-state hardening verification.",
                 TestRuntimeTerminalStateAsync,
                 "First terminal outcome wins",
-                "Uses only local adapters; no external provider is contacted.");
+                "Uses only an in-memory store and local adapter. No external provider is contacted.");
         }
 
         private async Task TestRuntimeTerminalStateAsync(string message)
         {
-            var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
-            var secrets = new ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
-            var profile = GetSelectedAgent();
-            if (profile == null)
-                throw new InvalidOperationException("Select an agent first.");
+            var store = new InMemoryAiStore();
+            var provider = new AiProvider
+            {
+                Id = "runtime-terminal-provider-42",
+                Name = "Runtime Terminal Provider",
+                Kind = "LateResponseTest",
+                BaseUrl = "https://runtime-terminal.test/v1",
+                DefaultModel = "runtime-terminal-model-42",
+                Enabled = true
+            };
+            var profile = new AiAgent
+            {
+                Id = "runtime-terminal-profile-42",
+                Name = "Runtime Terminal Test Profile",
+                ExecutionSelection = new AiExecutionSelectionPolicy
+                {
+                    Mode = AiSelectionMode.Auto,
+                    Fallback = AiFallbackMode.TryNextCandidate,
+                    CostPolicy = AiCostPolicy.NoRestriction
+                },
+                CapabilityRequirements = new AiCapabilityRequirements(),
+                Enabled = true
+            };
+
+            await store.SaveProviderAsync(provider).ConfigureAwait(true);
+            await store.SaveAgentAsync(profile).ConfigureAwait(true);
 
             AgentExecution cancellationExecution = null;
             var cancellationAdapter = new LateResponseTestAdapter();
-            var cancellationRuntime = new DefaultAgentRuntime(store, secrets, new[] { cancellationAdapter });
+            var cancellationRuntime = new DefaultAgentRuntime(store, new NullSecretStore(), new[] { cancellationAdapter });
             cancellationRuntime.ExecutionChanged += (sender, args) =>
             {
                 if (args != null && args.Execution != null)
@@ -56,9 +76,7 @@ namespace HAgent.Example
             await cancellationAdapter.Started.Task.ConfigureAwait(true);
             cancellationCts.Cancel();
 
-            var cancellationCompleted = await Task.WhenAny(
-                cancellationTask,
-                Task.Delay(1000)).ConfigureAwait(true);
+            var cancellationCompleted = await Task.WhenAny(cancellationTask, Task.Delay(1000)).ConfigureAwait(true);
             if (cancellationCompleted != cancellationTask)
                 throw new InvalidOperationException("Caller cancellation did not complete before the non-cooperative provider returned.");
 
@@ -76,8 +94,7 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Caller cancellation did not propagate to the caller.");
             if (cancellationExecution == null)
                 throw new InvalidOperationException("No execution lifecycle was captured for caller cancellation.");
-            if (cancellationExecution.State != AgentExecutionState.Cancelled ||
-                cancellationExecution.FailureKind != AgentExecutionFailureKind.Cancelled)
+            if (cancellationExecution.State != AgentExecutionState.Cancelled || cancellationExecution.FailureKind != AgentExecutionFailureKind.Cancelled)
                 throw new InvalidOperationException("Caller cancellation did not become the terminal execution outcome.");
 
             cancellationAdapter.Release();
@@ -87,7 +104,7 @@ namespace HAgent.Example
 
             AgentExecution timeoutExecution = null;
             var timeoutAdapter = new LateResponseTestAdapter();
-            var timeoutRuntime = new DefaultAgentRuntime(store, secrets, new[] { timeoutAdapter });
+            var timeoutRuntime = new DefaultAgentRuntime(store, new NullSecretStore(), new[] { timeoutAdapter });
             timeoutRuntime.ExecutionChanged += (sender, args) =>
             {
                 if (args != null && args.Execution != null)
@@ -106,9 +123,7 @@ namespace HAgent.Example
                 CancellationToken.None);
 
             await timeoutAdapter.Started.Task.ConfigureAwait(true);
-            var timeoutCompleted = await Task.WhenAny(
-                timeoutTask,
-                Task.Delay(1000)).ConfigureAwait(true);
+            var timeoutCompleted = await Task.WhenAny(timeoutTask, Task.Delay(1000)).ConfigureAwait(true);
             if (timeoutCompleted != timeoutTask)
                 throw new InvalidOperationException("Execution timeout did not complete before the non-cooperative provider returned.");
 
@@ -126,8 +141,7 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Execution timeout did not propagate as cancellation.");
             if (timeoutExecution == null)
                 throw new InvalidOperationException("No execution lifecycle was captured for timeout.");
-            if (timeoutExecution.State != AgentExecutionState.Cancelled ||
-                timeoutExecution.FailureKind != AgentExecutionFailureKind.Timeout)
+            if (timeoutExecution.State != AgentExecutionState.Cancelled || timeoutExecution.FailureKind != AgentExecutionFailureKind.Timeout)
                 throw new InvalidOperationException("Timeout did not become the terminal execution outcome.");
 
             timeoutAdapter.Release();
@@ -157,12 +171,10 @@ namespace HAgent.Example
 
             public bool CanHandle(AiProvider provider)
             {
-                return provider != null;
+                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
             }
 
-            public async Task<AIResponse> SendAsync(
-                ProviderExecutionRequest request,
-                CancellationToken cancellationToken)
+            public async Task<AIResponse> SendAsync(ProviderExecutionRequest request, CancellationToken cancellationToken)
             {
                 if (request == null)
                     throw new ArgumentNullException(nameof(request));

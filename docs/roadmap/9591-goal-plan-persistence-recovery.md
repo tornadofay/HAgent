@@ -2,7 +2,9 @@
 
 ## Status
 
-**Planned foundation before and alongside the Persistent Cognitive Runtime.**
+**Ordered before 0.959 Human-in-the-Loop / Intervention; planned foundation.**
+
+This phase is intentionally moved ahead of 0.959 in the roadmap because durable goals, intentions, plans, plan-step revisions, checkpoints, and recovery state provide the persistent authority that later goal/plan intervention should govern safely.
 
 ## Goal
 

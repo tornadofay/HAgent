@@ -49,14 +49,7 @@ namespace HAgent.Runtime
             CancellationToken cancellationToken = default(CancellationToken),
             string hostCorrelationId = null)
         {
-            return ExecuteToolAsync(
-                agentId,
-                toolId,
-                toolCallId,
-                arguments,
-                cancellationToken,
-                hostCorrelationId,
-                null);
+            return ExecuteToolAsync(agentId, toolId, toolCallId, arguments, cancellationToken, hostCorrelationId, null);
         }
 
         public async Task<ToolExecutionResult> ExecuteToolAsync(
@@ -68,6 +61,55 @@ namespace HAgent.Runtime
             string hostCorrelationId,
             AgentIdentityContext identity)
         {
+            return await ExecuteToolAsync(
+                agentId,
+                toolId,
+                toolCallId,
+                arguments,
+                cancellationToken,
+                hostCorrelationId,
+                identity,
+                null).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes a tool for a live runtime instance. The profile resource capability policy and
+        /// runtime tri-state overrides are resolved for this invocation without mutating either source.
+        /// </summary>
+        public async Task<ToolExecutionResult> ExecuteToolAsync(
+            AgentRuntimeInstance instance,
+            string toolId,
+            string toolCallId,
+            IReadOnlyDictionary<string, object> arguments,
+            CancellationToken cancellationToken = default(CancellationToken),
+            string hostCorrelationId = null,
+            AgentIdentityContext identity = null)
+        {
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
+            if (instance.State != AgentRuntimeInstanceState.Active)
+                throw new InvalidOperationException("Runtime agent instance is not active: " + instance.InstanceId);
+
+            return await ExecuteToolAsync(
+                instance.ProfileId,
+                toolId,
+                toolCallId,
+                arguments,
+                cancellationToken,
+                hostCorrelationId,
+                identity,
+                instance.Overrides == null ? null : instance.Overrides.ResourceCapabilityOverrides).ConfigureAwait(false);
+        }
+
+        private async Task<ToolExecutionResult> ExecuteToolAsync(
+            string agentId,
+            string toolId,
+            string toolCallId,
+            IReadOnlyDictionary<string, object> arguments,
+            CancellationToken cancellationToken,
+            string hostCorrelationId,
+            AgentIdentityContext identity,
+            AiResourceCapabilityPolicy resourceCapabilityOverrides)
+        {
             var policyEngine = await ResolvePolicyEngineAsync(cancellationToken).ConfigureAwait(false);
             return await ExecuteToolInternalAsync(
                 agentId,
@@ -77,7 +119,8 @@ namespace HAgent.Runtime
                 cancellationToken,
                 hostCorrelationId,
                 identity,
-                policyEngine).ConfigureAwait(false);
+                policyEngine,
+                resourceCapabilityOverrides).ConfigureAwait(false);
         }
 
         private async Task<ToolExecutionResult> ExecuteToolInternalAsync(
@@ -88,7 +131,8 @@ namespace HAgent.Runtime
             CancellationToken cancellationToken,
             string hostCorrelationId,
             AgentIdentityContext identity,
-            IAiPolicyEngine policyEngine)
+            IAiPolicyEngine policyEngine,
+            AiResourceCapabilityPolicy resourceCapabilityOverrides)
         {
             if (string.IsNullOrWhiteSpace(agentId))
                 throw new ArgumentException("Agent id is required.", nameof(agentId));
@@ -104,9 +148,9 @@ namespace HAgent.Runtime
 
             IAgentTool tool;
             if (!_toolRegistry.TryGet(toolId, out tool))
-                return CreateFailure("Tool was not found: " + toolId, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt, effectiveIdentity);
+                return CreateFailure("Tool was not found: " + toolId, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt, effectiveIdentity, null, AiResourceCapabilityState.Enabled);
             if (!tool.Definition.Enabled)
-                return CreateFailure("Tool is disabled: " + tool.Definition.Name, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt, effectiveIdentity);
+                return CreateFailure("Tool is disabled: " + tool.Definition.Name, correlationId, hostCorrelationId, agentId, toolId, toolCallId, startedAt, effectiveIdentity, null, AiResourceCapabilityState.Disabled);
 
             var source = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (arguments != null)
@@ -126,7 +170,27 @@ namespace HAgent.Runtime
                     toolId,
                     toolCallId,
                     startedAt,
-                    effectiveIdentity);
+                    effectiveIdentity,
+                    null,
+                    AiResourceCapabilityState.Enabled);
+            }
+
+            var resourceCapabilities = await ResolveResourceCapabilitiesAsync(agentId, resourceCapabilityOverrides, cancellationToken).ConfigureAwait(false);
+            var resourceState = resourceCapabilities.GetState("tool", toolId);
+            if (resourceState == AiResourceCapabilityState.Disabled)
+            {
+                return CreateFailure(
+                    "Tool execution is disabled by effective resource capability configuration.",
+                    correlationId,
+                    hostCorrelationId,
+                    agentId,
+                    toolId,
+                    toolCallId,
+                    startedAt,
+                    effectiveIdentity,
+                    null,
+                    resourceState,
+                    resourceCapabilities);
             }
 
             var policyDecision = policyEngine.Evaluate(new AiPolicyEvaluationContext
@@ -154,8 +218,10 @@ namespace HAgent.Runtime
                     toolId,
                     toolCallId,
                     startedAt,
-                    effectiveIdentity);
-                blocked.PolicyDecision = policyDecision;
+                    effectiveIdentity,
+                    policyDecision,
+                    resourceState,
+                    resourceCapabilities);
                 return blocked;
             }
 
@@ -172,7 +238,8 @@ namespace HAgent.Runtime
                     ToolCallId = toolCallId ?? string.Empty,
                     Identity = effectiveIdentity,
                     Arguments = validation.Arguments,
-                    CancellationToken = cancellationToken
+                    CancellationToken = cancellationToken,
+                    EffectiveResourceCapabilities = resourceCapabilities.Clone()
                 }).ConfigureAwait(false);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -190,9 +257,22 @@ namespace HAgent.Runtime
             result.ToolCallId = toolCallId ?? string.Empty;
             result.Identity = effectiveIdentity;
             result.PolicyDecision = policyDecision;
+            result.ResourceCapabilityState = resourceState;
             result.StartedAt = startedAt;
             result.CompletedAt = DateTimeOffset.UtcNow;
             return result;
+        }
+
+        private async Task<AiResourceCapabilitySnapshot> ResolveResourceCapabilitiesAsync(
+            string agentId,
+            AiResourceCapabilityPolicy runtimeOverrides,
+            CancellationToken cancellationToken)
+        {
+            var agents = await _store.GetAgentsAsync(cancellationToken).ConfigureAwait(false);
+            var agent = agents.FirstOrDefault(x => string.Equals(x.Id, agentId, StringComparison.OrdinalIgnoreCase));
+            return AiResourceCapabilitySnapshot.Resolve(
+                agent == null ? null : agent.ResourceCapabilities,
+                runtimeOverrides);
         }
 
         private async Task<IAiPolicyEngine> ResolvePolicyEngineAsync(CancellationToken cancellationToken)
@@ -225,7 +305,10 @@ namespace HAgent.Runtime
             string toolId,
             string toolCallId,
             DateTimeOffset startedAt,
-            AgentIdentityContext identity)
+            AgentIdentityContext identity,
+            AiPolicyDecision policyDecision,
+            AiResourceCapabilityState resourceCapabilityState,
+            AiResourceCapabilitySnapshot resourceCapabilities = null)
         {
             var result = ToolExecutionResult.Failure(error);
             result.CorrelationId = correlationId;
@@ -234,6 +317,9 @@ namespace HAgent.Runtime
             result.ToolId = toolId;
             result.ToolCallId = toolCallId ?? string.Empty;
             result.Identity = identity == null ? new AgentIdentityContext() : identity.Clone();
+            result.PolicyDecision = policyDecision ?? new AiPolicyDecision();
+            result.ResourceCapabilityState = resourceCapabilityState;
+            result.EffectiveResourceCapabilities = resourceCapabilities == null ? null : resourceCapabilities.Clone();
             result.StartedAt = startedAt;
             result.CompletedAt = DateTimeOffset.UtcNow;
             return result;

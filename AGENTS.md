@@ -43,7 +43,7 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 29. Learning must create typed candidates before promotion. Model-generated text must not directly mutate authoritative knowledge or published Skills.
 30. Learning promotion, cognitive intervention, and external side effects require explicit policy and authorization boundaries.
 31. Structured data contracts are not raw SQL access. HAgent storage never grants implicit access to the host application's business database.
-32. System prompts are additive instruction layers. Lower layers may add narrower constraints but must not replace or erase higher layers. Prompt text is never an authorization boundary.
+32. System prompts are additive instruction layers. Lower layers may add narrower constraints but must not replace or erase higher systems. Prompt text is never an authorization boundary.
 
 ## Execution, resources, and portability
 
@@ -121,59 +121,66 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 89. Preserve existing UI/layout work unless the task explicitly requests UI changes.
 90. Knowledge/Skill/Learning management UI must use the shared HAgent conventions and expose effective agent configuration, not only persisted profile references.
 91. Known resource types may receive specialized panels while future/unknown resource types remain visible through generic resource inventory contracts.
+92. `AISettingsForm` is a composition shell only. Do not add feature-specific CRUD, evaluation, persistence, or editor logic to it.
+93. Configuration features belong under `src/HAgent.WinForms/UI/Configuration/<Area>/`; one feature directory owns one configuration domain.
+94. Add a new configuration area by creating a focused page class, registering one navigation entry in `AISettingsForm`, and passing shared dependencies through `ConfigurationContext`. Do not add reflection-based navigation injection or a second configuration launcher.
+95. Edit an existing configuration area in its feature directory first. Only change `AISettingsForm` when the shell/navigation contract itself changes.
+96. Remove a configuration area by removing its explicit navigation registration, page construction/reference, obsolete context members, and feature files. Do not leave hidden or duplicate navigation paths.
+97. Use `docs/architecture/91-winforms-configuration-maintenance.md` as the detailed maintenance guide for configuration UI changes.
+98. List-oriented configuration pages must use separate header, action-bar, and content regions. Prefer the shared three-row page layout helper; do not place competing `DockStyle.Top` controls directly over a list/content sibling.
 
 ## Example and testing rules
 
-92. `HAgent.Example` is the manual developer/verification host; it is separate from `HAgent.Tests`.
-93. Every meaningful completed capability requires matching Example verification using public APIs.
-94. Organize Example UI by feature. As the number of examples grows, use top-level feature tabs such as **Tools**, **Context**, **Memory**, **Policy**, **Providers**, **Runtime**, **Cognition**, etc., rather than an ever-growing flat tab list.
-95. When a feature has multiple examples, place a nested `TabControl` inside that feature page and give each example its own focused sub-tab. For example: **Tools** → **Tool Registry**, **Tool Loop**, **Tool Validation**, **Tool Persistence**, and related tool scenarios.
-96. Group examples according to architecture and capability boundaries, not merely implementation class names. Keep each example independently understandable and easy to run.
-97. Keep Example code split across focused partial files/components matching feature groupings where practical.
-98. Example scenarios must be reproducible and explain required setup or shared setup.
-99. Every meaningful capability should have deterministic verification for important success, failure, cancellation, concurrency, persistence, and boundary cases appropriate to its design.
-100. Do not claim build/test success unless it was actually executed.
-101. Network-provider automated tests must use fakes/local test infrastructure rather than a real vendor.
+99. `HAgent.Example` is the manual developer/verification host; it is separate from `HAgent.Tests`.
+100. Every meaningful completed capability requires matching Example verification using public APIs.
+101. Organize Example UI by feature. As the number of examples grows, use top-level feature tabs such as **Tools**, **Context**, **Memory**, **Policy**, **Providers**, **Runtime**, **Cognition**, etc., rather than an ever-growing flat tab list.
+102. When a feature has multiple examples, place a nested `TabControl` inside that feature page and give each example its own focused sub-tab. For example: **Tools** → **Tool Registry**, **Tool Loop**, **Tool Validation**, **Tool Persistence**, and related tool scenarios.
+103. Group examples according to architecture and capability boundaries, not merely implementation class names. Keep each example independently understandable and easy to run.
+104. Keep Example code split across focused partial files/components matching feature groupings where practical.
+105. Example scenarios must be reproducible and explain required setup or shared setup.
+106. Every meaningful capability should have deterministic verification for important success, failure, cancellation, concurrency, persistence, and boundary cases appropriate to its design.
+107. Do not claim build/test success unless it was actually executed.
+108. Network-provider automated tests must use fakes/local test infrastructure rather than a real vendor.
 
 ## Documentation and source-of-truth rules
 
-102. `README.md` is the public introduction and quick start.
-103. `docs/architecture/` is the authoritative stable architecture description.
-104. `docs/plan/` is implementation state: master direction, current state, active work, and durable project decisions.
-105. `docs/roadmap/` is the ordered implementation path, including completed foundation history and future phases.
-106. `docs/storage.md` contains storage-specific details.
-107. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them except to synchronize a generated view when automation has not yet run.
-108. When implementation changes architecture or milestone state, update the authoritative source document in the same change when practical.
-109. Do not duplicate architectural decisions across source documents when a referenced authoritative document can own the decision.
-110. During redesign/rebuild mode, document the target architecture rather than compatibility with obsolete mechanisms.
-111. Before changing a subsystem, identify and read its authoritative architecture document. Treat `AGENTS.md` as global constraints and the subsystem document as the detailed authority.
+109. `README.md` is the public introduction and quick start.
+110. `docs/architecture/` is the authoritative stable architecture description.
+111. `docs/plan/` is implementation state: master direction, current state, active work, and durable project decisions.
+112. `docs/roadmap/` is the ordered implementation path, including completed foundation history and future phases.
+113. `docs/storage.md` contains storage-specific details.
+114. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them except to synchronize a generated view when automation has not yet run.
+115. When implementation changes architecture or milestone state, update the authoritative source document in the same change when practical.
+116. Do not duplicate architectural decisions across source documents when a referenced authoritative document can own the decision.
+117. During redesign/rebuild mode, document the target architecture rather than compatibility with obsolete mechanisms.
+118. Before changing a subsystem, identify and read its authoritative architecture document. Treat `AGENTS.md` as global constraints and the subsystem document as the detailed authority.
 
 ## Complete-architecture implementation standard
 
-112. Substantial features must be implemented against the **complete intended architecture that can reasonably be derived before coding**, not against a deliberately simplified or temporary version intended to be redesigned later.
-113. Before implementing substantial work, inspect the existing architecture and implementation, identify dependencies and invariants, and reason through known lifecycle, persistence, concurrency, failure, security, performance, compatibility, and extension requirements.
-114. Do not knowingly defer foundational requirements merely to make implementation easier or faster to demonstrate when those requirements are already part of the intended design.
-115. Testing is primarily for verification, defect discovery, regression detection, and genuinely unforeseen interactions. Do not use testing as a substitute for architectural analysis that should have happened before implementation.
-116. When testing reveals a requirement or interaction that could not reasonably have been known beforehand, update the authoritative architecture/decision documentation rather than applying an undocumented workaround.
-117. Code may be refined after testing, but refinement should normally correct defects, improve clarity/performance, or incorporate genuinely new information—not replace an intentionally incomplete architecture.
-118. When uncertain whether a proposed implementation is a complete target design or only a temporary simplification, resolve that uncertainty before coding and make the decision explicit in the relevant architecture/decision document.
-119. **Complete is scope-bounded:** implement the complete intended architecture for the current task/phase while remaining compatible with known future architecture. Do not prematurely implement unrelated future roadmap phases.
+119. Substantial features must be implemented against the **complete intended architecture that can reasonably be derived before coding**, not against a deliberately simplified or temporary version intended to be redesigned later.
+120. Before implementing substantial work, inspect the existing architecture and implementation, identify dependencies and invariants, and reason through known lifecycle, persistence, concurrency, failure, security, performance, compatibility, and extension requirements.
+121. Do not knowingly defer foundational requirements merely to make implementation easier or faster to demonstrate when those requirements are already part of the intended design.
+122. Testing is primarily for verification, defect discovery, regression detection, and genuinely unforeseen interactions. Do not use testing as a substitute for architectural analysis that should have happened before implementation.
+123. When testing reveals a requirement or interaction that could not reasonably have been known beforehand, update the authoritative architecture/decision documentation rather than applying an undocumented workaround.
+124. Code may be refined after testing, but refinement should normally correct defects, improve clarity/performance, or incorporate genuinely new information—not replace an intentionally incomplete architecture.
+125. When uncertain whether a proposed implementation is a complete target design or only a temporary simplification, resolve that uncertainty before coding and make the decision explicit in the relevant architecture/decision document.
+126. **Complete is scope-bounded:** implement the complete intended architecture for the current task/phase while remaining compatible with known future architecture. Do not prematurely implement unrelated future roadmap phases.
 
 ## Persistent project-memory protocol
 
-120. The repository is the durable project memory for development across constrained, interrupted, or new AI sessions. Use small purpose-specific Markdown documents to preserve the minimum state needed to resume work safely.
-121. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation step into them.
-122. Keep each memory document small and purpose-specific. Prefer updating/replacing current state over continuously appending history.
-123. Use the current-state document for project position, the active-work document for unfinished work, the decisions document for durable decisions, and architecture documents for detailed subsystem design.
-124. Before starting substantial work, read the relevant current-state, active-work, architecture, and decision documents before designing or changing implementation.
-125. Active unfinished work must have one clear authoritative work record. Do not begin a parallel implementation of the same scope unless the active scope is explicitly changed.
-126. Update active-work state when scope, completion state, blockers, or next work changes materially. Close/remove completed work from active state once it is represented by the appropriate authoritative project document.
-127. Record only durable architectural decisions, invariants, rejected alternatives that prevent future confusion, and important discoveries that materially affect future work. Do not record routine coding history.
-128. Never create duplicate sources of truth. One document should own each durable fact; other documents should reference it where useful.
-129. When information conflicts, do not silently choose one. Resolve the conflict against the authoritative architecture/current state, then update the relevant source explicitly.
-130. Never silently delete important persistent knowledge. If a decision becomes obsolete, mark it superseded and record the replacement where the distinction matters.
-131. When implementation changes architecture, milestone state, or a durable decision, update the relevant authoritative document in the same change set whenever practical.
-132. At the end of substantial work, update the compact project-memory state so the next session can identify what is complete, what remains, what is blocked, and where authoritative details live.
-133. Before starting a new task, check the active-work state and current project state so unfinished work is continued or deliberately superseded rather than duplicated or lost.
-134. Do not create a new memory file merely because a task is large. Add or update an existing authoritative document when the information fits its purpose; create a new persistent document only when it has a distinct long-lived responsibility.
-135. Generated root documents remain views. Persistent memory belongs in authoritative source documents, not in generated `plan.md` or `roadmap.md`.
+127. The repository is the durable project memory for development across constrained, interrupted, or new AI sessions. Use small purpose-specific Markdown documents to preserve the minimum state needed to resume work safely.
+128. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation step into them.
+129. Keep each memory document small and purpose-specific. Prefer updating/replacing current state over continuously appending history.
+130. Use the current-state document for project position, the active-work document for unfinished work, the decisions document for durable decisions, and architecture documents for detailed subsystem design.
+131. Before starting substantial work, read the relevant current-state, active-work, architecture, and decision documents before designing or changing implementation.
+132. Active unfinished work must have one clear authoritative work record. Do not begin a parallel implementation of the same scope unless the active scope is explicitly changed.
+133. Update active-work state when scope, completion state, blockers, or next work changes materially. Close/remove completed work from active state once it is represented by the appropriate authoritative project document.
+134. Record only durable architectural decisions, invariants, rejected alternatives that prevent future confusion, and important discoveries that materially affect future work. Do not record routine coding history.
+135. Never create duplicate sources of truth. One document should own each durable fact; other documents should reference it where useful.
+136. When information conflicts, do not silently choose one. Resolve the conflict against the authoritative architecture/current state, then update the relevant source explicitly.
+137. Never silently delete important persistent knowledge. If a decision becomes obsolete, mark it superseded and record the replacement where the distinction matters.
+138. When implementation changes architecture, milestone state, or a durable decision, update the relevant authoritative document in the same change set whenever practical.
+139. At the end of substantial work, update the compact project-memory state so the next session can identify what is complete, what remains, what is blocked, and where authoritative details live.
+140. Before starting a new task, check the active-work state and current project state so unfinished work is continued or deliberately superseded rather than duplicated or lost.
+141. Do not create a new memory file merely because a task is large. Add or update an existing authoritative document when the information fits its purpose; create a new persistent document only when it has a distinct long-lived responsibility.
+142. Generated root documents remain views. Persistent memory belongs in authoritative source documents, not in generated `plan.md` or `roadmap.md`.

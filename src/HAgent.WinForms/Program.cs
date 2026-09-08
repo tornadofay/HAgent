@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
-using HAgent.Runtime;
 using HAgent.Providers.OpenAICompatible;
-using HAgent.WinForms.Helpers;
+using HAgent.WinForms.Forms;
 
 namespace HAgent.WinForms
 {
@@ -27,12 +26,7 @@ namespace HAgent.WinForms
                 System.IO.Path.Combine(basePath, "settings.json"));
             ISecretStore secrets = new HAgent.Storage.File.ProtectedDataSecretStore(
                 System.IO.Path.Combine(basePath, "secrets"));
-
-            var adapters = new List<IAiProviderAdapter>
-            {
-                new OpenAICompatibleProviderAdapter()
-            };
-
+            var adapters = new List<IAiProviderAdapter> { new OpenAICompatibleProviderAdapter() };
             var tools = new InMemoryToolRegistry();
             tools.Register(new DelegateAgentTool(
                 new AiTool
@@ -49,9 +43,7 @@ namespace HAgent.WinForms
                     return Task.FromResult(ToolExecutionResult.Success("HAgent WinForms development host"));
                 }));
 
-            var form = new Forms.AISettingsForm(store, secrets, adapters, tools);
-            NavigationOrder.Apply(form);
-            Application.Run(form);
+            Application.Run(new AISettingsForm(store, secrets, adapters, tools));
         }
     }
 }

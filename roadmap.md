@@ -609,8 +609,16 @@ Policy persistence, provider/tool/data authorization, and the resource capabilit
 
 1. Verify the learning-promotion policy/candidate transition slice locally and then treat it as complete.
 2. Add bounded human approval/defer workflow integration.
-3. Add policy management UI for rules, scopes, precedence, provenance, effective decisions, and resource capability state.
+3. Implement the policy management UI refinement in layers:
+   - make rule editing human-oriented with semantic selectors for scope, agent, tool, resource, provider, operation, and outcome, while retaining advanced raw identifiers only where necessary;
+   - make Effective Decisions a read-only diagnostic surface showing the evaluated context, selected rule, policy version, precedence/provenance, and built-in guard contribution;
+   - make Agent Capabilities a per-agent capability/resource matrix showing persistent profile state, transient runtime override, and deterministic effective state, with the source of the effective value where useful;
+   - source display names and selectable entities from existing HAgent configuration/runtime registries rather than creating duplicate UI-specific registries;
+   - keep unresolved or stale identifiers visible and diagnosable rather than silently rewriting or deleting policy state;
+   - preserve the core policy engine as the single decision/precedence authority. UI behavior must not introduce a second policy evaluator or alternative capability semantics.
 4. Expand deterministic Example verification and backend-specific live verification where configured.
+
+The detailed target behavior for the Policy page and its components is defined in `docs/architecture/09-policy.md` under **Policy configuration UI evolution** and should be treated as the architectural UI contract for subsequent refinements.
 
 ## Architectural rule
 

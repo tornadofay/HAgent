@@ -30,7 +30,8 @@ namespace HAgent.Models
             if (usedCharacters < 0 || usedCharacters > budget.MaxCharacters)
                 throw new ArgumentOutOfRangeException(nameof(usedCharacters));
             if (usedEstimatedTokens.HasValue &&
-                (!budget.MaxEstimatedTokens.HasValue || usedEstimatedTokens.Value < 0 || usedEstimatedTokens.Value > budget.MaxEstimatedTokens.Value))
+                (usedEstimatedTokens.Value < 0 ||
+                 (budget.MaxEstimatedTokens.HasValue && usedEstimatedTokens.Value > budget.MaxEstimatedTokens.Value)))
                 throw new ArgumentOutOfRangeException(nameof(usedEstimatedTokens));
             if (sourceCount < 0) throw new ArgumentOutOfRangeException(nameof(sourceCount));
             if (items.Count != usedItems)

@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, and effective-policy execution snapshots implemented.**
+**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, and canonical policy persistence implemented; local verification of the new persistence/default-runtime path is pending.**
 
 ## Goal
 
@@ -38,10 +38,23 @@ The current implementation includes:
 - built-in `FreeOnly` enforcement where `Paid` and `Unknown` cost states are denied;
 - `AgentExecution.PolicyDecision` capture;
 - `AgentExecutionSnapshot.EffectivePolicy` deep-cloned at execution creation;
+- default runtime loading of persisted policy through `IAiStore` asynchronously, while explicit policy-engine injection remains available;
+- File, SQL Server, and MySQL policy persistence through the canonical `IAiStore` contract;
+- SQL Server/MySQL bootstrap creation of the policy table;
 - runtime enforcement after execution-target selection and before provider transport;
-- deterministic Example verification in `MainForm.PolicyTests.cs`.
+- deterministic Example verification in `MainForm.PolicyTests.cs`, including policy persistence round-trip and runtime effective-policy capture.
 
-Persistent policy storage, learning promotion controls, resource tri-state integration, host authorization integration, human approval workflow, and policy management UI remain subsequent slices.
+The new persistence/default-runtime-path verification has not yet been run locally in this session and must not be described as passing until the user executes the Example or an equivalent test.
+
+## Remaining slices
+
+1. Integrate existing host permission/authorization concepts without replacing host ownership.
+2. Apply policy to tool invocation and resource access before side effects.
+3. Integrate capability/resource enablement and runtime tri-state overrides.
+4. Integrate learning-promotion policy, review requirements, and typed approval transitions.
+5. Add bounded human approval/defer workflow integration.
+6. Add policy management UI for rules, scopes, precedence, provenance, and effective decisions.
+7. Expand deterministic Example verification and backend-specific live verification where configured.
 
 ## Architectural rule
 

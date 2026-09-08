@@ -476,117 +476,184 @@ namespace HAgent.Runtime
                 {
                     if (layer == null || string.IsNullOrWhiteSpace(layer.Text)) continue;
                     sources.Add(CreateExecutionSource(
-                        "execution-layer-" + layer.Priority,
-                        "Execution",
-                        layer.Authority == AiInstructionAuthority.Unknown ? AiInstructionAuthority.Developer : layer.Authority,
-                        layer.Authority,
-                        layer.Trust,
+                        string.IsNullOrWhiteSpace(layer.Id) ? Guid.NewGuid().ToString("N") : layer.Id,
+                        string.IsNullOrWhiteSpace(layer.Name) ? "Execution instruction" : layer.Name,
+                        ResolveInstructionSourceType(layer.Id),
+                        ResolveInstructionAuthority(layer.Id),
+                        AiInstructionTrustLevel.HAgentTrusted,
                         layer.Priority,
                         layer.Text,
-                        "execution-layer",
+                        "system-prompt-layer",
                         layer.Id,
                         execution,
                         capturedAt));
                 }
             }
 
-            return sources;
+            return sources.AsReadOnly();
         }
 
         private static AiInstructionSource CreateExecutionSource(
             string id,
-            string label,
+            string name,
             AiInstructionSourceType sourceType,
             AiInstructionAuthority authority,
             AiInstructionTrustLevel trust,
             int priority,
-            string text,
+            string content,
             string sourceKind,
             string sourceId,
             AgentExecution execution,
             DateTimeOffset capturedAt)
         {
-            return new AiInstructionSource
+            var source = new AiInstructionSource
             {
                 Id = id,
-                Label = label,
-                Type = sourceType,
+                Name = name,
+                SourceType = sourceType,
                 Authority = authority,
-                Trust = trust,
+                TrustLevel = trust,
+                Scope = new AiInstructionScope { ScopeType = "Execution", ScopeId = execution.Id },
+                Lifecycle = AiInstructionLifecycleState.Active,
+                Availability = AiInstructionAvailability.Available,
                 Priority = priority,
-                Text = text,
-                SourceKind = sourceKind,
-                SourceId = sourceId,
-                SourceVersion = "1",
-                ExecutionId = execution.Id,
-                RuntimeInstanceId = execution.RuntimeInstanceId,
-                CapturedAt = capturedAt
+                ConflictKey = string.Empty,
+                Version = "1",
+                CreatedAt = capturedAt,
+                UpdatedAt = capturedAt,
+                Content = content,
+                Provenance = new AiInstructionProvenance
+                {
+                    SourceKind = sourceKind,
+                    SourceId = sourceId,
+                    SourceVersion = "1",
+                    ExecutionId = execution.Id,
+                    RuntimeInstanceId = execution.RuntimeInstanceId ?? string.Empty,
+                    PrincipalId = execution.Identity == null ? string.Empty : execution.Identity.PrincipalId,
+                    CapturedAt = capturedAt
+                }
             };
+            source.Validate();
+            return source;
         }
 
         private static void StampExecutionProvenance(AiInstructionSource source, AgentExecution execution)
         {
-            source.ExecutionId = execution.Id;
-            source.RuntimeInstanceId = execution.RuntimeInstanceId;
+            if (source == null || source.Provenance == null) return;
+            source.Provenance.ExecutionId = execution.Id;
+            source.Provenance.RuntimeInstanceId = execution.RuntimeInstanceId ?? string.Empty;
+            source.Provenance.PrincipalId = execution.Identity == null ? string.Empty : execution.Identity.PrincipalId;
+            source.Provenance.CapturedAt = DateTimeOffset.UtcNow;
+        }
+
+        private static AiInstructionSourceType ResolveInstructionSourceType(string id)
+        {
+            switch ((id ?? string.Empty).Trim().ToUpperInvariant())
+            {
+                case "PROVIDER": return AiInstructionSourceType.SystemPolicy;
+                case "AGENT": return AiInstructionSourceType.Agent;
+                case "RUNTIME": return AiInstructionSourceType.RuntimeContext;
+                case "CONTEXT": return AiInstructionSourceType.HostContext;
+                default: return AiInstructionSourceType.SystemPolicy;
+            }
+        }
+
+        private static AiInstructionAuthority ResolveInstructionAuthority(string id)
+        {
+            switch ((id ?? string.Empty).Trim().ToUpperInvariant())
+            {
+                case "AGENT": return AiInstructionAuthority.Agent;
+                case "RUNTIME": return AiInstructionAuthority.Runtime;
+                case "CONTEXT": return AiInstructionAuthority.Runtime;
+                default: return AiInstructionAuthority.SystemPolicy;
+            }
+        }
+
+        private static string BuildPlannerFailureSummary(AiExecutionPlan plan)
+        {
+            if (plan == null || plan.Evaluations == null || plan.Evaluations.Count == 0)
+                return "No execution candidates were available.";
+
+            var rejected = plan.Evaluations
+                .Where(x => x != null)
+                .Select(x => string.Join("; ", x.Reasons ?? new List<string>()))
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Take(3)
+                .ToArray();
+            return rejected.Length == 0
+                ? "All candidates were rejected."
+                : "Candidate diagnostics: " + string.Join(" | ", rejected);
+        }
+
+        private static async Task<AIResponse> AwaitProviderResponseAsync(Task<AIResponse> providerTask, CancellationToken cancellationToken)
+        {
+            if (providerTask == null) throw new ArgumentNullException(nameof(providerTask));
+            if (providerTask.IsCompleted)
+                return await providerTask.ConfigureAwait(false);
+
+            var cancellationTask = Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            var completedTask = await Task.WhenAny(providerTask, cancellationTask).ConfigureAwait(false);
+            if (completedTask == providerTask)
+                return await providerTask.ConfigureAwait(false);
+
+            providerTask.ContinueWith(
+                task => { var ignored = task.Exception; },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new OperationCanceledException(cancellationToken);
+        }
+
+        private static void ValidateOptions(AgentExecutionOptions options)
+        {
+            if (options.Timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(options.Timeout), "Timeout must be greater than zero.");
+            if (options.MaxProviderAttempts <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxProviderAttempts), "MaxProviderAttempts must be greater than zero.");
+            if (options.MaxRetriesPerProvider < 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRetriesPerProvider), "MaxRetriesPerProvider cannot be negative.");
+            if (options.RetryBaseDelay < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(options.RetryBaseDelay), "RetryBaseDelay cannot be negative.");
+        }
+
+        private async Task PersistAuditAsync(AgentExecution execution)
+        {
+            if (_auditStore == null || !_auditOptions.Enabled) return;
+            try
+            {
+                await _auditStore.AppendAsync(AgentExecutionAuditRecord.FromExecution(execution), CancellationToken.None).ConfigureAwait(false);
+                await _auditStore.TrimAsync(_auditOptions.GetEffectiveMaxRecords(), CancellationToken.None).ConfigureAwait(false);
+            }
+            catch { }
+        }
+
+        private ProviderErrorKind ClassifyProviderError(Exception exception)
+        {
+            var message = exception == null ? string.Empty : (exception.Message ?? string.Empty);
+            if (message.IndexOf("model_terms_required", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("requires terms acceptance", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("terms acceptance", StringComparison.OrdinalIgnoreCase) >= 0)
+                return ProviderErrorKind.ModelTermsRequired;
+            if (message.IndexOf("model_not_found", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("model not found", StringComparison.OrdinalIgnoreCase) >= 0)
+                return ProviderErrorKind.ModelNotFound;
+            if (message.IndexOf("permission_denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("permission denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                message.IndexOf("does not have access", StringComparison.OrdinalIgnoreCase) >= 0)
+                return ProviderErrorKind.PermissionDenied;
+            return _errorClassifier.Classify(exception);
         }
 
         private static TimeSpan CalculateBackoff(TimeSpan baseDelay, int retryNumber, bool rateLimited)
         {
             if (baseDelay <= TimeSpan.Zero) return TimeSpan.Zero;
-            var factor = rateLimited ? 2d : 1d;
-            var milliseconds = baseDelay.TotalMilliseconds * factor * Math.Pow(2d, Math.Max(0, retryNumber - 1));
-            return TimeSpan.FromMilliseconds(Math.Min(milliseconds, 30000d));
-        }
-
-        private ProviderErrorKind ClassifyProviderError(Exception ex)
-        {
-            var classified = _errorClassifier.Classify(ex);
-            return classified == ProviderErrorKind.Unknown ? ProviderErrorKind.Unknown : classified;
-        }
-
-        private async Task<AIResponse> AwaitProviderResponseAsync(Task<AIResponse> responseTask, CancellationToken cancellationToken)
-        {
-            if (responseTask == null) throw new ArgumentNullException(nameof(responseTask));
-            if (!cancellationToken.CanBeCanceled || responseTask.IsCompleted)
-                return await responseTask.ConfigureAwait(false);
-            var cancellationTask = Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-            var completed = await Task.WhenAny(responseTask, cancellationTask).ConfigureAwait(false);
-            if (completed != responseTask)
-                throw new OperationCanceledException(cancellationToken);
-            return await responseTask.ConfigureAwait(false);
+            var multiplier = Math.Pow(2, Math.Max(0, retryNumber - 1));
+            if (rateLimited) multiplier *= 2;
+            return TimeSpan.FromMilliseconds(Math.Min(baseDelay.TotalMilliseconds * multiplier, 30000d));
         }
 
         private void Notify(AgentExecution execution)
         {
             var handler = ExecutionChanged;
-            if (handler != null)
-                handler(this, new AgentExecutionEventArgs(execution));
-        }
-
-        private Task PersistAuditAsync(AgentExecution execution)
-        {
-            if (_auditStore == null || !_auditOptions.Enabled)
-                return Task.CompletedTask;
-            return _auditStore.SaveAsync(execution, _auditOptions, CancellationToken.None);
-        }
-
-        private static void ValidateOptions(AgentExecutionOptions options)
-        {
-            if (options.Timeout <= TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(options.Timeout));
-            if (options.MaxProviderAttempts < 1)
-                throw new ArgumentOutOfRangeException(nameof(options.MaxProviderAttempts));
-            if (options.MaxRetriesPerProvider < 0)
-                throw new ArgumentOutOfRangeException(nameof(options.MaxRetriesPerProvider));
-            if (options.RetryBaseDelay < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(options.RetryBaseDelay));
-        }
-
-        private static string BuildPlannerFailureSummary(ExecutionPlan plan)
-        {
-            if (plan == null || plan.Candidates == null || plan.Candidates.Count == 0)
-                return "No candidate targets were available.";
-            return string.Join("; ", plan.Candidates.Select(x => x.Reason));
+            if (handler != null) handler(this, new AgentExecutionEventArgs(execution));
         }
     }
 }

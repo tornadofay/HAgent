@@ -19,7 +19,7 @@ namespace HAgent.Runtime
         private readonly IExecutionTargetCatalog _executionTargetCatalog;
         private readonly IExecutionAuditStore _auditStore;
         private readonly ExecutionAuditOptions _auditOptions;
-        private readonly IAiPolicyEngine _policyEngine;
+        private readonly IAiPolicyEngine _configuredPolicyEngine;
 
         public DefaultAgentRuntime(
             IAiStore store,
@@ -56,7 +56,7 @@ namespace HAgent.Runtime
             _auditStore = auditStore;
             _auditOptions = auditOptions ?? new ExecutionAuditOptions();
             _auditOptions.Validate();
-            _policyEngine = policyEngine ?? new DefaultAiPolicyEngine();
+            _configuredPolicyEngine = policyEngine;
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
@@ -98,7 +98,20 @@ namespace HAgent.Runtime
             if (!agent.Enabled) throw new InvalidOperationException("Agent is disabled: " + agent.Name);
 
             var providers = await _store.GetProvidersAsync(cancellationToken).ConfigureAwait(false);
-            var effectivePolicy = _policyEngine.GetPolicySnapshot();
+            var policyEngine = _configuredPolicyEngine;
+            AiPolicySet effectivePolicy;
+            if (policyEngine == null)
+            {
+                effectivePolicy = await _store.GetPolicySetAsync(cancellationToken).ConfigureAwait(false);
+                if (effectivePolicy == null) effectivePolicy = new AiPolicySet();
+                effectivePolicy.Validate();
+                policyEngine = new DefaultAiPolicyEngine(effectivePolicy);
+            }
+            else
+            {
+                effectivePolicy = policyEngine.GetPolicySnapshot();
+            }
+
             var snapshot = new AgentExecutionSnapshot(
                 agent,
                 providers,
@@ -160,7 +173,7 @@ namespace HAgent.Runtime
                         RequestedCostPolicy = selectionPolicy.CostPolicy,
                         Identity = execution.Identity == null ? new AgentIdentityContext() : execution.Identity.Clone()
                     };
-                    var policyDecision = _policyEngine.Evaluate(policyContext);
+                    var policyDecision = policyEngine.Evaluate(policyContext);
                     execution.PolicyDecision = policyDecision;
 
                     if (policyDecision.IsDenied || policyDecision.RequiresApproval || policyDecision.IsDeferred)

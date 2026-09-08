@@ -46,6 +46,10 @@ Execution context
     operation
     resource type / resource ID
 
+Target state evidence
+    observed target state
+    observed target state version
+
 Trace
     HAgent correlation ID
     host correlation ID
@@ -59,6 +63,8 @@ Human metadata
 
 The request object is metadata and control state. It is never executable instructions and its free-form comments must never be interpreted as commands by the runtime.
 
+`TargetState` and `TargetStateVersion` are optimistic-concurrency evidence captured when a request is created. Target-specific boundaries may use these fields to determine whether a request is still applicable when it is later approved.
+
 ## Lifecycle
 
 An intervention request has an explicit lifecycle. A request must never be silently rewritten from one terminal meaning to another.
@@ -67,6 +73,8 @@ An intervention request has an explicit lifecycle. A request must never be silen
 Pending
   |
   +--> Approved ------> Completed (when the requested intervention is actually applied)
+  |         |
+  |         +----------> Expired (when the approved target is discovered to be stale before completion)
   |
   +--> Rejected
   |
@@ -77,7 +85,9 @@ Pending
 
 `Approved` means that the authorized responder accepted the requested intervention. It does not itself execute the protected operation or resume paused work. `Completed` is reserved for a later boundary that can prove the requested intervention was actually applied.
 
-A request in a terminal state cannot accept another resolution. Stale requests, including requests referring to an execution that has already completed, cancelled, retired, or shut down, must remain diagnosable and must not be applied retroactively.
+`Approved -> Expired` is reserved for a race where the intervention was accepted but the target became no longer applicable before the control could be completed. This preserves the fact that the request was approved while making the failed application explicit and terminal. A terminal request cannot accept another resolution.
+
+Stale requests, including requests referring to an execution that has already completed, cancelled, retired, or shut down, must remain diagnosable and must not be applied retroactively.
 
 ## Approval and policy relationship
 
@@ -114,6 +124,8 @@ Running
   +--> Cancelling ----> terminal Cancelled execution
 ```
 
+Every meaningful execution-control transition advances a monotonic control-state version. An intervention request captures both the state and version that were observed at request creation. This prevents a request created against an earlier state from silently applying after another intervention has already changed the target.
+
 Pause does not attempt hard preemption of an in-flight provider call. The runtime checks the control gate at interruptible execution boundaries and again before committing a provider response. This means a pause requested while transport is already in progress is applied before the response becomes authoritative.
 
 Cancellation is different: it propagates through the execution's linked cancellation token immediately. The runtime therefore completes the caller-facing execution without waiting for a non-cooperative provider task, while the existing terminal-state protection prevents any late provider response from overwriting the cancelled execution.
@@ -135,36 +147,30 @@ DefaultAgentRuntime
 AiInterventionCoordinator
     |
     +--> canonical intervention workflow
-    +--> execution control state
+    +--> execution control state/version
+    +--> per-execution resolution serialization
     +--> linked cancellation token
 ```
 
 The host supplies requester/responder identity and remains responsible for authenticating and authorizing those principals. Direct mutation helpers remain runtime-internal so a host cannot bypass the intervention request lifecycle through the coordinator.
 
-## Intervention targets
-
-The model must support intervention at boundaries rather than assuming that every intervention controls a whole agent process:
-
-- **Execution:** control one agent execution.
-- **Tool:** control a pending or consequential tool invocation.
-- **Plan step:** control one selected step in a multi-step plan.
-- **Goal:** control a persistent or active goal.
-- **Learning candidate:** control candidate review/promotion.
-- **Consequential action:** control a host-defined action with meaningful external effects.
-
-The target-specific execution semantics belong to the runtime boundary that owns the target. The intervention contract only identifies and authorizes the requested control; it does not duplicate those execution mechanisms.
-
 ## Concurrency and stale state
 
-Interventions must be safe when they race with execution state changes. The runtime must compare the intervention against the target's current identity/state before applying it.
+Interventions must be safe when they race with execution state changes. The runtime compares the intervention against the target's current identity/state/version before applying it.
 
-The design must distinguish:
+For execution intervention, approvals are serialized through one resolution gate per active execution. This establishes a deterministic ordering for competing intervention requests while leaving the execution engine itself unchanged.
+
+A request is stale when the target is no longer active or when its observed state/version no longer matches the current execution-control state. The canonical result is `Expired`; the request remains queryable with the resolver identity and stale reason.
+
+The design distinguishes:
 
 ```text
 Request created for execution E
+    captures state + control version
 
-E running       -> intervention may be applicable
-E waiting       -> intervention may be applicable
+E running       -> matching request may be applicable
+E paused        -> matching request may be applicable
+E control changed -> older request becomes stale
 E completing    -> intervention may become stale
 E completed     -> intervention is stale
 E cancelled     -> intervention is stale
@@ -173,7 +179,7 @@ E retired       -> intervention is stale
 
 A stale intervention is not silently accepted merely because the request was once valid. The runtime returns a deterministic stale/no-longer-applicable outcome and preserves the request for diagnostics.
 
-Concurrent intervention must be idempotent with respect to the request identity. Two responders must not be able to produce conflicting terminal transitions from the same pending request.
+Concurrent intervention is idempotent with respect to request lifecycle: only a pending request can be approved/rejected/cancelled/expired, and only an approved request can be completed. A duplicate responder racing on the same request therefore cannot apply a second terminal transition. Different requests are serialized per execution and compete through the captured state/version, so a later conflicting request becomes stale instead of reversing an already applied control without a fresh request.
 
 ## Identity and traceability
 
@@ -209,7 +215,7 @@ The intervention system may pause, approve, reject, cancel, retire, or redirect 
 
 The current approval workflow is bounded and process-local. Phase 0.959 should separate the provider-neutral intervention contract from the storage implementation so that later durable intervention can persist requests without changing their meaning.
 
-Future durable storage must preserve the full request identity, target, lifecycle status, correlation metadata, requester/responder identity, and resolution metadata. Persistence must not contain executable handlers or authorization callbacks.
+Future durable storage must preserve the full request identity, target, lifecycle status, target state/version evidence, correlation metadata, requester/responder identity, and resolution metadata. Persistence must not contain executable handlers or authorization callbacks.
 
 ## Management and diagnostics UI
 
@@ -222,6 +228,7 @@ Action        Approve / Pause / Cancel / ...
 Agent         readable configured name
 Operation     readable operation
 Reason        policy/runtime reason
+Target state  observed state + version when applicable
 Requested by  requester identity
 Responded by  responder identity
 Created       timestamp
@@ -242,7 +249,7 @@ The phase should evolve in this order:
 6. Expose management UI and diagnostics from the same canonical state.
 7. Add deterministic Example verification for every lifecycle and race-sensitive transition.
 
-The execution-control portion of step 3 is now implemented in the canonical runtime path. The remaining steps must not assume that this implementation already solves stale-request concurrency, additional targets, persistence, or UI semantics.
+The execution-control portion of step 3 is implemented. Step 4 now has an implementation for execution targets: target state/version capture, per-execution resolution serialization, duplicate-request protection through lifecycle state, and explicit stale expiry. The remaining future work must not assume that this solves additional intervention targets, persistence, or UI semantics.
 
 ## Invariants
 
@@ -251,7 +258,10 @@ The execution-control portion of step 3 is now implemented in the canonical runt
 - Intervention never grants authorization by itself.
 - Intervention never executes a tool or provider call merely because it was approved.
 - Terminal requests cannot be resolved again.
+- Approved requests can become `Expired` only when stale application is detected; `Expired` is terminal.
 - Stale requests remain visible and diagnosable.
+- Execution intervention requests carry the observed target control state/version needed for stale detection.
+- Competing execution interventions are serialized per execution and cannot silently reverse an already-changed target state.
 - Free-form operator text is metadata, never executable instructions.
 - No UI-specific intervention semantics are allowed to diverge from Core contracts.
 - No provider adapter owns human-intervention policy or lifecycle.

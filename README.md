@@ -4,11 +4,11 @@
 
 HAgent provides reusable infrastructure for connecting software to LLMs and building long-lived agent behavior without forcing a specific application architecture or domain model. It is intended for conversational software, business applications, services, games, simulations, automation, developer tools, and other host environments.
 
-> Status: **0.953 Unified Policy Engine is the current implementation milestone.**
+> Status: **0.954 Prompt and Instruction Governance is the current implementation milestone.**
 >
 > Completed major foundation: **0.95 Generic External Host Integration**, verified on .NET Framework 4.8.1 and .NET 9.
 >
-> Next foundations: **Prompt / Instruction Governance, Context Engineering, Observability, Evaluation, Agent Lifecycle, Human Intervention, Goal / Plan Recovery, Provider Adapter Lifecycle, Configuration / Storage / Portability, and Capability-Aware Execution**.
+> Next foundations: **Context Engineering, Observability, Evaluation, Knowledge/Skills/Memory Governance + Learning, Agent Lifecycle, Goal/Plan Recovery, Human Intervention, Provider Adapter Lifecycle, Configuration / Storage / Portability, and Capability-Aware Execution**.
 >
 > Longer-term direction: **Persistent Cognitive Runtime with an extensible Cognitive Kernel and pluggable Cognitive Strategies**.
 >
@@ -90,14 +90,37 @@ Console.WriteLine(response.Text);
 
 Plain string messaging is the convenience entry point. The canonical generic execution boundary is `AgentExecutionRequest`, which can carry multiple messages, bounded host context, host correlation identity, execution options, and structured-output requirements without embedding host-domain concepts in HAgent.Core.
 
-## Capability model
+## First-class Knowledge / Skills / Memory / Learning
 
-HAgent separates four related concepts:
+HAgent treats Knowledge, Skills, Memory, and Learning as first-class architecture from the foundation upward rather than as a late product feature.
+
+```text
+Early foundation
+    Resource identity / scope / ownership
+    Provenance / version / lifecycle
+    Skill definitions and references
+    Knowledge / Wiki contracts and retrieval boundaries
+    Memory family/type foundations
+    Typed learning-candidate foundations
+
+Mature governance
+    Policy / authorization
+    Capability inheritance and runtime overrides
+    Effective execution resource snapshots
+    Bounded retrieval / retention
+    Learning modes and learning policy
+    Evaluation / validation / approval / promotion
+    Resource management UI
+```
+
+The four concepts remain distinct:
 
 - **Skills** are reusable executable capabilities/procedures with stable identity and versioning.
 - **Knowledge** is reusable retrievable information. A **Wiki** is one managed persistent knowledge source within the broader knowledge system.
 - **Memory** is scoped experience/state, including working, episodic, semantic, procedural, and future memory families.
-- **Learning** analyzes experience and can create typed candidates for memory, knowledge, skill improvement, policy changes, or governed cognitive improvement. It is not model-weight training.
+- **Learning** turns execution experience into typed candidates and, only when governed and authorized, promotes those candidates into Memory, Knowledge, Skills, or other explicitly supported targets.
+
+Resource foundations are established early and reused by Context, Instruction Governance, Runtime, Evaluation, and Persistent Cognition. Mature resource governance is completed later once identity, policy, context, and evaluation boundaries are available. No later phase may introduce a parallel resource architecture merely because mature governance is not yet complete.
 
 Resources are scope-aware. Runtime instances inherit profile configuration and can apply runtime-only `Inherit` / `Enabled` / `Disabled` overrides without mutating the persistent profile.
 
@@ -131,27 +154,27 @@ This separation lets cognition request the type of reasoning it needs without ha
 The current roadmap is intentionally ordered as architectural foundations first, then capability-aware execution, then persistent cognition:
 
 ```text
-0.95   Generic External Host Integration             complete
+0.95   Generic External Host Integration                    complete
 0.951  Identity / Tenancy / User Context
-0.952  First-Class Event Subsystem                   complete
-0.953  Unified Policy Engine                         current
-0.954  Prompt / Instruction Governance
+0.952  First-Class Event Subsystem                          complete
+0.953  Unified Policy Engine                                complete
+0.954  Prompt / Instruction Governance                       current
 0.955  Context Engineering
 0.956  Observability / Distributed Tracing
 0.957  Evaluation / Quality Measurement
+0.9575 Knowledge / Skills / Memory Governance + Learning
 0.958  Agent Lifecycle / Health
-0.959  Human-in-the-Loop / Intervention
 0.9591 Goal / Plan Persistence / Recovery
+0.959  Human-in-the-Loop / Intervention
 0.9592 Provider Ecosystem / Adapter Lifecycle
 0.96.x Configuration / Storage / Portability Evolution
 0.96   Capability-Aware Execution
 0.97   Persistent Cognitive Runtime
-0.10   Workspaces / Routing / Chat                   paused
-0.11   Knowledge / Skills / Memory Governance
+0.10   Workspaces / Routing / Chat                          paused
 1.0    Collaboration / Workflows
 ```
 
-The pre-0.96 phases establish common identity, events, policy, instruction trust, context assembly, tracing, evaluation, lifecycle, intervention, durable goal/plan recovery, provider-adapter boundaries, and configuration/storage contracts so later execution and cognition layers consume shared foundations instead of reinventing them.
+The early 0.8 storage/resource foundation and the later 0.9575 mature governance phase deliberately split the old Knowledge / Skills / Memory Governance + Learning feature block according to architectural dependency. `0.9591` is ordered before `0.959` because durable goal/plan revisions and recovery state provide the persistent authority for later goal/plan intervention.
 
 The detailed ordered roadmap is in [`roadmap.md`](roadmap.md), with modular source documents under [`docs/roadmap/`](docs/roadmap/).
 
@@ -182,7 +205,7 @@ The verified foundation currently includes:
 - provider-facing request isolation and structured-output transport/fallback;
 - verified external-consumer compatibility on .NET Framework 4.8.1 and .NET 9.
 
-These are implementation foundations, not a claim that the complete roadmap is finished. The current milestone remains the Unified Policy Engine and the subsequent hardening phases are still being developed.
+These are implementation foundations, not a claim that the complete roadmap is finished. The current milestone remains Prompt / Instruction Governance and the subsequent hardening phases are still being developed.
 
 ## Generic host integration
 
@@ -315,6 +338,7 @@ Important architectural references include:
 - [`docs/architecture/16-cognitive-runtime.md`](docs/architecture/16-cognitive-runtime.md) — persistent cognitive runtime, Cognitive Kernel, Cognitive Strategies, beliefs, planning, learning, and workbench architecture.
 - [`docs/architecture/15-research-foundations.md`](docs/architecture/15-research-foundations.md) — research lineage and cognitive-architecture mapping.
 - [`docs/research/2026-09-persistent-cognitive-runtime-comparison.md`](docs/research/2026-09-persistent-cognitive-runtime-comparison.md) — detailed research comparison and recommended evolution.
+- [`docs/architecture/80-knowledge-memory-learning.md`](docs/architecture/80-knowledge-memory-learning.md) — first-class Knowledge, Skills, Memory, and Learning architecture and boundaries.
 
 Root [`plan.md`](plan.md) and [`roadmap.md`](roadmap.md) are generated views from the modular source documents; update the source documents rather than editing those generated files directly.
 

@@ -97,6 +97,16 @@ cache.Set(key, snapshot, expiresAt);
 ContextSnapshot cached;
 if (cache.TryGet(key, DateTimeOffset.UtcNow, out cached))
     Console.WriteLine(cached.Items[0].Id);";
+                case "Context Execution Integration": return @"var execution = await client.ExecuteAsync(
+    new AgentExecutionRequest
+    {
+        AgentId = ""assistant"",
+        Messages = new[] { new AIMessage(""user"", ""Use the supplied context."" ) },
+        Context = contextSnapshot
+    },
+    CancellationToken.None);
+
+Console.WriteLine(execution.Snapshot.Context.Items[0].Id);";
                 case "Task / Event Memory": return @"var taskId = ""task-42"";
 await memoryStore.SaveAsync(new MemoryRecord
 {

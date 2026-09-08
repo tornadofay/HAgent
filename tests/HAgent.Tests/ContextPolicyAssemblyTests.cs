@@ -94,8 +94,8 @@ namespace HAgent.Tests
                 new ContextAdmissionContext());
 
             Assert.Single(result.Snapshot.Items);
-            Assert.Equal("knowledge", result.Snapshot.Items[0].Provenance.SourceKind);
-            Assert.Equal("knowledge-1", result.Snapshot.Items[0].Provenance.SourceId);
+            Assert.Equal("test", result.Snapshot.Items[0].Provenance.SourceKind);
+            Assert.Equal("source-1", result.Snapshot.Items[0].Provenance.SourceId);
         }
 
         [Fact]

@@ -32,7 +32,10 @@ CREATE TABLE IF NOT EXISTS HAgentAgents (
 ) ENGINE=InnoDB;
 ALTER TABLE HAgentAgents ADD COLUMN IF NOT EXISTS ToolIdsJson longtext NULL;
 ALTER TABLE HAgentAgents ADD COLUMN IF NOT EXISTS ExecutionSelectionJson longtext NULL;
-ALTER TABLE HAgentAgents ADD COLUMN IF NOT EXISTS CapabilityRequirementsJson longtext NULL;";
+ALTER TABLE HAgentAgents ADD COLUMN IF NOT EXISTS CapabilityRequirementsJson longtext NULL;
+CREATE TABLE IF NOT EXISTS HAgentPolicies (
+ Id varchar(64) NOT NULL PRIMARY KEY, PolicyVersion varchar(128) NOT NULL, PolicyJson longtext NOT NULL
+) ENGINE=InnoDB;";
             using (var connection = new MySqlConnection(connectionString))
             using (var command = new MySqlCommand(sql, connection))
             {
@@ -96,8 +99,42 @@ ALTER TABLE HAgentAgents ADD COLUMN IF NOT EXISTS CapabilityRequirementsJson lon
             return list.AsReadOnly();
         }
 
+        public async Task<AiPolicySet> GetPolicySetAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            const string sql = "SELECT PolicyJson FROM HAgentPolicies WHERE Id=@id";
+            using (var c = new MySqlConnection(_connectionString))
+            using (var cmd = new MySqlCommand(sql, c))
+            {
+                cmd.Parameters.AddWithValue("@id", "default");
+                await c.OpenAsync(cancellationToken).ConfigureAwait(false);
+                var value = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                if (value == null || value == DBNull.Value)
+                    return new AiPolicySet();
+                var policy = Deserialize<AiPolicySet>(Convert.ToString(value));
+                if (policy == null) throw new InvalidOperationException("Persisted HAgent policy configuration is invalid.");
+                policy.Validate();
+                return policy.Clone();
+            }
+        }
+
         public Task SaveProviderAsync(AiProvider p, CancellationToken t = default(CancellationToken)) => UpsertProvider(p, t);
         public Task SaveAgentAsync(AiAgent a, CancellationToken t = default(CancellationToken)) => UpsertAgent(a, t);
+
+        public async Task SavePolicySetAsync(AiPolicySet policy, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            policy.Validate();
+            const string sql = "INSERT INTO HAgentPolicies(Id,PolicyVersion,PolicyJson) VALUES(@Id,@PolicyVersion,@PolicyJson) ON DUPLICATE KEY UPDATE PolicyVersion=VALUES(PolicyVersion),PolicyJson=VALUES(PolicyJson);";
+            using (var c = new MySqlConnection(_connectionString))
+            using (var cmd = new MySqlCommand(sql, c))
+            {
+                cmd.Parameters.AddWithValue("@Id", "default");
+                cmd.Parameters.AddWithValue("@PolicyVersion", policy.Version);
+                cmd.Parameters.AddWithValue("@PolicyJson", JsonSerializer.Serialize(policy, JsonOptions));
+                await c.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
 
         public async Task DeleteProviderAsync(string id, CancellationToken t = default(CancellationToken))
         {
@@ -191,7 +228,7 @@ ALTER TABLE HAgentAgents ADD COLUMN IF NOT EXISTS CapabilityRequirementsJson lon
                 var values = JsonSerializer.Deserialize<List<string>>(json, JsonOptions);
                 if (values == null) return;
                 target.Clear();
-                target.AddRange(values);
+                foreach (var value in values) target.Add(value);
             }
             catch (JsonException) { }
         }

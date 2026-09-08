@@ -123,11 +123,15 @@ Tie-breaking must be deterministic so Examples and tests can reproduce inclusion
 
 ## Compaction and truncation
 
-When candidate context exceeds budget, the subsystem may deduplicate, summarize/compact, or truncate according to an explicit strategy.
+Compaction is a separate bounded assembly stage applied after ranking/deduplication. The canonical Core strategy is deterministic truncation: it walks the supplied ranked order and admits only candidates that fit the target item/character/token budget. A candidate that does not fit may be skipped so a later smaller candidate can still be admitted, unless the caller explicitly selects stop-on-exclusion behavior.
 
-Compaction must preserve required authority/policy information and provenance. It must not silently replace a higher-authority instruction with a lower-authority summary, erase source identity, or convert uncertainty into fact.
+The initial Core strategy does not rewrite payloads, perform semantic summarization, or invent provider-specific token counts. It therefore remains usable without an LLM or tokenizer. Future compaction strategies may provide actual summarization/compression through a separate strategy boundary without changing the canonical context item or snapshot model.
 
-Provider adapters may provide tokenizer-aware estimates or provider-specific compaction assistance, but Core remains functional with tokenizer-free estimates and deterministic bounded strategies.
+A hard token budget rejects candidates with unknown token estimates because their admission cannot be proven safe. When no hard token budget exists, selected items may retain unknown token usage rather than fabricating an exact count.
+
+Compaction produces an execution-owned `ContextSnapshot` plus optional safe `ContextCompactionDecision` diagnostics. Diagnostics report only bounded metadata such as candidate index, item ID, source, estimated size, prior usage, inclusion state, output position, and a deterministic reason. Payload content is not copied into diagnostics, so explainability does not itself expand the disclosure surface.
+
+Selected context items are cloned before snapshot construction and retain their original provenance, scope, quality metadata, and payload representation. Compaction never silently changes the semantic identity or provenance of a selected item.
 
 ## Existing context mechanisms
 

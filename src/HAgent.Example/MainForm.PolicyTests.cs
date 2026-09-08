@@ -22,8 +22,8 @@ namespace HAgent.Example
             AddApiTab(
                 "Unified Policy",
                 "Run policy contract test",
-                "Verifies deterministic policy outcomes, runtime enforcement before provider transport, provenance, scoped matching, cost restrictions, effective policy snapshot isolation, and persisted policy round-tripping.",
-                "A policy decision must be reproducible from the same inputs, the exact effective policy must be captured by the execution snapshot, persisted policy must round-trip without shared mutable state, and prohibited provider execution must be blocked before transport is invoked.",
+                "Verifies deterministic policy outcomes, runtime enforcement before provider transport, tool side-effect enforcement, host authorization composition, provenance, scoped matching, cost restrictions, effective policy snapshot isolation, and persisted policy round-tripping.",
+                "A policy decision must be reproducible from the same inputs, the exact effective policy must be captured by the execution snapshot, persisted policy must round-trip without shared mutable state, and prohibited provider/tool/data operations must be blocked before their side effects occur.",
                 "Uses only local deterministic adapters and temporary File storage.",
                 TestPolicyEngineAsync,
                 "Policy boundary",
@@ -164,6 +164,7 @@ namespace HAgent.Example
 
             await TestPolicyPersistenceAsync().ConfigureAwait(true);
             await TestRuntimePolicyEnforcementAsync().ConfigureAwait(true);
+            await TestToolPolicyEnforcementAsync().ConfigureAwait(true);
 
             Write(
                 "UNIFIED POLICY",
@@ -178,6 +179,7 @@ namespace HAgent.Example
                 "FreePreferred behavior: verified." + Environment.NewLine +
                 "Deterministic tie-breaking: verified." + Environment.NewLine +
                 "Runtime provider-execution enforcement: verified." + Environment.NewLine +
+                "Tool side-effect enforcement: verified." + Environment.NewLine +
                 "Provider transport calls under denial: 0." + Environment.NewLine +
                 "Selected rule: " + decision.RuleId);
         }
@@ -334,6 +336,135 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Runtime execution captured the wrong policy provenance.");
             if (adapter.SendCount != 0)
                 throw new InvalidOperationException("Provider transport was invoked despite a denying policy decision.");
+        }
+
+        private async Task TestToolPolicyEnforcementAsync()
+        {
+            const string toolId = "policy-tool-42";
+            var invocationCount = 0;
+            var definition = new AiTool
+            {
+                Id = toolId,
+                Name = "Policy Tool",
+                Description = "Deterministic tool used to verify policy enforcement.",
+                InputSchemaJson = "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"additionalProperties\":false}",
+                Type = AiToolType.Application,
+                Enabled = true
+            };
+
+            var denyPolicy = new AiPolicySet { Version = "tool-policy-deny-42" };
+            var denyRule = new AiPolicyRule
+            {
+                Id = "deny-tool-policy-42",
+                Name = "Tool denial",
+                Scope = AiPolicyScopeKind.Tool,
+                ScopeId = toolId,
+                Priority = 100,
+                Outcome = AiPolicyOutcome.Deny,
+                Reason = "Tool side effect is blocked by the unified policy."
+            };
+            denyRule.Operations.Add("tool.invoke");
+            denyRule.ToolIds.Add(toolId);
+            denyPolicy.Rules.Add(denyRule);
+
+            var deniedClient = CreatePolicyTestClient(new DefaultAiPolicyEngine(denyPolicy));
+            deniedClient.RegisterTool(new DelegateAgentTool(definition, context =>
+            {
+                invocationCount++;
+                return Task.FromResult(ToolExecutionResult.Success(Convert.ToString(context.Arguments["value"])));
+            }));
+
+            var denied = await deniedClient.ExecuteToolAsync(
+                "policy-agent-42",
+                toolId,
+                "policy-call-deny-42",
+                new Dictionary<string, object> { { "value", "blocked" } },
+                CancellationToken.None,
+                "policy-host-correlation-42",
+                new AgentIdentityContext(tenantId: "tenant-42", userId: "user-42")).ConfigureAwait(true);
+
+            if (denied.Succeeded || invocationCount != 0)
+                throw new InvalidOperationException("A denied tool policy reached the executable tool handler.");
+            if (denied.PolicyDecision == null || !denied.PolicyDecision.IsDenied || denied.PolicyDecision.RuleId != denyRule.Id)
+                throw new InvalidOperationException("Tool denial did not capture the expected policy decision/provenance.");
+
+            var approvalPolicy = new AiPolicySet { Version = "tool-policy-approval-42" };
+            var approvalRule = new AiPolicyRule
+            {
+                Id = "approval-tool-policy-42",
+                Name = "Tool approval",
+                Scope = AiPolicyScopeKind.Tool,
+                ScopeId = toolId,
+                Priority = 100,
+                Outcome = AiPolicyOutcome.RequireApproval,
+                Reason = "Tool side effect requires an approval workflow."
+            };
+            approvalRule.Operations.Add("tool.invoke");
+            approvalRule.ToolIds.Add(toolId);
+            approvalPolicy.Rules.Add(approvalRule);
+
+            var approvalClient = CreatePolicyTestClient(new DefaultAiPolicyEngine(approvalPolicy));
+            approvalClient.RegisterTool(new DelegateAgentTool(definition, context =>
+            {
+                invocationCount++;
+                return Task.FromResult(ToolExecutionResult.Success("unexpected"));
+            }));
+
+            var approval = await approvalClient.ExecuteToolAsync(
+                "policy-agent-42",
+                toolId,
+                "policy-call-approval-42",
+                new Dictionary<string, object> { { "value", "approval" } }).ConfigureAwait(true);
+            if (approval.Succeeded || invocationCount != 0 || approval.PolicyDecision == null || !approval.PolicyDecision.RequiresApproval)
+                throw new InvalidOperationException("RequireApproval did not stop the tool handler before side effects.");
+
+            var allowPolicy = new AiPolicySet { Version = "tool-policy-allow-42" };
+            var allowRule = new AiPolicyRule
+            {
+                Id = "allow-tool-policy-42",
+                Name = "Tool allow",
+                Scope = AiPolicyScopeKind.Tool,
+                ScopeId = toolId,
+                Priority = 100,
+                Outcome = AiPolicyOutcome.Allow,
+                Reason = "Tool operation is permitted."
+            };
+            allowRule.Operations.Add("tool.invoke");
+            allowRule.ToolIds.Add(toolId);
+            allowPolicy.Rules.Add(allowRule);
+
+            var allowedClient = CreatePolicyTestClient(new DefaultAiPolicyEngine(allowPolicy));
+            allowedClient.RegisterTool(new DelegateAgentTool(definition, context =>
+            {
+                invocationCount++;
+                return Task.FromResult(ToolExecutionResult.Success(Convert.ToString(context.Arguments["value"])));
+            }));
+
+            var allowed = await allowedClient.ExecuteToolAsync(
+                "policy-agent-42",
+                toolId,
+                "policy-call-allow-42",
+                new Dictionary<string, object> { { "value", "allowed" } }).ConfigureAwait(true);
+            if (!allowed.Succeeded || allowed.Output != "allowed" || invocationCount != 1)
+                throw new InvalidOperationException("An allowed tool policy did not permit the executable handler.");
+            if (allowed.PolicyDecision == null || !allowed.PolicyDecision.IsAllowed || allowed.PolicyDecision.RuleId != allowRule.Id)
+                throw new InvalidOperationException("Allowed tool execution did not capture the expected policy decision/provenance.");
+        }
+
+        private static HAgentClient CreatePolicyTestClient(IAiPolicyEngine policyEngine)
+        {
+            return new HAgentClient(
+                new InMemoryAiStore(),
+                new EmptySecretStore(),
+                new IAiProviderAdapter[0],
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                policyEngine);
         }
 
         private sealed class PolicyRuntimeTestAdapter : IAiProviderAdapter

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Abstractions;
@@ -18,12 +17,11 @@ namespace HAgent.WinForms.Forms
         private readonly IAiStore _store;
         private readonly IReadOnlyList<AiAgent> _agents;
         private AiPolicySet _policy = new AiPolicySet();
-
         private readonly TabControl _tabs = new TabControl();
         private readonly DataGridView _rules = new DataGridView();
         private readonly ComboBox _agent = new ComboBox();
         private readonly DataGridView _resources = new DataGridView();
-        private readonly ComboBox _operation = new ComboBox();
+        private readonly TextBox _operation = new TextBox();
         private readonly TextBox _resourceType = new TextBox();
         private readonly TextBox _resourceId = new TextBox();
         private readonly TextBox _toolId = new TextBox();
@@ -51,16 +49,12 @@ namespace HAgent.WinForms.Forms
             BodyPanel.Padding = new Padding(20);
             _tabs.Dock = DockStyle.Fill;
             _tabs.Font = new Font("Segoe UI", 9f);
-
             var rulesTab = new TabPage("Policy Rules") { BackColor = Surface, Padding = new Padding(14) };
             rulesTab.Controls.Add(BuildRulesPage());
-
             var evaluationTab = new TabPage("Effective Decision") { BackColor = Surface, Padding = new Padding(14) };
             evaluationTab.Controls.Add(BuildEvaluationPage());
-
             var resourcesTab = new TabPage("Agent Capabilities") { BackColor = Surface, Padding = new Padding(14) };
             resourcesTab.Controls.Add(BuildResourcesPage());
-
             _tabs.TabPages.Add(rulesTab);
             _tabs.TabPages.Add(evaluationTab);
             _tabs.TabPages.Add(resourcesTab);
@@ -79,12 +73,10 @@ namespace HAgent.WinForms.Forms
             _policyVersion.Font = new Font("Segoe UI", 8.8f, FontStyle.Bold);
             _policyVersion.ForeColor = Accent;
             top.Controls.Add(_policyVersion);
-
             var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Surface, Padding = new Padding(0, 2, 0, 0) };
             AddAction(actions, "+  Add rule", false, async delegate { await EditRuleAsync(null).ConfigureAwait(true); });
             AddAction(actions, "Edit selected", false, async delegate { await EditSelectedRuleAsync().ConfigureAwait(true); });
             AddAction(actions, "Delete selected", true, async delegate { await DeleteSelectedRuleAsync().ConfigureAwait(true); });
-
             ConfigureGrid(_rules);
             _rules.Columns.Add("Id", "ID");
             _rules.Columns.Add("Name", "Name");
@@ -95,7 +87,6 @@ namespace HAgent.WinForms.Forms
             _rules.Columns.Add("Operation", "Operation");
             _rules.Columns.Add("Target", "Resource / Tool");
             _rules.Dock = DockStyle.Fill;
-
             root.Controls.Add(_rules);
             root.Controls.Add(actions);
             root.Controls.Add(top);
@@ -115,27 +106,23 @@ namespace HAgent.WinForms.Forms
             AddEvalField(grid, 2, "Resource ID", _resourceId);
             AddEvalField(grid, 3, "Tool ID", _toolId);
             AddEvalField(grid, 4, "Provider / target", CreateProviderTargetHost());
-
             var button = CreateActionButton("Evaluate policy", 150, 36, false);
             button.Top = 272;
             button.Left = 170;
             button.Click += async delegate { await EvaluateAsync().ConfigureAwait(true); };
-
             _decision.Left = 0;
             _decision.Top = 322;
             _decision.Width = 850;
-            _decision.Height = 100;
+            _decision.Height = 120;
             _decision.BorderStyle = BorderStyle.FixedSingle;
             _decision.BackColor = Color.White;
             _decision.Padding = new Padding(12);
             _decision.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
             _decision.ForeColor = Heading;
-
             ConfigureText(_operation, "tool.invoke");
             ConfigureText(_resourceType, "tool");
-            ConfigureText(_resourceId, "");
-            ConfigureText(_toolId, "");
-
+            ConfigureText(_resourceId, string.Empty);
+            ConfigureText(_toolId, string.Empty);
             root.Controls.Add(_decision);
             root.Controls.Add(button);
             root.Controls.Add(grid);
@@ -149,13 +136,11 @@ namespace HAgent.WinForms.Forms
             var heading = new Panel { Dock = DockStyle.Top, Height = 72, BackColor = Surface };
             heading.Controls.Add(new Label { Text = "Agent resource capabilities", AutoSize = true, Left = 0, Top = 0, Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = Heading });
             heading.Controls.Add(new Label { Text = "Profile states are persistent. Effective state includes the profile policy and the default-enabled fallback.", AutoSize = true, Left = 1, Top = 36, Font = new Font("Segoe UI", 8.8f), ForeColor = Muted });
-
             _agent.DropDownStyle = ComboBoxStyle.DropDownList;
             _agent.Dock = DockStyle.Top;
             _agent.Height = 30;
             _agent.SelectedIndexChanged += delegate { RefreshResources(); };
             foreach (var agent in _agents.OrderBy(x => x.Name)) _agent.Items.Add(new AgentItem(agent));
-
             var agentHost = new Panel { Dock = DockStyle.Top, Height = 44, Padding = new Padding(0, 6, 0, 8), BackColor = Surface };
             agentHost.Controls.Add(_agent);
             ConfigureGrid(_resources);
@@ -164,7 +149,6 @@ namespace HAgent.WinForms.Forms
             _resources.Columns.Add("Configured", "Profile State");
             _resources.Columns.Add("Effective", "Effective State");
             _resources.Dock = DockStyle.Fill;
-
             root.Controls.Add(_resources);
             root.Controls.Add(agentHost);
             root.Controls.Add(heading);
@@ -184,19 +168,8 @@ namespace HAgent.WinForms.Forms
         private void RefreshRules()
         {
             _rules.Rows.Clear();
-            foreach (var rule in (_policy.Rules ?? new List<AiPolicyRule>()).Where(x => x != null)
-                .OrderByDescending(x => x.Priority).ThenBy(x => x.Id, StringComparer.OrdinalIgnoreCase))
-            {
-                _rules.Rows.Add(
-                    rule.Id,
-                    rule.Name,
-                    rule.Scope.ToString(),
-                    rule.ScopeId,
-                    rule.Priority,
-                    rule.Outcome.ToString(),
-                    string.Join(", ", rule.Operations ?? new List<string>()),
-                    BuildTargetText(rule));
-            }
+            foreach (var rule in (_policy.Rules ?? new List<AiPolicyRule>()).Where(x => x != null).OrderByDescending(x => x.Priority).ThenBy(x => x.Id, StringComparer.OrdinalIgnoreCase))
+                _rules.Rows.Add(rule.Id, rule.Name, rule.Scope.ToString(), rule.ScopeId, rule.Priority, rule.Outcome.ToString(), string.Join(", ", rule.Operations ?? new List<string>()), BuildTargetText(rule));
         }
 
         private static string BuildTargetText(AiPolicyRule rule)
@@ -225,10 +198,7 @@ namespace HAgent.WinForms.Forms
             using (var form = new PolicyRuleDialog(rule))
             {
                 if (form.ShowDialog(this) != DialogResult.OK) return;
-                if (source == null)
-                    _policy.Rules.Add(form.Rule);
-                else
-                    ReplaceRule(source, form.Rule);
+                if (source == null) _policy.Rules.Add(form.Rule); else ReplaceRule(source, form.Rule);
                 _policy.Validate();
                 await _store.SavePolicySetAsync(_policy).ConfigureAwait(true);
                 RefreshRules();
@@ -264,8 +234,7 @@ namespace HAgent.WinForms.Forms
                 _policy = await _store.GetPolicySetAsync().ConfigureAwait(true) ?? new AiPolicySet();
                 _policy.Validate();
                 var engine = new DefaultAiPolicyEngine(_policy);
-                var providerAndTarget = _providerId.Text + " / " + _targetId.Text;
-                var context = new AiPolicyEvaluationContext
+                var result = engine.Evaluate(new AiPolicyEvaluationContext
                 {
                     Operation = _operation.Text.Trim(),
                     ResourceType = _resourceType.Text.Trim(),
@@ -274,20 +243,14 @@ namespace HAgent.WinForms.Forms
                     ProviderId = _providerId.Text.Trim(),
                     ExecutionTargetId = _targetId.Text.Trim(),
                     Identity = new AgentIdentityContext()
-                };
-                var result = engine.Evaluate(context);
-                _decision.Text =
-                    "Outcome: " + result.Outcome + Environment.NewLine +
-                    "Rule: " + (string.IsNullOrWhiteSpace(result.RuleId) ? "(none)" : result.RuleId) + Environment.NewLine +
-                    "Scope: " + result.Scope + "   Priority: " + result.Priority + Environment.NewLine +
-                    "Policy version: " + result.PolicyVersion + Environment.NewLine +
-                    "Reason: " + result.Reason + Environment.NewLine +
-                    "Provider/target input: " + providerAndTarget;
+                });
+                _decision.Text = "Outcome: " + result.Outcome + Environment.NewLine +
+                                 "Rule: " + (string.IsNullOrWhiteSpace(result.RuleId) ? "(none)" : result.RuleId) + Environment.NewLine +
+                                 "Scope: " + result.Scope + "   Priority: " + result.Priority + Environment.NewLine +
+                                 "Policy version: " + result.PolicyVersion + Environment.NewLine +
+                                 "Reason: " + result.Reason;
             }
-            catch (Exception ex)
-            {
-                HMessage.ShowException(this, "The policy could not be evaluated.", "Policy", ex);
-            }
+            catch (Exception ex) { HMessage.ShowException(this, "The policy could not be evaluated.", "Policy", ex); }
         }
 
         private void RefreshResources()
@@ -298,12 +261,8 @@ namespace HAgent.WinForms.Forms
             var profile = item.Agent.ResourceCapabilities;
             var snapshot = AiResourceCapabilitySnapshot.Resolve(profile, null);
             foreach (var entry in (profile == null ? new List<AiResourceCapabilityEntry>() : profile.Entries).Where(x => x != null))
-            {
-                var effective = snapshot.GetState(entry.ResourceType, entry.ResourceId).ToString();
-                _resources.Rows.Add(entry.ResourceType, entry.ResourceId, entry.State.ToString(), effective);
-            }
-            if (_resources.Rows.Count == 0)
-                _resources.Rows.Add("*", "", "Inherit", "Enabled (default)");
+                _resources.Rows.Add(entry.ResourceType, entry.ResourceId, entry.State.ToString(), snapshot.GetState(entry.ResourceType, entry.ResourceId).ToString());
+            if (_resources.Rows.Count == 0) _resources.Rows.Add("*", "", "Inherit", "Enabled (default)");
         }
 
         private static void ConfigureGrid(DataGridView grid)
@@ -340,8 +299,8 @@ namespace HAgent.WinForms.Forms
             var host = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2 };
             host.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             host.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            _providerId.PlaceholderText = "Provider ID";
-            _targetId.PlaceholderText = "Execution target ID";
+            _providerId.Dock = DockStyle.Fill;
+            _targetId.Dock = DockStyle.Fill;
             host.Controls.Add(_providerId, 0, 0);
             host.Controls.Add(_targetId, 1, 0);
             return host;
@@ -349,21 +308,9 @@ namespace HAgent.WinForms.Forms
 
         private static HButton CreateActionButton(string text, int width, int height, bool destructive)
         {
-            var button = new HButton
-            {
-                Text = text,
-                Width = width,
-                Height = height,
-                RoundButton = true,
-                Edge = 10,
-                TextMargin = 8,
-                Font = new Font("Segoe UI", 9.2f, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
-            var c1 = destructive ? Color.FromArgb(183, 61, 89) : Color.FromArgb(92, 67, 168);
-            var c2 = destructive ? Color.FromArgb(119, 38, 62) : Color.FromArgb(57, 40, 108);
-            button.ButtonLeaveBackGroundColor1 = c1;
-            button.ButtonLeaveBackGroundColor2 = c2;
+            var button = new HButton { Text = text, Width = width, Height = height, RoundButton = true, Edge = 10, TextMargin = 8, Font = new Font("Segoe UI", 9.2f, FontStyle.Bold), Cursor = Cursors.Hand };
+            button.ButtonLeaveBackGroundColor1 = destructive ? Color.FromArgb(183, 61, 89) : Color.FromArgb(92, 67, 168);
+            button.ButtonLeaveBackGroundColor2 = destructive ? Color.FromArgb(119, 38, 62) : Color.FromArgb(57, 40, 108);
             button.ButtonLeaveForeColor = Color.White;
             button.ButtonLeaveBorderColor = destructive ? Color.FromArgb(207, 80, 105) : Accent;
             button.ButtonEnterBackGroundColor1 = destructive ? Color.FromArgb(214, 75, 106) : Color.FromArgb(126, 94, 214);
@@ -404,7 +351,6 @@ namespace HAgent.WinForms.Forms
         private readonly TextBox _providerIds = new TextBox();
         private readonly TextBox _targetIds = new TextBox();
         private readonly TextBox _reason = new TextBox();
-
         public AiPolicyRule Rule { get; private set; }
 
         public PolicyRuleDialog(AiPolicyRule rule)
@@ -435,7 +381,6 @@ namespace HAgent.WinForms.Forms
             AddField(9, "Provider IDs", _providerIds);
             AddField(10, "Execution target IDs", _targetIds);
             AddField(11, "Provenance / reason", _reason);
-
             foreach (var value in Enum.GetValues(typeof(AiPolicyScopeKind))) _scope.Items.Add(value);
             foreach (var value in Enum.GetValues(typeof(AiPolicyOutcome))) _outcome.Items.Add(value);
             _scope.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -457,7 +402,6 @@ namespace HAgent.WinForms.Forms
             _reason.Multiline = true;
             _reason.ScrollBars = ScrollBars.Vertical;
             _reason.Height = 82;
-
             var footer = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 48, FlowDirection = FlowDirection.RightToLeft, WrapContents = false };
             var save = CreateButton("Save rule", 125, 36);
             var cancel = CreateButton("Cancel", 105, 36);
@@ -465,7 +409,6 @@ namespace HAgent.WinForms.Forms
             cancel.Click += delegate { DialogResult = DialogResult.Cancel; Close(); };
             footer.Controls.Add(save);
             footer.Controls.Add(cancel);
-
             BodyPanel.Controls.Add(_layout);
             BodyPanel.Controls.Add(footer);
         }
@@ -504,8 +447,7 @@ namespace HAgent.WinForms.Forms
 
         private static List<string> Parse(string value)
         {
-            return (value ?? string.Empty).Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Trim()).Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            return (value ?? string.Empty).Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         private static void Replace(IList<string> target, IEnumerable<string> values)

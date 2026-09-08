@@ -4,10 +4,13 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Abstractions;
+using HAgent.Models;
+using HAgent.Runtime;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.UI.Configuration;
 using HAgent.WinForms.UI.Configuration.About;
 using HAgent.WinForms.UI.Configuration.Agents;
+using HAgent.WinForms.UI.Configuration.Intervention;
 using HAgent.WinForms.UI.Configuration.Overview;
 using HAgent.WinForms.UI.Configuration.Policy;
 using HAgent.WinForms.UI.Configuration.Providers;
@@ -33,16 +36,25 @@ namespace HAgent.WinForms.Forms
         private readonly AgentsPage _agents;
         private readonly ToolsPage _tools;
         private readonly PolicyPage _policy;
+        private readonly InterventionPage _interventions;
 
-        public AISettingsForm(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IToolRegistry tools = null)
-            : base("AI Configuration", "Providers, agents, tools, policy, permissions, and storage", new Size(1120, 720), new Size(900, 600))
+        public AISettingsForm(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IToolRegistry tools = null,
+            IAiInterventionWorkflow interventionWorkflow = null,
+            AiInterventionCoordinator interventionCoordinator = null,
+            AgentIdentityContext currentIdentity = null)
+            : base("AI Configuration", "Providers, agents, tools, policy, interventions, permissions, and storage", new Size(1120, 720), new Size(900, 600))
         {
-            _context = new ConfigurationContext(store, secrets, adapters, tools);
+            _context = new ConfigurationContext(store, secrets, adapters, tools, interventionWorkflow, interventionCoordinator, currentIdentity);
             _overview = new OverviewPage(_context);
             _providers = new ProvidersPage(_context);
             _agents = new AgentsPage(_context);
             _tools = new ToolsPage(_context);
             _policy = new PolicyPage(_context);
+            _interventions = new InterventionPage(_context);
             BuildShell();
             RegisterPages();
             Shown += async delegate { await ReloadAsync(); };
@@ -74,6 +86,7 @@ namespace HAgent.WinForms.Forms
             RegisterPage("Agents", delegate { return _agents; });
             RegisterPage("Tools", delegate { return _tools; });
             RegisterPage("Policy", delegate { return _policy; });
+            RegisterPage("Interventions", delegate { return _interventions; });
 
             RegisterAction("Permissions", delegate
             {
@@ -141,6 +154,7 @@ namespace HAgent.WinForms.Forms
             _providers.RefreshData();
             _agents.RefreshData();
             _tools.RefreshData();
+            await _interventions.RefreshDataAsync();
             ShowPage("Overview");
         }
 

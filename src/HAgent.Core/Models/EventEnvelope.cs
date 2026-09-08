@@ -21,6 +21,7 @@ namespace HAgent.Models
             Identity = new AgentIdentityContext();
             PayloadJson = string.Empty;
             Context = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            TraceContext = null;
         }
 
         public string Id { get; set; }
@@ -36,6 +37,12 @@ namespace HAgent.Models
         public AgentIdentityContext Identity { get; set; }
         public string PayloadJson { get; set; }
         public IDictionary<string, string> Context { get; set; }
+
+        /// <summary>
+        /// Optional provider-neutral trace propagation context. It is correlation metadata,
+        /// not an authorization or domain payload field.
+        /// </summary>
+        public TraceContext TraceContext { get; set; }
 
         public EventEnvelope Clone()
         {
@@ -53,6 +60,9 @@ namespace HAgent.Models
                 ScopeId = ScopeId,
                 Identity = Identity == null ? new AgentIdentityContext() : Identity.Clone(),
                 PayloadJson = PayloadJson ?? string.Empty,
+                TraceContext = TraceContext == null
+                    ? null
+                    : new TraceContext(TraceContext.TraceId, TraceContext.ParentSpanId, TraceContext.Sampled),
                 Context = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             };
 

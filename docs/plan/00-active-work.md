@@ -7,22 +7,24 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.956 Observability and Distributed Tracing
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Begin the ordered 0.956 observability/tracing foundation after verified completion of 0.955 Context Engineering.
+- **Scope:** Build the ordered 0.956 observability/tracing foundation after verified completion of 0.955 Context Engineering.
 
 ## Current checkpoint
 
-Phase 0.955 Context Engineering was verified and closed by the user on 2026-09-09. Its final Slice 11 verification completed with 56/56 HAgent.Tests passing and the deterministic Context Host Authorization Example passing on .NET Framework 4.8.1 and .NET 9. The full 0.955 roadmap requirements and verification matrix are now marked complete.
+0.956 Slice 1 architecture/contract reconciliation is complete. The authoritative observability architecture is `docs/architecture/22-observability.md`. It defines trace/span identity and parentage, preserves existing execution/host/runtime/event correlation identities, establishes default-deny bounded metadata and sink-side redaction, separates tracing from event dispatch, authorization, execution audit, and transcript storage, and defines the provider-neutral in-memory-first implementation boundary.
+
+No tracing implementation was started during Slice 1.
 
 ## Current run
 
-**0.956 Slice 1 architecture/contract reconciliation — CURRENT.**
+**0.956 Slice 2 trace identity and span lifecycle contracts — CURRENT.**
 
-The current slice is to reconcile existing diagnostics, execution audit, correlation IDs, lifecycle events, policy decisions, provider/tool/context boundaries, and runtime state against the 0.956 requirements and define the smallest provider-neutral trace/span contract without implementing the full tracing system in the same run.
+The current slice is to implement only the provider-neutral Core trace context/span contracts and the in-memory recorder boundary defined by `docs/architecture/22-observability.md`, with matching deterministic `HAgent.Tests` and public-API `HAgent.Example` verification.
 
 ## Next action
 
-Review the 0.956 roadmap, current-state document, existing diagnostics/audit/correlation contracts, event subsystem, and execution/provider boundaries. Produce the authoritative observability architecture and identify the exact first contract implementation slice. No full tracing implementation should be started until this architecture checkpoint is complete.
+Implement the trace identity/context/span lifecycle contracts and bounded metadata representation. Add the focused unit tests and matching Example scenario for hierarchy, correlation propagation, redaction-safe metadata, terminal status, and deterministic ordering. Do not begin Slice 3 in the same run.
 
 ## Current blockers
 
-No known implementation blocker. The connected session can inspect and modify repository source, but local .NET/WinForms build and Example execution remain user-side verification steps.
+No known architecture blocker. Local .NET/WinForms build and Example execution remain user-side verification steps for this connected session.

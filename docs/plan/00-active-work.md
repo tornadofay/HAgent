@@ -7,24 +7,22 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 4 checkpoint after 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 5 checkpoint after 0.954.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, and 4 have subsequently been verified by the user. Slice 4 was verified on 2026-09-08 with 24/24 HAgent.Tests passing and the deterministic public-API Context Ranking Example passing.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, and 4 were subsequently verified by the user. Slice 5 was verified on 2026-09-09 with 29/29 HAgent.Tests passing and the deterministic public-API Context Compaction Example passing.
 
 ## Current run
 
-**0.955 Slice 5 implementation checkpoint — local verification pending.**
+**0.955 Slice 6 implementation checkpoint — local verification pending.**
 
-Slice 5 implementation is now present in Core with `IContextCompactor`, deterministic `ContextCompactor`, explicit `ContextCompactionOptions`, safe `ContextCompactionDecision` diagnostics, and `ContextCompactionResult`. A matching public-API `HAgent.Example` Context Compaction scenario, Example classification/snippet support, focused xUnit coverage, and the authoritative context/Example-maintenance documentation have also been added. The strategy is deterministic and tokenizer-free: candidates that do not fit the target item/character/token budget are excluded with explicit reasons; payloads are not rewritten or semantically summarized, and selected item provenance/scope metadata is preserved.
-
-Local verification has not yet been performed for Slice 5. The expected next verification is the updated `HAgent.Tests` suite plus the Context → Context Core → Context Compaction Example on the supported local targets.
+Slice 6 is scoped to cache-safe reusable context components. The target architecture requires explicit cache identity and ownership boundaries, configuration/resource version awareness, freshness invalidation, and reuse of valid components without ever turning the execution-owned `ContextSnapshot` into mutable shared cache state.
 
 ## Next action
 
-Run the local tests and the new Context Compaction Example. Record the actual results before closing Slice 5 or selecting Slice 6.
+Implement the focused Slice 6 Core reusable-component/cache contracts and matching deterministic `HAgent.Example` verification, then run the focused/full local tests before closing the slice.
 
 ## Current blockers
 
-This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 5 verification success is claimed yet.
+This connected session cannot execute the local .NET/WinForms build or Example. No local Slice 6 verification success is claimed yet.

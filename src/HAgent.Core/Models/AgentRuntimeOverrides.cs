@@ -12,10 +12,12 @@ namespace HAgent.Models
         public int? MaxOutputTokens { get; set; }
         public string SystemPrompt { get; set; }
         public IDictionary<string, string> Context { get; private set; }
+        public AiResourceCapabilityPolicy ResourceCapabilityOverrides { get; set; }
 
         public AgentRuntimeOverrides()
         {
             Context = new Dictionary<string, string>();
+            ResourceCapabilityOverrides = new AiResourceCapabilityPolicy();
         }
     }
 }

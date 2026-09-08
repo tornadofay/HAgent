@@ -16,17 +16,19 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, and 4 were subsequently verified by the user. Slice 5 was verified on 2026-09-09 with 29/29 HAgent.Tests passing and the deterministic public-API Context Compaction Example passing.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, and 5 have subsequently been verified by the user. Slice 5 was verified on 2026-09-09 with 29/29 HAgent.Tests passing and the deterministic public-API Context Compaction Example passing.
 
 ## Current run
 
 **0.955 Slice 6 implementation checkpoint — local verification pending.**
 
-Slice 6 is scoped to cache-safe reusable context components. The target architecture requires explicit cache identity and ownership boundaries, configuration/resource version awareness, freshness invalidation, and reuse of valid components without ever turning the execution-owned `ContextSnapshot` into mutable shared cache state.
+Slice 6 implementation is now present in Core with explicit `ContextCacheKey` ownership/version identity, `ContextCacheEntry`, the generic `IContextCache` contract, and a thread-safe `InMemoryContextCache`. The cache identity covers component, scope, configuration version, resource version, and freshness version; entries also have explicit expiration. A matching public-API `HAgent.Example` Context Cache scenario and five focused xUnit tests cover valid reuse, scope/version/freshness isolation, expiration, explicit invalidation/clear, and cached snapshot metadata isolation.
+
+Local verification has not yet been performed for Slice 6. The expected next verification is the updated `HAgent.Tests` suite plus the Context → Context Core → Context Cache Example on the supported local targets.
 
 ## Next action
 
-Implement the focused Slice 6 Core reusable-component/cache contracts and matching deterministic `HAgent.Example` verification, then run the focused/full local tests before closing the slice.
+Run the local tests and the new Context Cache Example. Record the actual results before closing Slice 6 or selecting Slice 7.
 
 ## Current blockers
 
@@ -586,10 +588,12 @@ The complete 0.954 implementation and verification sequence is complete.
    - Deterministic public-API `HAgent.Example` Context Compaction verification passed on 2026-09-09, including bounded selection, character/token/unknown-token exclusions, explicit diagnostics, provenance/scope preservation, and no provider request.
 
 6. **Cache-safe reusable context components — CURRENT**
-   - Scope: define reusable context component/cache contracts that remain safe across runtime, user, tenant, workspace, configuration/version, resource-version, and freshness boundaries.
-   - Cache identity must be explicit and ownership-aware; private context must not leak across independently scoped runtimes or users.
-   - Reusable components must remain distinct from mutable execution-owned `ContextSnapshot` instances.
-   - Verification target: focused Core tests plus matching deterministic public-API Example coverage for cache-key isolation, version/freshness invalidation, reuse of valid components, and snapshot isolation.
+   - Scope: explicit reusable context cache identity plus a thread-safe in-memory cache for already assembled `ContextSnapshot` instances.
+   - `ContextCacheKey` includes component identity, canonical scope type/ID, configuration version, resource version, and freshness version. Different ownership/version identities must never share an entry.
+   - Cache entries have explicit expiration and are invalidated by elapsed freshness or explicit key changes/invalidation; cache storage remains separate from mutable execution assembly.
+   - `ContextSnapshot` remains the execution-owned canonical result. The cache stores that reusable result rather than becoming a second mutable snapshot model.
+   - Matching deterministic Example coverage exercises valid reuse, scope/version/freshness isolation, expiration, explicit invalidation, and snapshot metadata isolation.
+   - Verification target: focused Core tests plus matching deterministic public-API Example coverage on the supported local targets.
 
 7. **Execution/provider integration and deterministic Example verification — PLANNED**
 

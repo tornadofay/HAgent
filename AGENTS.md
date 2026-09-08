@@ -130,3 +130,31 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 98. When implementation changes architecture or milestone state, update the authoritative source document in the same change.
 99. Do not duplicate architectural decisions across multiple source documents when a referenced authoritative document can own the decision.
 100. During redesign/rebuild mode, document the target architecture rather than explaining compatibility with obsolete mechanisms.
+
+## Complete-architecture implementation standard
+
+101. Substantial features must be implemented against the **complete intended architecture that can reasonably be derived before coding**, not against a deliberately simplified or temporary version intended to be redesigned later.
+102. Before implementing substantial work, inspect the existing architecture and implementation, identify dependencies and invariants, and reason through known lifecycle, persistence, concurrency, failure, security, compatibility, performance, and extension requirements.
+103. Do not knowingly defer foundational requirements merely to make an implementation easier to code or faster to demonstrate when those requirements are already part of the intended design.
+104. Testing is primarily for verification, defect discovery, regression detection, and genuinely unforeseen interactions. Do not use testing as a substitute for architectural analysis that should have happened before implementation.
+105. When testing reveals a requirement or interaction that could not reasonably have been known beforehand, update the authoritative architecture/decision documentation rather than applying an undocumented workaround.
+106. Code may still be refined after testing, but the purpose of refinement should normally be correcting defects, improving clarity/performance, or incorporating genuinely new information—not replacing an intentionally incomplete architecture.
+107. When uncertain whether a proposed implementation is a complete target design or only a temporary simplification, resolve that uncertainty before coding and make the decision explicit in the relevant architecture/decision document.
+
+## Persistent project-memory protocol
+
+108. The repository is the durable project memory for development across constrained, interrupted, or new AI sessions. Use small purpose-specific Markdown documents to preserve the minimum state needed to resume work safely.
+109. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation step into them.
+110. Keep each memory document small and purpose-specific. Prefer updating/replacing current state over continuously appending history.
+111. Before starting substantial work, read the relevant current-state, active-work, architecture, and decision documents before designing or changing implementation.
+112. Active unfinished work must have one clear authoritative work record. Do not begin a parallel implementation of the same scope unless the active scope is explicitly changed.
+113. Update active-work state when scope, completion state, blockers, or next work changes materially. Close/remove completed work from active state once it is represented by the appropriate authoritative project document.
+114. Record only durable architectural decisions, invariants, rejected alternatives that prevent future confusion, and important discoveries that materially affect future work. Do not record routine coding history.
+115. Never create duplicate sources of truth. One document should own each durable fact; other documents should reference it where useful.
+116. When information conflicts, do not silently choose one. Resolve the conflict against the authoritative architecture/current state, then update the relevant source explicitly.
+117. Never silently delete important persistent knowledge. If a decision becomes obsolete, mark it superseded and record the replacement where the distinction matters.
+118. When implementation changes architecture, milestone state, or a durable decision, update the relevant authoritative document in the same change set whenever practical.
+119. At the end of substantial work, update the compact project-memory state so the next session can identify what is complete, what remains, what is blocked, and where authoritative details live.
+120. Before starting a new task, check the active-work state and current project state so unfinished work is continued or deliberately superseded rather than duplicated or lost.
+121. Do not create a new memory file merely because a task is large. Add or update an existing authoritative document when the information fits its purpose; create a new persistent document only when it has a distinct long-lived responsibility.
+122. Generated root documents remain views. Persistent memory belongs in their authoritative source documents, not in generated `plan.md` or `roadmap.md`.

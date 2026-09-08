@@ -39,15 +39,17 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 29/29 tests passing on 2026-09-09.
    - Deterministic public-API `HAgent.Example` Context Compaction verification passed on 2026-09-09, including bounded selection, character/token/unknown-token exclusions, explicit diagnostics, provenance/scope preservation, and no provider request.
 
-6. **Cache-safe reusable context components — CURRENT**
-   - Scope: explicit reusable context cache identity plus a thread-safe in-memory cache for already assembled `ContextSnapshot` instances.
-   - `ContextCacheKey` includes component identity, canonical scope type/ID, configuration version, resource version, and freshness version. Different ownership/version identities must never share an entry.
-   - Cache entries have explicit expiration and are invalidated by elapsed freshness or explicit key changes/invalidation; cache storage remains separate from mutable execution assembly.
-   - `ContextSnapshot` remains the execution-owned canonical result. The cache stores that reusable result rather than becoming a second mutable snapshot model.
-   - Matching deterministic Example coverage exercises valid reuse, scope/version/freshness isolation, expiration, explicit invalidation, and snapshot metadata isolation.
-   - Verification target: focused Core tests plus matching deterministic public-API Example coverage on the supported local targets.
+6. **Cache-safe reusable context components — VERIFIED**
+   - Core provides explicit reusable context cache identity plus a thread-safe in-memory cache for reusable `ContextSnapshot` results.
+   - `ContextCacheKey` covers component identity, canonical scope type/ID, configuration version, resource version, and freshness version; cache entries have explicit expiration.
+   - Cache storage remains separate from mutable execution assembly, and cached snapshots are returned isolated from caller mutation.
+   - `HAgent.Tests` completed with 34/34 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Cache verification passed on 2026-09-09, including valid reuse, scope/configuration/resource/freshness isolation, expiration invalidation, snapshot mutation isolation, and no provider request.
 
-7. **Execution/provider integration and deterministic Example verification — PLANNED**
+7. **Execution/provider integration and deterministic Example verification — CURRENT**
+   - Scope: integrate the canonical context pipeline with execution/provider-facing boundaries without moving provider tokenization into Core.
+   - The integration must preserve execution-owned snapshot isolation, honor ranking/compaction results, maintain provenance/diagnostic safety, and keep provider transport as an adapter concern.
+   - Verification target: focused Core/integration tests plus matching deterministic public-API `HAgent.Example` verification using a fake/provider-neutral adapter, including successful context transport and important boundary/failure behavior.
 
 ### Verification rule
 

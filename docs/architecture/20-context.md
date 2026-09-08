@@ -68,15 +68,35 @@ available sources
     -> bounded assembly
 ```
 
-Acquisition obtains candidate information. Retrieval selects information from a source according to an explicit query and bounds. Assembly decides the final bounded context presented to an execution.
+Acquisition obtains candidate information. Retrieval selects information from a source according to an explicit query and bounds. Policy admission decides whether a source/candidate may participate. Ranking and deduplication prioritize the admitted candidates, and compaction applies the final assembly budget.
 
-The Core acquisition boundary is `IContextSource`, which exposes only a bounded `ContextSourceRequest` and returns provider-neutral `ContextItem` candidates. `IContextAcquirer` consumes sources in the caller-supplied order, passes each source an isolated request copy, enforces the configured item/character/token limits, propagates cancellation, and produces an execution-owned `ContextSnapshot`. Acquisition does not authorize a source, rank candidates, deduplicate them, compact them, or contact a provider.
+The Core acquisition boundary is `IContextSource`, which exposes only a bounded `ContextSourceRequest` and returns provider-neutral `ContextItem` candidates. `IContextAcquirer` consumes sources in the caller-supplied order, passes each source an isolated request copy, enforces its supplied acquisition budget, propagates cancellation, and produces an execution-owned `ContextSnapshot`. Acquisition itself does not authorize a source, rank candidates, deduplicate them, compact content, or contact a provider.
 
-`ContextRetrievalSource` is the per-source retrieval-plan entry. It binds one `IContextSource` to its own bounded query and candidate limit. The acquirer executes these entries in deterministic plan order, clamps each source request to the remaining global item budget, and then applies the global character/token bounds to returned candidates. This permits memory, knowledge, skill, conversation, host-context, tool-description, and instruction producers to receive different retrieval intent while sharing one provider-neutral assembly boundary.
+`ContextRetrievalSource` is the per-source retrieval-plan entry. It binds one `IContextSource` to its own bounded query and candidate limit. The acquirer executes these entries in deterministic plan order and applies the supplied acquisition budget to the returned candidates. This permits memory, knowledge, skill, conversation, host-context, tool-description, and instruction producers to receive different retrieval intent while sharing one provider-neutral boundary.
 
 `ContextSourceKinds` provides the standard producer category identifiers for those seven source families. They are string constants rather than a closed enum so future provider-neutral resource types can introduce their own kinds without changing the canonical context model.
 
-The per-source retrieval plan is an input/selection mechanism, not an authorization mechanism. Source enablement, permissions, resource capability state, and instruction authority remain separate policy boundaries and must be enforced before or during the policy-aware assembly stage.
+The per-source retrieval plan is an input/selection mechanism, not an authorization mechanism. The canonical `ContextPolicyAssembler.RetrieveCandidatesAsync` boundary applies source and candidate policy/resource admission while preserving per-source bounds but intentionally does not consume the final assembly budget. This prevents early retrieval limits from starving later ranking/deduplication and final compaction. The canonical `ContextAssembler` then composes policy-filtered retrieval, deterministic ranking/deduplication, and final budgeted compaction into one `ContextSnapshot`.
+
+The policy-filtered retrieval result is a distinct provider-neutral candidate collection plus metadata-only admission decisions. The final assembly budget is applied only by the compaction stage, after ranking/deduplication, so the pipeline can choose the most relevant admitted evidence rather than whichever candidates happened to arrive first.
+
+The canonical end-to-end pipeline is therefore:
+
+```text
+retrieval plans
+      ↓
+policy + capability admission
+      ↓
+bounded policy-filtered candidates
+      ↓
+deterministic ranking / deduplication
+      ↓
+final item/character/token compaction
+      ↓
+ContextSnapshot
+```
+
+The pipeline boundary does not authorize sources independently of the existing policy/capability contracts and does not create a second instruction-governance mechanism.
 
 When a hard estimated-token budget is configured, a candidate without a token estimate is not admitted because its cost cannot be proven to fit the hard bound. When no token budget is configured, known token usage may still be reported while remaining token capacity stays unspecified.
 
@@ -110,9 +130,9 @@ Instruction authority and context usefulness are different concepts. Instruction
 
 ### Policy-aware admission
 
-Policy-aware context assembly is a distinct enforcement stage between retrieval and ranking. The canonical `ContextPolicyAssembler` first evaluates each `ContextRetrievalSource` with the existing `IAiPolicyEngine` and an execution-supplied `AiResourceCapabilitySnapshot`. A denied or disabled source is excluded before its underlying `IContextSource` is queried.
+Policy-aware context assembly is a distinct enforcement stage between retrieval and ranking. The canonical `ContextPolicyAssembler` evaluates each `ContextRetrievalSource` with the existing `IAiPolicyEngine` and an execution-supplied `AiResourceCapabilitySnapshot`. A denied or disabled source is excluded before its underlying `IContextSource` is queried.
 
-For an admitted source, returned candidates are evaluated before the global assembly budget is applied. Candidate admission uses the same policy engine with operation `context.include`, the source kind as resource type, the candidate ID as resource ID, and bounded attributes for candidate/source metadata. A denied, approval-required, or deferred candidate is excluded, so excluded material cannot consume context budget merely by being retrieved.
+For an admitted source, returned candidates are evaluated before ranking and before the final global assembly budget is applied. Candidate admission uses the same policy engine with operation `context.include`, the source kind as resource type, the candidate ID as resource ID, and bounded attributes for candidate/source metadata. A denied, approval-required, or deferred candidate is excluded, so excluded material cannot consume final context budget merely by being retrieved.
 
 `ContextPolicyAdmissionEvaluator` composes the existing policy and capability authorities; it does not create a second authorization model. `ContextAdmissionDecision` records only bounded decision metadata such as source/item identity, capability state, policy outcome, selected rule, reason, and item type. Payload content is never copied into diagnostics.
 

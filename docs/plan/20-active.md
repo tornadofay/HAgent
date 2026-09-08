@@ -53,6 +53,12 @@ The complete 0.954 implementation and verification sequence is complete.
    - Deterministic public-API `HAgent.Example` Context Execution Integration verification passed on 2026-09-09, including execution-snapshot context, provider request context, provenance/source preservation, provider-request mutation isolation, and deterministic fake-adapter transport.
    - Provider-failure/context-preservation behavior is covered by the focused integration verification.
 
+8. **Bounded multi-resource retrieval — CURRENT**
+   - Extend the canonical context acquisition boundary with an explicit per-source retrieval plan so different provider-neutral sources can receive distinct bounded queries and candidate limits in deterministic source order.
+   - Cover the standard context source categories without coupling Core to domain-specific resource implementations: memory, knowledge, skill, conversation, host-context, tool-description, and instruction.
+   - Preserve the existing global item/character/token budget, cancellation, provenance, snapshot isolation, and provider neutrality. Source enablement/authorization remains outside this slice for the later policy-aware assembly slice.
+   - Verification target: focused Core tests plus deterministic public-API `HAgent.Example` coverage showing distinct bounded requests across multiple source categories and global budget enforcement.
+
 ### Verification rule
 
 A slice becomes complete only after its implementation exists, matching deterministic or focused verification passes locally, and the authoritative architecture/roadmap documentation reflects the verified result. Do not claim local build/test success unless actually performed.

@@ -563,13 +563,13 @@ Unify HAgent's growing permission, capability, cost, learning, approval, resourc
 4. [x] Integrate existing permission/authorization concepts without replacing host-owned authorization.
 5. [x] Integrate cost policy (`FreeOnly`, `FreePreferred`, `NoRestriction`) through the policy system at the evaluation boundary.
 6. [ ] Integrate learning promotion policy and approval requirements into runtime learning workflows.
-7. [x] Integrate capability/resource enablement and runtime tri-state overrides at the profile/runtime resource boundary, with execution snapshot capture and tool gating.
+7. [ ] Complete verification of capability/resource enablement and runtime tri-state overrides at the profile/runtime resource boundary, with execution snapshot capture and tool gating.
 8. [x] Support explicit policy precedence and deterministic conflict resolution.
 9. [x] Preserve policy provenance so diagnostics can explain which rule produced a decision.
 10. [x] Make policy evaluation deterministic where inputs are deterministic and expose an explicit policy version for cache invalidation.
 11. [x] Capture the full effective policy state in the execution snapshot, including the deep-cloned policy version/rules that govern the run.
 12. [x] Prevent prompt content from serving as the policy enforcement mechanism.
-13. [x] Add deterministic Example verification for policy precedence, denial, approval outcome, cost restrictions, resource/tool/provider matching, deterministic conflict resolution, pre-transport runtime denial, effective-policy snapshot isolation, persistence, tool enforcement, policy-before-host-authorization behavior, and resource capability resolution/persistence/tool gating.
+13. [ ] Complete deterministic Example verification for the newly added resource capability resolution, persistence, snapshot isolation, and tool gating in addition to the already verified policy/authorization scenarios.
 
 ## Implemented slices
 

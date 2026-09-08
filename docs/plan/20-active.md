@@ -4,7 +4,7 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.959 Human-in-the-Loop and Intervention — CURRENT
 
-Phase 0.959 is the current intervention foundation. HAgent now has a canonical provider-neutral intervention request/lifecycle contract built on the bounded approval/defer boundary from 0.953, but runtime application of pause/resume/cancel and broader intervention targets remains to be implemented.
+Phase 0.959 is the current intervention foundation. HAgent now has a canonical provider-neutral intervention request/lifecycle contract built on the bounded approval/defer boundary from 0.953. Execution intervention control is implemented at the canonical runtime boundary, but this slice remains unverified because the repository currently has no code build/test workflow available through the connected environment.
 
 ### Objective
 
@@ -14,10 +14,15 @@ Allow authorized humans or host applications to inspect and control active HAgen
 
 - Canonical `AiInterventionRequest` with request identity, target kind, requested action, lifecycle status, execution/resource context, HAgent/host correlation, requester/responder identity, policy reason, and resolution metadata.
 - `IAiInterventionWorkflow` and bounded in-memory implementation with cloned request boundaries and terminal-state protection.
+- Intervention lifecycle now requires `Pending -> Approved -> Completed` for an accepted intervention; `Pending -> Completed` is no longer allowed.
 - Tool execution creates canonical intervention requests for `RequireApproval` and `Defer`, with explicit tool target and requested-action semantics.
 - Tool execution results expose the intervention request.
 - Deterministic Example approval/defer verification uses the canonical intervention API.
 - Obsolete approval-only contract/facade files were removed in favor of the intervention model.
+- `DefaultAgentRuntime` now owns the canonical execution intervention coordinator and links intervention cancellation into the existing execution cancellation path.
+- Execution pause/resume/cancel requests use the shared `HAgentClient` intervention workflow and do not introduce a second execution engine.
+- `HAgentClient.ExecutionChanged` and execution intervention APIs expose the host-facing control boundary through public APIs.
+- A deterministic Example scenario now covers execution pause/resume/cancel and late-response protection; it has been added but not yet executed in this environment.
 
 ### Run-sized execution plan
 
@@ -26,8 +31,10 @@ Only one slice is **CURRENT** at a time. Each slice must reach a verified checkp
 1. **CURRENT — Execution control boundary**
    - Scope: Integrate intervention application into the existing canonical runtime/execution lifecycle for pause, resume, and cancellation; preserve the existing execution engine and terminal-state rules.
    - Entry: Canonical intervention workflow and execution lifecycle contracts exist.
-   - Completion: Controlled execution can be paused/resumed/cancelled through the intervention boundary without a second execution engine, and focused deterministic verification passes.
-   - Next smallest step after completion: race/stale-state hardening.
+   - Implementation state: Complete in source; focused Example verification added.
+   - Verification state: **BLOCKED** — no executable repository build/test workflow is available through the connected environment, and local repository checkout is unavailable in this session.
+   - Completion: Controlled execution can be paused/resumed/cancelled through the intervention boundary without a second execution engine, and focused deterministic verification passes in an executable environment.
+   - Next smallest step after verification: race/stale-state hardening.
 
 2. **Concurrency and stale-state hardening**
    - Scope: Make intervention state transitions deterministic under concurrent requests, duplicate requests, late provider completion, retirement, shutdown, and already-terminal executions.

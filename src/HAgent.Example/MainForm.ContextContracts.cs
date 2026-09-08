@@ -20,6 +20,7 @@ namespace HAgent.Example
                 "This slice establishes reusable Core contracts only. Ranking, compaction, caching, provider transport, and execution integration remain later slices.");
 
             AddContextAcquisitionTab();
+            AddContextRankingTab();
         }
 
         private Task RunContextContractsTestAsync(string unused)

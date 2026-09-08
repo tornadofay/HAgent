@@ -8,7 +8,8 @@ using HAgent.Models;
 namespace HAgent.Runtime
 {
     /// <summary>
-    /// Retrieves and assembles context only from sources and items admitted by the canonical policy/capability boundary.
+    /// Applies the canonical policy/resource admission boundary to context sources and candidates.
+    /// Final ranking and bounded assembly are separate stages.
     /// </summary>
     public sealed class ContextPolicyAssembler
     {
@@ -23,6 +24,9 @@ namespace HAgent.Runtime
             _admissionEvaluator = admissionEvaluator ?? throw new ArgumentNullException(nameof(admissionEvaluator));
         }
 
+        /// <summary>
+        /// Legacy bounded policy-aware acquisition used by focused admission scenarios.
+        /// </summary>
         public async Task<ContextPolicyAssemblyResult> AcquireAsync(
             IReadOnlyList<ContextRetrievalSource> sources,
             ContextBudget budget,
@@ -33,11 +37,33 @@ namespace HAgent.Runtime
             if (budget == null) throw new ArgumentNullException(nameof(budget));
             if (context == null) throw new ArgumentNullException(nameof(context));
 
-            budget.Validate();
+            var retrieval = await RetrieveCandidatesAsync(sources, context, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var snapshot = await _acquirer.AcquireAsync(
+                new[] { new CandidateListContextSource(retrieval.Candidates) },
+                new ContextSourceRequest { Query = "policy-filtered", MaxItems = Math.Max(1, retrieval.Candidates.Count) },
+                budget,
+                cancellationToken).ConfigureAwait(false);
+
+            return new ContextPolicyAssemblyResult(snapshot, retrieval.Decisions);
+        }
+
+        /// <summary>
+        /// Retrieves per-source bounded candidates and applies source/item admission without consuming the final assembly budget.
+        /// </summary>
+        public async Task<ContextPolicyRetrievalResult> RetrieveCandidatesAsync(
+            IReadOnlyList<ContextRetrievalSource> sources,
+            ContextAdmissionContext context,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (sources == null) throw new ArgumentNullException(nameof(sources));
+            if (context == null) throw new ArgumentNullException(nameof(context));
             context.Validate();
 
             var decisions = new List<ContextAdmissionDecision>();
-            var admittedSources = new List<ContextRetrievalSource>();
+            var candidates = new List<ContextItem>();
+
             foreach (var source in sources)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -49,65 +75,52 @@ namespace HAgent.Runtime
                 if (!sourceDecision.Allowed)
                     continue;
 
-                admittedSources.Add(new ContextRetrievalSource
-                {
-                    Source = new FilteringContextSource(source.Source, _admissionEvaluator, source, context, decisions),
-                    Query = source.Query,
-                    MaxItems = source.MaxItems
-                });
-            }
-
-            var snapshot = await _acquirer.AcquireAsync(admittedSources, budget, cancellationToken).ConfigureAwait(false);
-            return new ContextPolicyAssemblyResult(snapshot, decisions.AsReadOnly());
-        }
-
-        private sealed class FilteringContextSource : IContextSource
-        {
-            private readonly IContextSource _inner;
-            private readonly IContextAdmissionEvaluator _evaluator;
-            private readonly ContextRetrievalSource _source;
-            private readonly ContextAdmissionContext _context;
-            private readonly IList<ContextAdmissionDecision> _decisions;
-
-            public FilteringContextSource(
-                IContextSource inner,
-                IContextAdmissionEvaluator evaluator,
-                ContextRetrievalSource source,
-                ContextAdmissionContext context,
-                IList<ContextAdmissionDecision> decisions)
-            {
-                _inner = inner ?? throw new ArgumentNullException(nameof(inner));
-                _evaluator = evaluator ?? throw new ArgumentNullException(nameof(evaluator));
-                _source = source ?? throw new ArgumentNullException(nameof(source));
-                _context = context == null ? throw new ArgumentNullException(nameof(context)) : context.Clone();
-                _decisions = decisions ?? throw new ArgumentNullException(nameof(decisions));
-            }
-
-            public string Id { get { return _inner.Id; } }
-            public string Kind { get { return _inner.Kind; } }
-
-            public async Task<IReadOnlyList<ContextItem>> GetCandidatesAsync(
-                ContextSourceRequest request,
-                CancellationToken cancellationToken = default(CancellationToken))
-            {
-                var candidates = await _inner.GetCandidatesAsync(request, cancellationToken).ConfigureAwait(false);
-                if (candidates == null)
+                var request = source.CreateRequest();
+                var items = await source.Source.GetCandidatesAsync(request, cancellationToken).ConfigureAwait(false);
+                if (items == null)
                     throw new InvalidOperationException("A context source returned a null candidate collection.");
 
-                var admitted = new List<ContextItem>();
-                foreach (var item in candidates)
+                var returned = 0;
+                foreach (var item in items)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (item == null)
                         throw new InvalidOperationException("A context source returned a null context item.");
+                    if (returned >= request.MaxItems)
+                        break;
+                    returned++;
 
-                    var decision = _evaluator.EvaluateItem(_source, item, _context);
-                    _decisions.Add(decision.Clone());
+                    item.Validate();
+                    var decision = _admissionEvaluator.EvaluateItem(source, item, context);
+                    decisions.Add(decision.Clone());
                     if (decision.Allowed)
-                        admitted.Add(item.Clone());
+                        candidates.Add(item.Clone());
                 }
+            }
 
-                return admitted;
+            return new ContextPolicyRetrievalResult(candidates, decisions);
+        }
+
+        private sealed class CandidateListContextSource : IContextSource
+        {
+            private readonly IReadOnlyList<ContextItem> _items;
+
+            public CandidateListContextSource(IReadOnlyList<ContextItem> items)
+            {
+                _items = items ?? throw new ArgumentNullException(nameof(items));
+                Id = "policy-filtered";
+                Kind = "policy-filtered";
+            }
+
+            public string Id { get; private set; }
+            public string Kind { get; private set; }
+
+            public Task<IReadOnlyList<ContextItem>> GetCandidatesAsync(
+                ContextSourceRequest request,
+                CancellationToken cancellationToken = default(CancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.FromResult(_items);
             }
         }
     }

@@ -46,7 +46,7 @@ New resource version or scoped state
 
 ## Prerequisites
 
-1. [ ] Resource foundations from the earlier internal-storage/resource layer are canonical and provider-neutral.
+1. [ ] Resource foundations from the earlier internal-storage/resource layer are canonical and provider-neutral. The historical 0.8 repository/backend wiring obligation is explicitly deferred to this phase for the resource persistence that governance requires; see `docs/roadmap/20-data-access.md`.
 2. [ ] Identity / tenancy / user context is available for ownership and scope decisions.
 3. [ ] Unified policy enforcement is available for resource access and learning promotion decisions.
 4. [ ] Prompt/instruction governance and context engineering expose trust/provenance boundaries needed when resources enter execution context.
@@ -162,7 +162,7 @@ Experience / Observation
 
 ## Storage
 
-76. [ ] Complete HAgent-owned persistence for candidates, knowledge-resource relationships, skill versions/relationships, resource capability assignments/overrides, and extensible memory-type policy where still outstanding.
+76. [ ] Complete HAgent-owned persistence for candidates, knowledge-resource relationships, skill versions/relationships, resource capability assignments/overrides, and extensible memory-type policy where still outstanding. This is the consuming completion point for the historical 0.8 Item 8 repository/backend wiring obligation for mature resources.
 77. [ ] Keep File, SQL Server, and MySQL behavior aligned through versioned migrations.
 78. [ ] Keep learning/review metadata secret-safe and bounded.
 79. [ ] Preserve resource identity/ownership/scope directly in persistence rather than creating subsystem-specific ownership models.

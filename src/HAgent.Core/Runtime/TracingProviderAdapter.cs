@@ -36,6 +36,7 @@ namespace HAgent.Runtime
             if (request == null) throw new ArgumentNullException(nameof(request));
 
             var parent = TraceAmbient.Current;
+            var correlation = TraceAmbient.CurrentCorrelation ?? new TraceCorrelation();
             var metadata = new TraceMetadata();
             metadata.Add("provider.kind", _inner.Kind ?? string.Empty);
             metadata.Add("provider.display", _inner.DisplayName ?? string.Empty);
@@ -49,10 +50,11 @@ namespace HAgent.Runtime
                 ParentContext = parent,
                 OperationName = "provider.invoke",
                 Kind = "Provider",
+                Correlation = correlation,
                 Metadata = metadata
             });
 
-            using (TraceAmbient.Push(span.Context))
+            using (TraceAmbient.Push(span.Context, correlation))
             {
                 try
                 {

@@ -71,7 +71,8 @@ namespace HAgent.Runtime
                 auditOptions,
                 _executionPlanner,
                 _executionTargetCatalog,
-                policyEngine);
+                policyEngine,
+                _interventionWorkflow);
         }
 
         public ConversationContextOptions ContextOptions { get { return _contextBuilder.Options; } }

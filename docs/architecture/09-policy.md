@@ -15,8 +15,10 @@ The canonical contracts are:
 - `IAiPolicyEngine` — provider-neutral evaluator boundary. It exposes an owned clone of the effective policy through `GetPolicySnapshot()`.
 - `AgentExecutionSnapshot.EffectivePolicy` — the deep-cloned policy state captured for the lifetime of one execution.
 - `IAiStore.GetPolicySetAsync` / `SavePolicySetAsync` — the canonical persistence boundary for the current HAgent policy set.
+- `AiResourceCapabilityPolicy` — canonical profile/runtime resource enablement state using `Inherit`, `Enabled`, and `Disabled`.
+- `AiResourceCapabilitySnapshot` — effective resource state resolved for one execution.
 
-Supported outcomes are `NotApplicable`, `Allow`, `Deny`, `RequireApproval`, and `Defer`.
+Supported policy outcomes are `NotApplicable`, `Allow`, `Deny`, `RequireApproval`, and `Defer`.
 
 ## Scope
 
@@ -50,13 +52,29 @@ The policy engine does not replace host authorization. A host may still supply a
 
 `DataAuthorizationRequest` carries the canonical `AgentIdentityContext` in addition to host runtime context so policy composition can evaluate the same identity presented at the data boundary. Host authorization callbacks remain runtime-owned and are never persisted as policy/configuration.
 
+## Resource capability boundary
+
+Resource enablement is separate from policy authorization, provider capability discovery, and host authorization. It represents whether an HAgent resource or resource family is enabled for a profile/runtime.
+
+Profile configuration is the default layer. Runtime-only overrides use `Inherit`, `Enabled`, and `Disabled` and never mutate the persistent profile. Resolution is deterministic:
+
+1. exact runtime resource state;
+2. runtime resource-type state;
+3. exact profile resource state;
+4. profile resource-type state;
+5. default `Enabled`.
+
+An `Inherit` entry does not become an effective state; it continues resolution to the lower layer. `AiResourceCapabilitySnapshot` contains only effective `Enabled`/`Disabled` entries and is captured in `AgentExecutionSnapshot.EffectiveResourceCapabilities`.
+
+This state is configuration gating, not authorization. An enabled resource still must pass any applicable HAgent policy and host authorization boundaries before side effects occur.
+
 ## Tool enforcement
 
-Tool invocation is an HAgent-owned side-effect boundary. `HAgentClient.ExecuteToolAsync` evaluates the unified policy with operation `tool.invoke`, resource type `tool`, the concrete tool ID, the agent profile ID, and the effective identity before calling the registered executable handler.
+Tool invocation is an HAgent-owned side-effect boundary. `HAgentClient.ExecuteToolAsync` resolves the effective resource capability state before invoking a registered executable handler and evaluates the unified policy with operation `tool.invoke`, resource type `tool`, the concrete tool ID, the agent profile ID, and the effective identity.
 
-`Deny`, `RequireApproval`, and `Defer` therefore prevent the executable handler from running. The resulting `ToolExecutionResult` preserves the `AiPolicyDecision` and its provenance. `Allow` and `NotApplicable` permit the handler to execute normally.
+A `Disabled` resource capability state blocks the tool before its executable handler runs. `Deny`, `RequireApproval`, and `Defer` policy outcomes likewise prevent the handler from running. The resulting `ToolExecutionResult` preserves the `AiPolicyDecision`, effective resource capability snapshot, and resolved resource state.
 
-A tool loop resolves one effective policy engine at loop start and reuses it for all tool invocations in that loop, preserving execution-level policy consistency even if persisted configuration changes while the loop is running.
+Tool execution for a live `AgentRuntimeInstance` applies that instance's runtime-only capability overrides over the persistent profile. Direct tool execution therefore uses the same tri-state semantics as execution snapshots. A tool loop retains one effective policy evaluator for the loop; runtime-instance-specific tool execution uses the instance's current runtime capability overrides for each invocation.
 
 ## Approval and deferral
 
@@ -72,7 +90,9 @@ A policy set has an explicit version. `DefaultAiPolicyEngine` snapshots the supp
 
 When an execution begins, `DefaultAgentRuntime` obtains the effective policy before creating `AgentExecutionSnapshot`. An explicitly configured policy engine supplies its owned snapshot; otherwise the runtime loads the canonical policy from `IAiStore` asynchronously and creates an immutable-for-the-run evaluator from that snapshot. `AgentExecutionSnapshot.EffectivePolicy` then retains a deep clone of the exact policy state and version that govern the execution.
 
-The default runtime path therefore uses persisted HAgent policy configuration, while hosts may inject an explicit evaluator for deliberately isolated policy composition or tests. No synchronous database or network call is used to load policy.
+The same execution boundary resolves profile resource capabilities plus runtime overrides into `AgentExecutionSnapshot.EffectiveResourceCapabilities`. Both policy and resource capability state are therefore execution snapshots; later persisted configuration or runtime-source mutations do not modify an already-created execution.
+
+The default runtime path uses persisted HAgent policy configuration, while hosts may inject an explicit evaluator for deliberately isolated policy composition or tests. No synchronous database or network call is used to load policy.
 
 Because the policy is captured at execution creation, later persistence changes do not modify an active run. Tool loops likewise capture the evaluator used for their complete loop so a configuration edit cannot change the policy mid-loop.
 
@@ -80,8 +100,10 @@ Because the policy is captured at execution creation, later persistence changes 
 
 Policy persistence is backend-neutral at `IAiStore` and currently represented by one HAgent-owned policy set per configuration store. The File backend stores the policy with the HAgent settings document. SQL Server and MySQL use an HAgent-owned `HAgentPolicies` table containing the explicit policy version and serialized canonical policy set.
 
+Agent resource capability defaults are part of the canonical `AiAgent` configuration and persist through the existing agent storage models. Runtime capability overrides are transient runtime configuration and are not persisted as profile state.
+
 The SQL Server/MySQL HAgent bootstrap paths create the policy table during normal HAgent database provisioning. Missing persisted policy resolves to the valid empty policy set; malformed persisted policy is rejected rather than silently replaced.
 
 ## Current implementation
 
-Phase 0.953 currently implements the core contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime pre-transport enforcement, effective-policy execution snapshots, policy persistence through the HAgent File/SQL Server/MySQL configuration stores, policy-gated tool invocation, and policy-first composition with host data authorization. Runtime tri-state integration, learning-promotion rules, human approval workflow, policy management UI, and full cross-backend live verification remain subsequent slices.
+Phase 0.953 currently implements the core policy contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime pre-transport enforcement, effective-policy execution snapshots, policy persistence through the HAgent File/SQL Server/MySQL configuration stores, policy-gated tool invocation, policy-first composition with host data authorization, and canonical profile/runtime resource capability resolution with execution snapshots and tool gating. Learning-promotion rules, human approval workflow, policy management UI, and full cross-backend live verification remain subsequent slices.

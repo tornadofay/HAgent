@@ -7,6 +7,19 @@ namespace HAgent.Example
 {
     internal sealed partial class MainForm
     {
+        private void AddInstructionContractsTab()
+        {
+            AddApiTab(
+                "Cognition Instructions",
+                "Run instruction contract test",
+                "Creates provider-neutral instruction sources with explicit authority, trust, scope, lifecycle, conflict, and provenance metadata, then verifies deterministic precedence and snapshot isolation.",
+                "Source validation, authority separation, precedence, conflict representation, and provenance-preserving snapshot cloning should all report verified.",
+                "No AI request is sent by this example.",
+                TestInstructionContractsAsync,
+                "Instruction boundary",
+                "This slice defines source contracts only. Prompt assembly, resource retrieval, authorization, and provider-specific prompt formatting remain separate boundaries.");
+        }
+
         private async Task TestInstructionContractsAsync(string unused)
         {
             var capturedAt = new DateTimeOffset(2026, 9, 8, 0, 0, 0, TimeSpan.Zero);

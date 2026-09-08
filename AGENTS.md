@@ -166,21 +166,36 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 125. When uncertain whether a proposed implementation is a complete target design or only a temporary simplification, resolve that uncertainty before coding and make the decision explicit in the relevant architecture/decision document.
 126. **Complete is scope-bounded:** implement the complete intended architecture for the current task/phase while remaining compatible with known future architecture. Do not prematurely implement unrelated future roadmap phases.
 
+## Run-bounded execution standard
+
+127. **Substantial work must be split into run-sized slices before implementation begins.** A “run” means one bounded implementation-and-verification cycle that the coding agent can reasonably complete within the available execution budget.
+128. Each run must have one explicit objective, a small set of files/assemblies it is expected to change, and a concrete verification target. Do not start the next architectural slice merely because the current slice is partially implemented.
+129. When a task contains multiple independent or sequential slices, record them as an ordered checklist in the authoritative active-work document. Mark exactly one slice as **current** and define its entry condition and completion condition.
+130. Before coding, estimate whether the current slice can reach a verified checkpoint in the same run. If it cannot, split it further before making implementation changes.
+131. Prefer a smaller verified slice over a larger partially implemented slice. Repository work must not depend on reaching the end of a large task in one uninterrupted session.
+132. Do not combine implementation, broad refactoring, unrelated cleanup, UI expansion, documentation migration, and multi-framework verification into one run when they can be separated without architectural loss.
+133. At the end of every run, reach one of two explicit states: **verified complete** or **verified checkpoint/blocker**. A timeout or interruption is not a completion state.
+134. If the run ends before verification, do not claim success. Record the exact unfinished slice, files changed, known blocker/failure, and the next smallest safe step in the active-work document before moving to unrelated work.
+135. Where practical, keep each run's code change internally coherent and buildable. Do not intentionally leave the repository in a known broken state merely because a later run is expected to fix it.
+136. After a verified slice, update the active-work/current-state/architecture documentation required by the existing source-of-truth rules before selecting the next slice.
+137. The next run must resume from the recorded checkpoint, not re-discover or duplicate completed work. Do not begin a parallel implementation of a partially completed slice.
+138. The complete-architecture rule remains in force **within each bounded slice**: splitting a task changes execution size, not architectural quality or required analysis.
+
 ## Persistent project-memory protocol
 
-127. The repository is the durable project memory for development across constrained, interrupted, or new AI sessions. Use small purpose-specific Markdown documents to preserve the minimum state needed to resume work safely.
-128. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation step into them.
-129. Keep each memory document small and purpose-specific. Prefer updating/replacing current state over continuously appending history.
-130. Use the current-state document for project position, the active-work document for unfinished work, the decisions document for durable decisions, and architecture documents for detailed subsystem design.
-131. Before starting substantial work, read the relevant current-state, active-work, architecture, and decision documents before designing or changing implementation.
-132. Active unfinished work must have one clear authoritative work record. Do not begin a parallel implementation of the same scope unless the active scope is explicitly changed.
-133. Update active-work state when scope, completion state, blockers, or next work changes materially. Close/remove completed work from active state once it is represented by the appropriate authoritative project document.
-134. Record only durable architectural decisions, invariants, rejected alternatives that prevent future confusion, and important discoveries that materially affect future work. Do not record routine coding history.
-135. Never create duplicate sources of truth. One document should own each durable fact; other documents should reference it where useful.
-136. When information conflicts, do not silently choose one. Resolve the conflict against the authoritative architecture/current state, then update the relevant source explicitly.
-137. Never silently delete important persistent knowledge. If a decision becomes obsolete, mark it superseded and record the replacement where the distinction matters.
-138. When implementation changes architecture, milestone state, or a durable decision, update the relevant authoritative document in the same change set whenever practical.
-139. At the end of substantial work, update the compact project-memory state so the next session can identify what is complete, what remains, what is blocked, and where authoritative details live.
-140. Before starting a new task, check the active-work state and current project state so unfinished work is continued or deliberately superseded rather than duplicated or lost.
-141. Do not create a new memory file merely because a task is large. Add or update an existing authoritative document when the information fits its purpose; create a new persistent document only when it has a distinct long-lived responsibility.
-142. Generated root documents remain views. Persistent memory belongs in authoritative source documents, not in generated `plan.md` or `roadmap.md`.
+139. The repository is the durable project memory for development across constrained, interrupted, or new AI sessions. Use small purpose-specific Markdown documents to preserve the minimum state needed to resume work safely.
+140. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation step into them.
+141. Keep each memory document small and purpose-specific. Prefer updating/replacing current state over continuously appending history.
+142. Use the current-state document for project position, the active-work document for unfinished work, the decisions document for durable decisions, and architecture documents for detailed subsystem design.
+143. Before starting substantial work, read the relevant current-state, active-work, architecture, and decision documents before designing or changing implementation.
+144. Active unfinished work must have one clear authoritative work record. Do not begin a parallel implementation of the same scope unless the active scope is explicitly changed.
+145. Update active-work state when scope, completion state, blockers, or next work changes materially. Close/remove completed work from active state once it is represented by the appropriate authoritative project document.
+146. Record only durable architectural decisions, invariants, rejected alternatives that prevent future confusion, and important discoveries that materially affect future work. Do not record routine coding history.
+147. Never create duplicate sources of truth. One document should own each durable fact; other documents should reference it where useful.
+148. When information conflicts, do not silently choose one. Resolve the conflict against the authoritative architecture/current state, then update the relevant source explicitly.
+149. Never silently delete important persistent knowledge. If a decision becomes obsolete, mark it superseded and record the replacement where the distinction matters.
+150. When implementation changes architecture, milestone state, or a durable decision, update the relevant authoritative document in the same change set whenever practical.
+151. At the end of substantial work, update the compact project-memory state so the next session can identify what is complete, what remains, what is blocked, and where authoritative details live.
+152. Before starting a new task, check the active-work state and current project state so unfinished work is continued or deliberately superseded rather than duplicated or lost.
+153. Do not create a new memory file merely because a task is large. Add or update an existing authoritative document when the information fits its purpose; create a new persistent document only when it has a distinct long-lived responsibility.
+154. Generated root documents remain views. Persistent memory belongs in authoritative source documents, not in generated `plan.md` or `roadmap.md`.

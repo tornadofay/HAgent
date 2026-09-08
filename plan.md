@@ -650,19 +650,25 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.954 Prompt and Instruction Governance — CURRENT
 
-Phase 0.954 is the next ordered foundational milestone after the verified 0.953 Unified Policy Engine. The repository roadmap defines 0.954 through 0.958 as foundations that precede 0.959 Human-in-the-Loop / Intervention. Work that was implemented ahead of this order in 0.959 remains in source but is not treated as the current milestone or as evidence that the intervening phases are complete.
+Phase 0.954 is the next ordered foundational milestone after the verified 0.953 Unified Policy Engine. The repository roadmap defines 0.954 through 0.958 as foundations that precede 0.9591 Goal/Plan Persistence and Recovery and 0.959 Human-in-the-Loop / Intervention. Work that was implemented ahead of this order in 0.959 remains in source but is not treated as the current milestone or as evidence that the intervening phases are complete.
 
-### Objective
+### Pre-phase Example UI prerequisite — CURRENT
 
-Define trusted instruction layers and provenance so HAgent can safely combine system policy, agent instructions, Skills, Knowledge, Memory, tools, runtime context, user input, and externally retrieved content without allowing lower-authority or untrusted content to override higher-authority instructions or code-enforced controls.
+Before beginning 0.954 implementation, the manual verification host must be reorganized according to the Example UI rules in `AGENTS.md`: architecture-level top-level feature tabs, with multiple examples represented by nested focused tabs instead of an ever-growing flat tab list.
 
-### Run-sized execution plan
+- Entry: existing Example host contains a growing flat tab collection and the roadmap has been reset to the ordered 0.954 milestone.
+- Scope: reorganize the existing Example UI into feature groups without changing the underlying Example test behavior; restore the existing `LEARNING INTERVENTION` example to the visible host; keep Example code split into focused partial files.
+- Implementation: `src/HAgent.Example/MainForm.ExampleOrganization.cs` creates the feature-group/nested-tab presentation during `MainForm.OnLoad` and adds the already-implemented learning intervention example before grouping.
+- Verification: user builds/runs `HAgent.Example`, confirms the top-level feature groups and nested examples are usable, confirms `LEARNING INTERVENTION` is present under `Cognition`, and confirms existing examples remain independently runnable.
+- Completion: the UI is locally verified and no Example test capability is lost or duplicated.
+
+### 0.954 Run-sized execution plan
 
 Only one slice is **CURRENT** at a time. Each slice must reach a verified checkpoint before the next slice begins.
 
-1. **CURRENT — Instruction source and authority contracts**
+1. **Instruction source and authority contracts**
    - Scope: Define the provider-neutral normalized instruction/source model, source type, authority/trust level, provenance, scope, lifecycle metadata, deterministic precedence, conflict representation, and execution-snapshot provenance.
-   - Entry: Verified 0.953 Unified Policy Engine; existing prompt construction and execution snapshot boundaries identified.
+   - Entry: Verified Example UI prerequisite and verified 0.953 Unified Policy Engine; existing prompt construction and execution snapshot boundaries identified.
    - Completion: Core contracts can represent trusted and untrusted instruction sources with deterministic authority/precedence semantics and evidence suitable for execution snapshots.
    - Verification: Add deterministic Example coverage for source creation/validation, precedence, authority separation, and provenance.
 
@@ -689,9 +695,11 @@ Only one slice is **CURRENT** at a time. Each slice must reach a verified checkp
 6. **Advance to 0.955 Context Engineering**
    - Scope: Only after 0.954 is verified, update the active plan to the next roadmap phase.
 
-### Relationship to 0.959 work already present in source
+### Relationship to ahead-of-roadmap intervention work
 
 A prior run advanced into 0.959 before 0.954–0.958 were completed. That was an ordering mistake, not a reason to redefine the roadmap. The existing 0.959 intervention code is retained as ahead-of-roadmap work in the source tree, but it is not considered a completed project milestone until the ordered foundational phases and their required verification are reached.
+
+The roadmap now places 0.9591 Goal/Plan Persistence and Recovery before 0.959 Human-in-the-Loop / Intervention so durable goal/plan revision and recovery authority exists before later intervention can govern those durable targets. Execution-level intervention remains valid independently and is preserved in source.
 
 ### Architectural boundaries
 

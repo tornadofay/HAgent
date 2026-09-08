@@ -21,10 +21,13 @@ The complete 0.954 implementation and verification sequence is complete.
    - Matching deterministic Example coverage was executed successfully on both .NET Framework 4.8.1 and .NET 9 on 2026-09-08.
    - Verified Example results included contract validation, bounded metadata, structured payload preservation, explicit budget/source bounds, nested clone isolation, and no provider request.
 
-3. **Bounded context acquisition and canonical context snapshots — CURRENT**
+3. **Bounded context acquisition and canonical context snapshots — CHECKPOINT VERIFIED / LOCAL TEST SUITE PENDING**
    - Scope: implement bounded host/source acquisition and produce the immutable execution context snapshot, including cancellation and isolation from caller-owned mutable state.
    - Current implementation: `ContextSnapshot`, `IContextAcquirer`, and `ContextAcquirer` are implemented in Core; deterministic xUnit coverage and a public-API `HAgent.Example` scenario are present.
-   - Verification target: local targeted build/test plus deterministic Example execution on both supported HAgent Core targets, including budget enforcement, source-order determinism, cancellation, and snapshot isolation.
+   - User Example verification succeeded for bounded acquisition and snapshot creation, including three-item selection, source-order determinism, all three budget dimensions at their hard limits, oversized-candidate exclusion, caller-mutation isolation, and no provider request.
+   - The new Context Acquisition scenario is correctly classified under **Context → Context Core** in `MainForm.ExampleOrganization.cs`.
+   - Matching Example placement guidance is now explicit in `AGENTS.md` and applies to all future examples.
+   - Remaining completion condition: user must run the targeted Core test suite and confirm the Slice 3 verification coverage locally. Do not select Slice 4 until that checkpoint is closed.
 
 4. **Ranking, deterministic prioritization, and deduplication — PLANNED**
 5. **Compaction, truncation, and provenance-preserving diagnostics — PLANNED**

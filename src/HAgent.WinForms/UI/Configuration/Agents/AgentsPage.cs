@@ -43,9 +43,9 @@ namespace HAgent.WinForms.UI.Configuration.Agents
         private void Build()
         {
             var root = CreateListPageRoot();
-            root.Controls.Add(CreateListContent());
-            root.Controls.Add(CreateActionBar());
             root.Controls.Add(CreateHeader("Agents", "Choose providers and models, then define each agent's behavior and runtime settings."));
+            root.Controls.Add(CreateActionBar());
+            root.Controls.Add(CreateListContent());
             Controls.Add(root);
         }
 
@@ -58,6 +58,7 @@ namespace HAgent.WinForms.UI.Configuration.Agents
             delete.Click += async delegate { await DeleteSelectedAsync(); };
             actions.Controls.Add(add);
             actions.Controls.Add(delete);
+            actions.Padding = new Padding(0, 0, 0, 5);
             return actions;
         }
 

@@ -42,9 +42,9 @@ namespace HAgent.WinForms.UI.Configuration.Providers
         private void Build()
         {
             var root = CreateListPageRoot();
-            root.Controls.Add(CreateListContent());
-            root.Controls.Add(CreateActionBar());
             root.Controls.Add(CreateHeader("Providers", "Connection, authentication, model defaults, and shared provider settings."));
+            root.Controls.Add(CreateActionBar());
+            root.Controls.Add(CreateListContent());
             Controls.Add(root);
         }
 
@@ -57,6 +57,7 @@ namespace HAgent.WinForms.UI.Configuration.Providers
             delete.Click += async delegate { await DeleteSelectedAsync(); };
             actions.Controls.Add(add);
             actions.Controls.Add(delete);
+            actions.Padding = new Padding(0, 0, 0, 5);
             return actions;
         }
 

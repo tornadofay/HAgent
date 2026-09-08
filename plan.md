@@ -12,25 +12,25 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 9 checkpoint after 0.954.
+- **Scope:** Reconcile and verify the complete 0.955 context-engineering milestone after the verified end-to-end assembly pipeline.
 
 ## Current checkpoint
 
-Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, 5, 6, 7, 8, and 9 have subsequently been verified by the user. Slice 9 was verified on 2026-09-09 with 46/46 HAgent.Tests passing and deterministic public-API Context Policy Assembly Examples passing on .NET Framework 4.8.1 and .NET 9.
+Phase 0.954 Prompt and Instruction Governance was verified and closed by the user on 2026-09-08. 0.955 Slices 2, 3, 4, 5, 6, 7, 8, 9, and 10 have subsequently been verified by the user. Slice 10 was verified on 2026-09-09 with 50/50 HAgent.Tests passing and deterministic public-API Context Assembly Examples passing on .NET Framework 4.8.1 and .NET 9.
 
 ## Current run
 
-**0.955 Slice 10 implementation checkpoint — local verification pending.**
+**0.955 final phase-verification checkpoint — documentation/roadmap reconciliation pending.**
 
-Slice 10 adds the canonical provider-neutral end-to-end context assembly pipeline: policy-filtered bounded retrieval, deterministic ranking/deduplication, and final budgeted compaction. Policy-filtered retrieval is separated from final assembly budgeting so retrieval cannot starve later ranking/compaction candidates. The final `ContextAssembler` returns the bounded `ContextSnapshot` plus safe admission/compaction evidence.
+The complete provider-neutral context pipeline now spans contract foundation, bounded acquisition, deterministic ranking/deduplication, compaction, reusable caching, execution/provider integration, bounded multi-resource retrieval, policy/capability-aware admission, and end-to-end assembly. The final step is to reconcile roadmap requirements against the verified implementation and identify any remaining requirement or architecture gap before closing 0.955.
 
 ## Next action
 
-Run the updated `HAgent.Tests` suite and the Context → Context Core → Context Assembly Example. The Slice 10 tests currently add 4 tests, so the expected full suite count is **50 tests**. Verify the Example on .NET Framework 4.8.1 and .NET 9. Record actual results before closing Slice 10 or selecting the final 0.955 phase-verification step.
+Review `docs/roadmap/955-context-engineering.md` against `docs/architecture/20-context.md`, `docs/architecture/11-instruction-governance.md`, the verified Slice 1–10 evidence, and the current Examples/tests. Update only the authoritative roadmap/architecture state needed to reflect what is actually implemented and verified. Do not claim 0.955 complete until all required roadmap checks are satisfied.
 
 ## Current blockers
 
-No known source-level blocker remains. The connected session cannot execute the local .NET/WinForms build or Example; Slice 10 has not been claimed verified.
+No known implementation blocker. The connected session cannot execute the local .NET/WinForms build or Example; the user-provided local verification results are the verification evidence for Slice 10.
 
 ## Current project state
 
@@ -613,13 +613,18 @@ The complete 0.954 implementation and verification sequence is complete.
    - `HAgent.Tests` completed with 46/46 tests passing on 2026-09-09.
    - Deterministic public-API `HAgent.Example` Context Policy Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering allowed, denied, and disabled admission paths plus provenance and safe diagnostics.
 
-10. **End-to-end bounded context assembly pipeline — CURRENT**
-   - Add one provider-neutral orchestration boundary that composes the existing policy-aware retrieval, deterministic ranking/deduplication, and deterministic compaction stages into one canonical bounded `ContextSnapshot` result.
-   - Preserve the existing stage boundaries and ownership rules: policy/permission admission remains before ranking, ranking remains before compaction, and execution/provider integration remains downstream.
-   - The pipeline must aggregate safe stage diagnostics without copying payloads, preserve provenance/scope across all stages, honor the final global budget, remain provider-neutral, and propagate cancellation.
-   - Do not duplicate the 0.954 instruction-governance engine. Instruction authority/precedence remains owned by `AiInstructionComposer`; the context pipeline only carries provider-neutral evidence and its provenance.
-   - Verification target: focused end-to-end Core tests plus a deterministic public-API `HAgent.Example` showing allowed/denied candidates flowing through retrieval → policy admission → ranking/deduplication → compaction into the final bounded snapshot, with no provider request.
-   - Completion target: after this slice passes, reconcile the full 0.955 verification matrix and determine whether all roadmap requirements are satisfied before closing the phase.
+10. **End-to-end bounded context assembly pipeline — VERIFIED**
+   - Core now exposes a single provider-neutral orchestration boundary that composes policy-filtered retrieval, deterministic ranking/deduplication, and final budgeted compaction into one canonical bounded `ContextSnapshot` result.
+   - Policy-filtered retrieval is kept separate from final assembly budgeting so early retrieval does not starve later ranking/compaction candidates; the final global item/character/token budget is enforced by the compaction stage.
+   - The pipeline preserves provenance and scope, aggregates safe admission/compaction diagnostics without payloads, propagates cancellation between stages, and remains provider-neutral.
+   - `HAgent.Tests` completed with 50/50 tests passing on 2026-09-09.
+   - Deterministic public-API `HAgent.Example` Context Assembly verification passed on both .NET Framework 4.8.1 and .NET 9 on 2026-09-09, covering policy admission before ranking, deterministic ranking/deduplication, final budget enforcement, provenance preservation, and no provider request.
+
+### Final 0.955 verification step — CURRENT
+
+- Reconcile the full 0.955 roadmap requirements against the implemented contracts and verified slices.
+- Confirm the complete verification matrix, including every deterministic Context Example currently required by the roadmap and any remaining policy/permission or provider-boundary requirement.
+- Close 0.955 only after the roadmap and architecture state agree that no required Context Engineering capability remains unverified or architecturally incomplete.
 
 ### Verification rule
 

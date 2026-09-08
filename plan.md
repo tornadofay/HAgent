@@ -18,7 +18,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.951–0.9592 Foundational Architecture Hardening — planned before 0.96 Capability-Aware Execution**
+**0.953 Unified Policy Engine — CURRENT; 0.954–0.9592 remain foundational hardening ahead of 0.96 Capability-Aware Execution.**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -28,15 +28,17 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.95 Generic External Host Integration is complete and verified on .NET Framework 4.8.1 and .NET 9, including canonical generic execution requests, provider-facing request isolation, structured-output validation/native transport, terminal-state protection, runtime snapshot isolation, external-consumer verification, and composition of long-lived runtime instances with canonical execution requests.
 
-The build/architecture phase now inserts foundational hardening before capability-aware execution. Planned phases are: 0.951 Identity/Tenancy/User Context; 0.952 First-Class Events; 0.953 Unified Policy Engine; 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
+0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is the current implementation milestone. The remaining foundational sequence is 0.954 Prompt/Instruction Governance; 0.955 Context Engineering; 0.956 Observability/Distributed Tracing; 0.957 Evaluation/Quality Measurement; 0.958 Agent Lifecycle/Health; 0.959 Human-in-the-Loop/Intervention; 0.9591 Goal/Plan Persistence/Recovery; and 0.9592 Provider Ecosystem/Adapter Lifecycle.
+
+The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` is ordered as a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition both depend on its provider/model/target separation, credential persistence, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portability contracts.
 
 0.96 Capability-Aware Execution follows these foundations and addresses heterogeneous capabilities, the same logical model exposed by multiple providers, provider/account/project restrictions, model/task-specific constraints, quotas, rate limits and future quota dimensions, concurrency capacity, operational availability, long-running inference, capability-aware candidate selection, fallback/degradation, and proactive admission control.
 
-0.97 Persistent Cognitive Runtime builds the long-lived cognitive layer above the execution engine after the generic event, identity, policy, context, lifecycle, recovery, and provider foundations are established.
+0.97 Persistent Cognitive Runtime builds the long-lived cognitive layer above the execution engine after the generic event, identity, policy, context, lifecycle, recovery, provider, and configuration foundations are established. It now includes an extensible Cognitive Kernel plus pluggable Cognitive Strategies, with Adaptive Hybrid Cognition (AHC) as the first reference strategy, explicit belief state/revision, attention/global workspace, goals/intentions/plans/operators/impasses, reasoning requirements, adaptive model escalation including the ability to use no LLM, experience-driven proceduralization, and a live Cognition Workbench.
 
-0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation and remains intentionally paused until the generic foundations required by the new architecture are mature.
+0.10 Workspaces, Routing + Chat has a verified routing and role-policy foundation and remains intentionally paused until the generic runtime/capability/cognitive foundations are mature.
 
-The later Knowledge + Skills + Memory Governance + Learning layer remains planned as a platform feature layer and must consume the new policy, identity, event, context, lifecycle, evaluation, and persistent-runtime contracts rather than create parallel project-specific systems.
+The later Knowledge + Skills + Memory Governance + Learning layer remains planned as a platform feature layer and must consume the new policy, identity, event, context, lifecycle, evaluation, and persistent-runtime contracts rather than create parallel project-specific systems. The 0.97 cognitive runtime may consume existing resource primitives before all 0.11 governance work is complete.
 
 ## Verified implementation
 
@@ -90,6 +92,8 @@ The next architectural work establishes common infrastructure required by both c
 0.9591 Goal / Plan Persistence / Recovery
         ↓
 0.9592 Provider Ecosystem / Adapter Lifecycle
+        ↓
+0.96.x Configuration / Storage / Portability Evolution
         ↓
 0.96 Capability-Aware Execution
         ↓
@@ -181,7 +185,7 @@ Provider/model administration should eventually show execution-target identity, 
 
 ## Active implementation
 
-The active implementation plan remains `docs/plan/20-active.md`. The architectural foundation phases 0.951–0.9592 now precede Phase 0.96 in the roadmap. Phase 0.10 remains paused while the generic foundations are hardened.
+The active implementation plan remains `docs/plan/20-active.md`. The architectural foundation phases 0.951–0.9592 now precede Phase 0.96 in the roadmap. Configuration/storage evolution is ordered as a cross-cutting pre-0.96 dependency even though its historical source filename is `38-configuration-storage-and-portability.md`. Phase 0.10 remains paused while the generic foundations are hardened.
 
 ## Verification rule
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — the complete provider-neutral context pipeline is implemented and verified through end-to-end assembly; final roadmap/architecture reconciliation remains before phase closure.**
+**Verified and complete — the provider-neutral context pipeline, policy/capability admission, host authorization boundary, execution integration, and deterministic Example/test matrix are verified.**
 
 ## Goal
 
@@ -19,9 +19,9 @@ Make context assembly a first-class HAgent subsystem that selects, ranks, bounds
 7. [x] Preserve source/provenance metadata for assembled context and expose safe diagnostics explaining inclusion/exclusion.
 8. [x] Support reusable and cacheable context components when configuration/version rules permit.
 9. [x] Keep provider-specific tokenization behind optional adapters; Core must not require a particular tokenizer.
-10. [ ] Ensure context assembly respects policy, permissions, disabled resources, and instruction authority. Policy and effective resource-capability enforcement is verified; any remaining host-authorization boundary and instruction-authority integration must be reconciled against the canonical existing subsystems before closure.
+10. [x] Ensure context assembly respects policy, permissions, disabled resources, and instruction authority. HAgent policy and resource-capability state are enforced by the canonical context admission boundary; protected data-backed context sources additionally compose the existing host-owned `IDataAccessAuthorizer`; instruction authority remains owned by the canonical 0.954 instruction-governance subsystem.
 11. [x] Capture the resulting bounded context in immutable execution snapshots.
-12. [x] Add deterministic Example verification for budgets, ranking, prioritization, compaction, source provenance, cache reuse, and policy-enforced exclusion through the verified Context Example matrix, including end-to-end assembly.
+12. [x] Add deterministic Example verification for budgets, ranking, prioritization, compaction, source provenance, cache reuse, and policy-enforced exclusion through the verified Context Example matrix, including end-to-end assembly and host authorization.
 
 ## Verified slices
 
@@ -34,12 +34,16 @@ Make context assembly a first-class HAgent subsystem that selects, ranks, bounds
 - Slice 8: bounded multi-resource retrieval — verified 2026-09-09 with 41/41 HAgent.Tests and deterministic public-API Example coverage on .NET Framework 4.8.1 and .NET 9.
 - Slice 9: policy/capability-aware context assembly admission — verified 2026-09-09 with 46/46 HAgent.Tests and deterministic public-API Context Policy Assembly Example coverage on .NET Framework 4.8.1 and .NET 9.
 - Slice 10: end-to-end bounded context assembly pipeline — verified 2026-09-09 with 50/50 HAgent.Tests and deterministic public-API Context Assembly Example coverage on .NET Framework 4.8.1 and .NET 9.
+- Slice 11: host authorization-aware context admission — verified 2026-09-09 with 56/56 HAgent.Tests and deterministic public-API Context Host Authorization Example coverage on .NET Framework 4.8.1 and .NET 9.
 
-## Current implementation checkpoint
+## Final implementation outcome
 
-- Slices 1–10 are complete and locally verified according to the active plan.
-- The remaining work is reconciliation, not a new numbered implementation slice: verify that requirement 10 is fully satisfied by composition with the existing host-authorization and instruction-governance boundaries, and confirm no required provider/tokenization or Example-matrix gap remains.
-- Do not introduce a second policy or instruction-authority implementation inside Context Engineering merely to satisfy the checklist.
+- The canonical context pipeline is provider-neutral and bounded:
+  `retrieval plan → policy/capability admission → host authorization where required → ranking/deduplication → final compaction → ContextSnapshot`.
+- Host authorization remains an explicit host-owned boundary. A policy allow does not imply host authorization, and protected sources fail closed when the host authorization boundary is unavailable or denies access.
+- The context subsystem does not create a second policy engine or instruction precedence system. Instruction authority and conflict resolution remain owned by the canonical instruction-governance subsystem.
+- Admission and compaction diagnostics remain metadata-only and preserve safe provenance without copying context payloads.
+- The complete required deterministic Context Example/test matrix for 0.955 is covered by the verified slices above.
 
 ## Architectural outcome
 
@@ -50,17 +54,19 @@ Policy + permissions
         ↓
 Attention / relevance
         ↓
-Retrieval
+Acquisition / retrieval
         ↓
-Policy-aware admission
+Policy/capability admission
+        ↓
+Host authorization when the source requires it
         ↓
 Ranking / deduplication
         ↓
-Compression / compaction
+Compression / compaction / truncation
         ↓
-Bounded Context
+Bounded Context Snapshot
         ↓
-Execution Request
+Execution Request / Provider Adapter
 ```
 
-Context engineering remains distinct from cognitive decision making: cognition decides what matters; context engineering constructs the bounded evidence supplied to an execution. Instruction authority remains owned by the canonical instruction-governance subsystem rather than by context assembly.
+Context engineering remains distinct from cognitive decision making: cognition decides what matters; context engineering constructs the bounded evidence supplied to an execution. Instruction authority remains owned by the canonical instruction-governance subsystem.

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using HAgent.Abstractions;
 using HAgent.Models;
 
 namespace HAgent.Runtime

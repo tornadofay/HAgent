@@ -4,6 +4,8 @@ namespace HAgent.Runtime
     {
         Created,
         Running,
+        WaitingForIntervention,
+        Paused,
         Succeeded,
         Failed,
         Cancelled

@@ -12,7 +12,7 @@ This file is the compact handoff state for work currently in progress. It is not
 - **Phase:** 0.955 Context Engineering
 - **Status:** In progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Start only the ordered 0.955 context-engineering work after verified completion of 0.954.
+- **Scope:** Continue the ordered 0.955 context-engineering work from the verified Slice 1 checkpoint after 0.954.
 
 ## Current checkpoint
 
@@ -26,17 +26,23 @@ Phase 0.954 Prompt and Instruction Governance was verified and closed by the use
 
 ## Current run
 
-**Verified checkpoint — 0.954 complete; 0.955 Slice 1 is current.**
+**Verified repository checkpoint — 0.955 Slice 1 complete; 0.955 Slice 2 is current for the next run.**
 
-0.955 Slice 1 objective: inspect the authoritative context architecture and current implementation, reconcile the intended context model with reusable existing contracts, and record the smallest bounded implementation slice before coding.
+0.955 Slice 1 reconciled `docs/architecture/20-context.md` with the current implementation and 0.955 roadmap requirements. The canonical target now separates provider-neutral context items, budgets, source/retrieval, policy filtering, ranking, compaction, caching, diagnostics, and immutable execution context snapshots. Existing `AgentExecutionRequest.HostContext`, `ConversationContextBuilder`, and WinForms `IUiContext` / `WinFormsUiContext` are recorded as input/producer boundaries rather than competing context architectures.
+
+No local .NET build/test success is claimed for this Slice 1 planning/architecture checkpoint.
+
+## Next slice
+
+**0.955 Slice 2 — Provider-neutral context contract foundation**
+
+Bounded objective: add the smallest Core-only contract layer for context items, explicit budget dimensions, bounded provenance/scope/trust/importance/freshness/size metadata, and the minimal candidate-source boundary. Do not implement ranking, compaction, caching, WinForms changes, or provider transport in that run.
+
+Expected verification: focused contract-level validation/build on targeted frameworks, followed by the documentation update required by `docs/plan/20-active.md`. The next run must resume from this checkpoint and must not duplicate Slice 1 or begin Slice 3.
 
 ## Current blockers
 
 This connected session can inspect and modify repository sources but cannot execute the local .NET/WinForms build or Example. No local build/test success is claimed from this session.
-
-## Next checkpoint
-
-Read `docs/architecture/20-context.md` and the relevant 0.955 implementation/roadmap documents, reconcile current context contracts and implementation, then update `docs/plan/20-active.md` with the smallest implementation slice. Do not start implementation beyond that bounded slice in the same run.
 
 ## Current project state
 
@@ -570,22 +576,39 @@ The complete 0.954 implementation and verification sequence is complete.
 
 ### 0.955 Run-sized execution plan
 
-Only one slice is **CURRENT** at a time. Each slice must reach a verified checkpoint before the next slice begins.
+Only one slice is **CURRENT** at a time. Each slice must reach its stated completion condition before the next slice begins.
 
-1. **Context contract inventory and architecture review — CURRENT**
-   - Scope: inspect the authoritative context architecture and current implementation, establish the complete intended 0.955 context model, identify reusable existing contracts, and define the first bounded implementation slice.
-   - Entry: 0.954 Prompt and Instruction Governance verified.
-   - Completion: the context architecture/current implementation is reconciled and the smallest implementation slice is recorded in this active plan.
+1. **Context contract inventory and architecture review — VERIFIED CHECKPOINT**
+   - Scope completed: inspected the authoritative context architecture, current execution/context contracts, legacy conversation context implementation, and WinForms UI/data context adapters; reconciled them with the 0.955 requirements.
+   - Findings: `AgentExecutionRequest.HostContext` is a bounded string-map convenience input; `ConversationContextBuilder` is a conversation-history limiter; WinForms `IUiContext` / `WinFormsUiContext` is a host-specific discovery/data adapter; none is the canonical multi-source context model.
+   - Architectural resolution: `docs/architecture/20-context.md` now defines the canonical provider-neutral context item, budget, source/retrieval/assembly separation, policy boundary, ranking, compaction, provenance, caching, diagnostics, and immutable execution-snapshot target. Existing mechanisms remain producer/input boundaries rather than competing architectures.
+   - Completion: achieved in repository state by architecture reconciliation plus recording the bounded implementation slice below. No local .NET build/test is claimed for this planning-only checkpoint.
 
-2. **Bounded context acquisition and canonical context snapshots — PLANNED**
-   - Scope: implement the next verified context capability after Slice 1 review, preserving bounded host context, generic observations, snapshot isolation, cancellation, and provider neutrality.
+2. **Provider-neutral context contract foundation — CURRENT**
+   - Scope: add the smallest Core-only contract layer required by 0.955: provider-neutral context item metadata/payload representation, explicit context budget dimensions, bounded provenance/scope/trust/importance/freshness/size metadata, and the source boundary needed to supply candidate context. Do not implement ranking, compaction, cache, WinForms changes, or provider transport in this slice.
+   - Expected files: focused `src/HAgent.Core/Models/` context contract file(s) and the minimal `src/HAgent.Core/Abstractions/` source contract(s); update project references only if required by the existing project structure.
+   - Design constraints: no WinForms types, no SQL/provider-specific types, no raw SQL, no vendor tokenizer dependency, explicit validation/bounds, provider-neutral structured payload support, provenance retained as data, and no implication that context metadata grants authority or authorization.
+   - Entry: 0.955 Slice 1 verified checkpoint is present; the architecture document above is authoritative for the target contract.
+   - Completion: contracts compile on targeted frameworks, focused contract-level tests verify validation/bounds/clone-or-snapshot safety appropriate to the implemented types, and this active plan records the exact result. No Example expansion is required yet unless the public contract is usable enough to warrant a focused deterministic Example in the same bounded slice.
 
-3. **Deterministic Example verification — PLANNED**
-   - Scope: add and verify public-API Example coverage for the implemented 0.955 context capability on supported targets, including success, boundary, cancellation, and isolation cases appropriate to the design.
+3. **Bounded context acquisition and canonical context snapshots — PLANNED**
+   - Scope: implement bounded host/source acquisition and produce the immutable execution context snapshot, including cancellation and isolation from caller-owned mutable state.
+
+4. **Ranking, deterministic prioritization, and deduplication — PLANNED**
+   - Scope: implement provider-neutral relevance/ranking inputs and deterministic tie-breaking over candidate context.
+
+5. **Compaction, truncation, and provenance-preserving diagnostics — PLANNED**
+   - Scope: add explicit budget enforcement strategies while preserving required policy/instruction authority and provenance.
+
+6. **Cache-safe reusable context components — PLANNED**
+   - Scope: add bounded, ownership/version/freshness-aware cache contracts and reuse behavior.
+
+7. **Execution/provider integration and deterministic Example verification — PLANNED**
+   - Scope: integrate the canonical context snapshot into execution/provider mapping and add focused public-API Example verification for the completed 0.955 capability across supported targets, including success, boundary, cancellation/isolation, budget, ranking, compaction, provenance, cache, and policy-exclusion cases as applicable.
 
 ### Verification rule
 
-A slice becomes complete only after the implementation exists, matching deterministic Example or focused test verification passes locally, and the authoritative architecture/roadmap documentation reflects the verified result. Do not claim local build/test success unless it was actually performed.
+A slice becomes complete only after its implementation exists, the matching deterministic or focused verification passes locally, and the authoritative architecture/roadmap documentation reflects the verified result. Do not claim local build/test success unless it was actually performed.
 
 ### Run rule
 

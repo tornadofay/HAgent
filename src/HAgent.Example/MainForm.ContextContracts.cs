@@ -27,6 +27,7 @@ namespace HAgent.Example
             AddContextMultiResourceRetrievalTab();
             AddContextPolicyAssemblyTab();
             AddContextAssemblyTab();
+            AddContextHostAuthorizationTab();
         }
 
         private Task RunContextContractsTestAsync(string unused)

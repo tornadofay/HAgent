@@ -251,7 +251,7 @@ namespace HAgent.Example
         {
             var key = (title ?? string.Empty).Trim().ToUpperInvariant();
 
-            if (key == "CONTEXT BUDGET")
+            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT BUDGET")
                 return "Context Core";
             if (key.StartsWith("UI ", StringComparison.Ordinal) || key == "APPLICATION OBJECT CONTEXT")
                 return "UI Context";
@@ -282,8 +282,8 @@ namespace HAgent.Example
             if (key.Contains("MEMORY") || key == "AUTOMATIC MEMORY" || key == "TASK / EVENT MEMORY" || key == "EPISODIC MEMORY")
                 return "Memory";
 
-            if (key == "CONTEXT BUDGET" || key.StartsWith("UI ", StringComparison.Ordinal) ||
-                key == "APPLICATION OBJECT CONTEXT" || key == "DATA QUERY CONTRACT")
+            if (key == "CONTEXT CONTRACTS" || key == "CONTEXT ACQUISITION" || key == "CONTEXT BUDGET" ||
+                key.StartsWith("UI ", StringComparison.Ordinal) || key == "APPLICATION OBJECT CONTEXT" || key == "DATA QUERY CONTRACT")
                 return "Context";
 
             if (key.Contains("TOOL"))
@@ -302,24 +302,19 @@ namespace HAgent.Example
             if (key.Contains("IDENTITY"))
                 return "Identity";
 
+            if (key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION")
+                return "Runtime";
+
             if (key.Contains("WORKSPACE"))
                 return "Workspace";
 
             if (key.Contains("LEARNING") || key.Contains("COGNITION"))
                 return "Cognition";
 
-            if (key == "CONFIGURATION")
+            if (key.Contains("CONFIGURATION"))
                 return "Configuration";
 
-            if (key == "INTERNAL INVENTORY")
-                return "Diagnostics";
-
-            if (key.Contains("RUNTIME") || key.Contains("EXECUTION") || key.Contains("INTERVENTION") ||
-                key.Contains("QUOTA") || key.Contains("TARGET PLANNING") || key.Contains("TARGET CATALOG") ||
-                key.Contains("RESOURCE CAPABILITY") || key.Contains("AUDIT"))
-                return "Runtime";
-
-            return "Core";
+            return "Diagnostics";
         }
     }
 }

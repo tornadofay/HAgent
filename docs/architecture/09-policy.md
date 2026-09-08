@@ -17,6 +17,9 @@ The canonical contracts are:
 - `IAiStore.GetPolicySetAsync` / `SavePolicySetAsync` — the canonical persistence boundary for the current HAgent policy set.
 - `AiResourceCapabilityPolicy` — canonical profile/runtime resource enablement state using `Inherit`, `Enabled`, and `Disabled`.
 - `AiResourceCapabilitySnapshot` — effective resource state resolved for one execution.
+- `AiLearningPromotionRequest` — typed learning-promotion context carrying candidate type, proposed scope, evidence/confidence, provenance, contradiction, retention, source identities, and learning mode.
+- `AiLearningPromotionPolicy` — adapter that evaluates a learning-promotion request through the unified `IAiPolicyEngine`; it does not create a second policy evaluator.
+- `AiLearningCandidate` — provider-neutral candidate lifecycle state with explicit review and promotion transitions.
 
 Supported policy outcomes are `NotApplicable`, `Allow`, `Deny`, `RequireApproval`, and `Defer`.
 
@@ -76,6 +79,25 @@ A `Disabled` resource capability state blocks the tool before its executable han
 
 Tool execution for a live `AgentRuntimeInstance` applies that instance's runtime-only capability overrides over the persistent profile. Direct tool execution therefore uses the same tri-state semantics as execution snapshots. A tool loop retains one effective policy evaluator for the loop; runtime-instance-specific tool execution uses the instance's current runtime capability overrides for each invocation.
 
+## Learning promotion boundary
+
+Learning promotion uses the same unified policy evaluator rather than introducing a parallel learning-specific authorization engine. `AiLearningPromotionRequest` maps typed learning metadata into the normal policy operation `learning.promote` and resource type `learning-candidate`.
+
+The promotion context carries candidate type, proposed target scope, confidence/evidence state, provenance state, contradiction state, retention class, source execution/runtime/agent identity, optional learning mode, and canonical `AgentIdentityContext`. Policy rules can therefore require explicit evidence/provenance, restrict candidate type or scope, deny unresolved contradictions, and require review for sensitive promotion paths.
+
+`AiLearningPromotionPolicy.Evaluate` returns the normal `AiPolicyDecision`. `Allow` means policy permits the candidate to enter the approved state; `RequireApproval` and `Defer` move a candidate into `PendingReview`; `Deny` moves it to `Rejected`; `NotApplicable` is never treated as promotion authority.
+
+`AiLearningCandidate` enforces typed lifecycle transitions independently of prompts or model output:
+
+```text
+Proposed
+   ├── policy Allow ───────────────> Approved ──> Promoted
+   ├── policy RequireApproval/Defer -> PendingReview -> Approved -> Promoted
+   └── policy Deny ────────────────> Rejected
+```
+
+Explicit rejection is allowed from proposed, pending-review, or approved state. Promoted and rejected candidates are terminal. Actual repository mutation, candidate persistence, and the broader human-intervention workflow remain separate boundaries; an approved candidate does not itself mutate authoritative knowledge or skills.
+
 ## Approval and deferral
 
 `RequireApproval` and `Defer` are first-class decisions. They must not be represented as instructions hidden inside prompts. The later human-intervention and admission layers consume these outcomes and determine how the request proceeds.
@@ -102,8 +124,10 @@ Policy persistence is backend-neutral at `IAiStore` and currently represented by
 
 Agent resource capability defaults are part of the canonical `AiAgent` configuration and persist through the existing agent storage models. Runtime capability overrides are transient runtime configuration and are not persisted as profile state.
 
+Learning candidate persistence and promotion targets remain governed by the later Knowledge/Skills/Memory storage phase; the 0.953 policy boundary must decide whether a promotion is permitted but does not invent a second candidate repository contract.
+
 The SQL Server/MySQL HAgent bootstrap paths create the policy table during normal HAgent database provisioning. Missing persisted policy resolves to the valid empty policy set; malformed persisted policy is rejected rather than silently replaced.
 
 ## Current implementation
 
-Phase 0.953 currently implements the core policy contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime pre-transport enforcement, effective-policy execution snapshots, policy persistence through the HAgent File/SQL Server/MySQL configuration stores, policy-gated tool invocation, policy-first composition with host data authorization, and canonical profile/runtime resource capability resolution with execution snapshots and tool gating. Learning-promotion rules, human approval workflow, policy management UI, and full cross-backend live verification remain subsequent slices.
+Phase 0.953 currently implements the core policy contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime pre-transport enforcement, effective-policy execution snapshots, policy persistence through the HAgent File/SQL Server/MySQL configuration stores, policy-gated tool invocation, policy-first composition with host data authorization, canonical profile/runtime resource capability resolution with execution snapshots and tool gating, and typed learning-promotion policy evaluation plus candidate review/promotion transitions. Full candidate repositories, actual promotion targets, human approval workflow, policy management UI, and full cross-backend live verification remain subsequent slices.

@@ -54,22 +54,36 @@ Lifecycle eligibility is evaluated separately at a supplied point in time. This 
 
 `SelectWinner(sources, at)` selects only sources active at the supplied time and then applies the same deterministic comparator. There is no declaration-order or prompt-position authority rule.
 
+## Canonical composition
+
+`AiInstructionComposer` is the single provider-neutral composition boundary for instruction-bearing sources. It validates each source, excludes disabled/expired/revoked or otherwise invalid sources, records bounded diagnostics for excluded input, groups competing active sources by `ConflictKey`, and selects one deterministic winner per conflict group using `AiInstructionPrecedence`.
+
+Sources without a conflict key remain additive. The resulting `AiInstructionCompositionResult` contains:
+
+- `Snapshot` — cloned authoritative sources plus conflict evidence;
+- `ComposedText` — deterministic provider-neutral instruction text;
+- `Diagnostics` — bounded exclusion diagnostics that identify source metadata/reason without copying source content.
+
+`SystemPromptComposer` remains a small compatibility-shaped façade for the existing runtime API and delegates to `AiInstructionComposer`; it does not implement a second precedence or conflict mechanism.
+
+This slice intentionally composes instruction-bearing content only. Mature Skill/Knowledge/Memory retrieval and external-content governance belong to later resource/context slices.
+
 ## Conflict representation
 
 `AiInstructionConflict` records a conflict key, all competing source IDs, the selected winner when known, the disposition, a bounded explanation, and detection time. The contract can represent unresolved conflicts as well as deterministic higher-precedence resolution. Conflict objects are evidence; they do not themselves authorize or execute side effects.
 
 ## Execution snapshot provenance
 
-`AiInstructionSnapshot` contains cloned source and conflict records. `AgentExecutionSnapshot.InstructionSnapshot` captures a cloned instruction snapshot so later caller-owned mutation cannot alter the captured provenance objects. Prompt assembly and execution integration consume this contract in later 0.954 slices.
+`AiInstructionSnapshot` contains cloned source and conflict records. `AgentExecutionSnapshot.InstructionSnapshot` captures a cloned instruction snapshot so later caller-owned mutation cannot alter the captured provenance objects. Prompt assembly and execution integration consume this contract through the existing `SystemPromptComposer` delegation path without introducing a provider-specific prompt engine.
 
 ## Boundary rules
 
 - Instruction text is never an authorization boundary.
 - Provider adapters receive provider-neutral effective instructions and remain responsible only for transport representation.
 - Lower-authority or lower-trust content must not erase higher-authority policy.
-- Secrets and sensitive host payloads should not be copied into provenance/evidence fields; diagnostic redaction remains an observability concern.
+- Secrets and sensitive host payloads should not be copied into provenance/evidence fields; diagnostic composition excludes source content by default.
 - Skills, Knowledge, Memory, tools, host context, and external content are represented as source types rather than provider-specific prompt formats.
 
-## Planned follow-on
+## Verification status
 
-Slice 2 will use these contracts for canonical instruction composition and explicit conflict/invalid-source handling. Slice 1 deliberately does not introduce a second prompt engine or provider-specific message format.
+Slice 1 source/authority contracts were locally verified by the user through `COGNITION INSTRUCTIONS` before composition was added. Slice 2 composition implementation is present in `HAgent.Core` with deterministic Example coverage, but its new composition checks have not yet been locally executed in this connected environment.

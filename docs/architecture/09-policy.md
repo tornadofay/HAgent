@@ -12,7 +12,8 @@ The canonical contracts are:
 - `AiPolicyRule` — scoped rule with explicit outcome, priority, match constraints, and provenance text.
 - `AiPolicyEvaluationContext` — deterministic input describing operation, identity, agent/runtime/execution, resource, tool, provider, target, cost state, and bounded attributes.
 - `AiPolicyDecision` — normalized result including outcome, policy version, selected rule, scope, priority, reason, and built-in status.
-- `IAiPolicyEngine` — provider-neutral evaluator boundary.
+- `IAiPolicyEngine` — provider-neutral evaluator boundary. It also exposes an owned clone of the effective policy through `GetPolicySnapshot()`.
+- `AgentExecutionSnapshot.EffectivePolicy` — the deep-cloned policy state captured for the lifetime of one execution.
 
 Supported outcomes are `NotApplicable`, `Allow`, `Deny`, `RequireApproval`, and `Defer`.
 
@@ -54,10 +55,14 @@ The policy engine does not replace host authorization. A host may still supply a
 
 Prompt content is never the security or policy enforcement mechanism. A model can request an operation, but executable tools, provider calls, data access, learning promotion, and other side effects must pass the appropriate host/runtime enforcement boundary.
 
-## Versioning and caching
+## Versioning, snapshots, and caching
 
-A policy set has an explicit version. Evaluators snapshot the policy set when constructed so an in-flight evaluation cannot observe mutation from an external policy editor. The policy version is carried in every decision for provenance and future cache invalidation.
+A policy set has an explicit version. `DefaultAiPolicyEngine` snapshots the supplied policy when constructed. `GetPolicySnapshot()` returns another deep clone, so callers cannot mutate engine-owned policy state.
+
+When an execution begins, `DefaultAgentRuntime` obtains an owned policy clone and captures it in `AgentExecutionSnapshot.EffectivePolicy` alongside the agent/provider/runtime identity snapshot. The execution therefore retains the complete effective policy state and policy version that governed the run even if the source policy object is later edited or replaced.
+
+The execution continues to use the policy engine that supplied that captured state, so the recorded `PolicyDecision.PolicyVersion` and snapshot policy version identify the same policy generation. Future mutable policy repositories can use this boundary for deterministic refresh/invalidation without allowing an in-flight execution to observe later edits.
 
 ## Current implementation
 
-Phase 0.953 currently implements the core contracts, deterministic evaluator, scoped matching, precedence, provenance, and the built-in cost guard. Runtime enforcement, persistent policy storage, learning-promotion rules, resource tri-state integration, approval workflow, and effective-policy execution snapshots remain subsequent slices.
+Phase 0.953 currently implements the core contracts, deterministic evaluator, unrestricted-dimension matching, scoped matching, precedence, provenance, the built-in cost guard, runtime enforcement, and effective-policy execution snapshots. Persistent policy storage, learning-promotion rules, resource tri-state integration, host authorization integration, approval workflow, and policy management UI remain subsequent slices.

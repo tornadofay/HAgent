@@ -28,15 +28,21 @@ namespace HAgent.Runtime
             cancellationToken.ThrowIfCancellationRequested();
             query = query ?? new MemoryQuery();
             var terms = SplitTerms(query.Text);
-            var maxResults = query.MaxResults <= 0 ? 10 : query.MaxResults;
+            var maxResults = query.MaxResults <= 0 ? 10 : Math.Min(query.MaxResults, 1000);
+            var now = DateTimeOffset.UtcNow;
 
             var matches = _entries.Values
                 .Where(x => query.Scope == null || x.Scope == query.Scope.Value)
+                .Where(x => query.Kind == null || x.Kind == query.Kind.Value)
+                .Where(x => query.Family == null || x.Family == query.Family.Value)
+                .Where(x => string.IsNullOrWhiteSpace(query.TypeId) || string.Equals(x.TypeId, query.TypeId.Trim(), StringComparison.OrdinalIgnoreCase))
                 .Where(x => string.IsNullOrWhiteSpace(query.OwnerId) || string.Equals(x.OwnerId, query.OwnerId, StringComparison.OrdinalIgnoreCase))
+                .Where(x => query.IncludeExpired || !x.IsExpired(now))
                 .Where(x => MetadataMatches(x, query.Metadata))
                 .Select(x => new { Entry = x, Score = Score(x, terms) })
                 .Where(x => terms.Count == 0 || x.Score > 0)
                 .OrderByDescending(x => x.Score)
+                .ThenByDescending(x => x.Entry.OccurredAt)
                 .ThenByDescending(x => x.Entry.CreatedAt)
                 .Take(maxResults)
                 .Select(x => x.Entry.Clone())

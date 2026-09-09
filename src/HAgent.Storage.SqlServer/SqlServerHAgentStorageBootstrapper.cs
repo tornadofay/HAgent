@@ -7,31 +7,20 @@ using Microsoft.Data.SqlClient;
 
 namespace HAgent.Storage.SqlServer
 {
-    /// <summary>
-    /// Provisions and upgrades HAgent's own SQL Server database. It never inspects or changes host application tables.
-    /// </summary>
     public sealed class SqlServerHAgentStorageBootstrapper
     {
-        public const int CurrentSchemaVersion = 4;
+        public const int CurrentSchemaVersion = 5;
 
-        public async Task EnsureCreatedAsync(
-            HAgentStorageOptions options,
-            string password,
-            CancellationToken cancellationToken = default(CancellationToken))
+        public async Task EnsureCreatedAsync(HAgentStorageOptions options, string password, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            if (options.StorageType != HAgentStorageType.SqlServer)
-                throw new ArgumentException("The storage options must use SQL Server.", nameof(options));
-
+            if (options.StorageType != HAgentStorageType.SqlServer) throw new ArgumentException("The storage options must use SQL Server.", nameof(options));
             var profile = options.GetDatabaseProfile(HAgentStorageType.SqlServer);
-            if (profile == null)
-                throw new ArgumentException("SQL Server storage profile is required.", nameof(options));
-
+            if (profile == null) throw new ArgumentException("SQL Server storage profile is required.", nameof(options));
             var databaseName = options.GetEffectiveDatabaseName();
             var port = profile.GetEffectivePort(HAgentStorageType.SqlServer);
             var serverConnection = BuildConnectionString(profile.ServerName, port, profile.UserName, password, null);
             await EnsureDatabaseAsync(serverConnection, databaseName, cancellationToken).ConfigureAwait(false);
-
             var databaseConnection = BuildConnectionString(profile.ServerName, port, profile.UserName, password, databaseName);
             using (var connection = new SqlConnection(databaseConnection))
             {
@@ -41,27 +30,17 @@ namespace HAgent.Storage.SqlServer
                     command.CommandTimeout = 60;
                     await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 }
-
                 await ApplyMigrationsAsync(connection, cancellationToken).ConfigureAwait(false);
             }
         }
 
-        public static async Task TestConnectionAsync(
-            string serverName,
-            int port,
-            string userName,
-            string password,
-            CancellationToken cancellationToken = default(CancellationToken))
+        public static async Task TestConnectionAsync(string serverName, int port, string userName, string password, CancellationToken cancellationToken = default(CancellationToken))
         {
             var connectionString = BuildConnectionString(serverName, port, userName, password, null);
-            using (var connection = new SqlConnection(connectionString))
-                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            using (var connection = new SqlConnection(connectionString)) await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public static string BuildConnectionString(string serverName, string userName, string password, string databaseName)
-        {
-            return BuildConnectionString(serverName, 1433, userName, password, databaseName);
-        }
+        public static string BuildConnectionString(string serverName, string userName, string password, string databaseName) { return BuildConnectionString(serverName, 1433, userName, password, databaseName); }
 
         public static string BuildConnectionString(string serverName, int port, string userName, string password, string databaseName)
         {
@@ -75,15 +54,8 @@ namespace HAgent.Storage.SqlServer
                 Encrypt = true,
                 ConnectTimeout = 15
             };
-
-            if (string.IsNullOrWhiteSpace(userName))
-                builder.IntegratedSecurity = true;
-            else
-            {
-                builder.UserID = userName;
-                builder.Password = password ?? string.Empty;
-            }
-
+            if (string.IsNullOrWhiteSpace(userName)) builder.IntegratedSecurity = true;
+            else { builder.UserID = userName; builder.Password = password ?? string.Empty; }
             return builder.ConnectionString;
         }
 
@@ -96,7 +68,6 @@ BEGIN
     SET @createDatabaseSql = N'CREATE DATABASE ' + QUOTENAME(@databaseName);
     EXEC sys.sp_executesql @createDatabaseSql;
 END;";
-
             using (var connection = new SqlConnection(serverConnection))
             using (var command = new SqlCommand(sql, connection))
             {
@@ -117,7 +88,7 @@ END;";
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentProviders', N'U') IS NULL CREATE TABLE dbo.HAgentProviders (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentProviders PRIMARY KEY, Name nvarchar(200) NOT NULL, Kind nvarchar(100) NOT NULL, BaseUrl nvarchar(1000) NOT NULL, DefaultModel nvarchar(200) NULL, DefaultSystemPrompt nvarchar(max) NULL, SecretId nvarchar(200) NULL, Enabled bit NOT NULL CONSTRAINT DF_HAgentProviders_Enabled DEFAULT(1));");
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentAgents', N'U') IS NULL CREATE TABLE dbo.HAgentAgents (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentAgents PRIMARY KEY, Name nvarchar(200) NOT NULL, ProviderId nvarchar(128) NULL, Model nvarchar(200) NULL, SystemPrompt nvarchar(max) NULL, UseProviderSystemPrompt bit NOT NULL CONSTRAINT DF_HAgentAgents_UseProviderPrompt DEFAULT(1), Temperature float NULL, MaxOutputTokens int NULL, Enabled bit NOT NULL CONSTRAINT DF_HAgentAgents_Enabled DEFAULT(1));");
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentTools', N'U') IS NULL CREATE TABLE dbo.HAgentTools (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentTools PRIMARY KEY, Name nvarchar(200) NOT NULL, Category nvarchar(100) NULL, Description nvarchar(max) NULL, InputSchemaJson nvarchar(max) NULL, Type int NOT NULL, Enabled bit NOT NULL CONSTRAINT DF_HAgentTools_Enabled DEFAULT(1), IsBuiltIn bit NOT NULL CONSTRAINT DF_HAgentTools_IsBuiltIn DEFAULT(0));");
-            sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentMemoryEntries', N'U') IS NULL CREATE TABLE dbo.HAgentMemoryEntries (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentMemoryEntries PRIMARY KEY, Scope nvarchar(50) NOT NULL, Kind nvarchar(50) NOT NULL, OwnerId nvarchar(128) NOT NULL, TaskId nvarchar(128) NULL, Content nvarchar(max) NOT NULL, MetadataJson nvarchar(max) NULL, CreatedAt datetimeoffset NOT NULL, OccurredAt datetimeoffset NOT NULL);");
+            sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentMemoryEntries', N'U') IS NULL CREATE TABLE dbo.HAgentMemoryEntries (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentMemoryEntries PRIMARY KEY, Scope nvarchar(50) NOT NULL, Kind nvarchar(50) NOT NULL, Family nvarchar(50) NOT NULL CONSTRAINT DF_HAgentMemoryEntries_Family DEFAULT(N'Semantic'), TypeId nvarchar(256) NOT NULL CONSTRAINT DF_HAgentMemoryEntries_TypeId DEFAULT(N'semantic.fact'), OwnerId nvarchar(128) NOT NULL, TaskId nvarchar(128) NULL, Content nvarchar(max) NOT NULL, MetadataJson nvarchar(max) NULL, ProvenanceJson nvarchar(max) NOT NULL CONSTRAINT DF_HAgentMemoryEntries_ProvenanceJson DEFAULT(N'{""Kind"":0}'), CreatedAt datetimeoffset NOT NULL, OccurredAt datetimeoffset NOT NULL, ExpiresAt datetimeoffset NULL);");
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentConversations', N'U') IS NULL CREATE TABLE dbo.HAgentConversations (SessionId nvarchar(128) NOT NULL CONSTRAINT PK_HAgentConversations PRIMARY KEY, AgentId nvarchar(128) NOT NULL, CreatedAt datetimeoffset NOT NULL, UpdatedAt datetimeoffset NOT NULL, MessagesJson nvarchar(max) NOT NULL);");
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentSkills', N'U') IS NULL CREATE TABLE dbo.HAgentSkills (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentSkills PRIMARY KEY, Name nvarchar(200) NOT NULL, Description nvarchar(max) NULL, DefinitionJson nvarchar(max) NULL, Enabled bit NOT NULL CONSTRAINT DF_HAgentSkills_Enabled DEFAULT(1));");
             sql.AppendLine("IF OBJECT_ID(N'dbo.HAgentWikiDocuments', N'U') IS NULL CREATE TABLE dbo.HAgentWikiDocuments (Id nvarchar(128) NOT NULL CONSTRAINT PK_HAgentWikiDocuments PRIMARY KEY, Title nvarchar(500) NOT NULL, Content nvarchar(max) NOT NULL, Source nvarchar(1000) NULL, Version nvarchar(64) NULL, CreatedAt datetimeoffset NOT NULL, UpdatedAt datetimeoffset NOT NULL);");
@@ -130,49 +101,34 @@ END;";
         private static async Task ApplyMigrationsAsync(SqlConnection connection, CancellationToken cancellationToken)
         {
             var version = await GetSchemaVersionAsync(connection, cancellationToken).ConfigureAwait(false);
-            if (version > CurrentSchemaVersion)
-                throw new InvalidOperationException("Unsupported HAgent SQL Server schema version: " + version + ".");
-
+            if (version > CurrentSchemaVersion) throw new InvalidOperationException("Unsupported HAgent SQL Server schema version: " + version + ".");
             while (version < CurrentSchemaVersion)
             {
                 switch (version)
                 {
-                    case 1:
-                        await MigrateV1ToV2Async(connection, cancellationToken).ConfigureAwait(false);
-                        version = 2;
-                        break;
-                    case 2:
-                        await MigrateV2ToV3Async(connection, cancellationToken).ConfigureAwait(false);
-                        version = 3;
-                        break;
-                    case 3:
-                        await MigrateV3ToV4Async(connection, cancellationToken).ConfigureAwait(false);
-                        version = 4;
-                        break;
-                    default:
-                        throw new InvalidOperationException("Unsupported HAgent SQL Server schema version: " + version + ".");
+                    case 1: await MigrateV1ToV2Async(connection, cancellationToken).ConfigureAwait(false); version = 2; break;
+                    case 2: await MigrateV2ToV3Async(connection, cancellationToken).ConfigureAwait(false); version = 3; break;
+                    case 3: await MigrateV3ToV4Async(connection, cancellationToken).ConfigureAwait(false); version = 4; break;
+                    case 4: await MigrateV4ToV5Async(connection, cancellationToken).ConfigureAwait(false); version = 5; break;
+                    default: throw new InvalidOperationException("Unsupported HAgent SQL Server schema version: " + version + ".");
                 }
-
                 await SetSchemaVersionAsync(connection, version, cancellationToken).ConfigureAwait(false);
             }
         }
 
         private static async Task<int> GetSchemaVersionAsync(SqlConnection connection, CancellationToken cancellationToken)
         {
-            const string sql = "SELECT SchemaVersion FROM dbo.HAgentSchemaInfo WHERE SchemaName=N'core';";
-            using (var command = new SqlCommand(sql, connection))
+            using (var command = new SqlCommand("SELECT SchemaVersion FROM dbo.HAgentSchemaInfo WHERE SchemaName=N'core';", connection))
             {
                 var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-                if (value == null || value == DBNull.Value)
-                    throw new InvalidOperationException("The HAgent SQL Server schema version record is missing.");
+                if (value == null || value == DBNull.Value) throw new InvalidOperationException("The HAgent SQL Server schema version record is missing.");
                 return Convert.ToInt32(value);
             }
         }
 
         private static async Task SetSchemaVersionAsync(SqlConnection connection, int version, CancellationToken cancellationToken)
         {
-            const string sql = "UPDATE dbo.HAgentSchemaInfo SET SchemaVersion=@Version, UpdatedAt=SYSUTCDATETIME() WHERE SchemaName=N'core';";
-            using (var command = new SqlCommand(sql, connection))
+            using (var command = new SqlCommand("UPDATE dbo.HAgentSchemaInfo SET SchemaVersion=@Version, UpdatedAt=SYSUTCDATETIME() WHERE SchemaName=N'core';", connection))
             {
                 command.Parameters.AddWithValue("@Version", version);
                 await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -182,99 +138,45 @@ END;";
         private static async Task MigrateV1ToV2Async(SqlConnection connection, CancellationToken cancellationToken)
         {
             const string sql = @"
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentMemoryEntries_OwnerScopeOccurred' AND object_id=OBJECT_ID(N'dbo.HAgentMemoryEntries'))
-BEGIN
-    CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON dbo.HAgentMemoryEntries(OwnerId, Scope, OccurredAt DESC, CreatedAt DESC);
-END;
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentMemoryEntries_TaskOccurred' AND object_id=OBJECT_ID(N'dbo.HAgentMemoryEntries'))
-BEGIN
-    CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON dbo.HAgentMemoryEntries(TaskId, OccurredAt DESC, CreatedAt DESC);
-END;
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentConversations_UpdatedAt' AND object_id=OBJECT_ID(N'dbo.HAgentConversations'))
-BEGIN
-    CREATE INDEX IX_HAgentConversations_UpdatedAt ON dbo.HAgentConversations(UpdatedAt DESC);
-END;";
-
-            using (var command = new SqlCommand(sql, connection))
-            {
-                command.CommandTimeout = 60;
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentMemoryEntries_OwnerScopeOccurred' AND object_id=OBJECT_ID(N'dbo.HAgentMemoryEntries')) CREATE INDEX IX_HAgentMemoryEntries_OwnerScopeOccurred ON dbo.HAgentMemoryEntries(OwnerId, Scope, OccurredAt DESC, CreatedAt DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentMemoryEntries_TaskOccurred' AND object_id=OBJECT_ID(N'dbo.HAgentMemoryEntries')) CREATE INDEX IX_HAgentMemoryEntries_TaskOccurred ON dbo.HAgentMemoryEntries(TaskId, OccurredAt DESC, CreatedAt DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentConversations_UpdatedAt' AND object_id=OBJECT_ID(N'dbo.HAgentConversations')) CREATE INDEX IX_HAgentConversations_UpdatedAt ON dbo.HAgentConversations(UpdatedAt DESC);";
+            using (var command = new SqlCommand(sql, connection)) { command.CommandTimeout = 60; await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false); }
         }
 
         private static async Task MigrateV2ToV3Async(SqlConnection connection, CancellationToken cancellationToken)
         {
             const string sql = @"
-IF OBJECT_ID(N'dbo.HAgentExecutionAudits', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.HAgentExecutionAudits (
-        ExecutionId nvarchar(128) NOT NULL CONSTRAINT PK_HAgentExecutionAudits PRIMARY KEY,
-        CorrelationId nvarchar(128) NOT NULL,
-        AgentId nvarchar(128) NOT NULL,
-        AgentName nvarchar(200) NOT NULL,
-        Model nvarchar(200) NOT NULL,
-        LastProviderId nvarchar(128) NOT NULL,
-        LastProviderName nvarchar(200) NOT NULL,
-        State nvarchar(50) NOT NULL,
-        FailureKind nvarchar(100) NOT NULL,
-        ProviderErrorKind nvarchar(100) NOT NULL,
-        CreatedAt datetimeoffset NOT NULL,
-        StartedAt datetimeoffset NULL,
-        CompletedAt datetimeoffset NULL,
-        DurationMs float NULL
-    );
-END;
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentExecutionAudits_CorrelationId' AND object_id=OBJECT_ID(N'dbo.HAgentExecutionAudits'))
-BEGIN
-    CREATE INDEX IX_HAgentExecutionAudits_CorrelationId ON dbo.HAgentExecutionAudits(CorrelationId);
-END;
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentExecutionAudits_AgentCreated' AND object_id=OBJECT_ID(N'dbo.HAgentExecutionAudits'))
-BEGIN
-    CREATE INDEX IX_HAgentExecutionAudits_AgentCreated ON dbo.HAgentExecutionAudits(AgentId, CreatedAt DESC);
-END;";
-
-            using (var command = new SqlCommand(sql, connection))
-            {
-                command.CommandTimeout = 60;
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
+IF OBJECT_ID(N'dbo.HAgentExecutionAudits', N'U') IS NULL CREATE TABLE dbo.HAgentExecutionAudits (ExecutionId nvarchar(128) NOT NULL CONSTRAINT PK_HAgentExecutionAudits PRIMARY KEY, CorrelationId nvarchar(128) NOT NULL, AgentId nvarchar(128) NOT NULL, AgentName nvarchar(200) NOT NULL, Model nvarchar(200) NOT NULL, LastProviderId nvarchar(128) NOT NULL, LastProviderName nvarchar(200) NOT NULL, State nvarchar(50) NOT NULL, FailureKind nvarchar(100) NOT NULL, ProviderErrorKind nvarchar(100) NOT NULL, CreatedAt datetimeoffset NOT NULL, StartedAt datetimeoffset NULL, CompletedAt datetimeoffset NULL, DurationMs float NULL);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentExecutionAudits_CorrelationId' AND object_id=OBJECT_ID(N'dbo.HAgentExecutionAudits')) CREATE INDEX IX_HAgentExecutionAudits_CorrelationId ON dbo.HAgentExecutionAudits(CorrelationId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentExecutionAudits_AgentCreated' AND object_id=OBJECT_ID(N'dbo.HAgentExecutionAudits')) CREATE INDEX IX_HAgentExecutionAudits_AgentCreated ON dbo.HAgentExecutionAudits(AgentId, CreatedAt DESC);";
+            using (var command = new SqlCommand(sql, connection)) { command.CommandTimeout = 60; await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false); }
         }
 
         private static async Task MigrateV3ToV4Async(SqlConnection connection, CancellationToken cancellationToken)
         {
             const string sql = @"
-IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.HAgentRuntimeInstances (
-        InstanceId nvarchar(128) NOT NULL CONSTRAINT PK_HAgentRuntimeInstances PRIMARY KEY,
-        ProfileId nvarchar(128) NOT NULL,
-        HostInstanceId nvarchar(128) NULL,
-        UserId nvarchar(128) NULL,
-        WorkspaceId nvarchar(128) NULL,
-        SessionId nvarchar(128) NULL,
-        Scope nvarchar(50) NOT NULL,
-        State nvarchar(50) NOT NULL,
-        CreatedAt datetimeoffset NOT NULL,
-        UpdatedAt datetimeoffset NOT NULL
-    );
-END;
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_ProfileUpdated' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances'))
-BEGIN
-    CREATE INDEX IX_HAgentRuntimeInstances_ProfileUpdated ON dbo.HAgentRuntimeInstances(ProfileId, UpdatedAt DESC);
-END;
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_HostUser' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances'))
-BEGIN
-    CREATE INDEX IX_HAgentRuntimeInstances_HostUser ON dbo.HAgentRuntimeInstances(HostInstanceId, UserId, UpdatedAt DESC);
-END;
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_Workspace' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances'))
-BEGIN
-    CREATE INDEX IX_HAgentRuntimeInstances_Workspace ON dbo.HAgentRuntimeInstances(WorkspaceId, UpdatedAt DESC);
-END;";
-            using (var command = new SqlCommand(sql, connection))
-            {
-                command.CommandTimeout = 60;
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NULL CREATE TABLE dbo.HAgentRuntimeInstances (InstanceId nvarchar(128) NOT NULL CONSTRAINT PK_HAgentRuntimeInstances PRIMARY KEY, ProfileId nvarchar(128) NOT NULL, HostInstanceId nvarchar(128) NULL, UserId nvarchar(128) NULL, WorkspaceId nvarchar(128) NULL, SessionId nvarchar(128) NULL, Scope nvarchar(50) NOT NULL, State nvarchar(50) NOT NULL, CreatedAt datetimeoffset NOT NULL, UpdatedAt datetimeoffset NOT NULL);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_ProfileUpdated' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances')) CREATE INDEX IX_HAgentRuntimeInstances_ProfileUpdated ON dbo.HAgentRuntimeInstances(ProfileId, UpdatedAt DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_HostUser' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances')) CREATE INDEX IX_HAgentRuntimeInstances_HostUser ON dbo.HAgentRuntimeInstances(HostInstanceId, UserId, UpdatedAt DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_HAgentRuntimeInstances_Workspace' AND object_id=OBJECT_ID(N'dbo.HAgentRuntimeInstances')) CREATE INDEX IX_HAgentRuntimeInstances_Workspace ON dbo.HAgentRuntimeInstances(WorkspaceId, UpdatedAt DESC);";
+            using (var command = new SqlCommand(sql, connection)) { command.CommandTimeout = 60; await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false); }
+        }
+
+        private static async Task MigrateV4ToV5Async(SqlConnection connection, CancellationToken cancellationToken)
+        {
+            const string sql = @"
+IF COL_LENGTH(N'dbo.HAgentMemoryEntries', N'Family') IS NULL ALTER TABLE dbo.HAgentMemoryEntries ADD Family nvarchar(50) NULL;
+IF COL_LENGTH(N'dbo.HAgentMemoryEntries', N'TypeId') IS NULL ALTER TABLE dbo.HAgentMemoryEntries ADD TypeId nvarchar(256) NULL;
+IF COL_LENGTH(N'dbo.HAgentMemoryEntries', N'ProvenanceJson') IS NULL ALTER TABLE dbo.HAgentMemoryEntries ADD ProvenanceJson nvarchar(max) NULL;
+IF COL_LENGTH(N'dbo.HAgentMemoryEntries', N'ExpiresAt') IS NULL ALTER TABLE dbo.HAgentMemoryEntries ADD ExpiresAt datetimeoffset NULL;
+UPDATE dbo.HAgentMemoryEntries SET Family=N'Semantic' WHERE Family IS NULL;
+UPDATE dbo.HAgentMemoryEntries SET TypeId=N'semantic.fact' WHERE TypeId IS NULL;
+UPDATE dbo.HAgentMemoryEntries SET ProvenanceJson=N'{""Kind"":0}' WHERE ProvenanceJson IS NULL;
+ALTER TABLE dbo.HAgentMemoryEntries ALTER COLUMN Family nvarchar(50) NOT NULL;
+ALTER TABLE dbo.HAgentMemoryEntries ALTER COLUMN TypeId nvarchar(256) NOT NULL;
+ALTER TABLE dbo.HAgentMemoryEntries ALTER COLUMN ProvenanceJson nvarchar(max) NOT NULL;";
+            using (var command = new SqlCommand(sql, connection)) { command.CommandTimeout = 60; await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false); }
         }
     }
 }

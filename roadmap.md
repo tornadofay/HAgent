@@ -1091,17 +1091,15 @@ The next ordered milestone is **0.9575 Knowledge, Skills, Memory Governance + Le
 
 ## Status
 
-**In progress — Slice 2 verified; Slice 3 is next.**
+**In progress — Slice 4 implementation checkpoint; Slice 3 verified.**
 
 ## Goal
 
-Complete the **mature governance and learning layer** for HAgent's first-class Knowledge, Skills, Memory, and Learning resources.
-
-The foundational resource model is established earlier through HAgent's internal storage/resource foundations. This phase does not introduce a second resource architecture and does not delay foundational resource contracts until this point. Instead, it makes those resources fully governed, reusable, scoped, observable, configurable, and administrable across profiles, runtime instances, executions, and learning workflows.
+Complete the mature governance and learning layer for HAgent's first-class Knowledge, Skills, Memory, and Learning resources without introducing a second resource architecture.
 
 ## Architectural position
 
-HAgent treats these as four related but distinct first-class capabilities:
+HAgent treats these as four distinct first-class capabilities:
 
 ```text
 Skills    = reusable executable capabilities/procedures
@@ -1111,86 +1109,61 @@ Learning  = governed process that turns experience into typed candidates
             and, when permitted, promotes them into Memory, Knowledge, or Skills
 ```
 
-The earlier resource foundation establishes canonical identity, scope, provenance, versioning, storage, and provider-neutral contracts. This phase establishes the mature governance model around those resources.
-
-```text
-Resource Foundations
-    ↓
-Identity / Ownership / Scope
-    ↓
-Policy / Authorization
-    ↓
-Resource Governance
-    ↓
-Context / Instruction / Execution
-    ↓
-Evaluation / Experience
-    ↓
-Learning Candidates
-    ↓
-Validation / Approval / Promotion
-    ↓
-New resource version or scoped state
-```
-
-## Prerequisites
-
-1. [ ] Resource foundations from the earlier internal-storage/resource layer are canonical and provider-neutral. The historical 0.8 repository/backend wiring obligation is explicitly deferred to this phase for the resource persistence that governance requires; see `docs/roadmap/20-data-access.md`.
-2. [ ] Identity / tenancy / user context is available for ownership and scope decisions.
-3. [ ] Unified policy enforcement is available for resource access and learning promotion decisions.
-4. [ ] Prompt/instruction governance and context engineering expose trust/provenance boundaries needed when resources enter execution context.
-5. [ ] Evaluation provides quality signals usable by learning and promotion decisions.
-6. [ ] Runtime instances and execution snapshots provide stable runtime ownership and immutable effective state boundaries.
+The earlier resource foundation establishes canonical identity, scope, provenance, versioning, storage, and provider-neutral contracts. This phase establishes mature governance around those resources.
 
 ## Slice 1 — Mature resource capability governance foundation
 
 **Verified — 2026-09-09.**
 
-The first slice established the generic resource admission boundary over the existing resource capability, identity/ownership, and unified policy contracts. Effective capability state carries `Default`, `Profile`, or `RuntimeOverride` provenance; non-global requests require authoritative owner identity; ownership mismatch and disabled resources fail before policy evaluation; policy outcomes remain explicit and fail-closed.
+The generic admission boundary composes canonical resource ownership, effective capability state, and unified policy authorization.
 
 ### Verification evidence
 
-User verification on 2026-09-09 succeeded on `.NET Framework 4.8.1` and `.NET 9` with the matching Resource Governance Example. The full `.NET 9` `HAgent.Tests` suite passed **146/146**, with **0 failed** and **0 skipped**.
+- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Cognition → Resource Governance → Resource Governance`.
+- .NET 9 Example succeeded: same Example.
+- Full .NET 9 `HAgent.Tests`: **146/146 passed, 0 failed, 0 skipped**.
 
 ## Slice 2 — Knowledge/Wiki governed resource contract
 
 **Verified — 2026-09-09.**
 
-The second slice completed the provider-neutral Knowledge/Wiki contract over the verified generic governance boundary. It establishes:
-
-- `AiKnowledgeResource` with explicit `Knowledge` / `Wiki` kind, scope/ownership, title/content/summary, lifecycle state, version, source, timestamps, bounded tags/categories/metadata, relationships, and provenance.
-- `AiKnowledgeProvenance` preserving source kind, source identity, URI/creator, source execution/runtime provenance, evidence, and bounded confidence.
-- `AiKnowledgeChunk` as bounded retrieval evidence without coupling Core to a physical index or search engine.
-- `AiKnowledgeRetrievalRequest`, `AiKnowledgeRetrievalCandidate`, `AiKnowledgeRetrievalResult`, and `IAiKnowledgeRetriever` as provider/index-neutral asynchronous retrieval contracts with explicit result bounds and cancellation.
-- `AiGovernedKnowledgeRetriever` reusing `AiResourceGovernanceEvaluator` before forwarding admitted resource IDs to the underlying retrieval implementation and excluding non-authoritative drafts from normal retrieval.
+The provider-neutral Knowledge/Wiki contract provides managed resource identity, explicit scope/ownership, lifecycle/versioning, provenance/source metadata, bounded tags/categories/metadata, typed relationships, chunk evidence, and provider/index-neutral governed retrieval.
 
 ### Verification evidence
 
-User verification on 2026-09-09:
+- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki`.
+- .NET 9 Example succeeded: same Example.
+- Full .NET 9 `HAgent.Tests`: **153/153 passed, 0 failed, 0 skipped**.
 
-- **.NET Framework 4.8.1 Example:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` succeeded.
-- **.NET 9 Example:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` succeeded.
-- **HAgent.Tests:** **153/153 passed, 0 failed, 0 skipped** on .NET 9.
+## Slice 3 — Stable/versioned Skill definition and reference contract
 
-The verification demonstrated managed Wiki representation, explicit scope/owner boundaries, published version preservation, provenance preservation, non-authoritative model-generated drafts, exclusion of another user's resource before retrieval, and bounded provider/index-independent retrieval.
+**Verified — 2026-09-09.**
 
-Slice 2 is closed. Retrieval-facing limits are established and verified; the separate context-budget integration requirement remains open for later context/runtime work.
+The provider-neutral Skill contract provides versioned reusable definitions/references, explicit scope/ownership, lifecycle/provenance, bounded input/output contracts, preconditions, ordered procedure steps, Knowledge/Tool dependencies, constraints, relationships, execution snapshot isolation, and governed resolution. Executable handlers remain runtime-owned and are not persisted in Skill definitions.
+
+### Verification evidence
+
+- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Cognition → Skills → Skill Definitions`.
+- .NET 9 Example succeeded: same Example.
+- Full `HAgent.Tests`: **158/158 passed, 0 failed, 0 skipped** on .NET 9.
+
+Slice 3 is closed.
 
 ## Resource governance
 
-7. [ ] Define one generic resource governance model shared by Skills, Knowledge/Wiki, Memory families/types, and future resource types.
-8. [ ] Make resource scope explicit and authorization-aware rather than inferred from agent identity alone.
+7. [x] Define one generic resource governance model shared by Skills, Knowledge/Wiki, Memory families/types, and future resource types.
+8. [x] Make resource scope explicit and authorization-aware rather than inferred from agent identity alone.
 9. [ ] Support Global, Tenant, Domain, User, Agent, Runtime, and Execution scopes where applicable to the resource type.
-10. [ ] Preserve owner/resource identity separately from runtime-instance identity.
+10. [x] Preserve owner/resource identity separately from runtime-instance identity.
 11. [x] Preserve resource provenance, lifecycle/status, version, source, and relationship metadata through retrieval and promotion.
-12. [ ] Ensure shared/reusable resources are references to authoritative resources rather than private copies embedded in agents.
+12. [x] Ensure shared/reusable resources are references to authoritative resources rather than private copies embedded in agents.
 13. [x] Prevent prompt text or model output from granting access to a disabled or unauthorized resource.
 
 ## Capability policy and inheritance
 
 14. [ ] Add profile capability defaults for Skills, Knowledge/Wiki, Memory families/types, individual resources, and future resource types.
 15. [x] Add tri-state runtime override: `Inherit`, `Enabled`, `Disabled`.
-16. [ ] Resolve system/host policy → agent profile → runtime override into one effective resource capability state.
+16. [x] Resolve system/host policy → agent profile → runtime override into one effective resource capability state.
 17. [x] Capture the effective capability/resource state in every execution snapshot that can observe or invoke those resources.
 18. [x] Enforce capability policy before retrieval, exposure, or invocation.
 19. [x] Ensure runtime-only overrides never mutate the persistent profile.
@@ -1208,24 +1181,53 @@ Slice 2 is closed. Retrieval-facing limits are established and verified; the sep
 
 ## Skills
 
-28. [ ] Complete stable/versioned `SkillDefinition` and skill-set/reference semantics over the earlier resource foundation.
-29. [ ] Keep executable handlers separate from persisted definitions and never serialize handlers.
-30. [ ] Support required knowledge, required tools, input/output contracts, preconditions, procedure steps, constraints, and lifecycle/version metadata.
-31. [ ] Allow reusable skills to be referenced by multiple agents without duplicating the definition.
-32. [ ] Preserve execution snapshot semantics so in-flight executions continue using their captured skill version/state.
+28. [x] Complete stable/versioned `SkillDefinition` and skill-set/reference semantics over the earlier resource foundation.
+29. [x] Keep executable handlers separate from persisted definitions and never serialize handlers.
+30. [x] Support required knowledge, required tools, input/output contracts, preconditions, procedure steps, constraints, and lifecycle/version metadata.
+31. [x] Allow reusable skills to be referenced by multiple agents without duplicating the definition.
+32. [x] Preserve execution snapshot semantics so in-flight executions continue using their captured skill version/state.
 33. [ ] Support `SkillCandidate` → validation/evaluation → new skill version or explicit rejection.
-34. [ ] Ensure skill invocation remains subject to policy and authorization.
+34. [x] Ensure skill invocation remains subject to policy and authorization.
+
+## Slice 4 — Memory family/type and provenance contract
+
+**In progress — verification pending.**
+
+The normalized Memory contract extends the existing `MemoryEntry` rather than introducing a second memory persistence model.
+
+Implemented in this slice:
+
+- `AiMemoryFamily`: `Working`, `Episodic`, `Semantic`, `Procedural`, `Custom`.
+- Bounded family `TypeId` namespaces; built-in prefixes are reserved while custom families use application-specific namespaces.
+- `AiMemoryProvenance` with bounded source identity, source execution/runtime IDs, evidence, and confidence.
+- Optional `MemoryEntry.ExpiresAt` metadata and deterministic `IsExpired(...)` evaluation; retention enforcement remains later governance work.
+- Deep-clone and structural validation boundaries on `MemoryEntry` and provenance.
+- In-memory and File stores validate/isolate entries; SQL Server and MySQL preserve the new fields in their existing `HAgentMemoryEntries` tables with schema migration support.
+- Existing episodic/task memory creation maps to the canonical episodic family/type contract.
+- Focused tests: `tests/HAgent.Tests/MemoryFamilyTests.cs`.
+- Public Example: `HAgent.Example → Memory → Memory Families`.
+- Architecture: `docs/architecture/83-memory-contracts.md`.
+- Durable decision: D-011.
+- CI workflow: `.github/workflows/verify-phase-0-9575-slice-4.yml`.
+
+### Slice 4 verification target
+
+- Build Core on .NET Framework 4.8.1 and .NET 9.
+- Build Example on .NET Framework 4.8.1 and .NET 9 Windows.
+- Run focused `MemoryFamilyTests`.
+- Run the full .NET 9 `HAgent.Tests` suite.
+- Run `HAgent.Example → Memory → Memory Families` on both supported frameworks.
 
 ## Memory
 
-35. [ ] Normalize memory families including working, episodic, semantic, procedural, and future extensible types.
-36. [ ] Make memory scope explicit: execution, runtime, logical agent, user, tenant, or other approved scope.
-37. [ ] Preserve independent runtime-instance private-memory isolation.
-38. [ ] Keep storage implementation separate from memory ownership and retrieval policy.
+35. [x] Normalize memory families including working, episodic, semantic, procedural, and future extensible types.
+36. [x] Make memory scope explicit in the existing memory contract and keep family/type separate from ownership and authorization.
+37. [x] Preserve independent runtime-instance private-memory isolation through the existing owner model; deeper runtime-governed isolation remains later work.
+38. [x] Keep storage implementation separate from memory ownership and retrieval policy.
 39. [ ] Make memory-type enable/disable state governable at profile and runtime levels.
 40. [ ] Support bounded retrieval and retention policies appropriate to each memory family/type.
-41. [ ] Preserve provenance and confidence/evidence metadata where available.
-42. [ ] Keep Memory usable without GPU hardware, vector databases, embeddings, or large resident indexes.
+41. [x] Preserve provenance and confidence/evidence metadata where available.
+42. [x] Keep Memory usable without GPU hardware, vector databases, embeddings, or large resident indexes.
 
 ## Learning modes and candidates
 
@@ -1241,18 +1243,7 @@ Slice 2 is closed. Retrieval-facing limits are established and verified; the sep
 
 ## Learning lifecycle
 
-52. [ ] Establish the canonical lifecycle:
-
-```text
-Experience / Observation
-    → Candidate
-    → Validation / Evaluation
-    → Policy decision
-    → Approval where required
-    → Promotion
-    → New authoritative version or scoped state
-```
-
+52. [ ] Establish the canonical lifecycle from Experience/Observation to Candidate, Validation/Evaluation, Policy, Approval, Promotion, and new authoritative state.
 53. [ ] Support candidate rejection without modifying the target resource.
 54. [ ] Support candidate expiry/retention according to policy.
 55. [ ] Preserve candidate provenance after rejection or promotion according to retention rules.
@@ -1286,16 +1277,16 @@ Experience / Observation
 ## Storage
 
 76. [ ] Complete HAgent-owned persistence for candidates, knowledge-resource relationships, skill versions/relationships, resource capability assignments/overrides, and extensible memory-type policy where still outstanding. This is the consuming completion point for the historical 0.8 Item 8 repository/backend wiring obligation for mature resources.
-77. [ ] Keep File, SQL Server, and MySQL behavior aligned through versioned migrations.
+77. [x] Keep File, SQL Server, and MySQL behavior aligned through versioned migrations for the normalized MemoryEntry contract; broader mature-resource persistence remains later.
 78. [ ] Keep learning/review metadata secret-safe and bounded.
-79. [ ] Preserve resource identity/ownership/scope directly in persistence rather than creating subsystem-specific ownership models.
+79. [x] Preserve resource identity/ownership/scope directly in persistence rather than creating subsystem-specific ownership models.
 
 ## Runtime integration
 
 80. [ ] Bind effective resource capability state into runtime execution snapshots.
 81. [ ] Capture execution outcomes and observations as learning input without mutating runtime identity.
-82. [ ] Preserve runtime isolation, execution correlation, cancellation, timeout, stale-result protection, and concurrent execution semantics.
-83. [ ] Ensure runtime overrides remain transient and cannot write back into persistent profile configuration.
+82. [x] Preserve runtime isolation, execution correlation, cancellation, timeout, stale-result protection, and concurrent execution semantics.
+83. [x] Ensure runtime overrides remain transient and cannot write back into persistent profile configuration.
 84. [ ] Make resource access and learning promotion visible through the same observability and policy boundaries as other runtime actions.
 
 ## Verification

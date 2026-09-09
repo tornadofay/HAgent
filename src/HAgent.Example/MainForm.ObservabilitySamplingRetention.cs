@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HAgent.Models;
 using HAgent.Runtime;
 
@@ -20,7 +21,7 @@ namespace HAgent.Example
                 "This Slice 4 scenario exercises provider-neutral telemetry controls; exporters, persistent sinks, and diagnostic UI remain later slices.");
         }
 
-        private void RunObservabilitySamplingRetentionTest(string unused)
+        private async Task RunObservabilitySamplingRetentionTest(string unused)
         {
             var stableOptions = new TraceSpanStartOptions
             {
@@ -101,7 +102,7 @@ namespace HAgent.Example
                 Correlation = new TraceCorrelation { ExecutionId = "example-oversized-42" },
                 Metadata = oversizedMetadata
             });
-            if (!oversized.TryComplete(TraceSpanStatus.Succeeded) || !oversized.IsCompleted)
+            if (!oversized.TryComplete(TraceSpanStatus.Succeeded) || !oversized.Record.IsCompleted)
                 throw new InvalidOperationException("A non-retained span could not complete normally.");
             if (ContainsExecution(recorder.GetSpans(), "example-oversized-42"))
                 throw new InvalidOperationException("Aggregate retention limit did not suppress the oversized span.");
@@ -123,6 +124,8 @@ namespace HAgent.Example
                 "Execution correctness is independent from sampling/retention: verified." + Environment.NewLine +
                 "Provider transport: none." + Environment.NewLine +
                 "Real provider request: none.");
+
+            await Task.CompletedTask.ConfigureAwait(true);
         }
 
         private static ITraceSpan StartExampleRoot(ITraceRecorder recorder, string executionId)

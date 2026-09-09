@@ -61,7 +61,7 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - Integrated sink dispatch into `InMemoryTraceRecorder` only after a sampled span completes and only while that span remains retained by the recorder; sampled-out and retention-rejected spans never cross the sink boundary.
    - Preserved the existing trace metadata/redaction contract; sinks receive the canonical bounded `TraceSpan` rather than prompts, provider payloads, tool payloads, host raw context, or arbitrary serialized objects.
    - Sink latency, queue saturation, and sink exceptions remain telemetry concerns and do not alter span lifecycle completion or execution correctness. One failing sink does not prevent other registered sinks from receiving the same span.
-   - Added focused `tests/HAgent.Tests/ObservabilitySinksTests.cs` covering FIFO delivery, sink-failure isolation, slow asynchronous sink behavior, sampled-out suppression, and retention-boundary suppression.
+   - Added focused `tests/HAgent.Tests/ObservabilitySinksTests.cs` covering FIFO delivery, sink-failure isolation, slow asynchronous sink behavior, bounded queue saturation, sampled-out suppression, and retention-boundary suppression.
    - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilitySinks.cs` scenario under `Diagnostics → Observability → Observability Sinks`.
    - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Verify no real provider or remote telemetry transport is contacted.
    - Do not mark Slice 5 verified until those user-side results are supplied.

@@ -657,17 +657,22 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityTracePropagation.cs` under `Diagnostics → Observability → Observability Trace Propagation`.
    - **User verification — 2026-09-09 05:15:** full `HAgent.Tests` completed with **85/85 tests passed**.
    - **User Example verification — .NET Framework 4.8.1, 2026-09-09 05:15:46:** cross-process trace/correlation propagation succeeded, including round-trip identity preservation, explicit trust acceptance/rejection, missing/malformed handling, unsampled preservation, carrier bounds, and no HTTP/message/OpenTelemetry/remote telemetry/provider transport.
-   - **User Example verification — .NET 9, 2026-09-09 05:16:23:** same public-API scenario succeeded with the same checks.
+   - **User Example verification — .NET 9, 2026-09-09 05:16:23:** same public-API scenario succeeded.
 
 8. **Failure, retry, fallback, waiting, and stale-result observability — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
    - Added provider-neutral `TraceObservation` as the bounded runtime decision-observation helper. When no traced recorder is active, observations are suppressed.
-   - Extended ambient trace state to carry the active recorder so runtime decisions can emit child spans without introducing a second execution-state authority.
-   - Extended `TracingProviderAdapter` so repeated provider invocations emit explicit `provider.retry` observations, retry-wait boundary observations, and `provider.recovery` observations; provider invocation spans also expose bounded attempt numbers.
-   - Extended `TracingAgentRuntime` to observe true multi-provider fallback when multiple provider targets appear in one traced execution and to record stale/late provider completion as `execution.stale-result` with `Rejected` status. These observations cannot change accepted execution terminal state.
-   - The implementation does not add retry/fallback behavior; it observes behavior already controlled by the execution runtime. No raw provider payloads, prompts, responses, credentials, or exceptions are copied into decision metadata.
-   - Added focused `tests/HAgent.Tests/ObservabilityOutcomeTracingTests.cs` covering observation suppression without an ambient trace, parent/correlation propagation, outcome statuses, and an actual traced retry/recovery path using a deterministic transient failure fake.
-   - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityOutcomeTracing.cs` under `Diagnostics → Observability → Observability Outcome Tracing`.
-   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Confirm no remote telemetry or real provider request is used. Do not begin Slice 9 in the same run.
+   - Added bounded `AgentExecutionObservation`, `ExecutionObservationKinds`, and `IExecutionObservationSource` as the provider-neutral boundary for authoritative execution outcome facts.
+   - Extended `DefaultAgentRuntime` to publish retry, retry-wait, recovery, and stale-result facts at the point where it already owns those decisions.
+   - Simplified `TracingProviderAdapter` so it records provider invocation spans only. It no longer infers attempt/retry state using `AsyncLocal`, call counting, or exception-message matching.
+   - Extended `TracingAgentRuntime` to consume `IExecutionObservationSource` and translate authoritative runtime facts into trace observations without becoming another execution-state authority.
+   - Fallback is not inferred from multiple provider spans. A fallback observation is valid only when the authoritative execution runtime explicitly reports a fallback decision.
+   - Kept execution terminal state authoritative; tracing never commits, retries, cancels, approves, rejects, or overwrites execution outcomes.
+   - Added focused `tests/HAgent.Tests/ObservabilityOutcomeTracingTests.cs` covering disabled observation, child/correlation propagation, authoritative retry/wait/recovery facts, exact attempt/retry ordinals, and trace translation.
+   - Updated and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityOutcomeTracing.cs` under `Diagnostics → Observability → Observability Outcome Tracing`.
+   - Updated `docs/architecture/22-observability.md` and `docs/roadmap/956-observability-tracing.md` with the explicit separation between ambient trace context and authoritative execution outcome state.
+   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Confirm no remote telemetry or real provider request is used. Verify that retry/wait/recovery facts originate from the execution runtime and are translated into trace observations.
+   - Do not mark Slice 8 verified until all required local results are supplied.
+   - Do not begin Slice 9 in the same run.
 
 ### Verification rule
 

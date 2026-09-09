@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using HAgent.Models;
 using HAgent.Runtime;
 
@@ -19,7 +20,7 @@ namespace HAgent.Example
                 "Capability enablement and policy authorization are separate concerns. The governance decision composes them without granting authority to model output or resource content.");
         }
 
-        private void TestResourceGovernanceAsync(string unused)
+        private Task TestResourceGovernanceAsync(string unused)
         {
             var identity = new AgentIdentityContext(
                 deploymentId: "deployment-42",
@@ -128,6 +129,8 @@ namespace HAgent.Example
                 "Approval requirement: preserved as non-admitted." + Environment.NewLine +
                 "Disabled resource: rejected before policy evaluation." + Environment.NewLine +
                 "Authoritative resource mutation: none.");
+
+            return Task.CompletedTask;
         }
     }
 }

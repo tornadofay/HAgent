@@ -66,7 +66,10 @@ namespace HAgent.Runtime
             {
                 var execution = await _inner.ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
                 if (execution != null)
+                {
+                    RecordFallbackObservation(execution);
                     CompleteRoot(execution);
+                }
                 return execution;
             }
             catch (OperationCanceledException)
@@ -85,11 +88,24 @@ namespace HAgent.Runtime
                 }
                 throw;
             }
-            catch
+            catch (Exception ex)
             {
                 var current = TraceAmbient.Current;
                 if (current != null)
                 {
+                    if (IsStaleProviderCompletion(ex))
+                    {
+                        var staleMetadata = new TraceMetadata();
+                        staleMetadata.Add("decision", "stale-result");
+                        staleMetadata.Add("reason", "execution-terminal-state-already-reached");
+                        TraceObservation.RecordDecision(
+                            "execution.stale-result",
+                            "Outcome",
+                            TraceSpanStatus.Rejected,
+                            staleMetadata,
+                            TraceAmbient.CurrentCorrelation);
+                    }
+
                     var root = FindRootByTrace(current.TraceId);
                     if (root != null)
                     {
@@ -185,6 +201,48 @@ namespace HAgent.Runtime
                     root.TryComplete(TraceSpanStatus.Unset);
                     break;
             }
+        }
+
+        private void RecordFallbackObservation(AgentExecution execution)
+        {
+            if (execution == null || string.IsNullOrWhiteSpace(execution.Id))
+                return;
+
+            var providerIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var spans = _recorder.GetSpans();
+            foreach (var span in spans)
+            {
+                if (span == null || !string.Equals(span.TraceId, TraceAmbient.Current == null ? string.Empty : TraceAmbient.Current.TraceId, StringComparison.Ordinal))
+                    continue;
+                if (!string.Equals(span.OperationName, "provider.invoke", StringComparison.Ordinal))
+                    continue;
+
+                string providerId;
+                if (span.Metadata.Values.TryGetValue("provider.id", out providerId) && !string.IsNullOrWhiteSpace(providerId))
+                    providerIds.Add(providerId);
+            }
+
+            if (providerIds.Count <= 1)
+                return;
+
+            var metadata = new TraceMetadata();
+            metadata.Add("decision", "fallback");
+            metadata.Add("provider.count", providerIds.Count.ToString());
+            metadata.Add("reason", "multiple-provider-attempts-observed");
+            TraceObservation.RecordDecision(
+                "provider.fallback",
+                "Provider",
+                TraceSpanStatus.Succeeded,
+                metadata,
+                TraceAmbient.CurrentCorrelation);
+        }
+
+        private static bool IsStaleProviderCompletion(Exception exception)
+        {
+            var message = exception == null ? string.Empty : exception.Message ?? string.Empty;
+            return message.IndexOf(
+                "terminal state before the provider response could be committed",
+                StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private void RemoveCompletedRoot(ITraceSpan completed)

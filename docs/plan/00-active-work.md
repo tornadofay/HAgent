@@ -15,23 +15,22 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current run
 
-**0.956 Slice 6 safe human-readable diagnostic projection — CURRENT.**
+**0.956 Slice 6 safe human-readable diagnostic projection — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
 
-This slice adds a bounded provider-neutral projection for management/diagnostic UI consumers. It must consume retained trace data through a safe projection rather than exposing raw trace storage or sink payloads, and must preserve the existing default-deny sensitive-data boundary.
+The Slice 6 implementation is present. A bounded provider-neutral diagnostic projection now consumes retained sampled trace spans without exposing raw trace storage, sink payloads, or sensitive host/provider data.
 
-## Slice 6 scope
+## Implemented in Slice 6
 
-- Define a bounded diagnostic projection over retained `TraceSpan` data.
-- Expose only safe status, operation, timing, correlation, parent/trace identity, and bounded metadata needed for diagnostic display.
-- Preserve deterministic ordering and bounded result/text sizes.
-- Explicitly omit or mark redacted sensitive values; never surface prompts, responses, tool arguments/results, host raw context, secrets, credentials, connection strings, or arbitrary serialized payloads.
-- Keep projection concerns separate from raw trace storage and sink/export contracts.
-- Add focused `tests/HAgent.Tests` coverage for ordering, projection bounds, metadata safety, correlation visibility, and sensitive-data exclusion.
-- Add matching public-API `HAgent.Example` coverage under `Diagnostics → Observability → Observability Diagnostic Projection` using deterministic in-process trace data only.
+- Added bounded `TraceDiagnosticProjectionOptions`, `TraceDiagnosticMetadataItem`, `TraceDiagnosticSpan`, and `TraceDiagnosticProjection` contracts.
+- Added `TraceDiagnosticProjector` with deterministic sequence/identity ordering and bounded spans, identifiers, operation/kind text, metadata entries, metadata keys, and metadata values.
+- Added an allowlist for diagnostic metadata namespaces plus the explicit `decision` key. Unknown/custom metadata is omitted and counted.
+- Preserved `[Redacted]`/`[Omitted]` markers only when the metadata key is itself safe to expose; raw prompts, responses, tool payloads, host context, credentials, connection strings, and arbitrary objects are not projected.
+- Added focused `tests/HAgent.Tests/ObservabilityDiagnosticProjectionTests.cs` covering ordering, bounds, safe metadata, omission/redaction behavior, correlation/parent relationships, status/duration, and unsampled suppression.
+- Added `src/HAgent.Example/MainForm.ObservabilityDiagnosticProjection.cs` and registered it under `Diagnostics → Observability → Observability Diagnostic Projection`.
 
 ## Slice 6 verification boundary
 
-- Build the solution after implementation.
+- Build the solution after pulling the current branch.
 - Run the full `HAgent.Tests` suite.
 - Run `HAgent.Example → Diagnostics → Observability → Observability Diagnostic Projection` on .NET Framework 4.8.1.
 - Run the same Example on .NET 9.

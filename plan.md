@@ -20,36 +20,28 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current run
 
-**0.956 Slice 5 integrated trace sinks and safe export boundary — CURRENT.**
+**0.956 Slice 5 integrated trace sinks and safe export boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
 
-This slice introduces a provider-neutral sink boundary for completed trace spans. Sink delivery must remain observational only: sink latency/failure cannot change execution correctness, and Core must remain independent of telemetry vendors, remote transports, and persistence technologies.
+This slice introduces a provider-neutral sink boundary for completed trace spans. Sink delivery remains observational only: sink latency, queue saturation, or sink failure cannot change execution/span correctness, and Core remains independent of telemetry vendors, remote transports, and persistence technologies.
 
-## Implemented in Slice 4
+## Implemented in Slice 5
 
-- Added `TraceSamplingOptions`, `ITraceSampler`, and `TraceRetentionOptions` to the provider-neutral trace contracts.
-- Added `DeterministicTraceSampler` using stable correlation/operation material and a configurable sample rate/salt.
-- Extended `InMemoryTraceRecorder` with optional sampling and bounded retention while preserving the existing default constructor behavior.
-- Sampling is decided for root spans and inherited through child `TraceContext`; unsampled spans still receive normal trace identity and can complete normally, but are not retained.
-- Retention bounds include maximum trace count, maximum span count, maximum spans per trace, aggregate metadata characters, and maximum age.
-- Retention eviction is trace-aware and avoids evicting the active trace simply to admit another child span when the configured span/metadata bound is reached.
-- Added focused tests in `tests/HAgent.Tests/ObservabilitySamplingRetentionTests.cs` and the matching public-API Example in `src/HAgent.Example/MainForm.ObservabilitySamplingRetention.cs`.
+- Added provider-neutral `ITraceSink` and bounded `TraceSinkOptions` contracts.
+- Added `TraceSinkDispatcher` with non-blocking bounded enqueue, FIFO asynchronous delivery, deterministic `FlushAsync`, and isolated failure accounting.
+- Integrated sink dispatch into `InMemoryTraceRecorder` only after sampled spans complete and only while they remain retained; unsampled and retention-rejected spans are suppressed.
+- Preserved the default-deny/bounded trace metadata boundary at the sink interface.
+- Added focused `tests/HAgent.Tests/ObservabilitySinksTests.cs` for ordering, sink failure isolation, slow sinks, sampling suppression, and retention suppression.
+- Added `src/HAgent.Example/MainForm.ObservabilitySinks.cs` and registered it under `Diagnostics → Observability → Observability Sinks`.
 
-## Slice 4 verification
+## Slice 5 verification boundary
 
-- **User verification — .NET 9, 2026-09-09:** full `HAgent.Tests` completed with **67/67 tests passed**.
-- **User Example verification — .NET Framework 4.8.1, 2026-09-09 04:16:56:** sampling/retention scenario succeeded with deterministic sampling, inheritance/suppression, lifecycle independence, trace/span/metadata bounds, no provider transport, and no real provider request.
-- **User Example verification — .NET 9, 2026-09-09 04:17:25:** same scenario succeeded with the same checks.
-- The latest supplied message did not separately report a solution-build result, so no separate build claim is recorded here.
-
-## Slice 5 boundary
-
-- Define the provider-neutral trace sink/export contract for completed spans.
-- Preserve default-deny/redaction and bounded metadata semantics at the sink boundary.
-- Support deterministic in-process sink tests, ordering, and completion behavior.
-- Ensure slow/rejecting sinks cannot alter execution correctness.
-- Keep remote telemetry transport, durable trace persistence, management UI, and broad diagnostic projection out of this slice.
-- Add focused `HAgent.Tests` coverage and a matching public-API `HAgent.Example` under `Diagnostics → Observability → Observability Sinks`.
-- Verify with solution build, full `HAgent.Tests`, and the exact Example scenario on .NET Framework 4.8.1 and .NET 9 using deterministic in-process sinks/fakes only.
+- Build the solution after pulling the current branch.
+- Run the full `HAgent.Tests` suite.
+- Run `HAgent.Example → Diagnostics → Observability → Observability Sinks → Run trace sink test` on .NET Framework 4.8.1.
+- Run the same Example on .NET 9.
+- Confirm no real provider request or remote telemetry transport is contacted.
+- Do not mark Slice 5 verified until all required local results are supplied.
+- Do not begin Slice 6 in the same run.
 
 ## Current blockers
 
@@ -622,16 +614,19 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User verification — .NET 9, 2026-09-09:** full `HAgent.Tests` completed with **67/67 tests passed**.
    - **User Example verification — .NET Framework 4.8.1, 2026-09-09 04:16:56:** `Observability Sampling & Retention` succeeded, verifying deterministic sampling stability, unsampled child inheritance/suppression, lifecycle independence from sampling/retention, maximum retained traces/spans, per-trace bounds, aggregate metadata bound, no provider transport, and no real provider request.
    - **User Example verification — .NET 9, 2026-09-09 04:17:25:** same public-API scenario succeeded with the same checks.
-   - The supplied verification establishes the Slice 4 implementation/test/Example boundary as passing. A separate solution-build result was not restated in the latest verification message, so this plan records only the results explicitly supplied.
+   - The supplied latest verification did not separately restate a solution-build result; therefore only the explicitly supplied verification results are recorded here.
 
-5. **Integrated trace sinks and safe export boundary — CURRENT**
-   - Define the next provider-neutral sink/export boundary for completed trace spans without coupling Core to OpenTelemetry, a vendor SDK, network transport, or persistence technology.
-   - Preserve the existing default-deny/redaction guarantees at the sink boundary; sinks receive only trace data already admitted by the trace contract and bounded retention/sampling rules.
-   - Support deterministic in-process sink testing, ordering, completion semantics, and safe behavior when a sink is slow or rejects a span.
-   - Keep execution correctness independent from sink availability or sink failure; telemetry failure must not turn a successful execution into a failed execution.
-   - Do not introduce remote telemetry transport, durable trace storage, management UI, or broad diagnostic projection in this slice.
-   - Add focused `HAgent.Tests` coverage and a matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Sinks`.
-   - Verification boundary: solution build, full `HAgent.Tests`, and the exact Example scenario on .NET Framework 4.8.1 and .NET 9 using deterministic in-process sinks/fakes only.
+5. **Integrated trace sinks and safe export boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+   - Added provider-neutral `ITraceSink` and bounded `TraceSinkOptions` contracts.
+   - Added `TraceSinkDispatcher` with a bounded non-blocking enqueue boundary, FIFO processing, asynchronous sink delivery, flush support for deterministic tests, and isolated sink-failure accounting.
+   - Integrated sink dispatch into `InMemoryTraceRecorder` only after a sampled span completes and only while that span remains retained by the recorder; sampled-out and retention-rejected spans never cross the sink boundary.
+   - Preserved the existing trace metadata/redaction contract; sinks receive the canonical bounded `TraceSpan` rather than prompts, provider payloads, tool payloads, host raw context, or arbitrary serialized objects.
+   - Sink latency, queue saturation, and sink exceptions remain telemetry concerns and do not alter span lifecycle completion or execution correctness. One failing sink does not prevent other registered sinks from receiving the same span.
+   - Added focused `tests/HAgent.Tests/ObservabilitySinksTests.cs` covering FIFO delivery, sink-failure isolation, slow asynchronous sink behavior, sampled-out suppression, and retention-boundary suppression.
+   - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilitySinks.cs` scenario under `Diagnostics → Observability → Observability Sinks`.
+   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Verify no real provider or remote telemetry transport is contacted.
+   - Do not mark Slice 5 verified until those user-side results are supplied.
+   - Do not begin Slice 6 in the same run.
 
 ### Verification rule
 

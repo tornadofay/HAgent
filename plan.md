@@ -20,18 +20,29 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current run
 
-**0.956 Slice 8 failure, retry, fallback, waiting, and stale-result observability — CURRENT.**
+**0.956 Slice 8 failure, retry, fallback, waiting, and stale-result observability — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
 
-This slice will make important non-success and recovery decisions observable without changing execution semantics or allowing tracing to alter lifecycle outcomes.
+Slice 8 now adds bounded provider-neutral runtime decision observations around existing retry/recovery and stale-result paths without changing execution or terminal-state authority.
 
-## Slice 8 scope
+## Implemented in Slice 8
 
-- Cover policy denial/defer, provider failure, retry, fallback target, waiting/backpressure, cancellation/timeout, runtime recovery, and stale/late result rejection through bounded provider-neutral trace status/metadata.
-- Reconcile existing execution lifecycle state, intervention/terminal-state handling, provider attempts, fallback planning, scheduling/waiting, and stale-result protection with trace hierarchy and causal relationships.
-- Keep accepted terminal execution state authoritative; a rejected stale/late result may be observed but must never overwrite the accepted outcome.
-- Add focused `HAgent.Tests` coverage for failure classification, retry/fallback relationships, waiting/backpressure, cancellation/timeout, stale-result rejection, and recovery ordering.
-- Add the matching public-API Example under `Diagnostics → Observability → Observability Outcomes & Recovery` using deterministic in-process fakes only.
-- No real network transport, remote telemetry delivery, or provider-vendor dependency in this slice.
+- Added public `TraceObservation` for bounded child decision spans; observations are suppressed when no active traced recorder exists.
+- Extended ambient trace state to preserve the active recorder across nested propagation scopes.
+- Extended `TracingProviderAdapter` to emit bounded provider attempt metadata, explicit retry observations, retry-wait boundary observations, and recovery observations for repeated provider invocations.
+- Extended `TracingAgentRuntime` to observe multi-provider fallback when it is actually visible in a trace and to classify the existing late/stale provider completion path as a `Rejected` diagnostic observation.
+- Kept execution terminal state authoritative; tracing never commits, retries, cancels, approves, rejects, or overwrites execution outcomes.
+- Added focused `tests/HAgent.Tests/ObservabilityOutcomeTracingTests.cs` covering disabled observation, child/correlation propagation, outcome statuses, and a deterministic actual retry/recovery execution.
+- Added `src/HAgent.Example/MainForm.ObservabilityOutcomeTracing.cs` and registered it under `Diagnostics → Observability → Observability Outcome Tracing`.
+
+## Slice 8 verification boundary
+
+- Build the solution after pulling the current branch.
+- Run the full `HAgent.Tests` suite.
+- Run `HAgent.Example → Diagnostics → Observability → Observability Outcome Tracing` on .NET Framework 4.8.1.
+- Run the same Example on .NET 9.
+- Confirm no remote telemetry transport or real provider request is contacted.
+- Do not mark Slice 8 verified until all required local results are supplied.
+- Do not begin Slice 9 in the same run.
 
 ## Current blockers
 

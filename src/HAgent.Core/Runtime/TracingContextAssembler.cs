@@ -37,10 +37,13 @@ namespace HAgent.Runtime
                 ParentContext = TraceAmbient.Current,
                 OperationName = "context.assemble",
                 Kind = "Context",
+                Correlation = TraceAmbient.CurrentCorrelation == null
+                    ? new TraceCorrelation()
+                    : TraceAmbient.CurrentCorrelation.Clone(),
                 Metadata = metadata
             });
 
-            using (TraceAmbient.Push(span.Context))
+            using (TraceAmbient.Push(span.Context, span.Record.Correlation))
             {
                 try
                 {

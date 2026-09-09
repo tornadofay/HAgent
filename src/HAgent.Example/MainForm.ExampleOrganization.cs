@@ -42,6 +42,7 @@ namespace HAgent.Example
             AddSuppliedEvaluationTab();
             AddModelAssistedEvaluationTab();
             AddEvaluationAggregationTab();
+            AddEvaluationRegressionTab();
             // This example was implemented ahead of the roadmap order. Keep its public-API
             // verification available without changing the ordered roadmap milestone.
             AddLearningCandidateInterventionTab();
@@ -271,7 +272,7 @@ namespace HAgent.Example
                 return "Data Access Context";
             if (key.StartsWith("OBSERVABILITY", StringComparison.Ordinal))
                 return "Observability";
-            if (key == "EVALUATION CONTRACTS" || key == "DETERMINISTIC EVALUATION" || key == "SUPPLIED EVALUATION RATINGS" || key == "MODEL-ASSISTED EVALUATION" || key == "EVALUATION AGGREGATION")
+            if (key == "EVALUATION CONTRACTS" || key == "DETERMINISTIC EVALUATION" || key == "SUPPLIED EVALUATION RATINGS" || key == "MODEL-ASSISTED EVALUATION" || key == "EVALUATION AGGREGATION" || key == "EVALUATION REGRESSION SUITES")
                 return "Evaluation";
 
             if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY")

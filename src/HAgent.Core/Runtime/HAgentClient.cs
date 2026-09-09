@@ -57,22 +57,9 @@ namespace HAgent.Runtime
             _contextBuilder = new ConversationContextBuilder(contextOptions);
             _memoryPolicy = memoryPolicy ?? (_memory == null ? null : new ExplicitConversationMemoryPolicy());
             _executionPlanner = new DefaultExecutionPlanner();
-            _executionTargetCatalog = new DefaultExecutionTargetCatalog(
-                new ProviderDiscoveryService(_adapters),
-                _secrets);
+            _executionTargetCatalog = new DefaultExecutionTargetCatalog(new ProviderDiscoveryService(_adapters), _secrets);
             _configuredPolicyEngine = policyEngine;
-            _runtime = new DefaultAgentRuntime(
-                _store,
-                _secrets,
-                _adapters,
-                router,
-                null,
-                auditStore,
-                auditOptions,
-                _executionPlanner,
-                _executionTargetCatalog,
-                policyEngine,
-                _interventionWorkflow);
+            _runtime = new DefaultAgentRuntime(_store, _secrets, _adapters, router, null, auditStore, auditOptions, _executionPlanner, _executionTargetCatalog, policyEngine, _interventionWorkflow);
         }
 
         public ConversationContextOptions ContextOptions { get { return _contextBuilder.Options; } }
@@ -99,20 +86,15 @@ namespace HAgent.Runtime
         {
             if (string.IsNullOrWhiteSpace(agentId)) throw new ArgumentException("Agent id is required.", nameof(agentId));
             if (messages == null || messages.Count == 0) throw new ArgumentException("At least one message is required.", nameof(messages));
-
-            var execution = await _runtime.ExecuteAsync(
-                new AgentExecutionRequest
-                {
-                    AgentId = agentId,
-                    Messages = new List<AIMessage>(messages).AsReadOnly(),
-                    HostCorrelationId = options == null ? string.Empty : options.HostCorrelationId,
-                    HostContext = options == null ? null : options.HostContext,
-                    Options = options ?? new AgentExecutionOptions()
-                },
-                cancellationToken).ConfigureAwait(false);
-
-            if (execution == null || execution.Response == null)
-                throw new InvalidOperationException("Agent execution completed without a provider response.");
+            var execution = await _runtime.ExecuteAsync(new AgentExecutionRequest
+            {
+                AgentId = agentId,
+                Messages = new List<AIMessage>(messages).AsReadOnly(),
+                HostCorrelationId = options == null ? string.Empty : options.HostCorrelationId,
+                HostContext = options == null ? null : options.HostContext,
+                Options = options ?? new AgentExecutionOptions()
+            }, cancellationToken).ConfigureAwait(false);
+            if (execution == null || execution.Response == null) throw new InvalidOperationException("Agent execution completed without a provider response.");
             return execution.Response;
         }
 
@@ -128,15 +110,10 @@ namespace HAgent.Runtime
             var provider = providers.FirstOrDefault(x => string.Equals(x.Id, providerId, StringComparison.OrdinalIgnoreCase));
             if (provider == null) throw new InvalidOperationException("Provider was not found: " + providerId);
             if (!provider.Enabled) throw new InvalidOperationException("Provider is disabled: " + provider.Name);
-
             var adapter = _adapters.FirstOrDefault(x => x is IProviderModelCapabilities && x.CanHandle(provider));
             var selectedModel = string.IsNullOrWhiteSpace(model) ? provider.DefaultModel : model;
             if (adapter == null) return new AiModelCapabilities { Model = selectedModel ?? string.Empty };
-
-            var apiKey = string.IsNullOrWhiteSpace(provider.SecretId)
-                ? string.Empty
-                : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
-
+            var apiKey = string.IsNullOrWhiteSpace(provider.SecretId) ? string.Empty : await _secrets.GetAsync(provider.SecretId, cancellationToken).ConfigureAwait(false);
             return await GetEffectiveCapabilitiesAsync(provider, selectedModel, adapter, apiKey, cancellationToken).ConfigureAwait(false);
         }
 
@@ -145,9 +122,7 @@ namespace HAgent.Runtime
         private Task<AiModelCapabilities> GetEffectiveCapabilitiesAsync(AiProvider provider, string model, IAiProviderAdapter adapter, string apiKey, CancellationToken cancellationToken)
         {
             var capabilitiesAdapter = adapter as IProviderModelCapabilities;
-            if (capabilitiesAdapter == null)
-                return Task.FromResult(new AiModelCapabilities { Model = model ?? string.Empty });
-
+            if (capabilitiesAdapter == null) return Task.FromResult(new AiModelCapabilities { Model = model ?? string.Empty });
             var selectedModel = model ?? string.Empty;
             var key = provider.Kind + "|" + provider.Id + "|" + provider.BaseUrl + "|" + selectedModel;
             return _capabilityCache.GetOrCreateAsync(key, () => capabilitiesAdapter.GetCapabilitiesAsync(provider, selectedModel, apiKey, CancellationToken.None), cancellationToken);
@@ -174,13 +149,14 @@ namespace HAgent.Runtime
 
         public Task<string> RememberAsync(string ownerId, string content, MemoryScope scope = MemoryScope.Agent, IDictionary<string, string> metadata = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return RememberTypedAsync(ownerId, string.Empty, content, MemoryKind.Fact, scope, metadata, DateTimeOffset.UtcNow, cancellationToken);
+            return RememberTypedAsync(ownerId, string.Empty, content, MemoryKind.Fact, AiMemoryFamily.Semantic, "semantic.fact", scope, metadata, DateTimeOffset.UtcNow, cancellationToken);
         }
 
         public Task<string> RememberTaskEventAsync(string ownerId, string taskId, string content, MemoryKind kind = MemoryKind.Event, IDictionary<string, string> metadata = null, DateTimeOffset? occurredAt = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (kind != MemoryKind.Task && kind != MemoryKind.Event) throw new ArgumentException("Task event memory must use MemoryKind.Task or MemoryKind.Event.", nameof(kind));
-            return RememberTypedAsync(ownerId, taskId, content, kind, MemoryScope.Task, metadata, occurredAt ?? DateTimeOffset.UtcNow, cancellationToken);
+            var typeId = kind == MemoryKind.Task ? "episodic.task" : "episodic.event";
+            return RememberTypedAsync(ownerId, taskId, content, kind, AiMemoryFamily.Episodic, typeId, MemoryScope.Task, metadata, occurredAt ?? DateTimeOffset.UtcNow, cancellationToken);
         }
 
         public Task<IReadOnlyList<MemoryEntry>> RecallTaskEventsAsync(string ownerId, string taskId, string text = null, int maxResults = 10, CancellationToken cancellationToken = default(CancellationToken))
@@ -191,7 +167,12 @@ namespace HAgent.Runtime
             return _memory.SearchAsync(new MemoryQuery { OwnerId = ownerId, Scope = MemoryScope.Task, TaskId = taskId, Text = text ?? string.Empty, MaxResults = maxResults }, cancellationToken);
         }
 
-        private async Task<string> RememberTypedAsync(string ownerId, string taskId, string content, MemoryKind kind, MemoryScope scope, IDictionary<string, string> metadata, DateTimeOffset occurredAt, CancellationToken cancellationToken)
+        internal Task<string> RememberMemoryFamilyAsync(string ownerId, string content, AiMemoryFamily family, string typeId, MemoryScope scope, IDictionary<string, string> metadata, DateTimeOffset occurredAt, CancellationToken cancellationToken)
+        {
+            return RememberTypedAsync(ownerId, string.Empty, content, MemoryKind.Fact, family, typeId, scope, metadata, occurredAt, cancellationToken);
+        }
+
+        private async Task<string> RememberTypedAsync(string ownerId, string taskId, string content, MemoryKind kind, AiMemoryFamily family, string typeId, MemoryScope scope, IDictionary<string, string> metadata, DateTimeOffset occurredAt, CancellationToken cancellationToken)
         {
             EnsureMemoryStore();
             if (string.IsNullOrWhiteSpace(ownerId)) throw new ArgumentException("Memory owner ID is required.", nameof(ownerId));
@@ -200,12 +181,19 @@ namespace HAgent.Runtime
             {
                 Scope = scope,
                 Kind = kind,
+                Family = family,
+                TypeId = typeId,
                 OwnerId = ownerId,
                 TaskId = taskId ?? string.Empty,
                 Content = content.Trim(),
                 Metadata = metadata ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
                 CreatedAt = DateTimeOffset.UtcNow,
-                OccurredAt = occurredAt
+                OccurredAt = occurredAt,
+                Provenance = new AiMemoryProvenance
+                {
+                    Kind = AiMemoryProvenanceKind.HostProvided,
+                    Source = "HAgentClient"
+                }
             };
             await _memory.AddAsync(entry, cancellationToken).ConfigureAwait(false);
             return entry.Id;

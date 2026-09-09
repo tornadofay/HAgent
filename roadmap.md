@@ -1091,7 +1091,7 @@ The next ordered milestone is **0.9575 Knowledge, Skills, Memory Governance + Le
 
 ## Status
 
-**In progress — Slice 1 implementation checkpoint; verification pending.**
+**In progress — Slice 1 verified; Slice 2 is next.**
 
 ## Goal
 
@@ -1144,7 +1144,7 @@ New resource version or scoped state
 
 ## Slice 1 — Mature resource capability governance foundation
 
-**Implementation checkpoint — verification pending.**
+**Verified — 2026-09-09.**
 
 - Added `AiResourceCapabilitySource` so every effective capability snapshot can report whether its enabled/disabled state comes from the default, persisted agent profile, or runtime override.
 - Extended `AiResourceCapabilitySnapshot` with `GetSource(...)` and source-preserving clone/validation behavior. Existing tri-state profile/runtime resolution remains canonical; no parallel capability model was introduced.
@@ -1157,9 +1157,15 @@ New resource version or scoped state
 - Added matching public `src/HAgent.Example/MainForm.ResourceGovernance.cs` and registered it under `Cognition → Resource Governance`.
 - Added `.github/workflows/verify-phase-0-9575-slice-1.yml` for Core/Example builds on .NET Framework 4.8.1 and .NET 9 plus focused/full tests.
 
-**Example to run:** `HAgent.Example → Cognition → Resource Governance → Resource Governance` on **.NET Framework 4.8.1** and **.NET 9**.
+### Verification evidence
 
-**Tests to run:** `tests/HAgent.Tests/ResourceGovernanceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+User verification on 2026-09-09:
+
+- **.NET Framework 4.8.1 Example:** `RESOURCE GOVERNANCE` succeeded, verifying identity-derived ownership, profile capability overridden at runtime, `RuntimeOverride` source provenance, `Allow` policy authorization, cross-owner denial before policy evaluation, approval preservation as non-admitted, disabled-resource rejection before policy evaluation, and no authoritative resource mutation.
+- **.NET 9 Example:** same deterministic scenario succeeded with the same assertions.
+- **HAgent.Tests:** **146/146 passed, 0 failed, 0 skipped** on .NET 9.
+
+Slice 1 is therefore verified across both supported Example targets and the full .NET 9 test suite.
 
 ### Slice 1 boundary
 

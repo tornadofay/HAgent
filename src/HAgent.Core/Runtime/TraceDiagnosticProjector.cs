@@ -12,13 +12,19 @@ namespace HAgent.Runtime
     {
         private static readonly string[] SafeMetadataPrefixes =
         {
+            "admission.",
             "agent.",
             "context.",
             "event.",
+            "evaluation.",
             "execution.",
             "failure.",
+            "knowledge.",
+            "learning.",
             "lifecycle.",
+            "memory.",
             "outcome.",
+            "planning.",
             "policy.",
             "provider.",
             "resource.",

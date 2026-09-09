@@ -148,6 +148,9 @@ namespace HAgent.Storage.File
             if (entry == null) return false;
             if (query.Scope != null && entry.Scope != query.Scope.Value) return false;
             if (query.Kind != null && entry.Kind != query.Kind.Value) return false;
+            if (query.Family != null && entry.Family != query.Family.Value) return false;
+            if (!string.IsNullOrWhiteSpace(query.TypeId) && !string.Equals(entry.TypeId, query.TypeId.Trim(), StringComparison.OrdinalIgnoreCase)) return false;
+            if (!query.IncludeExpired && entry.IsExpired()) return false;
             if (!string.IsNullOrWhiteSpace(query.OwnerId) && !string.Equals(entry.OwnerId, query.OwnerId, StringComparison.OrdinalIgnoreCase)) return false;
             if (!string.IsNullOrWhiteSpace(query.TaskId) && !string.Equals(entry.TaskId, query.TaskId, StringComparison.OrdinalIgnoreCase)) return false;
             if (query.Metadata == null || query.Metadata.Count == 0) return true;

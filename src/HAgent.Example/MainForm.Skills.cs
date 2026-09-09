@@ -12,7 +12,7 @@ namespace HAgent.Example
         private void AddSkillsTab()
         {
             AddApiTab(
-                "Skills",
+                "Skill Definitions",
                 "Run skill test",
                 "Creates a reusable versioned Skill definition, references it from a skill set, snapshots the published version for execution, and gates resolution through the generic resource-governance boundary.",
                 "The execution snapshot must retain the exact published skill version while an unauthorized cross-owner skill must be rejected before the definition source is accessed.",
@@ -82,7 +82,7 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Unauthorized skill resolution crossed the governance boundary.");
 
             Write(
-                "SKILLS",
+                "SKILL DEFINITIONS",
                 "Skills succeeded." + Environment.NewLine +
                 "Reusable definition: verified." + Environment.NewLine +
                 "Published version captured: 4." + Environment.NewLine +

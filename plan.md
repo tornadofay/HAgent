@@ -170,7 +170,11 @@ Evaluation remains measurement-only. Regression results and aggregate preference
 
 User verification on 2026-09-09 succeeded on both `.NET Framework 4.8.1` and `.NET 9` for `HAgent.Example → Cognition → Resource Governance → Resource Governance`. The full `.NET 9` `HAgent.Tests` suite passed **146/146** with **0 failed** and **0 skipped**.
 
-Slice 1 deliberately stops before resource-specific repositories, Knowledge/Skill management CRUD, Memory retention, Learning Mode administration, candidate promotion workflows, and broader resource persistence. Slice 2 is now the active implementation target: the provider-neutral Knowledge/Wiki resource contract over the verified governance boundary.
+0.9575 Slice 2 is now **verified**. The provider-neutral Knowledge/Wiki contract establishes managed Knowledge/Wiki resources with explicit scope/ownership, lifecycle/versioning, provenance/source metadata, bounded tags/categories/metadata, typed relationships, chunk evidence, and provider/index-neutral retrieval contracts. `AiGovernedKnowledgeRetriever` composes the same verified resource governance boundary before forwarding admitted resource IDs to retrieval implementations.
+
+User verification on 2026-09-09 succeeded on both `.NET Framework 4.8.1` and `.NET 9` for `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki`. The full `.NET 9` `HAgent.Tests` suite passed **153/153** with **0 failed** and **0 skipped**. Verification demonstrated published version/provenance preservation, non-authoritative model-generated drafts, owner isolation before retrieval, and bounded provider/index-independent retrieval.
+
+The separate context-budget integration requirement remains open; Slice 2 verified retrieval-facing bounds only. Knowledge Manager CRUD, persistent resource repositories, semantic/vector indexing, learning promotion, and retention governance remain later 0.9575 work.
 
 ## Storage implications
 

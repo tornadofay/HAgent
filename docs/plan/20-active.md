@@ -17,21 +17,22 @@ Phase 0.956 Observability and Distributed Tracing is complete and verified throu
    - Avoided raw prompts, responses, tool arguments, credentials, or arbitrary host objects in the contracts; bounded references/metadata are used instead.
    - Added focused `tests/HAgent.Tests/EvaluationContractsTests.cs` covering target identity, clone isolation, score/confidence bounds, provenance, correlation identities, cancellation-aware evaluator behavior, and bounded collections.
    - Added and classified `src/HAgent.Example/MainForm.EvaluationContracts.cs` as `Diagnostics → Other Diagnostics → Evaluation Contracts` using a deterministic in-process evaluator and no provider/model transport.
-   - Added `docs/architecture/23-evaluation-quality.md` as the authoritative evaluation ownership boundary.
-   - **User verification — 2026-09-09:** full `HAgent.Tests` completed with **96/96 tests passed** on .NET 9.
-   - **User Example verification — .NET Framework 4.8.1, 2026-09-09 06:26:48:** `Evaluation Contracts` succeeded, verifying provider-neutral target kinds, outcome/score/label representation, evaluator provenance, execution/runtime/goal/plan/trace correlation, bounded input/evidence references, owned clone isolation, no agent-state mutation or authorization side effect, no remote grading/provider transport, and no real provider request.
-   - **User Example verification — .NET 9, 2026-09-09 06:26:18:** same public-API scenario succeeded with the same checks.
+   - User verification — 2026-09-09: full `HAgent.Tests` completed with 96/96 tests passed on .NET 9.
+   - User Example verification — .NET Framework 4.8.1 and .NET 9 both succeeded with the same public-API checks.
    - Slice 1 is complete and no longer awaits local verification.
 
-### Next checkpoint
-
-2. **Deterministic evaluators and evaluation evidence — NOT STARTED**
-   - This is the next numbered slice after the verified Slice 1 boundary.
-   - Do not implement this slice until a new run begins.
+2. **Deterministic evaluators and evaluation evidence — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+   - Establish bounded host-computed `AiEvaluationObservation` values so deterministic evaluators inspect explicit facts instead of raw payloads.
+   - Cover deterministic schema validity, required-field completeness, policy compliance, tool success, latency, cost, and task-completion signals through `AiDeterministicEvaluationRuleKind`.
+   - Implement `AiDeterministicEvaluationEvaluator` behind `IAiEvaluator` with deterministic pass/fail scoring, evaluator provenance, correlation preservation, bounded evidence references, threshold handling, cancellation, and explicit `Inconclusive` outcomes for missing/mismatched evidence.
+   - Reject ambiguous duplicate signal observations rather than selecting an arbitrary value.
+   - Add focused `tests/HAgent.Tests/DeterministicEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.DeterministicEvaluation.cs` verification.
+   - Explicitly classify the Example as `Diagnostics → Evaluation → Deterministic Evaluation`.
+   - This slice does not add model-assisted grading, human-rating workflows, aggregation, regression suites, persistence, or management UI.
 
 ### Verification rule
 
-A slice becomes complete only after its implementation exists, matching deterministic or focused verification passes locally, and the authoritative architecture/roadmap documentation reflects the verified result. Do not claim local build/test success unless actually performed.
+A slice becomes complete only after its implementation exists, matching deterministic or focused verification passes locally, and the authoritative architecture/roadmap documentation reflects the verified result. Do not claim local build/test/Example success unless actually executed.
 
 ### Run rule
 

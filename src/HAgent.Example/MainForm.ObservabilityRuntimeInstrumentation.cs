@@ -51,7 +51,8 @@ namespace HAgent.Example
                 providerSpan.Correlation.HostCorrelationId != "trace-host-correlation-42")
                 throw new InvalidOperationException("Execution correlation was not preserved independently from trace identity.");
 
-            using (TracePropagation.Push(root.Context, root.Record.Correlation))
+            var rootContext = new TraceContext(root.TraceId, root.SpanId, root.Sampled);
+            using (TracePropagation.Push(rootContext, root.Correlation))
             {
                 var tool = new TracingAgentTool(new TraceRuntimeExampleTool(), recorder);
                 var toolResult = await tool.ExecuteAsync(new ToolExecutionContext
@@ -219,9 +220,16 @@ namespace HAgent.Example
             var tracedPolicy = new TracingPolicyEngine(new DefaultAiPolicyEngine(new AiPolicySet()), recorder);
             var innerRuntime = new DefaultAgentRuntime(
                 store,
-                new NullSecretStore(),
+                new InMemorySecretStore(),
                 new[] { tracedAdapter },
-                policyEngine: tracedPolicy);
+                new DefaultProviderRouter(),
+                new DefaultProviderErrorClassifier(),
+                null,
+                null,
+                null,
+                null,
+                tracedPolicy,
+                null);
             return new TracingAgentRuntime(innerRuntime, recorder);
         }
 
@@ -232,15 +240,12 @@ namespace HAgent.Example
                 AgentId = "trace-runtime-agent-42",
                 Messages = new List<AIMessage> { new AIMessage("user", "Trace this execution.") },
                 HostCorrelationId = hostCorrelationId,
-                Identity = new AgentIdentityContext
-                {
-                    DeploymentId = "deployment-42",
-                    TenantId = "tenant-42",
-                    UserId = "user-42"
-                },
+                Identity = new AgentIdentityContext(
+                    deploymentId: "deployment-42",
+                    tenantId: "tenant-42",
+                    userId: "user-42"),
                 Options = new AgentExecutionOptions
                 {
-                    RuntimeInstanceId = "runtime-42",
                     Timeout = TimeSpan.FromSeconds(3),
                     MaxProviderAttempts = 1,
                     MaxRetriesPerProvider = 0
@@ -261,6 +266,27 @@ namespace HAgent.Example
             Success,
             Failure,
             Cancellation
+        }
+
+        private sealed class InMemorySecretStore : ISecretStore
+        {
+            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.CompletedTask;
+            }
+
+            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.FromResult(string.Empty);
+            }
+
+            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.CompletedTask;
+            }
         }
 
         private sealed class TraceRuntimeExampleAdapter : IAiProviderAdapter, IProviderDiscovery

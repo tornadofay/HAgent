@@ -36,15 +36,20 @@ namespace HAgent.Runtime
                 metadata.Add("execution.correlation", context.CorrelationId);
             metadata.AddOmitted("tool.arguments");
 
+            var correlation = TraceAmbient.CurrentCorrelation ?? new TraceCorrelation();
+            if (!string.IsNullOrWhiteSpace(context.CorrelationId))
+                correlation.ExecutionCorrelationId = context.CorrelationId;
+
             var span = _recorder.StartSpan(new TraceSpanStartOptions
             {
                 ParentContext = TraceAmbient.Current,
                 OperationName = "tool.execute",
                 Kind = "Tool",
+                Correlation = correlation,
                 Metadata = metadata
             });
 
-            using (TraceAmbient.Push(span.Context))
+            using (TraceAmbient.Push(span.Context, span.Record.Correlation))
             {
                 try
                 {

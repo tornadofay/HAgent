@@ -1,12 +1,13 @@
+using HAgent.Runtime;
+using HAgent.WinForms.UI;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using HAgent.Runtime;
-using HAgent.WinForms.UI;
 
 namespace HAgent.Example
 {
@@ -162,14 +163,31 @@ namespace HAgent.Example
 
         private sealed class HyperLikeTextBox : TextBox
         {
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public string DbFieldName { get; set; }
+
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public string DisplayName { get; set; }
+
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public string TitleEn { get; set; }
+
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public string TitleAr { get; set; }
+
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public bool IsRequired { get; set; }
+
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public bool IsSearchField { get; set; }
+
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public string DataSourceName { get; set; }
+
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public short DataSourceIndex { get; set; }
+
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
             public object DataType { get; set; }
 
             public object GetValue()

@@ -75,9 +75,19 @@ Each successful deterministic evaluation carries a bounded `AiEvaluationInputRef
 
 Cancellation is checked at the evaluator boundary before producing the deterministic result.
 
+## Supplied human/application ratings
+
+Externally supplied ratings use `AiEvaluationRating` as bounded input data rather than introducing a second evaluation result type. A rating may carry an outcome, optional score, optional confidence, optional label/reason, bounded evidence references, and bounded metadata.
+
+`AiSuppliedRatingEvaluator` adapts that supplied rating through the existing `IAiEvaluator` contract. It accepts only `Human` or `Application` evaluator kinds and requires explicit evaluator identity/version. The resulting `AiEvaluation` preserves the supplied rating plus request correlation and marks the rating source in bounded metadata.
+
+The evaluator clones the supplied rating on construction and clones evidence/metadata into each produced evaluation. A caller therefore cannot mutate an already-produced evaluation by modifying the original rating object.
+
+Cancellation is checked before producing the supplied evaluation. Supplied ratings are evidence only; a Human or Application evaluator does not grant authorization or mutate agent, memory, knowledge, skill, configuration, or cognitive state.
+
 ## Safety and ownership
 
-Evaluation contracts intentionally contain bounded references, observations, and metadata rather than raw prompts, responses, tool arguments, credentials, or arbitrary host objects. Storage and retention are separate concerns and must apply their own governance.
+Evaluation contracts intentionally contain bounded references, observations, ratings, and metadata rather than raw prompts, responses, tool arguments, credentials, or arbitrary host objects. Storage and retention are separate concerns and must apply their own governance.
 
 Evaluation results remain separate from authoritative state. Any later policy-controlled learning or cognitive revision must explicitly consume evaluation evidence through its owning subsystem; evaluation itself never performs that mutation.
 
@@ -85,4 +95,6 @@ Evaluation results remain separate from authoritative state. Any later policy-co
 
 Phase 0.957 Slice 1 established only the provider-neutral contract and evaluator boundary.
 
-Phase 0.957 Slice 2 adds the deterministic observation contract and deterministic evaluator implementation for schema validity, required-field completeness, policy compliance, tool success, task completion, latency, and cost. It does not add model-assisted grading, human-rating workflows, aggregation, regression suites, persistence, or management UI.
+Phase 0.957 Slice 2 adds the deterministic observation contract and deterministic evaluator implementation for schema validity, required-field completeness, policy compliance, tool success, task completion, latency, and cost.
+
+Phase 0.957 Slice 3 adds bounded externally supplied Human/Application ratings through the same provider-neutral evaluator boundary. It does not add model-assisted grading, aggregation, regression suites, persistence, or management UI.

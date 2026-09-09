@@ -26,12 +26,16 @@ CREATE TABLE IF NOT EXISTS HAgentMemoryEntries (
     Id varchar(128) NOT NULL,
     Scope varchar(50) NOT NULL,
     Kind varchar(50) NOT NULL,
+    Family varchar(50) NOT NULL DEFAULT 'Semantic',
+    TypeId varchar(256) NOT NULL DEFAULT 'semantic.fact',
     OwnerId varchar(128) NOT NULL,
     TaskId varchar(128) NULL,
     Content longtext NOT NULL,
     MetadataJson longtext NULL,
+    ProvenanceJson longtext NOT NULL,
     CreatedAt datetime(6) NOT NULL,
     OccurredAt datetime(6) NOT NULL,
+    ExpiresAt datetime(6) NULL,
     PRIMARY KEY (Id),
     INDEX IX_HAgentMemoryEntries_OwnerScope (OwnerId, Scope),
     INDEX IX_HAgentMemoryEntries_TaskId (TaskId)
@@ -51,12 +55,14 @@ CREATE TABLE IF NOT EXISTS HAgentMemoryEntries (
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(entry.Id)) entry.Id = Guid.NewGuid().ToString("N");
             if (entry.Metadata == null) entry.Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (entry.Provenance == null) entry.Provenance = new AiMemoryProvenance();
             if (entry.CreatedAt == default(DateTimeOffset)) entry.CreatedAt = DateTimeOffset.UtcNow;
             if (entry.OccurredAt == default(DateTimeOffset)) entry.OccurredAt = entry.CreatedAt;
+            entry.Validate();
 
             const string sql = @"INSERT INTO HAgentMemoryEntries
-(Id, Scope, Kind, OwnerId, TaskId, Content, MetadataJson, CreatedAt, OccurredAt)
-VALUES (@Id, @Scope, @Kind, @OwnerId, @TaskId, @Content, @MetadataJson, @CreatedAt, @OccurredAt);";
+(Id, Scope, Kind, Family, TypeId, OwnerId, TaskId, Content, MetadataJson, ProvenanceJson, CreatedAt, OccurredAt, ExpiresAt)
+VALUES (@Id, @Scope, @Kind, @Family, @TypeId, @OwnerId, @TaskId, @Content, @MetadataJson, @ProvenanceJson, @CreatedAt, @OccurredAt, @ExpiresAt);";
 
             using (var connection = new MySqlConnection(_connectionString))
             using (var command = new MySqlCommand(sql, connection))
@@ -72,7 +78,7 @@ VALUES (@Id, @Scope, @Kind, @OwnerId, @TaskId, @Content, @MetadataJson, @Created
             query = query ?? new MemoryQuery();
             var maxResults = query.MaxResults <= 0 ? 10 : Math.Min(query.MaxResults, 1000);
             var candidates = new List<MemoryEntry>();
-            const string sql = @"SELECT Id, Scope, Kind, OwnerId, TaskId, Content, MetadataJson, CreatedAt, OccurredAt
+            const string sql = @"SELECT Id, Scope, Kind, Family, TypeId, OwnerId, TaskId, Content, MetadataJson, ProvenanceJson, CreatedAt, OccurredAt, ExpiresAt
 FROM HAgentMemoryEntries
 WHERE (@Scope IS NULL OR Scope = @Scope)
   AND (@Kind IS NULL OR Kind = @Kind)
@@ -150,45 +156,51 @@ LIMIT @MaxResults;";
             command.Parameters.AddWithValue("@Id", entry.Id);
             command.Parameters.AddWithValue("@Scope", entry.Scope.ToString());
             command.Parameters.AddWithValue("@Kind", entry.Kind.ToString());
+            command.Parameters.AddWithValue("@Family", entry.Family.ToString());
+            command.Parameters.AddWithValue("@TypeId", entry.TypeId);
             command.Parameters.AddWithValue("@OwnerId", entry.OwnerId ?? string.Empty);
             command.Parameters.AddWithValue("@TaskId", string.IsNullOrWhiteSpace(entry.TaskId) ? (object)DBNull.Value : entry.TaskId);
             command.Parameters.AddWithValue("@Content", entry.Content ?? string.Empty);
             command.Parameters.AddWithValue("@MetadataJson", JsonSerializer.Serialize(entry.Metadata ?? new Dictionary<string, string>(), JsonOptions));
+            command.Parameters.AddWithValue("@ProvenanceJson", JsonSerializer.Serialize(entry.Provenance ?? new AiMemoryProvenance(), JsonOptions));
             command.Parameters.AddWithValue("@CreatedAt", entry.CreatedAt.UtcDateTime);
             command.Parameters.AddWithValue("@OccurredAt", entry.OccurredAt.UtcDateTime);
+            command.Parameters.AddWithValue("@ExpiresAt", entry.ExpiresAt.HasValue ? (object)entry.ExpiresAt.Value.UtcDateTime : DBNull.Value);
         }
 
         private static MemoryEntry ReadEntry(MySqlDataReader reader)
         {
-            var metadataJson = reader.IsDBNull(6) ? string.Empty : reader.GetString(6);
+            var metadataJson = reader.IsDBNull(8) ? string.Empty : reader.GetString(8);
+            var provenanceJson = reader.IsDBNull(9) ? string.Empty : reader.GetString(9);
             IDictionary<string, string> metadata;
-            try
-            {
-                metadata = string.IsNullOrWhiteSpace(metadataJson)
-                    ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    : JsonSerializer.Deserialize<Dictionary<string, string>>(metadataJson, JsonOptions) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            }
-            catch (JsonException)
-            {
-                metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            }
+            AiMemoryProvenance provenance;
+            try { metadata = string.IsNullOrWhiteSpace(metadataJson) ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) : JsonSerializer.Deserialize<Dictionary<string, string>>(metadataJson, JsonOptions) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); }
+            catch (JsonException) { metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); }
+            try { provenance = string.IsNullOrWhiteSpace(provenanceJson) ? new AiMemoryProvenance() : JsonSerializer.Deserialize<AiMemoryProvenance>(provenanceJson, JsonOptions) ?? new AiMemoryProvenance(); }
+            catch (JsonException) { provenance = new AiMemoryProvenance(); }
 
             MemoryScope scope;
             MemoryKind kind;
+            AiMemoryFamily family;
             Enum.TryParse(reader.GetString(1), true, out scope);
             Enum.TryParse(reader.GetString(2), true, out kind);
+            Enum.TryParse(reader.GetString(3), true, out family);
 
             return new MemoryEntry
             {
                 Id = reader.GetString(0),
                 Scope = scope,
                 Kind = kind,
-                OwnerId = reader.GetString(3),
-                TaskId = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                Content = reader.GetString(5),
+                Family = family,
+                TypeId = reader.GetString(4),
+                OwnerId = reader.GetString(5),
+                TaskId = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
+                Content = reader.GetString(7),
                 Metadata = metadata,
-                CreatedAt = reader.GetDateTime(7).ToUniversalTime(),
-                OccurredAt = reader.GetDateTime(8).ToUniversalTime()
+                Provenance = provenance,
+                CreatedAt = reader.GetDateTime(10).ToUniversalTime(),
+                OccurredAt = reader.GetDateTime(11).ToUniversalTime(),
+                ExpiresAt = reader.IsDBNull(12) ? (DateTimeOffset?)null : new DateTimeOffset(reader.GetDateTime(12).ToUniversalTime(), TimeSpan.Zero)
             };
         }
 

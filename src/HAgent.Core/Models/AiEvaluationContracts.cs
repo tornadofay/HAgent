@@ -86,6 +86,7 @@ namespace HAgent.Models
             PlanId = string.Empty;
             TraceId = string.Empty;
             Inputs = new List<AiEvaluationInputReference>();
+            Observations = new List<AiEvaluationObservation>();
             Criteria = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             RequestedAt = DateTimeOffset.UtcNow;
         }
@@ -101,6 +102,8 @@ namespace HAgent.Models
         public string TraceId { get; set; }
         [JsonInclude]
         public IList<AiEvaluationInputReference> Inputs { get; private set; }
+        [JsonInclude]
+        public IList<AiEvaluationObservation> Observations { get; private set; }
         [JsonInclude]
         public IDictionary<string, string> Criteria { get; private set; }
         public DateTimeOffset RequestedAt { get; private set; }
@@ -122,6 +125,8 @@ namespace HAgent.Models
             };
             foreach (var input in Inputs ?? new List<AiEvaluationInputReference>())
                 if (input != null) clone.Inputs.Add(input.Clone());
+            foreach (var observation in Observations ?? new List<AiEvaluationObservation>())
+                if (observation != null) clone.Observations.Add(observation.Clone());
             foreach (var pair in Criteria ?? new Dictionary<string, string>())
                 clone.Criteria[pair.Key] = pair.Value;
             return clone;
@@ -143,6 +148,13 @@ namespace HAgent.Models
             {
                 if (input == null) throw new ArgumentException("Evaluation inputs cannot contain null entries.", nameof(Inputs));
                 input.Validate();
+            }
+            if (Observations == null) throw new ArgumentNullException(nameof(Observations));
+            if (Observations.Count > 32) throw new ArgumentOutOfRangeException(nameof(Observations));
+            foreach (var observation in Observations)
+            {
+                if (observation == null) throw new ArgumentException("Evaluation observations cannot contain null entries.", nameof(Observations));
+                observation.Validate();
             }
             if (Criteria == null) throw new ArgumentNullException(nameof(Criteria));
             if (Criteria.Count > 32) throw new ArgumentOutOfRangeException(nameof(Criteria));

@@ -33,15 +33,18 @@ Phase 0.956 Observability and Distributed Tracing is complete and verified throu
    - User Example verification — .NET 9: `Deterministic Evaluation` succeeded.
    - Slice 2 is complete and no longer awaits local verification.
 
-3. **Human/application ratings and labeled evaluation evidence — CURRENT**
+3. **Human/application ratings and labeled evaluation evidence — VERIFIED**
    - Establish bounded externally supplied rating data for Human and Application evaluators without introducing a second evaluation result model.
    - Use one provider-neutral evaluator implementation for supplied ratings while requiring the evaluator kind to be `Human` or `Application`.
    - Preserve outcome, score, confidence, label, reason, bounded evidence references, metadata, evaluator identity/version, and execution/runtime/agent/goal/plan/trace correlation.
    - Clone supplied rating data on evaluator construction and produced evaluation data so later caller mutation cannot alter the evaluation result.
    - Observe cancellation before producing externally supplied evaluation evidence.
-   - Add focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs` verification.
-   - Explicitly classify the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
-   - This slice does not add model-assisted grading, aggregation, regression suites, persistence, or management UI.
+   - Added focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs` verification.
+   - Explicitly classified the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
+   - User verification — 2026-09-09: full `HAgent.Tests` completed with **115/115 tests passed**.
+   - User Example verification — .NET Framework 4.8.1 at **2026-09-09 06:53:44**: `Supplied Evaluation Ratings` succeeded with Human/Application outcome, score, label, provenance, evidence ownership, correlation, non-authoritative behavior, and no provider/model transport verified.
+   - User Example verification — .NET 9 at **2026-09-09 06:52:58**: `Supplied Evaluation Ratings` succeeded with the same public-API checks.
+   - Slice 3 is complete and no longer awaits local verification.
 
 ### Verification rule
 

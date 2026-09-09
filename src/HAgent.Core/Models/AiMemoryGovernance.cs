@@ -151,12 +151,23 @@ namespace HAgent.Models
 
     public static class AiMemoryGovernanceEvaluator
     {
+        public static void EnsureMemoryEnabled(AiResourceCapabilitySnapshot capabilities)
+        {
+            if (capabilities == null) throw new ArgumentNullException(nameof(capabilities));
+            EnsureEnabled(capabilities, AiMemoryResourceTypes.Memory, null, "Memory capability is disabled.");
+        }
+
+        public static void EnsureFamilyEnabled(AiResourceCapabilitySnapshot capabilities, AiMemoryFamily family)
+        {
+            EnsureMemoryEnabled(capabilities);
+            EnsureEnabled(capabilities, AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(family), "Memory family capability is disabled: " + family + ".");
+        }
+
         public static void EnsureReadable(AiResourceCapabilitySnapshot capabilities, AiMemoryFamily family, string typeId)
         {
             if (capabilities == null) throw new ArgumentNullException(nameof(capabilities));
             typeId = AiMemoryResourceTypes.TypeId(typeId);
-            EnsureEnabled(capabilities, AiMemoryResourceTypes.Memory, null, "Memory capability is disabled.");
-            EnsureEnabled(capabilities, AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(family), "Memory family capability is disabled: " + family + ".");
+            EnsureFamilyEnabled(capabilities, family);
             EnsureEnabled(capabilities, AiMemoryResourceTypes.Type, typeId, "Memory type capability is disabled: " + typeId + ".");
         }
 

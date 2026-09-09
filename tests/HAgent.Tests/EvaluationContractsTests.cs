@@ -10,7 +10,7 @@ namespace HAgent.Tests
     public sealed class EvaluationContractsTests
     {
         [Fact]
-        public void EvaluationRequest_CloneIsIndependentAndPreservesCorrelation()
+        public void EvaluationRequest_CloneIsIndependentAndPreservesCorrelationAndTimestamp()
         {
             var request = new AiEvaluationRequest
             {
@@ -34,6 +34,7 @@ namespace HAgent.Tests
             Assert.Equal(request.TargetId, clone.TargetId);
             Assert.Equal(request.ExecutionId, clone.ExecutionId);
             Assert.Equal(request.TraceId, clone.TraceId);
+            Assert.Equal(request.RequestedAt, clone.RequestedAt);
             Assert.NotSame(request.Inputs, clone.Inputs);
             Assert.NotSame(request.Inputs[0], clone.Inputs[0]);
             Assert.Equal("target", clone.Inputs[0].Role);
@@ -71,7 +72,7 @@ namespace HAgent.Tests
         }
 
         [Fact]
-        public void Evaluation_CloneDoesNotShareEvidenceOrMetadata()
+        public void Evaluation_CloneDoesNotShareEvidenceOrMetadataAndPreservesTimestamp()
         {
             var evaluation = CreateEvaluation();
             evaluation.Evidence.Add(new AiEvaluationInputReference { Kind = "trace", Id = "trace-42", Role = "provenance" });
@@ -83,6 +84,7 @@ namespace HAgent.Tests
 
             Assert.Equal("provenance", evaluation.Evidence[0].Role);
             Assert.Equal("completion", evaluation.Metadata["criterion"]);
+            Assert.Equal(evaluation.EvaluatedAt, clone.EvaluatedAt);
         }
 
         [Fact]
@@ -113,7 +115,24 @@ namespace HAgent.Tests
         }
 
         [Fact]
-        public void Evaluation_RejectsOversizedCollectionsAndInputObjects()
+        public async Task EvaluatorContract_ObservesCancellation()
+        {
+            var evaluator = new DeterministicEvaluator();
+            var request = new AiEvaluationRequest
+            {
+                TargetId = "execution-42",
+                ExecutionId = "execution-42"
+            };
+            using (var cancellation = new CancellationTokenSource())
+            {
+                cancellation.Cancel();
+                await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                    await evaluator.EvaluateAsync(request, cancellation.Token).ConfigureAwait(false));
+            }
+        }
+
+        [Fact]
+        public void Evaluation_RejectsOversizedCollections()
         {
             var request = new AiEvaluationRequest { TargetId = "execution-42" };
             for (var i = 0; i < 33; i++)

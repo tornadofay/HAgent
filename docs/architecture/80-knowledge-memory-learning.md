@@ -224,6 +224,54 @@ Individual knowledge resources
 
 A disabled capability is enforced by HAgent before retrieval/invocation. Prompt instructions are never used as the enforcement mechanism.
 
+## Resource governance admission
+
+Phase 0.9575 adds one generic provider-neutral governance boundary over the existing capability, identity, and policy primitives. It is not a second authorization system.
+
+`AiResourceGovernanceRequest` represents one requested resource operation and contains the operation, resource type/id, explicit resource scope, authoritative resource owner ID, runtime/profile/execution correlation, host-supplied identity, and bounded attributes. `AgentResourceOwnership.GetOwnerId(...)` remains the canonical owner derivation contract; governance does not invent a parallel ownership key.
+
+`AiResourceGovernanceEvaluator` composes three independent checks in fail-closed order:
+
+```text
+Canonical owner proof
+        ↓
+Effective resource capability
+        ↓
+Unified policy decision
+        ↓
+Admitted / requires approval / denied / deferred
+```
+
+For non-global resources the authoritative stored owner ID is required and must exactly match the identity-derived owner. Global resources may use the deterministic deployment owner when an explicit stored owner is not available. A mismatch is rejected before policy evaluation, preventing policy rules from accidentally authorizing a resource outside the caller's ownership boundary.
+
+The evaluator consumes an already-resolved `AiResourceCapabilitySnapshot`, so the runtime/profile precedence is captured before admission. Capability state is therefore immutable for the lifetime of the evaluator/snapshot and cannot change because profile or runtime configuration is edited later.
+
+`AiResourceCapabilitySnapshot` now preserves `AiResourceCapabilitySource` alongside every effective state:
+
+```text
+Default
+Profile
+RuntimeOverride
+```
+
+This source is diagnostic provenance for effective configuration; it is not authority. The effective state remains `Enabled` or `Disabled`, never `Inherit`.
+
+Policy outcomes are handled as follows:
+
+```text
+Allow            -> resource admitted
+Deny             -> resource denied
+RequireApproval  -> resource not admitted; approval remains required
+Defer            -> resource not admitted; deferred by policy
+NotApplicable    -> resource not admitted; no authorization is inferred
+```
+
+The governance layer never interprets model output as authorization and never mutates a resource. Host/resource implementations remain responsible for using an admitted decision before retrieval, exposure, invocation, or mutation.
+
+The resulting `AiResourceGovernanceDecision` preserves the effective capability state/source, expected and supplied owner identity, policy decision/provenance, correlation fields, and a bounded human-readable reason. Operators can therefore distinguish inherited/default configuration from runtime overrides without duplicating policy or ownership models.
+
+This boundary is reusable for Skills, Knowledge/Wiki, Memory families/types, and future resource types. Resource-specific retrieval or invocation semantics remain in their owning subsystems.
+
 ## Future-proof knowledge inventory
 
 The agent configuration UI must not hard-code a fixed list of knowledge tabs as the complete agent knowledge model.

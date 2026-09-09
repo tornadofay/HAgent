@@ -61,6 +61,7 @@ namespace HAgent.Runtime
 
             var previous = TraceAmbient.Current;
             var previousCorrelation = TraceAmbient.CurrentCorrelation;
+            var previousRecorder = TraceAmbient.CurrentRecorder;
             try
             {
                 var execution = await _inner.ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
@@ -100,7 +101,7 @@ namespace HAgent.Runtime
             }
             finally
             {
-                TraceAmbient.Set(previous, previousCorrelation);
+                TraceAmbient.Set(previous, previousCorrelation, previousRecorder);
             }
         }
 
@@ -141,7 +142,7 @@ namespace HAgent.Runtime
                 });
 
                 _executions[execution.Id] = root;
-                TraceAmbient.Set(root.Context, correlation);
+                TraceAmbient.Set(root.Context, correlation, _recorder);
                 return;
             }
 
@@ -149,7 +150,7 @@ namespace HAgent.Runtime
             if (!_executions.TryGetValue(execution.Id, out traceState))
                 return;
 
-            TraceAmbient.Set(traceState.Context, traceState.Record.Correlation);
+            TraceAmbient.Set(traceState.Context, traceState.Record.Correlation, _recorder);
 
             if (execution.State == AgentExecutionState.Succeeded ||
                 execution.State == AgentExecutionState.Failed ||

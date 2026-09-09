@@ -37,7 +37,7 @@ namespace HAgent.Tests
                 }
             });
 
-            using (TracePropagation.Push(root.Context, root.Record.Correlation))
+            using (TracePropagation.Push(root.Context, root.Record.Correlation, recorder))
             {
                 var metadata = new TraceMetadata();
                 metadata.Add("decision", "retry");
@@ -69,7 +69,7 @@ namespace HAgent.Tests
                 Kind = "Execution"
             });
 
-            using (TracePropagation.Push(root.Context, root.Record.Correlation))
+            using (TracePropagation.Push(root.Context, root.Record.Correlation, recorder))
             {
                 Record("provider.retry", "retry", TraceSpanStatus.Succeeded);
                 Record("execution.wait", "wait", TraceSpanStatus.Succeeded);

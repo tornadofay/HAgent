@@ -16,7 +16,7 @@ namespace HAgent.Example
                 "Observability Outcome Tracing",
                 "Run outcome tracing test",
                 "Runs deterministic failure, retry, wait, recovery, fallback, and stale-result observability checks through the public tracing APIs.",
-                "The scenario verifies repeated provider attempts emit retry and wait decisions, successful recovery is visible, multi-provider fallback decisions remain diagnostic only, and late/stale result rejection is represented as a rejected observation without changing execution authority.",
+                "The scenario verifies that authoritative runtime outcome facts become trace observations, while the tracing layer does not infer retry or stale-result state from provider calls or exception messages.",
                 "No remote provider or telemetry service is contacted. The provider adapter is a deterministic local fake.",
                 RunObservabilityOutcomeTracingTest,
                 "Outcome tracing",
@@ -44,8 +44,11 @@ namespace HAgent.Example
                 null,
                 new DefaultAiPolicyEngine(new AiPolicySet()),
                 null);
-            var runtime = new TracingAgentRuntime(inner, recorder);
+            var source = (IExecutionObservationSource)inner;
+            var runtimeObservations = new List<AgentExecutionObservation>();
+            source.ExecutionObserved += (sender, args) => runtimeObservations.Add(args.Observation);
 
+            var runtime = new TracingAgentRuntime(inner, recorder);
             var execution = await runtime.ExecuteAsync(new AgentExecutionRequest
             {
                 AgentId = "outcome-example-agent-42",
@@ -63,6 +66,11 @@ namespace HAgent.Example
             if (execution.State != AgentExecutionState.Succeeded || adapter.Calls != 2)
                 throw new InvalidOperationException("Deterministic retry scenario did not recover on the second provider attempt.");
 
+            if (!ContainsObservation(runtimeObservations, ExecutionObservationKinds.ProviderRetry, 1, 1) ||
+                !ContainsObservation(runtimeObservations, ExecutionObservationKinds.ExecutionWait, 1, 1) ||
+                !ContainsObservation(runtimeObservations, ExecutionObservationKinds.ProviderRecovery, 2, 1))
+                throw new InvalidOperationException("The execution runtime did not publish the expected authoritative outcome facts.");
+
             var spans = recorder.GetSpans();
             var retry = FindOutcomeSpan(spans, "provider.retry");
             var wait = FindOutcomeSpan(spans, "execution.wait");
@@ -71,6 +79,11 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Retry, wait, and recovery observations were not emitted.");
             if (retry.Status != TraceSpanStatus.Succeeded || wait.Status != TraceSpanStatus.Succeeded || recovery.Status != TraceSpanStatus.Succeeded)
                 throw new InvalidOperationException("Outcome decision observations did not use their expected diagnostic status.");
+            if (retry.Metadata.Values["execution.attempt"] != "1" ||
+                retry.Metadata.Values["execution.retry"] != "1" ||
+                wait.Metadata.Values["wait.duration.ms"] != "0" ||
+                recovery.Metadata.Values["execution.attempt"] != "2")
+                throw new InvalidOperationException("Outcome observation metadata did not preserve authoritative retry state.");
 
             var fallbackRoot = recorder.StartSpan(new TraceSpanStartOptions
             {
@@ -80,17 +93,11 @@ namespace HAgent.Example
             });
             using (TracePropagation.Push(fallbackRoot.Context, fallbackRoot.Record.Correlation, recorder))
             {
-                CreateManualProviderSpan(recorder, fallbackRoot.Context, "provider-a-42");
-                CreateManualProviderSpan(recorder, fallbackRoot.Context, "provider-b-42");
-                var metadata = new TraceMetadata();
-                metadata.Add("decision", "fallback");
-                metadata.Add("provider.count", "2");
-                metadata.Add("reason", "alternate-provider-selected");
                 if (!TraceObservation.RecordDecision(
                     "provider.fallback",
                     "Provider",
                     TraceSpanStatus.Succeeded,
-                    metadata))
+                    CreateDecisionMetadata("fallback", "alternate-provider-selected")))
                     throw new InvalidOperationException("Fallback observation could not be recorded.");
             }
             fallbackRoot.TryComplete(TraceSpanStatus.Succeeded);
@@ -103,14 +110,11 @@ namespace HAgent.Example
             });
             using (TracePropagation.Push(staleRoot.Context, staleRoot.Record.Correlation, recorder))
             {
-                var staleMetadata = new TraceMetadata();
-                staleMetadata.Add("decision", "stale-result");
-                staleMetadata.Add("reason", "execution-terminal-state-already-reached");
                 if (!TraceObservation.RecordDecision(
                     "execution.stale-result",
                     "Outcome",
                     TraceSpanStatus.Rejected,
-                    staleMetadata))
+                    CreateDecisionMetadata("stale-result", "execution-terminal-state-already-reached")))
                     throw new InvalidOperationException("Stale-result observation could not be recorded.");
             }
             staleRoot.TryComplete(TraceSpanStatus.Succeeded);
@@ -122,30 +126,41 @@ namespace HAgent.Example
             Write(
                 "OBSERVABILITY OUTCOME TRACING",
                 "Failure/retry/wait/recovery observability succeeded." + Environment.NewLine +
-                "Repeated provider invocation produced explicit retry observation: verified." + Environment.NewLine +
-                "Retry wait boundary observation: verified." + Environment.NewLine +
-                "Successful recovery after transient failure: verified." + Environment.NewLine +
-                "Fallback decision represented as diagnostic-only observation: verified." + Environment.NewLine +
+                "Execution runtime published authoritative retry observation: verified." + Environment.NewLine +
+                "Execution runtime published retry wait boundary: verified." + Environment.NewLine +
+                "Execution runtime published successful recovery after transient failure: verified." + Environment.NewLine +
+                "Fallback decision represented through the public decision-observation API: verified." + Environment.NewLine +
                 "Stale-result rejection represented as Rejected observation: verified." + Environment.NewLine +
+                "Tracing did not infer retry state from adapter AsyncLocal state or exception text: verified." + Environment.NewLine +
                 "Execution terminal authority unchanged by tracing: verified." + Environment.NewLine +
                 "Raw prompts/responses/provider payloads: not recorded." + Environment.NewLine +
                 "Remote telemetry transport: none." + Environment.NewLine +
                 "Real provider request: none.");
         }
 
-        private static void CreateManualProviderSpan(ITraceRecorder recorder, TraceContext parent, string providerId)
+        private static bool ContainsObservation(
+            IReadOnlyList<AgentExecutionObservation> observations,
+            string kind,
+            int attempt,
+            int retryNumber)
+        {
+            foreach (var observation in observations)
+            {
+                if (observation == null) continue;
+                if (string.Equals(observation.Kind, kind, StringComparison.Ordinal) &&
+                    observation.Attempt == attempt &&
+                    observation.RetryNumber == retryNumber)
+                    return true;
+            }
+            return false;
+        }
+
+        private static TraceMetadata CreateDecisionMetadata(string decision, string reason)
         {
             var metadata = new TraceMetadata();
-            metadata.Add("provider.id", providerId);
-            var span = recorder.StartSpan(new TraceSpanStartOptions
-            {
-                ParentContext = parent,
-                OperationName = "provider.invoke",
-                Kind = "Provider",
-                Correlation = new TraceCorrelation { ExecutionId = "fallback-example-42" },
-                Metadata = metadata
-            });
-            span.TryComplete(TraceSpanStatus.Failed);
+            metadata.Add("decision", decision);
+            metadata.Add("reason", reason);
+            return metadata;
         }
 
         private static TraceSpan FindOutcomeSpan(IReadOnlyList<TraceSpan> spans, string operationName)

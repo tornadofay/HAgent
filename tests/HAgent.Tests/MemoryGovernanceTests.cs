@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Models;
 using HAgent.Runtime;
@@ -20,6 +19,7 @@ namespace HAgent.Tests
 
             Assert.Equal(8, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.fact" }));
             Assert.Equal(3, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.preference" }));
+            Assert.Equal(2, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.preference", MaxResults = 2 }));
             Assert.Equal(20, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Procedural, TypeId = "procedural.strategy" }));
         }
 
@@ -60,6 +60,22 @@ namespace HAgent.Tests
             profile.Set(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic), AiResourceCapabilityState.Enabled);
             snapshot = AiResourceCapabilitySnapshot.Resolve(profile);
             Assert.Throws<InvalidOperationException>(() => AiMemoryGovernanceEvaluator.EnsureReadable(snapshot, AiMemoryFamily.Semantic, "semantic.secret"));
+        }
+
+        [Fact]
+        public void CapabilityEvaluator_RuntimeOverrideEnablesDisabledProfileFamily()
+        {
+            var profile = new AiResourceCapabilityPolicy();
+            profile.Set(AiMemoryResourceTypes.Memory, AiResourceCapabilityState.Enabled);
+            profile.Set(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic), AiResourceCapabilityState.Disabled);
+            var runtime = new AiResourceCapabilityPolicy();
+            runtime.Set(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic), AiResourceCapabilityState.Enabled);
+
+            var snapshot = AiResourceCapabilitySnapshot.Resolve(profile, runtime);
+            AiMemoryGovernanceEvaluator.EnsureReadable(snapshot, AiMemoryFamily.Semantic, "semantic.fact");
+
+            Assert.Equal(AiResourceCapabilitySource.RuntimeOverride,
+                snapshot.GetSource(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic)));
         }
 
         [Fact]
@@ -106,7 +122,7 @@ namespace HAgent.Tests
             await governed.AddAsync(CreateEntry(AiMemoryFamily.Semantic, "semantic.fact", DateTimeOffset.UtcNow));
             await governed.AddAsync(CreateEntry(AiMemoryFamily.Semantic, "semantic.fact", DateTimeOffset.UtcNow.AddMinutes(-1)));
 
-            var results = await governed.SearchAsync(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.fact", OwnerId = "owner-42" });
+            var results = await governed.SearchAsync(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.fact", OwnerId = "owner-42", MaxResults = 100 });
             Assert.Single(results);
             Assert.True(results[0].ExpiresAt.HasValue);
             Assert.True(results[0].ExpiresAt.Value <= results[0].CreatedAt.AddDays(1));

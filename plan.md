@@ -76,6 +76,8 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.954 Prompt and Instruction Governance is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.955 Context Engineering is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.956 Observability and Distributed Tracing is completed and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9, including authoritative execution-outcome observations consumed by tracing without provider-side state inference.
 
+0.957 Slice 1 (provider-neutral evaluation contracts and evaluator boundary) is verified. Slice 2 now has its deterministic observation/evaluator implementation, focused tests, public Example, and synchronized architecture/roadmap documentation; repository build/full-test/Example verification is still pending.
+
 The remaining ordered foundation includes 0.957 Evaluation/Quality Measurement, 0.9575 Knowledge/Skills/Memory Governance + Learning, 0.958 Agent Lifecycle/Health, 0.9591 Goal/Plan Persistence/Recovery, and 0.959 Human-in-the-Loop/Intervention. Phase 0.9591 remains intentionally ordered before 0.959 because durable goal/plan revisions, checkpoints, and recovery state provide the persistent authority for later goal/plan intervention. Execution-level intervention remains valid independently. 0.9592 Provider Ecosystem/Adapter Lifecycle follows these foundations, then 0.96 Capability-Aware Execution.
 
 ## First-class Knowledge / Skills / Memory / Learning architecture

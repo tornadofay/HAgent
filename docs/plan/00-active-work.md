@@ -40,20 +40,26 @@ The verified boundary composes canonical ownership, effective capability source 
 
 ## Current Slice 2 — Knowledge/Wiki governed resource contract
 
-The next work consumes the verified governance boundary and existing 0.8 Knowledge/Wiki foundation. The goal is to establish the canonical provider-neutral resource/reference shape and bounded retrieval metadata needed by later context and learning slices.
+The bounded implementation checkpoint now contains:
 
-The slice must preserve resource identity, explicit scope/ownership, provenance, lifecycle/status, version, source, relationships, and bounded retrieval metadata. Authoritative Knowledge content must remain distinct from candidate/model-generated content. Reuse `AiResourceGovernanceEvaluator` for admission and existing resource/storage foundations for persistence boundaries.
+- `AiKnowledgeResource`, `AiKnowledgeProvenance`, and `AiKnowledgeRelationship` for explicit identity, kind, scope/owner, content, lifecycle/status, version, source, provenance, metadata, tags/categories, and relationships.
+- `AiKnowledgeChunk` for bounded retrieval evidence independent of any physical index.
+- `AiKnowledgeRetrievalRequest`, `AiKnowledgeRetrievalCandidate`, `AiKnowledgeRetrievalResult`, and `IAiKnowledgeRetriever` for provider/index-neutral asynchronous retrieval with explicit limits and cancellation.
+- `AiGovernedKnowledgeRetriever` composing the verified resource-governance boundary so only explicitly admitted resources enter the underlying retriever and drafts remain excluded unless requested.
+- Focused tests in `tests/HAgent.Tests/KnowledgeResourceTests.cs`.
+- Matching public Example in `src/HAgent.Example/MainForm.KnowledgeWiki.cs`, registered as `Cognition → Knowledge/Wiki → Knowledge/Wiki`.
+- CI workflow `.github/workflows/verify-phase-0-9575-slice-2.yml` covering Core/Example builds for .NET Framework 4.8.1 and .NET 9 plus focused/full tests.
 
-Do not implement the full Knowledge Manager UI, semantic/vector indexing, learning promotion, or broad retrieval orchestration merely as part of this contract slice.
+Do not implement the Knowledge Manager UI, semantic/vector indexing, learning promotion, or broader learning lifecycle in this slice.
 
 ### Verification checkpoint
 
-Implementation and matching Example/test coverage are pending for Phase 0.9575 Slice 2.
+Implementation is complete for the bounded Slice 2 scope, but local verification is still pending.
 
-**Example to run:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki`
+**Example to run:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` on **.NET Framework 4.8.1** and **.NET 9**.
 
 **Tests to run:** `tests/HAgent.Tests/KnowledgeResourceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ## Current blocker
 
-No design blocker is known. Before coding, inspect the existing Knowledge/Wiki foundation models, resource/storage contracts, provenance/version metadata, and Example organization so the new contract composes established boundaries instead of duplicating them.
+Verification is the only blocker. If compilation or tests expose a defect, correct it within Slice 2 and repeat the necessary verification; do not begin Slice 3 until this checkpoint is verified.

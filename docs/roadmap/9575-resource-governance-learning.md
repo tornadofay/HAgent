@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned after Phase 0.957 Evaluation / Quality Measurement and before Phase 0.958 Agent Lifecycle / Health.
+**In progress — Slice 1 implementation checkpoint; verification pending.**
 
 ## Goal
 
@@ -52,6 +52,29 @@ New resource version or scoped state
 4. [ ] Prompt/instruction governance and context engineering expose trust/provenance boundaries needed when resources enter execution context.
 5. [ ] Evaluation provides quality signals usable by learning and promotion decisions.
 6. [ ] Runtime instances and execution snapshots provide stable runtime ownership and immutable effective state boundaries.
+
+## Slice 1 — Mature resource capability governance foundation
+
+**Implementation checkpoint — verification pending.**
+
+- Added `AiResourceCapabilitySource` so every effective capability snapshot can report whether its enabled/disabled state comes from the default, persisted agent profile, or runtime override.
+- Extended `AiResourceCapabilitySnapshot` with `GetSource(...)` and source-preserving clone/validation behavior. Existing tri-state profile/runtime resolution remains canonical; no parallel capability model was introduced.
+- Added `AiResourceGovernanceRequest` with bounded operation/resource identity, explicit `AgentResourceScope`, authoritative owner identity, runtime/profile/execution correlation, host identity, and bounded attributes.
+- Added `AiResourceGovernanceDecision` with effective capability state/source, expected versus supplied owner, policy decision, approval status, and bounded diagnostic reason.
+- Added `AiResourceGovernanceEvaluator` composing canonical owner validation, effective capability gating, and the unified `IAiPolicyEngine` in fail-closed order. Non-global resource requests require the authoritative resource owner ID.
+- Disabled resources and ownership mismatches are rejected before policy authorization; `RequireApproval`, `Defer`, `Deny`, and `NotApplicable` remain non-admitted outcomes rather than being interpreted as implicit access.
+- The evaluator captures a detached capability snapshot and request clone. Later profile/runtime edits cannot mutate an already-created governance evaluator or its effective state.
+- Added focused `tests/HAgent.Tests/ResourceGovernanceTests.cs` covering capability source provenance, missing/cross-owner rejection, disabled-before-policy enforcement, successful capability+ownership+policy admission, approval/no-policy handling, and snapshot isolation.
+- Added matching public `src/HAgent.Example/MainForm.ResourceGovernance.cs` and registered it under `Cognition → Resource Governance`.
+- Added `.github/workflows/verify-phase-0-9575-slice-1.yml` for Core/Example builds on .NET Framework 4.8.1 and .NET 9 plus focused/full tests.
+
+**Example to run:** `HAgent.Example → Cognition → Resource Governance → Resource Governance` on **.NET Framework 4.8.1** and **.NET 9**.
+
+**Tests to run:** `tests/HAgent.Tests/ResourceGovernanceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+
+### Slice 1 boundary
+
+This slice establishes reusable effective resource capability/admission semantics for Skills, Knowledge/Wiki, Memory families/types, and future resource types. It does not add resource-specific repositories, management CRUD, learning promotion, retention policy, or a second authorization system.
 
 ## Resource governance
 

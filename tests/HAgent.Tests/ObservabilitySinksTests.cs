@@ -83,6 +83,35 @@ namespace HAgent.Tests
         }
 
         [Fact]
+        public async Task QueueSaturation_DropsTelemetryWithoutAffectingSpanCompletion()
+        {
+            var sink = new BlockingSink();
+            var dispatcher = new TraceSinkDispatcher(
+                new[] { sink },
+                new TraceSinkOptions { MaxPendingSpans = 1 });
+            var recorder = new InMemoryTraceRecorder(null, null, dispatcher);
+
+            var first = StartRoot(recorder, "sink-queue-first");
+            Assert.True(first.TryComplete(TraceSpanStatus.Succeeded));
+            await sink.Started.ConfigureAwait(false);
+
+            var second = StartRoot(recorder, "sink-queue-second");
+            var third = StartRoot(recorder, "sink-queue-third");
+            Assert.True(second.TryComplete(TraceSpanStatus.Succeeded));
+            Assert.True(third.TryComplete(TraceSpanStatus.Succeeded));
+            Assert.True(second.Record.IsCompleted);
+            Assert.True(third.Record.IsCompleted);
+            Assert.Equal(1L, dispatcher.DroppedCount);
+
+            sink.Release();
+            await dispatcher.FlushAsync().ConfigureAwait(false);
+
+            Assert.Equal(2L, dispatcher.AcceptedCount);
+            Assert.Equal(2L, dispatcher.PublishedCount);
+            dispatcher.Dispose();
+        }
+
+        [Fact]
         public async Task UnsampledOrNotRetainedSpans_AreNotExported()
         {
             var unsampledSink = new RecordingSink();

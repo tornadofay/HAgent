@@ -42,18 +42,25 @@ namespace HAgent.Runtime
             metadata.AddOmitted("event.context");
 
             var parent = envelope.TraceContext ?? TraceAmbient.Current;
+            var correlation = TraceAmbient.CurrentCorrelation ?? new TraceCorrelation();
+            if (!string.IsNullOrWhiteSpace(envelope.CorrelationId))
+                correlation.EventId = envelope.CorrelationId;
+            if (!string.IsNullOrWhiteSpace(envelope.CausationId))
+                correlation.CausationId = envelope.CausationId;
+
             var span = _recorder.StartSpan(new TraceSpanStartOptions
             {
                 ParentContext = parent,
                 OperationName = "event.publish",
                 Kind = "Event",
+                Correlation = correlation,
                 Metadata = metadata
             });
 
             var tracedEnvelope = envelope.Clone();
             tracedEnvelope.TraceContext = span.Context;
 
-            using (TraceAmbient.Push(span.Context))
+            using (TraceAmbient.Push(span.Context, span.Record.Correlation))
             {
                 try
                 {
@@ -98,15 +105,25 @@ namespace HAgent.Runtime
                     metadata.AddOmitted("event.payload");
 
                     var parent = envelope == null ? TraceAmbient.Current : envelope.TraceContext ?? TraceAmbient.Current;
+                    var correlation = TraceAmbient.CurrentCorrelation ?? new TraceCorrelation();
+                    if (envelope != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(envelope.CorrelationId))
+                            correlation.EventId = envelope.CorrelationId;
+                        if (!string.IsNullOrWhiteSpace(envelope.CausationId))
+                            correlation.CausationId = envelope.CausationId;
+                    }
+
                     var span = _recorder.StartSpan(new TraceSpanStartOptions
                     {
                         ParentContext = parent,
                         OperationName = "event.handle",
                         Kind = "Event",
+                        Correlation = correlation,
                         Metadata = metadata
                     });
 
-                    using (TraceAmbient.Push(span.Context))
+                    using (TraceAmbient.Push(span.Context, span.Record.Correlation))
                     {
                         try
                         {

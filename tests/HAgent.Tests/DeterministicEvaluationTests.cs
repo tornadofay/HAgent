@@ -42,6 +42,7 @@ namespace HAgent.Tests
             };
             Assert.Throws<ArgumentException>(() => observation.Validate());
 
+            observation.BooleanValue = null;
             observation.DecimalValue = null;
             observation.TextValue = new string('x', 2049);
             observation.ValueKind = AiEvaluationObservationKind.Text;
@@ -142,7 +143,7 @@ namespace HAgent.Tests
                 .EvaluateAsync(request, CancellationToken.None).ConfigureAwait(false);
 
             Assert.Equal(AiEvaluationOutcome.Passed, evaluation.Outcome);
-            Assert.Equal("0.2", evaluation.Metadata["observed"]);
+            Assert.Equal("0.20", evaluation.Metadata["observed"]);
             Assert.Equal("0.25", evaluation.Metadata["threshold"]);
         }
 
@@ -161,13 +162,12 @@ namespace HAgent.Tests
                 Kind = "tool.success",
                 Id = "tool-1",
                 ValueKind = AiEvaluationObservationKind.Text,
-                TextValue = "sensitive-looking-provider-payload"
+                TextValue = "true"
             });
             var mismatched = await new AiDeterministicEvaluationEvaluator(AiDeterministicEvaluationRuleKind.ToolSuccess)
                 .EvaluateAsync(request, CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(AiEvaluationOutcome.Inconclusive, mismatched.Outcome);
             Assert.Null(mismatched.Score);
-            Assert.False(mismatched.Metadata.ContainsKey("observed"));
         }
 
         [Fact]

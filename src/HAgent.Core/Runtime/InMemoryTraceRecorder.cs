@@ -59,7 +59,7 @@ namespace HAgent.Runtime
                 if (sampled)
                     RetainUnsafe(span);
 
-                return new InMemoryTraceSpanHandle(this, span);
+                return new InMemoryTraceSpanHandle(span);
             }
         }
 
@@ -76,16 +76,19 @@ namespace HAgent.Runtime
         {
             PruneExpiredUnsafe(span.StartedAt);
 
-            if (CountTraceIdsUnsafe() >= _retention.MaxTraceCount && !ContainsTraceUnsafe(span.TraceId))
-            {
+            var traceExists = ContainsTraceUnsafe(span.TraceId);
+            if (!traceExists && CountTraceIdsUnsafe() >= _retention.MaxTraceCount)
                 EvictOldestTraceUnsafe();
-            }
 
             if (CountSpansForTraceUnsafe(span.TraceId) >= _retention.MaxSpansPerTrace)
                 return;
 
             if (_spans.Count >= _retention.MaxSpanCount)
+            {
+                if (traceExists)
+                    return;
                 EvictOldestTraceUnsafe();
+            }
 
             var spanCost = EstimateMetadataCharacters(span);
             if (spanCost > _retention.MaxAggregateMetadataCharacters)
@@ -93,10 +96,12 @@ namespace HAgent.Runtime
 
             while (_spans.Count > 0 && AggregateMetadataCharactersUnsafe() + spanCost > _retention.MaxAggregateMetadataCharacters)
             {
-                EvictOldestTraceUnsafe();
+                if (!EvictOldestTraceUnsafe(span.TraceId))
+                    return;
             }
 
-            if (CountTraceIdsUnsafe() >= _retention.MaxTraceCount && !ContainsTraceUnsafe(span.TraceId))
+            traceExists = ContainsTraceUnsafe(span.TraceId);
+            if (!traceExists && CountTraceIdsUnsafe() >= _retention.MaxTraceCount)
                 return;
             if (_spans.Count >= _retention.MaxSpanCount)
                 return;
@@ -125,19 +130,29 @@ namespace HAgent.Runtime
             _spans.RemoveAll(span => expiredTraceIds.Contains(span.TraceId));
         }
 
-        private void EvictOldestTraceUnsafe()
+        private bool EvictOldestTraceUnsafe(string excludedTraceId = null)
         {
             if (_spans.Count == 0)
-                return;
+                return false;
 
-            var oldestTraceId = _spans[0].TraceId;
-            for (var i = 1; i < _spans.Count; i++)
+            string oldestTraceId = null;
+            long oldestSequence = long.MaxValue;
+            foreach (var span in _spans)
             {
-                if (_spans[i].Sequence < _spans[0].Sequence)
-                    oldestTraceId = _spans[i].TraceId;
+                if (excludedTraceId != null && string.Equals(span.TraceId, excludedTraceId, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (span.Sequence < oldestSequence)
+                {
+                    oldestSequence = span.Sequence;
+                    oldestTraceId = span.TraceId;
+                }
             }
 
+            if (oldestTraceId == null)
+                return false;
+
             _spans.RemoveAll(span => string.Equals(span.TraceId, oldestTraceId, StringComparison.OrdinalIgnoreCase));
+            return true;
         }
 
         private bool ContainsTraceUnsafe(string traceId)
@@ -187,7 +202,7 @@ namespace HAgent.Runtime
         {
             private readonly TraceSpan _span;
 
-            public InMemoryTraceSpanHandle(InMemoryTraceRecorder owner, TraceSpan span)
+            public InMemoryTraceSpanHandle(TraceSpan span)
             {
                 _span = span;
             }

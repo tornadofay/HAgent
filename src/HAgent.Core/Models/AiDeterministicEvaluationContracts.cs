@@ -81,11 +81,11 @@ namespace HAgent.Models
             switch (ValueKind)
             {
                 case AiEvaluationObservationKind.Boolean:
-                    if (!BooleanValue.HasValue || DecimalValue.HasValue || (TextValue != null && TextValue.Length > 0))
+                    if (!BooleanValue.HasValue || DecimalValue.HasValue || TextValue != null && TextValue.Length > 0)
                         throw new ArgumentException("Boolean observations must contain exactly one boolean value.", nameof(BooleanValue));
                     break;
                 case AiEvaluationObservationKind.Decimal:
-                    if (!DecimalValue.HasValue || BooleanValue.HasValue || (TextValue != null && TextValue.Length > 0))
+                    if (!DecimalValue.HasValue || BooleanValue.HasValue || TextValue != null && TextValue.Length > 0)
                         throw new ArgumentException("Decimal observations must contain exactly one decimal value.", nameof(DecimalValue));
                     break;
                 case AiEvaluationObservationKind.Text:
@@ -116,6 +116,8 @@ namespace HAgent.Models
 
         public AiDeterministicEvaluationEvaluator(AiDeterministicEvaluationRuleKind ruleKind, string id = null, string version = "1")
         {
+            if (!Enum.IsDefined(typeof(AiDeterministicEvaluationRuleKind), ruleKind))
+                throw new ArgumentOutOfRangeException(nameof(ruleKind));
             RuleKind = ruleKind;
             _id = string.IsNullOrWhiteSpace(id) ? "deterministic." + ruleKind.ToString() : id;
             _version = version ?? string.Empty;
@@ -167,13 +169,13 @@ namespace HAgent.Models
                 case AiDeterministicEvaluationRuleKind.ToolSuccess:
                 case AiDeterministicEvaluationRuleKind.TaskCompletion:
                     if (observation.ValueKind != AiEvaluationObservationKind.Boolean)
-                        return Inconclusive(result, "The deterministic rule requires a boolean observation.");
+                        return Task.FromResult(Inconclusive(result, "The deterministic rule requires a boolean observation."));
                     passed = observation.BooleanValue;
                     break;
                 case AiDeterministicEvaluationRuleKind.Latency:
                 case AiDeterministicEvaluationRuleKind.Cost:
                     if (observation.ValueKind != AiEvaluationObservationKind.Decimal)
-                        return Inconclusive(result, "The deterministic rule requires a decimal observation.");
+                        return Task.FromResult(Inconclusive(result, "The deterministic rule requires a decimal observation."));
                     passed = EvaluateThreshold(request, observation, result);
                     if (!passed.HasValue)
                         return Task.FromResult(result);
@@ -252,14 +254,14 @@ namespace HAgent.Models
             return observation.DecimalValue.Value <= threshold;
         }
 
-        private static bool? Inconclusive(AiEvaluation result, string reason)
+        private static AiEvaluation Inconclusive(AiEvaluation result, string reason)
         {
             result.Outcome = AiEvaluationOutcome.Inconclusive;
             result.Score = null;
             result.Confidence = 1d;
             result.Label = "inconclusive";
             result.Reason = reason;
-            return null;
+            return result;
         }
     }
 }

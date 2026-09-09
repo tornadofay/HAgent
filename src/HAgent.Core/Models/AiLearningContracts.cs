@@ -3,6 +3,47 @@ using HAgent.Abstractions;
 
 namespace HAgent.Models
 {
+    public enum AiLearningMode
+    {
+        Disabled,
+        SuggestOnly,
+        AutomaticWithPolicy,
+        FullyAutomatic
+    }
+
+    public static class AiLearningModePolicy
+    {
+        public static bool ProducesCandidates(AiLearningMode mode)
+        {
+            Validate(mode);
+            return mode != AiLearningMode.Disabled;
+        }
+
+        public static bool RequiresReview(AiLearningMode mode)
+        {
+            Validate(mode);
+            return mode == AiLearningMode.SuggestOnly;
+        }
+
+        public static bool AllowsPolicyDrivenPromotion(AiLearningMode mode)
+        {
+            Validate(mode);
+            return mode == AiLearningMode.AutomaticWithPolicy || mode == AiLearningMode.FullyAutomatic;
+        }
+
+        public static bool AllowsUnreviewedPromotion(AiLearningMode mode)
+        {
+            Validate(mode);
+            return mode == AiLearningMode.FullyAutomatic;
+        }
+
+        public static void Validate(AiLearningMode mode)
+        {
+            if (!Enum.IsDefined(typeof(AiLearningMode), mode))
+                throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+    }
+
     public enum AiLearningCandidateType
     {
         Memory,
@@ -67,6 +108,12 @@ namespace HAgent.Models
             Require(SourceRuntimeInstanceId, nameof(SourceRuntimeInstanceId), 512, false);
             Require(SourceAgentProfileId, nameof(SourceAgentProfileId), 512, false);
             Require(LearningMode, nameof(LearningMode), 64, false);
+            if (!string.IsNullOrWhiteSpace(LearningMode))
+            {
+                AiLearningMode parsed;
+                if (!Enum.TryParse(LearningMode, true, out parsed) || !Enum.IsDefined(typeof(AiLearningMode), parsed))
+                    throw new ArgumentException("LearningMode is invalid.", nameof(LearningMode));
+            }
             if (Identity != null)
                 Identity.Validate();
         }
@@ -283,8 +330,7 @@ namespace HAgent.Models
 
         private InvalidOperationException InvalidTransition(AiLearningCandidateStatus target)
         {
-            return new InvalidOperationException(
-                "Invalid learning candidate transition: " + _status + " -> " + target + ".");
+            return new InvalidOperationException("Invalid learning candidate transition: " + _status + " -> " + target + ".");
         }
     }
 

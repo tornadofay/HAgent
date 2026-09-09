@@ -78,7 +78,7 @@ namespace HAgent.Example
                 Kind = "Execution",
                 Correlation = new TraceCorrelation { ExecutionId = "fallback-example-42" }
             });
-            using (TracePropagation.Push(fallbackRoot.Context, fallbackRoot.Record.Correlation))
+            using (TracePropagation.Push(fallbackRoot.Context, fallbackRoot.Record.Correlation, recorder))
             {
                 CreateManualProviderSpan(recorder, fallbackRoot.Context, "provider-a-42");
                 CreateManualProviderSpan(recorder, fallbackRoot.Context, "provider-b-42");
@@ -101,7 +101,7 @@ namespace HAgent.Example
                 Kind = "Execution",
                 Correlation = new TraceCorrelation { ExecutionId = "stale-example-42" }
             });
-            using (TracePropagation.Push(staleRoot.Context, staleRoot.Record.Correlation))
+            using (TracePropagation.Push(staleRoot.Context, staleRoot.Record.Correlation, recorder))
             {
                 var staleMetadata = new TraceMetadata();
                 staleMetadata.Add("decision", "stale-result");

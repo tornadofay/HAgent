@@ -25,11 +25,9 @@ This file is the compact handoff state for work currently in progress. It is not
 - User Example verification — .NET Framework 4.8.1: `Diagnostics → Evaluation → Deterministic Evaluation` succeeded.
 - User Example verification — .NET 9: `Diagnostics → Evaluation → Deterministic Evaluation` succeeded.
 
-## Current run
+## Completed Slice 3
 
-**0.957 Slice 3 — Human/application ratings and labeled evaluation evidence — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
-
-## Implemented in Slice 3
+0.957 Slice 3 — Human/application ratings and labeled evaluation evidence is verified.
 
 - Added bounded `AiEvaluationRating` for externally supplied outcomes, scores, confidence, labels, reasons, evidence references, and metadata.
 - Added `AiSuppliedRatingEvaluator` using the existing `IAiEvaluator` contract and accepting only `Human` or `Application` evaluator kinds.
@@ -39,24 +37,18 @@ This file is the compact handoff state for work currently in progress. It is not
 - Added focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs`.
 - Added matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs`.
 - Explicitly classified the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
-- Updated `docs/architecture/23-evaluation-quality.md` with the authoritative supplied-rating boundary.
+- User verification — 2026-09-09: full `HAgent.Tests` completed with **115/115 tests passed**.
+- User Example verification — .NET Framework 4.8.1 at **2026-09-09 06:53:44**: `Supplied Evaluation Ratings` succeeded and verified Human/Application outcome, score, label, provenance, evidence ownership, correlation, non-authoritative behavior, and no provider/model transport.
+- User Example verification — .NET 9 at **2026-09-09 06:52:58**: `Supplied Evaluation Ratings` succeeded with the same public-API checks.
+
+## Current run
+
+**0.957 Slice 3 is complete. The next implementation checkpoint must be selected from the authoritative 0.957 roadmap before any further code changes.**
 
 ## Verification boundary
 
-The implementation and matching Example/test coverage are present, but this run has not executed the supported repository build/test/WinForms Example sequence from this connected session. Do not mark Slice 3 verified yet.
-
-### Exact user verification targets
-
-**Tests to run:** `tests/HAgent.Tests/SuppliedEvaluationTests.cs` (`SuppliedEvaluationTests`) and then the full `HAgent.Tests` suite.
-
-**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Supplied Evaluation Ratings` on **.NET Framework 4.8.1** and **.NET 9**.
-
-- Build the affected solution/projects after pulling the current branch.
-- Run the focused supplied-evaluation tests and the full `HAgent.Tests` suite.
-- Run the exact Example above on .NET Framework 4.8.1.
-- Run the same Example on .NET 9.
-- Confirm Human/Application provenance, labels, scores, evidence ownership, cancellation, and non-authoritative behavior.
+Slice 3 is locally verified. No later slice has been implemented in this checkpoint.
 
 ## Current blockers
 
-Local repository execution is not available from this connected session, so build/test/Example success cannot be claimed here. The code remains at an implementation checkpoint pending actual verification; no later 0.957 slice should begin until this checkpoint is verified.
+None for Slice 3. The next 0.957 slice remains intentionally unstarted until its scope is established from the authoritative roadmap/architecture.

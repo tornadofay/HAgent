@@ -88,7 +88,7 @@ namespace HAgent.Tests
         }
 
         [Fact]
-        public async Task TracedRuntime_RecordsRetryWaitAndRecovery()
+        public async Task TracedRuntime_RecordsRetryWaitAndRecoveryFromAuthoritativeRuntime()
         {
             var recorder = new InMemoryTraceRecorder();
             var store = new InMemoryAiStore();
@@ -109,8 +109,11 @@ namespace HAgent.Tests
                 null,
                 new DefaultAiPolicyEngine(new AiPolicySet()),
                 null);
-            var runtime = new TracingAgentRuntime(inner, recorder);
+            var source = Assert.IsAssignableFrom<IExecutionObservationSource>(inner);
+            var runtimeObservations = new List<AgentExecutionObservation>();
+            source.ExecutionObserved += (sender, args) => runtimeObservations.Add(args.Observation);
 
+            var runtime = new TracingAgentRuntime(inner, recorder);
             var execution = await runtime.ExecuteAsync(new AgentExecutionRequest
             {
                 AgentId = "outcome-agent-42",
@@ -126,12 +129,16 @@ namespace HAgent.Tests
             }, CancellationToken.None).ConfigureAwait(false);
 
             Assert.Equal(AgentExecutionState.Succeeded, execution.State);
+            Assert.Equal(2, adapter.Calls);
+            Assert.Contains(runtimeObservations, x => x.Kind == ExecutionObservationKinds.ProviderRetry && x.Attempt == 1 && x.RetryNumber == 1);
+            Assert.Contains(runtimeObservations, x => x.Kind == ExecutionObservationKinds.ExecutionWait && x.WaitDuration == TimeSpan.Zero);
+            Assert.Contains(runtimeObservations, x => x.Kind == ExecutionObservationKinds.ProviderRecovery && x.Attempt == 2 && x.RetryNumber == 1);
+
             var spans = recorder.GetSpans();
             Assert.NotNull(Find(spans, "provider.retry"));
             Assert.NotNull(Find(spans, "execution.wait"));
             Assert.NotNull(Find(spans, "provider.recovery"));
             Assert.Equal(2, Count(spans, "provider.invoke"));
-            Assert.Equal(2, adapter.Calls);
         }
 
         private static void Record(string operationName, string decision, TraceSpanStatus status)

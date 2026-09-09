@@ -15,7 +15,7 @@ namespace HAgent.Example
                 "Observability Sinks",
                 "Run trace sink test",
                 "Runs deterministic trace sink and safe export-boundary checks through the public tracing APIs.",
-                "The scenario verifies retained sampled spans are delivered in completion order, sink failures are isolated, slow sink work does not block span completion, and unsampled spans are not exported.",
+                "The scenario verifies retained sampled spans are delivered in completion order, sink failures are isolated, slow sink work does not block span completion, bounded queue saturation drops telemetry safely, and unsampled spans are not exported.",
                 "No network provider or remote telemetry service is contacted. Sink delivery is bounded in-process work only.",
                 RunObservabilitySinksTest,
                 "Trace sinks",
@@ -75,6 +75,28 @@ namespace HAgent.Example
             blockingSink.Release();
             await pendingFlush.ConfigureAwait(true);
 
+            var queueSink = new ExampleBlockingTraceSink();
+            var boundedDispatcher = new TraceSinkDispatcher(
+                new[] { (ITraceSink)queueSink },
+                new TraceSinkOptions { MaxPendingSpans = 1 });
+            var boundedRecorder = new InMemoryTraceRecorder(null, null, boundedDispatcher);
+            var firstQueued = StartExampleRoot(boundedRecorder, "example-sink-queue-1");
+            if (!firstQueued.TryComplete(TraceSpanStatus.Succeeded))
+                throw new InvalidOperationException("First bounded sink span did not complete.");
+
+            await queueSink.Started.ConfigureAwait(true);
+            var secondQueued = StartExampleRoot(boundedRecorder, "example-sink-queue-2");
+            var thirdQueued = StartExampleRoot(boundedRecorder, "example-sink-queue-3");
+            if (!secondQueued.TryComplete(TraceSpanStatus.Succeeded) || !thirdQueued.TryComplete(TraceSpanStatus.Succeeded))
+                throw new InvalidOperationException("Bounded queue spans did not complete.");
+            if (boundedDispatcher.DroppedCount != 1)
+                throw new InvalidOperationException("Bounded sink queue did not safely drop saturated telemetry.");
+
+            queueSink.Release();
+            await boundedDispatcher.FlushAsync().ConfigureAwait(true);
+            if (boundedDispatcher.AcceptedCount != 2 || boundedDispatcher.PublishedCount != 2)
+                throw new InvalidOperationException("Bounded sink queue accounting was inconsistent.");
+
             var unsampledSink = new ExampleRecordingTraceSink();
             var unsampledDispatcher = new TraceSinkDispatcher(new[] { (ITraceSink)unsampledSink });
             var unsampledRecorder = new InMemoryTraceRecorder(
@@ -88,10 +110,41 @@ namespace HAgent.Example
             if (unsampledSink.Spans.Count != 0 || unsampledDispatcher.AcceptedCount != 0)
                 throw new InvalidOperationException("Unsampled span crossed the sink boundary.");
 
+            var retainedSink = new ExampleRecordingTraceSink();
+            var retainedDispatcher = new TraceSinkDispatcher(new[] { (ITraceSink)retainedSink });
+            var retention = new TraceRetentionOptions
+            {
+                MaxTraceCount = 8,
+                MaxSpanCount = 8,
+                MaxSpansPerTrace = 1,
+                MaxAggregateMetadataCharacters = 10000,
+                MaxAge = Timeout.InfiniteTimeSpan
+            };
+            var retainedRecorder = new InMemoryTraceRecorder(new FixedTraceSampler(true), retention, retainedDispatcher);
+            var retainedRoot = StartExampleRoot(retainedRecorder, "example-sink-not-retained-42");
+            if (!retainedRoot.TryComplete(TraceSpanStatus.Succeeded))
+                throw new InvalidOperationException("Retained root span did not complete.");
+            await retainedDispatcher.FlushAsync().ConfigureAwait(true);
+
+            var rejectedChild = retainedRecorder.StartSpan(new TraceSpanStartOptions
+            {
+                ParentContext = retainedRoot.Context,
+                OperationName = "tool.execute",
+                Kind = "Tool",
+                Correlation = retainedRoot.Record.Correlation
+            });
+            if (!rejectedChild.TryComplete(TraceSpanStatus.Succeeded))
+                throw new InvalidOperationException("Retention-rejected child did not complete normally.");
+            await retainedDispatcher.FlushAsync().ConfigureAwait(true);
+            if (retainedSink.Spans.Count != 1 || retainedSink.Spans[0].SpanId != retainedRoot.Record.SpanId)
+                throw new InvalidOperationException("Retention-rejected span crossed the sink boundary.");
+
             dispatcher.Dispose();
             failureDispatcher.Dispose();
             slowDispatcher.Dispose();
+            boundedDispatcher.Dispose();
             unsampledDispatcher.Dispose();
+            retainedDispatcher.Dispose();
 
             Write(
                 "OBSERVABILITY SINKS",
@@ -100,8 +153,9 @@ namespace HAgent.Example
                 "Sink failure isolated from span completion and other sinks: verified." + Environment.NewLine +
                 "Slow sink does not block span completion: verified." + Environment.NewLine +
                 "Dispatcher waits for accepted asynchronous sink work: verified." + Environment.NewLine +
+                "Bounded queue saturation drops telemetry without affecting completion: verified." + Environment.NewLine +
                 "Unsampled spans suppressed at export boundary: verified." + Environment.NewLine +
-                "Bounded in-process queue: verified by dispatcher contract." + Environment.NewLine +
+                "Retention-rejected spans suppressed at export boundary: verified." + Environment.NewLine +
                 "Remote telemetry transport: none." + Environment.NewLine +
                 "Durable trace storage: none." + Environment.NewLine +
                 "Real provider request: none.");
@@ -156,6 +210,7 @@ namespace HAgent.Example
             private readonly ExampleRecordingTraceSink _recording = new ExampleRecordingTraceSink();
 
             public Task Started { get { return _started.Task; } }
+            public IReadOnlyList<TraceSpan> Spans { get { return _recording.Spans; } }
 
             public void Release()
             {

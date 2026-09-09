@@ -16,32 +16,32 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-0.956 Slice 5 integrated trace sinks and the safe export boundary are complete at the implementation/test/Example verification boundary. Provider-neutral sinks, bounded asynchronous delivery, failure isolation, queue saturation handling, sampling suppression, and retention-boundary suppression are verified on both supported Example targets.
+0.956 Slice 6 safe human-readable diagnostic projection is complete and verified on both supported Example targets. The provider-neutral bounded projection exposes diagnostic trace structure without exposing raw trace storage, prompts, provider responses, tool payloads, host context, secrets, or arbitrary objects.
 
 ## Current run
 
-**0.956 Slice 6 safe human-readable diagnostic projection — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
+**0.956 Slice 7 cross-process trace context and correlation boundary — CURRENT.**
 
-The Slice 6 implementation is present. A bounded provider-neutral diagnostic projection now consumes retained sampled trace spans without exposing raw trace storage, sink payloads, or sensitive host/provider data.
+This slice defines the provider-neutral host/transport boundary for moving trace context and existing correlation identity across process boundaries without coupling HAgent.Core to HTTP, OpenTelemetry, a message format, or a telemetry vendor.
 
-## Implemented in Slice 6
+## Completed immediately before Slice 7
 
-- Added bounded `TraceDiagnosticProjectionOptions`, `TraceDiagnosticMetadataItem`, `TraceDiagnosticSpan`, and `TraceDiagnosticProjection` contracts.
-- Added `TraceDiagnosticProjector` with deterministic sequence/identity ordering and bounded spans, identifiers, operation/kind text, metadata entries, metadata keys, and metadata values.
-- Added an allowlist for diagnostic metadata namespaces plus the explicit `decision` key. Unknown/custom metadata is omitted and counted.
-- Preserved `[Redacted]`/`[Omitted]` markers only when the metadata key is itself safe to expose; raw prompts, responses, tool payloads, host context, credentials, connection strings, and arbitrary objects are not projected.
-- Added focused `tests/HAgent.Tests/ObservabilityDiagnosticProjectionTests.cs` covering ordering, bounds, safe metadata, omission/redaction behavior, correlation/parent relationships, status/duration, and unsampled suppression.
-- Added `src/HAgent.Example/MainForm.ObservabilityDiagnosticProjection.cs` and registered it under `Diagnostics → Observability → Observability Diagnostic Projection`.
+- Slice 6 added bounded `TraceDiagnosticProjectionOptions`, `TraceDiagnosticMetadataItem`, `TraceDiagnosticSpan`, and `TraceDiagnosticProjection` contracts.
+- Slice 6 added `TraceDiagnosticProjector` with deterministic ordering and bounded trace/span identity, timing, status, parentage, correlation, and safe diagnostic metadata.
+- Slice 6 added focused tests for safe allowlisting, omission accounting, explicit redaction markers, parent/correlation relationships, bounds, status/duration, and unsampled suppression.
+- Slice 6 added the public-API Example under `Diagnostics → Observability → Observability Diagnostic Projection`.
+- **User verification — 2026-09-09:** full `HAgent.Tests` completed with **77/77 tests passed**.
+- **User Example verification — .NET Framework 4.8.1, 2026-09-09 05:08:18:** diagnostic projection succeeded with all stated safety and determinism checks.
+- **User Example verification — .NET 9, 2026-09-09 05:09:01:** same scenario succeeded with the same checks.
 
-## Slice 6 verification boundary
+## Slice 7 scope
 
-- Build the solution after pulling the current branch.
-- Run the full `HAgent.Tests` suite.
-- Run `HAgent.Example → Diagnostics → Observability → Observability Diagnostic Projection` on .NET Framework 4.8.1.
-- Run the same Example on .NET 9.
-- Confirm no real provider request or remote telemetry transport is contacted.
-- Do not mark Slice 6 verified until all required local results are supplied.
-- Do not begin Slice 7 in the same run.
+- Define the bounded provider-neutral import/export representation needed for `TraceContext` and relevant existing correlation identifiers at a host/transport boundary.
+- Preserve the distinction between `TraceId`/`SpanId`/`ParentSpanId` and `ExecutionId`/`ExecutionCorrelationId`/`HostCorrelationId`/`EventId`/`CausationId`.
+- Define deterministic handling for missing, malformed, incomplete, unsampled, or otherwise untrusted incoming trace context.
+- Keep Core independent of HTTP headers, W3C/OpenTelemetry types, vendor SDKs, message buses, and remote telemetry services.
+- Add focused `HAgent.Tests` coverage and a matching public-API `HAgent.Example` using deterministic in-process transport fakes only.
+- Do not implement real network transport or remote telemetry delivery in this slice.
 
 ## Current blockers
 
@@ -629,7 +629,7 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User Example verification — .NET Framework 4.8.1, 2026-09-09 04:59:52:** same public-API scenario succeeded with the same checks.
    - The prior Example-only duplicate-helper compiler error was fixed before these successful runs.
 
-6. **Safe human-readable diagnostic projection — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+6. **Safe human-readable diagnostic projection — VERIFIED**
    - Added provider-neutral `TraceDiagnosticProjectionOptions`, `TraceDiagnosticMetadataItem`, `TraceDiagnosticSpan`, and `TraceDiagnosticProjection` contracts.
    - Added `TraceDiagnosticProjector` as the bounded management/UI projection boundary. It consumes retained sampled spans only, orders them deterministically by trace sequence/identity, and bounds result counts, identifiers, operation/kind text, metadata entries, metadata keys, and metadata values.
    - The projector allowlists diagnostic metadata namespaces (`admission`, `agent`, `context`, `event`, `evaluation`, `execution`, `failure`, `knowledge`, `learning`, `lifecycle`, `memory`, `outcome`, `planning`, `policy`, `provider`, `resource`, `runtime`, `sampling`, and `tool`) plus the explicit `decision` key. Unknown/custom metadata is omitted and counted rather than rendered.
@@ -637,7 +637,16 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - The projection exposes bounded trace/span identity, operation/kind, start/duration/status, parent relationship, execution correlation, host correlation, and runtime identity suitable for diagnostic UI consumption.
    - Added focused `tests/HAgent.Tests/ObservabilityDiagnosticProjectionTests.cs` covering deterministic ordering, span/text bounds, safe metadata allowlisting, omission accounting, explicit redaction markers, parent/correlation visibility, status/duration, and unsampled suppression.
    - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityDiagnosticProjection.cs` under `Diagnostics → Observability → Observability Diagnostic Projection`.
-   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not begin Slice 7 in the same run.
+   - **User verification — 2026-09-09 05:08:** .NET Framework 4.8.1 Example succeeded, verifying deterministic ordering, bounds, correlation/parent relationship, status/duration, metadata allowlisting, redaction, omission accounting, unsampled suppression, and no provider/remote telemetry transport or real provider request.
+   - **User verification — 2026-09-09 05:09:** .NET 9 Example succeeded with the same checks.
+   - **User verification — 2026-09-09:** full `HAgent.Tests` completed with **77/77 tests passed** after the Slice 6 Example helper correction.
+
+7. **Cross-process trace context and correlation boundary — CURRENT**
+   - Define the provider-neutral host/transport boundary for carrying `TraceContext` and existing correlation identity across process boundaries without coupling HAgent.Core to HTTP, OpenTelemetry, message formats, or a specific telemetry vendor.
+   - Reconcile trace propagation with `ExecutionCorrelationId`, `HostCorrelationId`, `EventId`, and `CausationId` so cross-process transport does not collapse distinct identity concepts.
+   - Define bounded import/export values and invalid/incomplete incoming-context handling, including safe behavior when a remote trace context is absent, malformed, unsampled, or no longer trusted by the host boundary.
+   - Add focused `HAgent.Tests` coverage and a matching public-API `HAgent.Example` scenario using deterministic in-process transport fakes only.
+   - Do not add real network transport, vendor-specific tracing dependencies, or remote telemetry delivery in this slice.
 
 ### Verification rule
 

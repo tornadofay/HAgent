@@ -103,7 +103,7 @@ namespace HAgent.Tests
             var perTrace = recorder.GetSpans();
             Assert.Equal(2, CountForExecution(perTrace, "trace-per-span"));
             Assert.DoesNotContain(perTrace, x => x.OperationName == "child.two");
-            Assert.True(rejected.IsCompleted);
+            Assert.True(rejected.Record.IsCompleted);
         }
 
         [Fact]
@@ -138,11 +138,11 @@ namespace HAgent.Tests
             Complete(child2);
             Complete(child3);
 
-            Assert.True(oversized.IsCompleted);
-            Assert.True(root.IsCompleted);
-            Assert.True(child1.IsCompleted);
-            Assert.True(child2.IsCompleted);
-            Assert.True(child3.IsCompleted);
+            Assert.True(oversized.Record.IsCompleted);
+            Assert.True(root.Record.IsCompleted);
+            Assert.True(child1.Record.IsCompleted);
+            Assert.True(child2.Record.IsCompleted);
+            Assert.True(child3.Record.IsCompleted);
 
             var retained = recorder.GetSpans();
             Assert.True(retained.Count <= 3);

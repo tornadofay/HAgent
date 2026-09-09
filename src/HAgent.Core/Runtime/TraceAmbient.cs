@@ -10,6 +10,7 @@ namespace HAgent.Runtime
         {
             public TraceContext Context;
             public TraceCorrelation Correlation;
+            public ITraceRecorder Recorder;
         }
 
         private static readonly AsyncLocal<AmbientState> CurrentValue = new AsyncLocal<AmbientState>();
@@ -24,6 +25,11 @@ namespace HAgent.Runtime
             get { return CurrentValue.Value == null || CurrentValue.Value.Correlation == null ? null : CurrentValue.Value.Correlation.Clone(); }
         }
 
+        public static ITraceRecorder CurrentRecorder
+        {
+            get { return CurrentValue.Value == null ? null : CurrentValue.Value.Recorder; }
+        }
+
         public static IDisposable Push(TraceContext context)
         {
             return Push(context, null);
@@ -35,17 +41,24 @@ namespace HAgent.Runtime
             CurrentValue.Value = new AmbientState
             {
                 Context = context,
-                Correlation = correlation == null ? null : correlation.Clone()
+                Correlation = correlation == null ? null : correlation.Clone(),
+                Recorder = previous == null ? null : previous.Recorder
             };
             return new Scope(previous);
         }
 
         public static void Set(TraceContext context, TraceCorrelation correlation)
         {
+            Set(context, correlation, CurrentRecorder);
+        }
+
+        public static void Set(TraceContext context, TraceCorrelation correlation, ITraceRecorder recorder)
+        {
             CurrentValue.Value = new AmbientState
             {
                 Context = context,
-                Correlation = correlation == null ? null : correlation.Clone()
+                Correlation = correlation == null ? null : correlation.Clone(),
+                Recorder = recorder
             };
         }
 

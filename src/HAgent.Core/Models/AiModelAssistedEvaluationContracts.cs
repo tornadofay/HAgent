@@ -85,9 +85,11 @@ namespace HAgent.Models
             request.Validate();
             cancellationToken.ThrowIfCancellationRequested();
 
-            // The judge receives a detached request snapshot. It may inspect or mutate
-            // the snapshot internally without changing the caller-owned request.
-            var judgeRequest = new AiEvaluationJudgeRequest(request);
+            // Keep one detached snapshot owned by the evaluator for the final result.
+            // The judge receives its own detached copy so judge-side mutation cannot alter
+            // the identity/correlation facts used to construct the result.
+            var evaluationRequestSnapshot = request.Clone();
+            var judgeRequest = new AiEvaluationJudgeRequest(evaluationRequestSnapshot);
             judgeRequest.Validate();
 
             var rating = await _judge.JudgeAsync(judgeRequest, cancellationToken).ConfigureAwait(false);
@@ -99,8 +101,8 @@ namespace HAgent.Models
 
             var evaluation = new AiEvaluation
             {
-                TargetKind = request.TargetKind,
-                TargetId = request.TargetId,
+                TargetKind = evaluationRequestSnapshot.TargetKind,
+                TargetId = evaluationRequestSnapshot.TargetId,
                 Outcome = rating.Outcome,
                 EvaluatorId = Id,
                 EvaluatorKind = Kind,
@@ -109,12 +111,12 @@ namespace HAgent.Models
                 Confidence = rating.Confidence,
                 Label = rating.Label,
                 Reason = rating.Reason,
-                AgentId = request.AgentId,
-                RuntimeInstanceId = request.RuntimeInstanceId,
-                ExecutionId = request.ExecutionId,
-                GoalId = request.GoalId,
-                PlanId = request.PlanId,
-                TraceId = request.TraceId
+                AgentId = evaluationRequestSnapshot.AgentId,
+                RuntimeInstanceId = evaluationRequestSnapshot.RuntimeInstanceId,
+                ExecutionId = evaluationRequestSnapshot.ExecutionId,
+                GoalId = evaluationRequestSnapshot.GoalId,
+                PlanId = evaluationRequestSnapshot.PlanId,
+                TraceId = evaluationRequestSnapshot.TraceId
             };
 
             foreach (var evidence in rating.Evidence ?? new List<AiEvaluationInputReference>())

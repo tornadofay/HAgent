@@ -8,7 +8,21 @@ namespace HAgent.Runtime
     {
         private readonly object _sync = new object();
         private readonly List<TraceSpan> _spans = new List<TraceSpan>();
+        private readonly ITraceSampler _sampler;
+        private readonly TraceRetentionOptions _retention;
         private long _sequence;
+
+        public InMemoryTraceRecorder()
+            : this(null, null)
+        {
+        }
+
+        public InMemoryTraceRecorder(ITraceSampler sampler, TraceRetentionOptions retentionOptions = null)
+        {
+            _sampler = sampler;
+            _retention = retentionOptions == null ? new TraceRetentionOptions() : retentionOptions.Clone();
+            _retention.Validate();
+        }
 
         public ITraceSpan StartSpan(TraceSpanStartOptions options)
         {
@@ -18,9 +32,14 @@ namespace HAgent.Runtime
             var parent = options.ParentContext;
             var traceId = parent == null ? Guid.NewGuid().ToString("N") : parent.TraceId;
             var parentSpanId = parent == null ? null : parent.ParentSpanId;
-            var sampled = parent == null || parent.Sampled;
+            var sampled = options.Sampled.HasValue
+                ? options.Sampled.Value
+                : parent != null
+                    ? parent.Sampled
+                    : _sampler == null || _sampler.ShouldSample(options);
             var spanId = Guid.NewGuid().ToString("N");
             long sequence;
+            var startedAt = DateTimeOffset.UtcNow;
 
             lock (_sync)
             {
@@ -31,12 +50,15 @@ namespace HAgent.Runtime
                     parentSpanId,
                     options.OperationName,
                     options.Kind,
-                    DateTimeOffset.UtcNow,
+                    startedAt,
                     sampled,
                     options.Correlation,
                     options.Metadata,
                     sequence);
-                _spans.Add(span);
+
+                if (sampled)
+                    RetainUnsafe(span);
+
                 return new InMemoryTraceSpanHandle(this, span);
             }
         }
@@ -44,17 +66,129 @@ namespace HAgent.Runtime
         public IReadOnlyList<TraceSpan> GetSpans()
         {
             lock (_sync)
+            {
+                PruneExpiredUnsafe(DateTimeOffset.UtcNow);
                 return new List<TraceSpan>(_spans).AsReadOnly();
+            }
+        }
+
+        private void RetainUnsafe(TraceSpan span)
+        {
+            PruneExpiredUnsafe(span.StartedAt);
+
+            if (CountTraceIdsUnsafe() >= _retention.MaxTraceCount && !ContainsTraceUnsafe(span.TraceId))
+            {
+                EvictOldestTraceUnsafe();
+            }
+
+            if (CountSpansForTraceUnsafe(span.TraceId) >= _retention.MaxSpansPerTrace)
+                return;
+
+            if (_spans.Count >= _retention.MaxSpanCount)
+                EvictOldestTraceUnsafe();
+
+            var spanCost = EstimateMetadataCharacters(span);
+            if (spanCost > _retention.MaxAggregateMetadataCharacters)
+                return;
+
+            while (_spans.Count > 0 && AggregateMetadataCharactersUnsafe() + spanCost > _retention.MaxAggregateMetadataCharacters)
+            {
+                EvictOldestTraceUnsafe();
+            }
+
+            if (CountTraceIdsUnsafe() >= _retention.MaxTraceCount && !ContainsTraceUnsafe(span.TraceId))
+                return;
+            if (_spans.Count >= _retention.MaxSpanCount)
+                return;
+            if (CountSpansForTraceUnsafe(span.TraceId) >= _retention.MaxSpansPerTrace)
+                return;
+
+            _spans.Add(span);
+        }
+
+        private void PruneExpiredUnsafe(DateTimeOffset now)
+        {
+            if (_retention.MaxAge == Timeout.InfiniteTimeSpan || _spans.Count == 0)
+                return;
+
+            var cutoff = now - _retention.MaxAge;
+            var expiredTraceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var span in _spans)
+            {
+                if (span.StartedAt < cutoff)
+                    expiredTraceIds.Add(span.TraceId);
+            }
+
+            if (expiredTraceIds.Count == 0)
+                return;
+
+            _spans.RemoveAll(span => expiredTraceIds.Contains(span.TraceId));
+        }
+
+        private void EvictOldestTraceUnsafe()
+        {
+            if (_spans.Count == 0)
+                return;
+
+            var oldestTraceId = _spans[0].TraceId;
+            for (var i = 1; i < _spans.Count; i++)
+            {
+                if (_spans[i].Sequence < _spans[0].Sequence)
+                    oldestTraceId = _spans[i].TraceId;
+            }
+
+            _spans.RemoveAll(span => string.Equals(span.TraceId, oldestTraceId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private bool ContainsTraceUnsafe(string traceId)
+        {
+            foreach (var span in _spans)
+                if (string.Equals(span.TraceId, traceId, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
+        }
+
+        private int CountTraceIdsUnsafe()
+        {
+            var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var span in _spans)
+                ids.Add(span.TraceId);
+            return ids.Count;
+        }
+
+        private int CountSpansForTraceUnsafe(string traceId)
+        {
+            var count = 0;
+            foreach (var span in _spans)
+                if (string.Equals(span.TraceId, traceId, StringComparison.OrdinalIgnoreCase))
+                    count++;
+            return count;
+        }
+
+        private int AggregateMetadataCharactersUnsafe()
+        {
+            var total = 0;
+            foreach (var span in _spans)
+                total += EstimateMetadataCharacters(span);
+            return total;
+        }
+
+        private static int EstimateMetadataCharacters(TraceSpan span)
+        {
+            var total = 0;
+            foreach (var pair in span.Metadata.Values)
+            {
+                total += (pair.Key == null ? 0 : pair.Key.Length) + (pair.Value == null ? 0 : pair.Value.Length);
+            }
+            return total;
         }
 
         private sealed class InMemoryTraceSpanHandle : ITraceSpan
         {
-            private readonly InMemoryTraceRecorder _owner;
             private readonly TraceSpan _span;
 
             public InMemoryTraceSpanHandle(InMemoryTraceRecorder owner, TraceSpan span)
             {
-                _owner = owner;
                 _span = span;
             }
 

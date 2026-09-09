@@ -57,33 +57,40 @@ Verified by user on 2026-09-09.
 
 The Skill contract provides reusable versioned definitions/references, explicit scope/ownership, lifecycle/provenance, bounded input/output contracts, preconditions, ordered procedure steps, Knowledge/Tool dependencies, constraints, relationships, governed resolution, and deep-cloned execution snapshots. Executable handlers remain runtime-owned and outside persisted definitions.
 
-## Current 0.9575 Slice 4 — Memory family/type and provenance contract
+### Slice 4 — Memory family/type and provenance contract
+
+Verified by user on 2026-09-09.
+
+- `.NET Framework 4.8.1` Example `HAgent.Example → Memory → Memory Families` succeeded.
+- `.NET 9` Example `HAgent.Example → Memory → Memory Families` succeeded.
+- Full `HAgent.Tests`: **167/167 passed, 0 failed, 0 skipped** on .NET 9.
+
+The canonical `MemoryEntry` now carries explicit family/type, bounded provenance/evidence/confidence, optional expiration metadata, deterministic validation, and deep clone isolation. Existing File/SQL Server/MySQL/InMemory stores retain the same representation.
+
+## Current 0.9575 Slice 5 — Memory governance and retention
 
 Implementation is in progress and verification is pending.
 
-The canonical `MemoryEntry` now carries:
+The current slice reuses the existing generic tri-state resource capability system with canonical Memory resource types:
 
-- `AiMemoryFamily`: `Working`, `Episodic`, `Semantic`, `Procedural`, `Custom`.
-- bounded stable `TypeId`, with reserved built-in namespaces and application-specific custom namespaces;
-- `AiMemoryProvenance` containing bounded source/evidence/execution/runtime metadata and confidence 0..1;
-- optional `ExpiresAt` plus deterministic `IsExpired(...)` evaluation;
-- deep cloning and structural validation.
+- `memory` — whole Memory capability;
+- `memory.family` — one `AiMemoryFamily`;
+- `memory.type` — one stable `MemoryEntry.TypeId`.
 
-The existing in-memory and File stores validate/isolate records. SQL Server and MySQL preserve the new fields using the existing `HAgentMemoryEntries` representation and schema upgrade paths. Existing episodic/task memory creation is aligned with the episodic family/type model.
+`MemoryQuery` now supports family/type and expiration filters. `AiMemoryGovernancePolicy` provides bounded retrieval limits plus per-family/type retention caps. `AiMemoryGovernanceEvaluator` evaluates the existing effective capability snapshot, and `AiGovernedMemoryStore` composes capability/policy enforcement over the existing `IMemoryStore` boundary without introducing provider-specific storage.
 
-Architecture source: `docs/architecture/83-memory-contracts.md`.
-Durable decision: D-011.
-Focused tests: `tests/HAgent.Tests/MemoryFamilyTests.cs`.
-Public Example: `HAgent.Example → Memory → Memory Families`.
-Verification workflow: `.github/workflows/verify-phase-0-9575-slice-4.yml`.
+Architecture source: `docs/architecture/84-memory-governance.md`.
+Durable decision: D-012.
+Focused tests: `tests/HAgent.Tests/MemoryGovernanceTests.cs`.
+Public Example: `HAgent.Example → Memory → Memory Governance`.
 
-The current Slice 4 boundary deliberately does not include memory authorization orchestration, retention-policy enforcement, profile/runtime capability UI, learning candidates, promotion, Knowledge/Skill management UI, or a second storage architecture.
+The current Slice 5 boundary deliberately does not include Learning candidates/promotion, Knowledge/Skill management UI, persistence redesign, or runtime execution-snapshot binding of memory policy. Those remain later slices.
 
 ## Storage implications
 
 The configuration/storage evolution remains a cross-cutting foundation before 0.96. HAgent-owned resource state must retain canonical identity, scope, ownership, provenance, and version information without creating subsystem-specific ownership models.
 
-SQL Server and MySQL memory persistence now use explicit family/type/provenance/expiration columns while retaining the existing memory table and versioned bootstrap migration approach. File and in-memory persistence use the same `MemoryEntry` contract. Broader mature-resource persistence for learning candidates and management remains later 0.9575 work.
+SQL Server and MySQL memory persistence use explicit family/type/provenance/expiration columns while retaining the existing memory table and versioned bootstrap migration approach. File and in-memory persistence use the same `MemoryEntry` contract. Broader mature-resource persistence for learning candidates and management remains later 0.9575 work.
 
 ### Deferred exclusions
 

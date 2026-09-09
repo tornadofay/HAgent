@@ -205,6 +205,49 @@ Existing event `CorrelationId` and `CausationId` remain available as bounded met
 
 When an operation is initiated by another traced operation, `ParentSpanId` is the hierarchy relationship. When an event or external request explains the origin, its event/request correlation and causation identifiers are preserved independently.
 
+## Execution state versus trace context
+
+Trace context and execution state are deliberately separate architectural concerns.
+
+```text
+Trace context                         Execution state
+-------------                         ---------------
+"Where am I?"                         "What did the runtime decide?"
+
+TraceId                                provider attempt
+ParentSpanId                           retry number
+Sampled state                          fallback transition
+                                        wait/backpressure decision
+                                        stale-result decision
+                                        recovery outcome
+```
+
+Trace context is ambient relationship state used to establish parentage and correlation across asynchronous operation boundaries. It must not be used to infer authoritative runtime behavior.
+
+Execution state belongs to the logical execution and is owned by the component that makes the execution decision. The runtime already owns retry limits, retry classification, provider selection, waiting, cancellation, terminal completion, and the acceptance/rejection of provider results. Those facts must be published explicitly when observability is requested.
+
+The provider-neutral boundary for this purpose is the optional `IExecutionObservationSource`, which publishes bounded `AgentExecutionObservation` facts. The tracing runtime consumes those facts and translates them into trace records. This boundary is not a telemetry vendor API and does not make tracing a second execution-state authority.
+
+The producer/consumer relationship is:
+
+```text
+Authoritative execution runtime
+        |
+        | explicit outcome fact
+        v
+IExecutionObservationSource
+        |
+        v
+TracingAgentRuntime
+        |
+        v
+TraceObservation -> TraceSpan
+```
+
+The provider adapter records provider operation boundaries only. It must not count calls with `AsyncLocal`, inspect exception text to infer stale state, or otherwise reconstruct retry/fallback semantics that the execution runtime already knows.
+
+If a future execution runtime supports fallback, hedging, parallel attempts, backpressure, intervention, or other resilience behavior, it should publish those decisions explicitly through the same boundary rather than requiring tracing to infer them from physical provider calls.
+
 ## Operation coverage
 
 0.956 observability is expected to cover the following existing and future boundaries without requiring all of them in the first implementation slice:
@@ -225,6 +268,8 @@ Terminal outcome / stale-result rejection / late completion
 ```
 
 Operations should record decision reasons and failure classification when an existing producer already exposes those values. Tracing must not invent domain meaning that the producer does not provide.
+
+In particular, retry number, attempt number, fallback transition, wait decision, recovery, and stale-result acceptance/rejection must come from authoritative execution state rather than from an observation layer reconstructing call history.
 
 ## Relationship to execution audit
 
@@ -343,7 +388,11 @@ Runtime shutdown
 Recovery / resumed operation
 ```
 
-A late provider completion must never create an apparent successful terminal operation when the execution has already reached another terminal state. Tracing observes the actual accepted terminal transition and may record the late completion as a separate child/attempt operation with bounded metadata.
+A late provider completion must never create an apparent successful terminal operation when the execution has already reached another terminal state. The authoritative runtime decides whether the response can still commit. If it cannot, the runtime publishes an explicit stale-result observation; tracing records that fact as a rejected diagnostic outcome without changing execution state.
+
+A retry is likewise published by the execution runtime at the point where it has classified the failure and decided to retry. The retry observation can include the authoritative attempt/retry ordinals and bounded failure classification. A retry wait observation describes the runtime's selected wait boundary and requested delay; tracing does not schedule or alter the wait.
+
+Recovery is published only when a later attempt actually succeeds after a prior retry/fallback condition. Fallback is published only when the runtime itself changes or selects a provider target as a fallback. Merely observing multiple provider spans is not sufficient evidence of fallback.
 
 Cancellation and timeout are distinct from successful completion even when an underlying provider later completes normally.
 
@@ -370,6 +419,8 @@ The projection must not reveal secrets, prompts, raw responses, arbitrary object
 ## Provider and transport neutrality
 
 HAgent.Core owns the trace/span semantics only. It must not depend on OpenTelemetry, vendor SDKs, exporter protocols, a particular logging package, or a particular network transport.
+
+Execution observation is also provider-neutral. `IExecutionObservationSource` carries bounded runtime facts and does not expose trace state, transport details, raw exceptions, prompts, responses, credentials, or arbitrary payloads.
 
 Integration adapters may map HAgent spans to OpenTelemetry or another telemetry system later. Such adapters must treat the HAgent contract as the source semantics and must preserve the safe metadata boundary.
 

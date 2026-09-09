@@ -7,66 +7,41 @@ namespace HAgent.Models
     public sealed class AgentExecutionSnapshot
     {
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers)
-            : this(agent, providers, null, null, null, null, null, null)
+            : this(agent, providers, null, null, null, null, null, null, null)
         {
         }
 
         public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides)
-            : this(agent, providers, overrides, null, null, null, null, null)
+            : this(agent, providers, overrides, null, null, null, null, null, null)
         {
         }
 
-        public AgentExecutionSnapshot(
-            AiAgent agent,
-            IReadOnlyList<AiProvider> providers,
-            AgentRuntimeOverrides overrides,
-            IReadOnlyDictionary<string, string> hostContext)
-            : this(agent, providers, overrides, hostContext, null, null, null, null)
+        public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides, IReadOnlyDictionary<string, string> hostContext)
+            : this(agent, providers, overrides, hostContext, null, null, null, null, null)
         {
         }
 
-        public AgentExecutionSnapshot(
-            AiAgent agent,
-            IReadOnlyList<AiProvider> providers,
-            AgentRuntimeOverrides overrides,
-            IReadOnlyDictionary<string, string> hostContext,
-            AgentIdentityContext identity)
-            : this(agent, providers, overrides, hostContext, identity, null, null, null)
+        public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides, IReadOnlyDictionary<string, string> hostContext, AgentIdentityContext identity)
+            : this(agent, providers, overrides, hostContext, identity, null, null, null, null)
         {
         }
 
-        public AgentExecutionSnapshot(
-            AiAgent agent,
-            IReadOnlyList<AiProvider> providers,
-            AgentRuntimeOverrides overrides,
-            IReadOnlyDictionary<string, string> hostContext,
-            AgentIdentityContext identity,
-            AiPolicySet effectivePolicy)
-            : this(agent, providers, overrides, hostContext, identity, effectivePolicy, null, null)
+        public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides, IReadOnlyDictionary<string, string> hostContext, AgentIdentityContext identity, AiPolicySet effectivePolicy)
+            : this(agent, providers, overrides, hostContext, identity, effectivePolicy, null, null, null)
         {
         }
 
-        public AgentExecutionSnapshot(
-            AiAgent agent,
-            IReadOnlyList<AiProvider> providers,
-            AgentRuntimeOverrides overrides,
-            IReadOnlyDictionary<string, string> hostContext,
-            AgentIdentityContext identity,
-            AiPolicySet effectivePolicy,
-            AiInstructionSnapshot instructionSnapshot)
-            : this(agent, providers, overrides, hostContext, identity, effectivePolicy, instructionSnapshot, null)
+        public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides, IReadOnlyDictionary<string, string> hostContext, AgentIdentityContext identity, AiPolicySet effectivePolicy, AiInstructionSnapshot instructionSnapshot)
+            : this(agent, providers, overrides, hostContext, identity, effectivePolicy, instructionSnapshot, null, null)
         {
         }
 
-        public AgentExecutionSnapshot(
-            AiAgent agent,
-            IReadOnlyList<AiProvider> providers,
-            AgentRuntimeOverrides overrides,
-            IReadOnlyDictionary<string, string> hostContext,
-            AgentIdentityContext identity,
-            AiPolicySet effectivePolicy,
-            AiInstructionSnapshot instructionSnapshot,
-            ContextSnapshot contextSnapshot)
+        public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides, IReadOnlyDictionary<string, string> hostContext, AgentIdentityContext identity, AiPolicySet effectivePolicy, AiInstructionSnapshot instructionSnapshot, ContextSnapshot contextSnapshot)
+            : this(agent, providers, overrides, hostContext, identity, effectivePolicy, instructionSnapshot, contextSnapshot, null)
+        {
+        }
+
+        public AgentExecutionSnapshot(AiAgent agent, IReadOnlyList<AiProvider> providers, AgentRuntimeOverrides overrides, IReadOnlyDictionary<string, string> hostContext, AgentIdentityContext identity, AiPolicySet effectivePolicy, AiInstructionSnapshot instructionSnapshot, ContextSnapshot contextSnapshot, AiSkillExecutionSnapshot skillSnapshot)
         {
             var sourceAgent = agent ?? throw new ArgumentNullException(nameof(agent));
             Agent = CloneAgent(sourceAgent, overrides);
@@ -75,13 +50,10 @@ namespace HAgent.Models
             HostContext = CloneContext(hostContext);
             Identity = identity == null ? new AgentIdentityContext() : identity.Clone();
             EffectivePolicy = effectivePolicy == null ? new AiPolicySet() : effectivePolicy.Clone();
-            EffectiveResourceCapabilities = AiResourceCapabilitySnapshot.Resolve(
-                sourceAgent.ResourceCapabilities,
-                overrides == null ? null : overrides.ResourceCapabilityOverrides);
-            InstructionSnapshot = instructionSnapshot == null
-                ? new AiInstructionSnapshot(null, null)
-                : instructionSnapshot.Clone();
+            EffectiveResourceCapabilities = AiResourceCapabilitySnapshot.Resolve(sourceAgent.ResourceCapabilities, overrides == null ? null : overrides.ResourceCapabilityOverrides);
+            InstructionSnapshot = instructionSnapshot == null ? new AiInstructionSnapshot(null, null) : instructionSnapshot.Clone();
             Context = contextSnapshot == null ? null : contextSnapshot.Clone();
+            Skills = skillSnapshot == null ? new AiSkillExecutionSnapshot(new AiSkillBinding[0]) : skillSnapshot.Clone();
             EffectivePolicy.Validate();
             EffectiveResourceCapabilities.Validate();
             CreatedAt = DateTimeOffset.UtcNow;
@@ -96,6 +68,7 @@ namespace HAgent.Models
         public AiPolicySet EffectivePolicy { get; private set; }
         public AiResourceCapabilitySnapshot EffectiveResourceCapabilities { get; private set; }
         public AiInstructionSnapshot InstructionSnapshot { get; private set; }
+        public AiSkillExecutionSnapshot Skills { get; private set; }
 
         /// <summary>
         /// Optional execution-owned provider-neutral context snapshot captured from the canonical request.
@@ -106,9 +79,14 @@ namespace HAgent.Models
 
         internal void CaptureInstructionSnapshot(AiInstructionSnapshot instructionSnapshot)
         {
-            if (instructionSnapshot == null)
-                throw new ArgumentNullException(nameof(instructionSnapshot));
+            if (instructionSnapshot == null) throw new ArgumentNullException(nameof(instructionSnapshot));
             InstructionSnapshot = instructionSnapshot.Clone();
+        }
+
+        internal void CaptureSkillSnapshot(AiSkillExecutionSnapshot skillSnapshot)
+        {
+            if (skillSnapshot == null) throw new ArgumentNullException(nameof(skillSnapshot));
+            Skills = skillSnapshot.Clone();
         }
 
         private static AiAgent CloneAgent(AiAgent source, AgentRuntimeOverrides overrides)
@@ -125,26 +103,21 @@ namespace HAgent.Models
                 ToolIds = source.ToolIds == null ? new List<string>() : new List<string>(source.ToolIds),
                 ExecutionSelection = source.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : source.ExecutionSelection.Clone(),
                 CapabilityRequirements = source.CapabilityRequirements == null ? new AiCapabilityRequirements() : source.CapabilityRequirements.Clone(),
-                ResourceCapabilities = source.ResourceCapabilities == null ? new AiResourceCapabilityPolicy() : source.ResourceCapabilities.Clone()
+                ResourceCapabilities = source.ResourceCapabilities == null ? new AiResourceCapabilityPolicy() : source.ResourceCapabilities.Clone(),
+                Skills = source.Skills == null ? new AiSkillSet { Name = "Default skills" } : source.Skills.Clone()
             };
 
             if (overrides == null) return clone;
-
             if (overrides.Temperature.HasValue) clone.Temperature = overrides.Temperature;
             if (overrides.MaxOutputTokens.HasValue) clone.MaxOutputTokens = overrides.MaxOutputTokens;
             if (!string.IsNullOrWhiteSpace(overrides.SystemPrompt)) clone.SystemPrompt = overrides.SystemPrompt;
-
             return clone;
         }
 
         private static IReadOnlyDictionary<string, string> CloneContext(IEnumerable<KeyValuePair<string, string>> source)
         {
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (source != null)
-            {
-                foreach (var item in source)
-                    result[item.Key] = item.Value;
-            }
+            if (source != null) foreach (var item in source) result[item.Key] = item.Value;
             return new ReadOnlyDictionary<string, string>(result);
         }
 
@@ -154,17 +127,7 @@ namespace HAgent.Models
             foreach (var provider in source)
             {
                 if (provider == null) continue;
-                result.Add(new AiProvider
-                {
-                    Id = provider.Id,
-                    Name = provider.Name,
-                    Kind = provider.Kind,
-                    BaseUrl = provider.BaseUrl,
-                    DefaultModel = provider.DefaultModel,
-                    DefaultSystemPrompt = provider.DefaultSystemPrompt,
-                    SecretId = provider.SecretId,
-                    Enabled = provider.Enabled
-                });
+                result.Add(new AiProvider { Id = provider.Id, Name = provider.Name, Kind = provider.Kind, BaseUrl = provider.BaseUrl, DefaultModel = provider.DefaultModel, DefaultSystemPrompt = provider.DefaultSystemPrompt, SecretId = provider.SecretId, Enabled = provider.Enabled });
             }
             return result.AsReadOnly();
         }

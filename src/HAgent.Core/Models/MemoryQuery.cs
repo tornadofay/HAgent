@@ -8,18 +8,24 @@ namespace HAgent.Models
         {
             Scope = null;
             Kind = null;
+            Family = null;
+            TypeId = string.Empty;
             OwnerId = string.Empty;
             TaskId = string.Empty;
             Text = string.Empty;
             MaxResults = 10;
+            IncludeExpired = false;
         }
 
         public MemoryScope? Scope { get; set; }
         public MemoryKind? Kind { get; set; }
+        public AiMemoryFamily? Family { get; set; }
+        public string TypeId { get; set; }
         public string OwnerId { get; set; }
         public string TaskId { get; set; }
         public string Text { get; set; }
         public int MaxResults { get; set; }
+        public bool IncludeExpired { get; set; }
         public IDictionary<string, string> Metadata { get; set; }
     }
 }

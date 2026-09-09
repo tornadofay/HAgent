@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — Slice 5 implementation checkpoint; build/test/Example verification pending.**
+**In progress — Slice 6 implementation checkpoint; build/test/Example verification pending.**
 
 ## Goal
 
@@ -19,8 +19,8 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 7. [x] Correlate evaluations with execution/runtime/agent/goal/plan/trace identities.
 8. [x] Keep evaluation data separate from authoritative agent state; an evaluation does not automatically mutate configuration, memory, skill, or knowledge.
 9. [ ] Support repeated test cases and regression suites for provider/model/agent comparisons.
-10. [ ] Support aggregate metrics such as success rate, quality score, latency, cost, fallback frequency, tool success, and plan completion.
-11. [ ] Add deterministic Example verification for evaluation creation, aggregation, human rating, failed evaluations, and comparison of alternative execution targets.
+10. [x] Support aggregate metrics such as success rate, quality score, latency, cost, fallback frequency, tool success, and plan completion.
+11. [x] Add deterministic Example verification for evaluation creation, aggregation, human rating, failed evaluations, and comparison of alternative execution targets.
 
 ## Slice 1 — Provider-neutral evaluation contracts and evaluator boundary
 
@@ -52,7 +52,6 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 - Added focused `SuppliedEvaluationTests.cs` and matching public `Supplied Evaluation Ratings` Example.
 - User verification: **115/115 tests passed** on .NET 9.
 - User Example verification: `Supplied Evaluation Ratings` succeeded on both .NET Framework 4.8.1 and .NET 9.
-- This slice did not add model-assisted grading, aggregation, regression suites, persistence, or management UI.
 
 ## Slice 4 — Model-assisted evaluators and non-authoritative judge boundary
 
@@ -71,7 +70,7 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 
 ## Slice 5 — Evaluation aggregation and alternative-target comparison
 
-**Implementation checkpoint — verification pending.**
+**Verified on 2026-09-09.**
 
 - Added `AiEvaluationMetricKind` for success rate, quality score, latency, cost, fallback frequency, tool success, plan completion, and custom metrics.
 - Added bounded `AiEvaluationMetric` with provider-neutral direction semantics; custom metrics require an explicit higher-is-better/lower-is-better declaration.
@@ -79,10 +78,25 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 - Added `AiEvaluationAggregate` / `AiEvaluationAggregateMetric` for outcome counts and average/minimum/maximum metric summaries.
 - Added `AiEvaluationComparison` / `AiEvaluationMetricComparison` for left/right averages, left-minus-right deltas, and strictly preferred variants where both sides are comparable.
 - Added `AiEvaluationAggregator.Aggregate` and `.Compare` with cancellation checks, deterministic ordering, bounded input, detached aggregation snapshots, and no authoritative side effects.
-- Added focused `EvaluationAggregationTests.cs` covering validation, grouping, outcome counts, success/quality averages, explicit metrics, comparison directions, one-sided metrics, cancellation, and snapshot isolation.
-- Added public `MainForm.EvaluationAggregation.cs` and registered it as `Diagnostics → Evaluation → Evaluation Aggregation`.
-- Slice 5 implements the aggregate-metric requirement but does not yet mark requirement 10 or the Example verification requirement 11 complete until the supported-target build/tests and both manual Example runs are confirmed.
-- Requirement 9 (repeated test cases/regression-suite orchestration) remains deliberately outside Slice 5 and is the next distinct evaluation slice after Slice 5 verification.
+- Added focused `EvaluationAggregationTests.cs` and public `Evaluation Aggregation` Example verification.
+- User verification: **130/130 HAgent.Tests passed**, with 0 failed and 0 skipped.
+- User Example verification on .NET Framework 4.8.1 and .NET 9 produced baseline success rate `0.333333`, candidate success rate `1`, candidate average quality `0.85`, candidate average latency `110 ms`, and no authoritative routing or authorization decision.
+
+## Slice 6 — Evaluation regression suites and repeated target execution
+
+**Implementation checkpoint — verification pending.**
+
+- Added `AiEvaluationRegressionCase` for bounded reusable test-case identity, input references, and host-defined parameters.
+- Added `AiEvaluationRegressionTarget` for bounded alternative target identity, name, and metadata without hard-coding provider/model semantics into Core.
+- Added `AiEvaluationRegressionSuite` for bounded case/target matrices, unique identifiers, `MaxConcurrency` from 1 to 32, and a maximum of 1024 case-target executions.
+- Added `AiEvaluationRegressionCaseResult` and `AiEvaluationRegressionRun` with explicit completed/failed/canceled lifecycle states, bounded failure codes, deterministic ordering, validation, and completed-sample ownership.
+- Added `IAiEvaluationRegressionExecutor` as the host-owned execution boundary. The runner does not select providers, credentials, authorization, or production routing.
+- Added `AiEvaluationRegressionRunner.RunAsync` with detached suite snapshots, semaphore-bounded concurrency, complete case-target repetition, cancellation propagation, executor failure isolation, invalid/null sample rejection, case/variant identity protection, and late-result discard after cancellation.
+- Added `AiEvaluationRegressionRun.CreateAggregationRequest()` to expose only completed, validated `AiEvaluationSample` evidence through the existing Slice 5 aggregation contract.
+- Added focused `EvaluationRegressionTests.cs` covering suite validation, matrix execution, deterministic ordering, concurrency bounds, failure isolation, identity mismatch, cancellation/late-result protection, snapshot isolation, and aggregation handoff ownership.
+- Added public `MainForm.EvaluationRegression.cs` and registered it as `Diagnostics → Evaluation → Evaluation Regression Suites`.
+- Added `.github/workflows/verify-phase-0-957-slice-6.yml` for supported-target builds, focused regression tests, and the full .NET 9 test suite from `master`.
+- Requirement 9 remains unchecked until supported-target builds, focused/full tests, and both manual Example runs are confirmed.
 
 ## Architectural invariants
 
@@ -97,12 +111,14 @@ Diagnostic correlation            Cognitive revision / learning promotion
 
 - Evaluation is evidence about behavior, not hidden authorization.
 - Model-assisted evaluations are explicitly non-authoritative and retain evaluator provenance.
-- Evaluation contracts use bounded references, observations, ratings, and metadata instead of raw prompts, responses, tool payloads, credentials, or arbitrary host objects.
+- Evaluation contracts use bounded references, observations, ratings, metrics, regression cases/targets, and metadata instead of raw prompts, responses, tool payloads, credentials, or arbitrary host objects.
 - Evaluation must not mutate authoritative agent state merely because an evaluation passes.
 - Deterministic rules evaluate explicit host-computed facts; they do not independently inspect or authorize host-domain state.
 - Human/Application ratings are externally supplied evidence and never become authorization decisions by virtue of evaluator kind.
 - Model-assisted judging stays behind an injected provider-neutral judge contract; Core does not become a hidden model router.
 - Aggregation and comparison are measurement-only and do not route execution, authorize actions, alter configuration, promote learning, or mutate cognitive state.
+- Regression suites orchestrate repeated measurement only through an injected host-owned executor; they do not become provider routers or production schedulers.
+- Executor failures and cancellation are lifecycle outcomes of the regression run, not fabricated evaluation truth.
 
 ## Architectural outcome
 
@@ -116,6 +132,10 @@ Execution / Response / Tool / Goal / Plan / Memory-Knowledge / Learning Candidat
      AiEvaluation
         ↓
  outcome + score + label + evidence + provenance
+        ↓
+ bounded regression case × target execution
+        ↓
+ completed AiEvaluationSample evidence
         ↓
  bounded aggregation by target variant
         ↓

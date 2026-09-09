@@ -68,7 +68,7 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User Example verification — .NET Framework 4.8.1, 2026-09-09 04:59:52:** same public-API scenario succeeded with the same checks.
    - The prior Example-only duplicate-helper compiler error was fixed before these successful runs.
 
-6. **Safe human-readable diagnostic projection — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+6. **Safe human-readable diagnostic projection — VERIFIED**
    - Added provider-neutral `TraceDiagnosticProjectionOptions`, `TraceDiagnosticMetadataItem`, `TraceDiagnosticSpan`, and `TraceDiagnosticProjection` contracts.
    - Added `TraceDiagnosticProjector` as the bounded management/UI projection boundary. It consumes retained sampled spans only, orders them deterministically by trace sequence/identity, and bounds result counts, identifiers, operation/kind text, metadata entries, metadata keys, and metadata values.
    - The projector allowlists diagnostic metadata namespaces (`admission`, `agent`, `context`, `event`, `evaluation`, `execution`, `failure`, `knowledge`, `learning`, `lifecycle`, `memory`, `outcome`, `planning`, `policy`, `provider`, `resource`, `runtime`, `sampling`, and `tool`) plus the explicit `decision` key. Unknown/custom metadata is omitted and counted rather than rendered.
@@ -76,7 +76,16 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - The projection exposes bounded trace/span identity, operation/kind, start/duration/status, parent relationship, execution correlation, host correlation, and runtime identity suitable for diagnostic UI consumption.
    - Added focused `tests/HAgent.Tests/ObservabilityDiagnosticProjectionTests.cs` covering deterministic ordering, span/text bounds, safe metadata allowlisting, omission accounting, explicit redaction markers, parent/correlation visibility, status/duration, and unsampled suppression.
    - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityDiagnosticProjection.cs` under `Diagnostics → Observability → Observability Diagnostic Projection`.
-   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not begin Slice 7 in the same run.
+   - **User verification — 2026-09-09 05:08:** .NET Framework 4.8.1 Example succeeded, verifying deterministic ordering, bounds, correlation/parent relationship, status/duration, metadata allowlisting, redaction, omission accounting, unsampled suppression, and no provider/remote telemetry transport or real provider request.
+   - **User verification — 2026-09-09 05:09:** .NET 9 Example succeeded with the same checks.
+   - **User verification — 2026-09-09:** full `HAgent.Tests` completed with **77/77 tests passed** after the Slice 6 Example helper correction.
+
+7. **Cross-process trace context and correlation boundary — CURRENT**
+   - Define the provider-neutral host/transport boundary for carrying `TraceContext` and existing correlation identity across process boundaries without coupling HAgent.Core to HTTP, OpenTelemetry, message formats, or a specific telemetry vendor.
+   - Reconcile trace propagation with `ExecutionCorrelationId`, `HostCorrelationId`, `EventId`, and `CausationId` so cross-process transport does not collapse distinct identity concepts.
+   - Define bounded import/export values and invalid/incomplete incoming-context handling, including safe behavior when a remote trace context is absent, malformed, unsampled, or no longer trusted by the host boundary.
+   - Add focused `HAgent.Tests` coverage and a matching public-API `HAgent.Example` scenario using deterministic in-process transport fakes only.
+   - Do not add real network transport, vendor-specific tracing dependencies, or remote telemetry delivery in this slice.
 
 ### Verification rule
 

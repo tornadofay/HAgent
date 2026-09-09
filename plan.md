@@ -148,7 +148,7 @@ Knowledge, Skills, Memory, and Learning remain distinct. Skills are reusable exe
         ↓
 0.955 Context Engineering — verified
         ↓
-0.956 Observability / Tracing — verified
+0.956 Observability / Tracing — verified through Slice 8
         ↓
 0.957 Evaluation / Quality Measurement — verified through Slice 6
         ↓
@@ -183,11 +183,25 @@ Evaluation remains measurement-only. Regression results and aggregate preference
 
 User verification on 2026-09-09 succeeded on both `.NET Framework 4.8.1` and `.NET 9` for `HAgent.Example → Cognition → Resource Governance → Resource Governance`. The full `.NET 9` `HAgent.Tests` suite passed **146/146** with **0 failed** and **0 skipped**.
 
-0.9575 Slice 2 is now **verified**. The provider-neutral Knowledge/Wiki contract establishes managed Knowledge/Wiki resources with explicit scope/ownership, lifecycle/versioning, provenance/source metadata, bounded tags/categories/metadata, typed relationships, chunk evidence, and provider/index-neutral retrieval contracts. `AiGovernedKnowledgeRetriever` composes the same verified resource governance boundary before forwarding admitted resource IDs to retrieval implementations.
+0.9575 Slice 2 is **verified**. The provider-neutral Knowledge/Wiki contract establishes managed Knowledge/Wiki resources with explicit scope/ownership, lifecycle/versioning, provenance/source metadata, bounded tags/categories/metadata, typed relationships, chunk evidence, and provider/index-neutral retrieval contracts. `AiGovernedKnowledgeRetriever` composes the same verified resource governance boundary before forwarding admitted resource IDs to retrieval implementations.
 
 User verification on 2026-09-09 succeeded on both `.NET Framework 4.8.1` and `.NET 9` for `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki`. The full `.NET 9` `HAgent.Tests` suite passed **153/153** with **0 failed** and **0 skipped**. Verification demonstrated published version/provenance preservation, non-authoritative model-generated drafts, owner isolation before retrieval, and bounded provider/index-independent retrieval.
 
-The separate context-budget integration requirement remains open; Slice 2 verified retrieval-facing bounds only. Knowledge Manager CRUD, persistent resource repositories, semantic/vector indexing, learning promotion, and retention governance remain later 0.9575 work.
+The separate context-budget integration requirement remains open; Knowledge Manager CRUD, persistent resource repositories, semantic/vector indexing, learning promotion, and retention governance remain later 0.9575 work.
+
+## 0.9575 Slice 3 Skills completion boundary
+
+Slice 3 is **implemented; verification pending**. The provider-neutral Skill contract is now built over the existing generic governance and execution-snapshot foundations.
+
+The implementation provides versioned `AiSkillDefinition` resources with explicit scope/ownership/lifecycle/provenance, bounded input/output contracts, preconditions, ordered procedure steps, required Knowledge/Tool dependencies, constraints, metadata, and relationships. `AiSkillReference` / `AiSkillSet` provide reusable explicit-scope references with optional version pins, and `AiAgent.Skills` is the canonical profile reference set.
+
+`IAiSkillDefinitionSource` plus `AiGovernedSkillResolver` reuse `AiResourceGovernanceEvaluator` with `skill.invoke` before definition-source access. Admitted definitions must match identity/scope/owner, optional version pins, and published lifecycle state. `AiSkillExecutionSnapshot` and `AgentExecutionSnapshot.Skills` deep-clone admitted bindings so in-flight executions retain their captured Skill version/state independently of later profile/source mutation.
+
+Executable handlers, delegates, callbacks, and provider SDK objects are intentionally absent from persisted Skill definitions and references. Skill-specific persistence, Skill Manager UI, SkillCandidate promotion, and context-budget integration remain later work.
+
+Verification assets are in place: focused `SkillResourceTests`, the public Example `HAgent.Example → Cognition → Skills → Skill Definitions`, architecture `docs/architecture/82-skills.md`, durable decision D-010, and the dedicated Slice 3 workflow `.github/workflows/verify-phase-0-9575-slice-3.yml`.
+
+GitHub Actions has queued Slice 3 verification from `master`, but no completed build/test result has been observed yet. The public WinForms Example also has not been executed in this environment, so Slice 3 is not marked verified or closed.
 
 ## Storage implications
 

@@ -15,6 +15,7 @@ namespace HAgent.Models
         public AiExecutionSelectionPolicy ExecutionSelection { get; set; }
         public AiCapabilityRequirements CapabilityRequirements { get; set; }
         public AiResourceCapabilityPolicy ResourceCapabilities { get; set; }
+        public AiSkillSet Skills { get; set; }
 
         public AiAgent()
         {
@@ -29,6 +30,7 @@ namespace HAgent.Models
             ExecutionSelection = new AiExecutionSelectionPolicy();
             CapabilityRequirements = new AiCapabilityRequirements();
             ResourceCapabilities = new AiResourceCapabilityPolicy();
+            Skills = new AiSkillSet { Name = "Default skills" };
         }
     }
 }

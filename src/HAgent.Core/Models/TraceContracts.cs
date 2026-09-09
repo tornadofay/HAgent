@@ -161,6 +161,96 @@ namespace HAgent.Models
     }
 
     /// <summary>
+    /// Deterministic sampling policy input. A rate of 1 samples every root trace and 0 samples none.
+    /// Child spans inherit the root sampling decision.
+    /// </summary>
+    public sealed class TraceSamplingOptions
+    {
+        public TraceSamplingOptions()
+        {
+            SampleRate = 1d;
+            Salt = string.Empty;
+        }
+
+        public double SampleRate { get; set; }
+        public string Salt { get; set; }
+
+        public void Validate()
+        {
+            if (double.IsNaN(SampleRate) || double.IsInfinity(SampleRate) || SampleRate < 0d || SampleRate > 1d)
+                throw new ArgumentOutOfRangeException(nameof(SampleRate));
+            if (Salt == null)
+                throw new ArgumentNullException(nameof(Salt));
+            if (Salt.Length > 256)
+                throw new ArgumentOutOfRangeException(nameof(Salt));
+        }
+
+        public TraceSamplingOptions Clone()
+        {
+            return new TraceSamplingOptions
+            {
+                SampleRate = SampleRate,
+                Salt = Salt
+            };
+        }
+    }
+
+    /// <summary>
+    /// Bounded in-memory retention policy for observable spans.
+    /// </summary>
+    public sealed class TraceRetentionOptions
+    {
+        public TraceRetentionOptions()
+        {
+            MaxTraceCount = 128;
+            MaxSpanCount = 4096;
+            MaxSpansPerTrace = 256;
+            MaxAggregateMetadataCharacters = 262144;
+            MaxAge = TimeSpan.FromHours(1);
+        }
+
+        public int MaxTraceCount { get; set; }
+        public int MaxSpanCount { get; set; }
+        public int MaxSpansPerTrace { get; set; }
+        public int MaxAggregateMetadataCharacters { get; set; }
+        public TimeSpan MaxAge { get; set; }
+
+        public void Validate()
+        {
+            if (MaxTraceCount <= 0)
+                throw new ArgumentOutOfRangeException(nameof(MaxTraceCount));
+            if (MaxSpanCount <= 0)
+                throw new ArgumentOutOfRangeException(nameof(MaxSpanCount));
+            if (MaxSpansPerTrace <= 0)
+                throw new ArgumentOutOfRangeException(nameof(MaxSpansPerTrace));
+            if (MaxAggregateMetadataCharacters <= 0)
+                throw new ArgumentOutOfRangeException(nameof(MaxAggregateMetadataCharacters));
+            if (MaxAge <= TimeSpan.Zero && MaxAge != Timeout.InfiniteTimeSpan)
+                throw new ArgumentOutOfRangeException(nameof(MaxAge));
+        }
+
+        public TraceRetentionOptions Clone()
+        {
+            return new TraceRetentionOptions
+            {
+                MaxTraceCount = MaxTraceCount,
+                MaxSpanCount = MaxSpanCount,
+                MaxSpansPerTrace = MaxSpansPerTrace,
+                MaxAggregateMetadataCharacters = MaxAggregateMetadataCharacters,
+                MaxAge = MaxAge
+            };
+        }
+    }
+
+    /// <summary>
+    /// Provider-neutral sampling decision boundary.
+    /// </summary>
+    public interface ITraceSampler
+    {
+        bool ShouldSample(TraceSpanStartOptions options);
+    }
+
+    /// <summary>
     /// Bounded input required to create one observable span.
     /// </summary>
     public sealed class TraceSpanStartOptions
@@ -171,6 +261,7 @@ namespace HAgent.Models
             Kind = string.Empty;
             Correlation = new TraceCorrelation();
             Metadata = new TraceMetadata();
+            Sampled = null;
         }
 
         public TraceContext ParentContext { get; set; }
@@ -178,6 +269,12 @@ namespace HAgent.Models
         public string Kind { get; set; }
         public TraceCorrelation Correlation { get; set; }
         public TraceMetadata Metadata { get; set; }
+
+        /// <summary>
+        /// Optional explicit sampling decision. When absent, a root may use the configured sampler and
+        /// child spans inherit their parent sampled state.
+        /// </summary>
+        public bool? Sampled { get; set; }
 
         public void Validate()
         {

@@ -24,8 +24,8 @@ namespace HAgent.Tests
             var projection = projector.Project(reversed);
 
             Assert.Equal(2, projection.Spans.Count);
-            Assert.Equal(second.RecordSpanId(), projection.Spans[0].SpanId);
-            Assert.Equal(first.RecordSpanId(), projection.Spans[1].SpanId);
+            Assert.Equal(second.Record.SpanId, projection.Spans[0].SpanId);
+            Assert.Equal(first.Record.SpanId, projection.Spans[1].SpanId);
         }
 
         [Fact]
@@ -62,10 +62,11 @@ namespace HAgent.Tests
         }
 
         [Fact]
-        public void Projector_AllowListsSafeMetadataAndCountsOmittedValues()
+        public void Projector_AllowListsSafeMetadataCountsOmittedValuesAndPreservesRedactionMarker()
         {
             var metadata = new TraceMetadata();
             metadata.Add("provider.id", "provider-42");
+            metadata.AddRedacted("provider.secret");
             metadata.Add("decision", "Allow");
             metadata.Add("prompt", "secret prompt content");
             metadata.Add("custom.payload", "sensitive custom payload");
@@ -87,18 +88,14 @@ namespace HAgent.Tests
             });
             Assert.True(span.TryComplete(TraceSpanStatus.Succeeded));
 
-            var diagnostic = new TraceDiagnosticProjector(new TraceDiagnosticProjectionOptions
-            {
-                MaxMetadataEntriesPerSpan = 16,
-                MaxMetadataKeyLength = 64,
-                MaxMetadataValueLength = 256
-            }).Project(recorder.GetSpans()).Spans[0];
+            var diagnostic = new TraceDiagnosticProjector().Project(recorder.GetSpans()).Spans[0];
 
             Assert.Equal("execution-42", diagnostic.ExecutionId);
             Assert.Equal("correlation-42", diagnostic.ExecutionCorrelationId);
             Assert.Equal("host-42", diagnostic.HostCorrelationId);
             Assert.Equal("runtime-42", diagnostic.RuntimeInstanceId);
             Assert.Contains(diagnostic.Metadata, item => item.Key == "provider.id" && item.Value == "provider-42");
+            Assert.Contains(diagnostic.Metadata, item => item.Key == "provider.secret" && item.Value == "[Redacted]");
             Assert.Contains(diagnostic.Metadata, item => item.Key == "decision" && item.Value == "Allow");
             Assert.DoesNotContain(diagnostic.Metadata, item => item.Key == "prompt");
             Assert.DoesNotContain(diagnostic.Metadata, item => item.Key == "custom.payload");
@@ -140,8 +137,7 @@ namespace HAgent.Tests
             Assert.False(span.Context.Sampled);
             Assert.True(span.TryComplete(TraceSpanStatus.Succeeded));
 
-            var projection = new TraceDiagnosticProjector().Project(
-                new[] { span.Record });
+            var projection = new TraceDiagnosticProjector().Project(new[] { span.Record });
 
             Assert.Empty(projection.Spans);
             Assert.Equal(0, projection.OmittedSpanCount);
@@ -170,14 +166,6 @@ namespace HAgent.Tests
             {
                 return _sample;
             }
-        }
-    }
-
-    internal static class TraceSpanTestExtensions
-    {
-        public static string RecordSpanId(this ITraceSpan span)
-        {
-            return span.Record.SpanId;
         }
     }
 }

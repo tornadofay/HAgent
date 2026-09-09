@@ -28,11 +28,6 @@ namespace HAgent.Example
 
         private Task TestEvaluationAggregationAsync(string unused)
         {
-            return TestEvaluationAggregationCoreAsync();
-        }
-
-        private static Task TestEvaluationAggregationCoreAsync()
-        {
             var request = new AiEvaluationAggregationRequest();
             AddSample(request, "case-1", "baseline", AiEvaluationOutcome.Passed, 0.70m, 220m, 0.08m, 0.20m, 0.90m, 0.60m);
             AddSample(request, "case-2", "baseline", AiEvaluationOutcome.Failed, 0.40m, 180m, 0.06m, 0.10m, 0.80m, 0.50m);
@@ -76,20 +71,18 @@ namespace HAgent.Example
             candidate.Validate();
             comparison.Validate();
 
-            return Task.Run(delegate
-            {
-                var summary =
-                    "EVALUATION AGGREGATION" + Environment.NewLine +
-                    "Evaluation aggregation succeeded." + Environment.NewLine +
-                    "Variants: baseline=3 samples; candidate=3 samples." + Environment.NewLine +
-                    "Baseline success rate: " + baseline.SuccessRate.ToString("0.######") + "." + Environment.NewLine +
-                    "Candidate success rate: " + candidate.SuccessRate.ToString("0.######") + "." + Environment.NewLine +
-                    "Candidate average quality score: " + candidate.QualityScoreAverage.Value.ToString("0.######") + "." + Environment.NewLine +
-                    "Candidate average latency: " + latency.Average.ToString("0.######") + " ms." + Environment.NewLine +
-                    "Per-metric comparison: candidate preferred where higher/lower direction supports it." + Environment.NewLine +
-                    "Authoritative routing or authorization decision: none.";
-                return summary;
-            });
+            Write(
+                "EVALUATION AGGREGATION",
+                "Evaluation aggregation succeeded." + Environment.NewLine +
+                "Variants: baseline=3 samples; candidate=3 samples." + Environment.NewLine +
+                "Baseline success rate: " + baseline.SuccessRate.ToString("0.######") + "." + Environment.NewLine +
+                "Candidate success rate: " + candidate.SuccessRate.ToString("0.######") + "." + Environment.NewLine +
+                "Candidate average quality score: " + candidate.QualityScoreAverage.Value.ToString("0.######") + "." + Environment.NewLine +
+                "Candidate average latency: " + latency.Average.ToString("0.######") + " ms." + Environment.NewLine +
+                "Per-metric comparison: candidate preferred where higher/lower direction supports it." + Environment.NewLine +
+                "Authoritative routing or authorization decision: none.");
+
+            return Task.CompletedTask;
         }
 
         private static void AddSample(AiEvaluationAggregationRequest request, string caseId, string variantId, AiEvaluationOutcome outcome, decimal? score, decimal latencyMs, decimal cost, decimal fallback, decimal toolSuccessRate, decimal planCompletionRate)

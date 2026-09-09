@@ -131,7 +131,7 @@ namespace HAgent.Tests
             Assert.NotNull(Find(spans, "execution.wait"));
             Assert.NotNull(Find(spans, "provider.recovery"));
             Assert.Equal(2, Count(spans, "provider.invoke"));
-            Assert.Equal(1, adapter.Calls);
+            Assert.Equal(2, adapter.Calls);
         }
 
         private static void Record(string operationName, string decision, TraceSpanStatus status)

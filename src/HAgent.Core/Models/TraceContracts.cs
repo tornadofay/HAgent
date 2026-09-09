@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace HAgent.Models
 {
@@ -249,6 +250,42 @@ namespace HAgent.Models
     public interface ITraceSampler
     {
         bool ShouldSample(TraceSpanStartOptions options);
+    }
+
+    /// <summary>
+    /// Provider-neutral destination for completed trace spans.
+    /// Implementations must not mutate or enrich spans with raw sensitive payloads.
+    /// </summary>
+    public interface ITraceSink
+    {
+        Task PublishAsync(TraceSpan span, CancellationToken cancellationToken);
+    }
+
+    /// <summary>
+    /// Bounded asynchronous sink-dispatch configuration.
+    /// </summary>
+    public sealed class TraceSinkOptions
+    {
+        public TraceSinkOptions()
+        {
+            MaxPendingSpans = 1024;
+        }
+
+        public int MaxPendingSpans { get; set; }
+
+        public void Validate()
+        {
+            if (MaxPendingSpans <= 0)
+                throw new ArgumentOutOfRangeException(nameof(MaxPendingSpans));
+        }
+
+        public TraceSinkOptions Clone()
+        {
+            return new TraceSinkOptions
+            {
+                MaxPendingSpans = MaxPendingSpans
+            };
+        }
     }
 
     /// <summary>

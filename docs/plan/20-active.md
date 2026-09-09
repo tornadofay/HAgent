@@ -2,74 +2,52 @@
 
 Only the current implementation milestone belongs here. Completed implementation history is recorded in the ordered roadmap under `docs/roadmap/`; future work does not belong here.
 
-## 0.957 Evaluation and Quality Measurement — CURRENT
+## 0.957 Evaluation and Quality Measurement — VERIFIED
 
-Phase 0.956 Observability and Distributed Tracing is complete and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9. The execution runtime remains authoritative for outcome facts while tracing consumes those facts diagnostically.
+Phase 0.957 Evaluation and Quality Measurement is complete through Slice 6. The provider-neutral evaluation architecture now covers evaluation contracts, deterministic evaluators, human/application ratings, model-assisted judging, aggregation/comparison, and repeated regression-suite execution.
 
-### Completed evaluation slices
+### Verification
 
-1. **Provider-neutral evaluation contracts and evaluator boundary — VERIFIED**
-   - Provider-neutral target, request, evidence-reference, result, provenance, correlation, bounded validation, and clone contracts are established.
-   - `IAiEvaluator` is the asynchronous evaluator boundary independent of a specific model vendor or grading service.
+- Slice 1 — provider-neutral evaluation contracts and evaluator boundary — verified.
+- Slice 2 — deterministic evaluators and evaluation evidence — verified; user reported 109/109 tests and both supported Examples succeeded.
+- Slice 3 — human/application ratings and labeled evaluation evidence — verified; user reported 115/115 tests and both supported Examples succeeded.
+- Slice 4 — model-assisted evaluator/judge boundary — verified; user reported 123/123 tests and both supported Examples succeeded.
+- Slice 5 — aggregation and alternative-target comparison — verified; user reported 130/130 tests and both supported Examples succeeded.
+- Slice 6 — regression suites and repeated target execution — verified by user on 2026-09-09: **139/139 HAgent.Tests passed**, `HAgent.Example → Diagnostics → Evaluation → Evaluation Regression Suites` succeeded on **.NET Framework 4.8.1 and .NET 9**, with 3 cases × 2 targets, bounded concurrency of 2, isolated failures, late cancellation-result discard, and successful-sample-only aggregation handoff.
 
-2. **Deterministic evaluators and evaluation evidence — VERIFIED**
-   - Deterministic host-computed observations and rules for schema validity, required fields, policy compliance, tool success, task completion, latency, and cost are implemented with bounded evidence, provenance, cancellation, threshold handling, ambiguity rejection, and `Inconclusive` outcomes.
-   - User verification — 2026-09-09: full `HAgent.Tests` completed with 109/109 tests passed; matching Examples succeeded on .NET Framework 4.8.1 and .NET 9.
+Requirement 9 (repeated test cases/regression suites) and requirement 10 (aggregate metrics) are therefore verified. Requirement 11 is verified through the matching public Examples for evaluation creation/ratings, aggregation/comparison, failure handling, and regression execution.
 
-3. **Human/application ratings and labeled evaluation evidence — VERIFIED**
-   - `AiEvaluationRating` and `AiSuppliedRatingEvaluator` provide bounded externally supplied Human/Application evidence through the same evaluator boundary with owned cloning and non-authoritative semantics.
-   - User verification — 2026-09-09: full `HAgent.Tests` completed with 115/115 tests passed; matching Examples succeeded on .NET Framework 4.8.1 and .NET 9.
+## 0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT
 
-4. **Model-assisted evaluators and non-authoritative judge boundary — VERIFIED**
-   - `IAiEvaluationJudge`, detached `AiEvaluationJudgeRequest`, and `AiModelAssistedEvaluationEvaluator` provide provider-neutral model-backed grading without putting transport, credentials, model selection, or evidence resolution in Core.
-   - Model-assisted output is explicitly non-authoritative and fail-closed for cancellation, null output, invalid rating, and judge failure.
-   - User verification — 2026-09-09: `HAgent.Tests` completed with **123/123 tests passed**; Slice 4 Example succeeded on **.NET Framework 4.8.1 and .NET 9**.
+Phase 0.9575 consumes the canonical resource foundations established in 0.8 and the identity, policy, context, observability, and evaluation boundaries already completed. It must not introduce a parallel resource model.
 
-5. **Evaluation aggregation and alternative-target comparison — VERIFIED**
-   - `AiEvaluationMetric`, `AiEvaluationSample`, aggregate/comparison contracts, and `AiEvaluationAggregator` provide bounded measurement-only aggregation and explicit higher/lower comparison semantics.
-   - User verification — 2026-09-09: **130/130 HAgent.Tests passed**; `Diagnostics → Evaluation → Evaluation Aggregation` succeeded on **.NET Framework 4.8.1 and .NET 9**.
-   - Verified results included baseline success rate `0.333333`, candidate success rate `1`, candidate average quality `0.85`, and candidate average latency `110 ms`, with no authoritative routing or authorization decision.
+### Slice 1 — Mature resource capability governance foundation
 
-## Current Slice 6 — Evaluation regression suites and repeated target execution
+**Objective:** establish one provider-neutral governance boundary for effective resource capability state and governed resource access decisions, while keeping authoritative resource definitions separate from runtime snapshots.
 
-**Objective:** provide a provider-neutral, host-owned regression-suite boundary that repeats bounded evaluation cases across alternative targets with controlled concurrency, deterministic reporting, failure isolation, cancellation/late-result protection, and direct reuse of Slice 5 aggregation/comparison contracts.
+### Required architecture to inspect before coding
 
-### Expected files / assemblies
+- `docs/architecture/05-identity.md` — canonical ownership, scope, tenancy, principal, and resource identity semantics.
+- `docs/architecture/16-cognitive-runtime.md` — persistent cognition/resource relationship and learning boundaries.
+- `docs/architecture/23-evaluation-quality.md` — evaluation evidence boundary consumed by later learning governance.
+- Existing resource capability contracts and runtime execution snapshot implementation.
+- Existing policy engine/resource-policy integration and learning-promotion policy decision implementation.
+- Existing Skill, Knowledge/Wiki, Memory, and Learning candidate foundation models from Phase 0.8.
 
-- `src/HAgent.Core/Models/AiEvaluationRegressionContracts.cs`
-- `tests/HAgent.Tests/EvaluationRegressionTests.cs`
-- `src/HAgent.Example/MainForm.EvaluationRegression.cs`
-- `src/HAgent.Example/MainForm.ExampleOrganization.cs`
-- `.github/workflows/verify-phase-0-957-slice-6.yml`
-- `docs/architecture/23-evaluation-quality.md`
-- `docs/roadmap/957-evaluation-quality-measurement.md`
-- `docs/plan/00-active-work.md`
-- `docs/plan/00-current-state.md`
-- `docs/plan/00-decisions.md`
+### Slice 1 boundary
 
-### Implemented boundary
+The first implementation slice should provide reusable effective resource capability/admission semantics for Skills, Knowledge/Wiki, Memory families/types, and future resource types without hard-coding resource-specific authorization into the agent runtime.
 
-- `AiEvaluationRegressionCase` defines bounded case identity, name, input references, and host-defined parameters. It contains no executable code.
-- `AiEvaluationRegressionTarget` defines bounded comparison-target identity, name, and metadata. Provider/model/agent descriptors remain host metadata rather than Core authority.
-- `AiEvaluationRegressionSuite` owns a validated case-target matrix, unique IDs, `MaxConcurrency` from 1 to 32, and a maximum of 1024 case-target executions.
-- `IAiEvaluationRegressionExecutor` is the host-owned execution boundary. It receives detached case/target descriptors and returns the existing `AiEvaluationSample` evidence contract.
-- `AiEvaluationRegressionRunner.RunAsync` clones/validates the suite, schedules each case against each target under the concurrency bound, validates returned samples, isolates executor failures, propagates cancellation, and discards samples returned after cancellation.
-- `AiEvaluationRegressionRun` reports explicit completed/failed/canceled case-target results in deterministic order and exposes only completed samples to `CreateAggregationRequest()`.
-- Failed/canceled executions do not fabricate `AiEvaluation` outcomes and do not enter aggregation input.
-- Regression orchestration does not route production work, select credentials, authorize actions, persist authoritative state, promote learning, or mutate cognitive state.
+It should address inheritance/profile defaults, runtime tri-state overrides, explicit ownership/scope context, fail-closed admission where required, immutable execution snapshots, deterministic decisions, and provider-neutral public contracts. Persistent resource stores, full management UI, candidate promotion workflows, retention governance, and broader learning lifecycle remain later slices of 0.9575 unless they are required as part of this boundary.
 
-**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Evaluation Regression Suites` on **.NET Framework 4.8.1** and **.NET 9**.
+**Example to run:** `HAgent.Example → Cognition → Resource Governance` on **.NET Framework 4.8.1** and **.NET 9**.
 
-**Tests to run:** `tests/HAgent.Tests/EvaluationRegressionTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+**Tests to run:** `tests/HAgent.Tests/ResourceGovernanceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
-### Verification checkpoint
+## Current blocker
 
-Slice 6 implementation and matching Example/test coverage are committed directly to `master`. Supported-target builds and automated tests must pass, and the Example must be manually executed on both supported targets before requirement 9 or Slice 6 is marked verified.
+No design blocker is known. Start by inspecting the authoritative identity/cognitive/resource architecture and existing capability/policy/snapshot implementation. Do not create duplicate capability, resource identity, ownership, or policy models merely because the mature governance phase is not yet complete.
 
-### Verification rule
-
-A slice becomes complete only after its implementation exists, matching focused verification passes, supported-target builds pass, and the matching Example succeeds on every required target. User-supplied local results count as verification evidence. Do not claim success unless actually executed or supplied by the user.
-
-### Run rule
+## Run rule
 
 Do not implement multiple numbered slices in one run merely because they are related. Finish the current slice, verify it, update this file, and only then select the next slice.

@@ -13,7 +13,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.957 Evaluation and Quality Measurement — CURRENT.**
+**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT.**
 
 0.7 WinForms UI Context + Data Discovery is complete and locally verified.
 
@@ -25,11 +25,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.954 Prompt and Instruction Governance is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.955 Context Engineering is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.956 Observability and Distributed Tracing is completed and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9, including authoritative execution-outcome observations consumed by tracing without provider-side state inference.
 
-0.957 Slice 1 (provider-neutral evaluation contracts and evaluator boundary) is verified. Slice 2 (deterministic evaluators and evaluation evidence) is verified with 109/109 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification. Slice 3 (human/application ratings and labeled evaluation evidence) is verified with 115/115 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification. Slice 4 (model-assisted evaluators and non-authoritative judge boundary) is verified with 123/123 HAgent.Tests and successful Example verification on .NET Framework 4.8.1 and .NET 9.
-
-Slice 5 (evaluation aggregation and alternative-target comparison) is **verified** from user-run results on 2026-09-09: **130/130 HAgent.Tests passed**, and `Diagnostics → Evaluation → Evaluation Aggregation` succeeded on **.NET Framework 4.8.1 and .NET 9**. The verified scenario produced baseline success rate `0.333333`, candidate success rate `1`, candidate average quality `0.85`, candidate average latency `110 ms`, and no authoritative routing or authorization decision.
-
-Slice 6 (evaluation regression suites and repeated target execution) is the current implementation checkpoint. It adds provider-neutral bounded case/target suite contracts, host-owned execution through `IAiEvaluationRegressionExecutor`, bounded concurrency, deterministic case-target results, failure isolation, cancellation/late-result protection, and direct handoff of completed samples into the existing Slice 5 aggregation/comparison contracts. Automated build/test verification and manual Example execution for Slice 6 are pending.
+0.957 Evaluation and Quality Measurement is now **verified through Slice 6**. User verification on 2026-09-09 recorded **139/139 HAgent.Tests passed**, and the required evaluation Example scenarios succeeded on **.NET Framework 4.8.1 and .NET 9**. The completed evaluation path covers provider-neutral evaluation contracts, deterministic evaluators, human/application ratings, model-assisted judging, aggregation/comparison, and repeated regression-suite execution.
 
 ## First-class Knowledge / Skills / Memory / Learning architecture
 
@@ -70,9 +66,9 @@ Knowledge, Skills, Memory, and Learning remain distinct. Skills are reusable exe
         ↓
 0.956 Observability / Tracing — verified
         ↓
-0.957 Evaluation / Quality Measurement — current
+0.957 Evaluation / Quality Measurement — verified through Slice 6
         ↓
-0.9575 Knowledge / Skills / Memory Governance + Learning
+0.9575 Knowledge / Skills / Memory Governance + Learning — current
         ↓
 0.958 Agent Lifecycle / Health
         ↓
@@ -93,9 +89,15 @@ The numbered roadmap is dependency-driven, not permanently locked. When architec
 
 ## 0.957 Evaluation completion boundary
 
-0.957 remains in progress. Slices 1–5 are verified. Slice 4 provides the model-assisted judging boundary through injected `IAiEvaluationJudge` and remains explicitly non-authoritative. Slice 5 provides bounded provider-neutral aggregation and alternative-target comparison over completed evaluation evidence. Slice 6 currently provides repeated case-target regression execution over host-owned executors and reuses Slice 5 samples for aggregation/comparison.
+0.957 is complete and verified through Slice 6. Slices 1–4 established the evaluator boundaries and evidence types; Slice 5 established bounded aggregation/comparison; Slice 6 established repeated case-target regression execution through a host-owned executor with bounded concurrency, failure isolation, cancellation/late-result protection, deterministic results, and direct handoff to the existing aggregation/comparison contracts.
 
-Regression execution is measurement orchestration, not production routing. The suite does not choose providers or credentials, authorize actions, persist authoritative state, promote learning, or mutate cognitive state. Failed or canceled case-target executions remain visible as regression execution results but are excluded from evaluation aggregation unless a valid `AiEvaluationSample` was produced before cancellation.
+Evaluation remains measurement-only. Regression results and aggregate preferences do not route production execution, authorize actions, mutate configuration, promote learning, or become cognitive authority. Failed/canceled regression executions remain explicit lifecycle results and do not become fabricated evaluation evidence.
+
+## 0.9575 Resource governance completion boundary
+
+0.9575 is now in progress. Slice 1 establishes the mature resource admission foundation over the existing 0.8 resource primitives, canonical identity ownership, and unified policy engine. The new `AiResourceGovernanceEvaluator` composes owner proof, effective capability state, and policy authorization without introducing a second authorization or resource model. `AiResourceCapabilitySnapshot` now preserves the source of effective configuration as `Default`, `Profile`, or `RuntimeOverride` for operator diagnostics.
+
+Slice 1 deliberately stops before resource-specific repositories, Knowledge/Skill management CRUD, Memory retention, Learning Mode administration, candidate promotion workflows, and broader resource persistence. Those are subsequent 0.9575 slices.
 
 ## Storage implications
 
@@ -106,6 +108,8 @@ The unified policy set is a canonical HAgent-owned configuration record exposed 
 Agent profile resource capability defaults are part of the canonical `AiAgent` configuration and persist through the normal agent storage path. Runtime capability overrides remain transient and resolve above profile defaults into `AgentExecutionSnapshot.EffectiveResourceCapabilities`.
 
 Learning-promotion decisions are represented as normal `AiPolicyDecision` outcomes on `learning.promote`, with typed candidate metadata carried as bounded policy attributes. Mature candidate/target repositories and broader human intervention remain ordered roadmap work.
+
+Human intervention is implemented ahead of its ordered milestone only as a coherent canonical workflow boundary. Execution-level intervention and concurrency/stale-state hardening have deterministic local Example verification; durable persistence, management UI, broader target support, and remaining lifecycle controls are not treated as complete.
 
 Provider API keys are persisted with provider configuration and encrypted at rest. There is no separate provider secret-reference or vault architecture. Shared SQL Server/MySQL configuration can therefore be used by multiple authorized HAgent processes/machines. Configuration export/import remains planned as a versioned portable representation with optional encrypted credential inclusion.
 

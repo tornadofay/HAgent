@@ -17,10 +17,10 @@ namespace HAgent.Tests
             policy.Rules.Add(new AiMemoryPolicyRule { TypeId = "semantic.preference", MaxResults = 3 });
             policy.Validate();
 
-            Assert.Equal(8, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.fact" }));
-            Assert.Equal(3, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.preference" }));
+            Assert.Equal(8, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.fact", MaxResults = 100 }));
+            Assert.Equal(3, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.preference", MaxResults = 100 }));
             Assert.Equal(2, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Semantic, TypeId = "semantic.preference", MaxResults = 2 }));
-            Assert.Equal(20, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Procedural, TypeId = "procedural.strategy" }));
+            Assert.Equal(20, policy.GetMaxResults(new MemoryQuery { Family = AiMemoryFamily.Procedural, TypeId = "procedural.strategy", MaxResults = 100 }));
         }
 
         [Fact]
@@ -96,7 +96,7 @@ namespace HAgent.Tests
             await memory.AddAsync(expired);
 
             var governed = new AiGovernedMemoryStore(memory, snapshot, new AiMemoryGovernancePolicy { MaxResults = 10 });
-            var results = await governed.SearchAsync(new MemoryQuery { OwnerId = "owner-42", Text = "memory" });
+            var results = await governed.SearchAsync(new MemoryQuery { OwnerId = "owner-42", Text = "memory", MaxResults = 100 });
 
             Assert.Single(results);
             Assert.Equal(AiMemoryFamily.Semantic, results[0].Family);

@@ -943,7 +943,7 @@ Tracing is observability, not authorization and not transcript storage.
 
 ## Status
 
-**In progress — Slice 2 implementation checkpoint; local verification pending.**
+**In progress — Slice 3 is the current implementation checkpoint.**
 
 ## Goal
 
@@ -979,7 +979,7 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 
 ## Slice 2 — Deterministic evaluators and evaluation evidence
 
-**Implementation checkpoint; local verification pending.**
+**Verified on 2026-09-09.**
 
 - Added bounded `AiEvaluationObservation` values with explicit `Boolean`, `Decimal`, and `Text` value kinds and optional bounded units.
 - Extended `AiEvaluationRequest` with bounded, owned observations and clone/validation behavior.
@@ -987,13 +987,23 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 - Added `AiDeterministicEvaluationEvaluator` implementing `IAiEvaluator` with deterministic pass/fail scoring, evaluator provenance, execution/runtime/agent/goal/plan/trace correlation, bounded evidence references, threshold handling, cancellation, and `Inconclusive` outcomes for missing/mismatched signals.
 - Duplicate observations for the same deterministic signal are rejected as ambiguous rather than arbitrarily selecting one.
 - Added focused `tests/HAgent.Tests/DeterministicEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.DeterministicEvaluation.cs` coverage.
-- Classified the new Example as `Diagnostics → Evaluation → Deterministic Evaluation`.
+- Classified the Example as `Diagnostics → Evaluation → Deterministic Evaluation`.
+- User verification: **109/109 `HAgent.Tests` passed**.
+- User Example verification: **.NET Framework 4.8.1** and **.NET 9** `Deterministic Evaluation` scenarios succeeded.
 - This slice does not implement model-assisted grading, human-rating workflows, aggregation, regression suites, persistence, or management UI.
 
-## Next checkpoint
+## Slice 3 — Human/application ratings and labeled evaluation evidence
 
-3. **Human/application ratings and labeled evaluation evidence — NOT STARTED**
-- Do not implement this checkpoint until Slice 2 has passed its required repository build, focused/full tests, and both supported Example verification targets.
+**Implementation checkpoint; local verification pending.**
+
+- Added bounded `AiEvaluationRating` for externally supplied outcome, score, confidence, label, reason, evidence references, and metadata.
+- Added `AiSuppliedRatingEvaluator` through the existing `IAiEvaluator` boundary; it accepts only `Human` or `Application` evaluator kinds and requires explicit evaluator identity/version.
+- Preserved supplied rating values plus execution/runtime/agent/goal/plan/trace correlation and bounded evidence/metadata.
+- Cloned supplied rating data at evaluator construction and cloned its evidence/metadata into each produced evaluation so caller mutation cannot alter prior results.
+- Cancellation is checked before producing supplied evaluation evidence.
+- Added focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs` coverage.
+- Classified the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
+- This slice does not add model-assisted grading, aggregation, regression suites, persistence, or management UI.
 
 ## Architectural invariants
 
@@ -1008,9 +1018,10 @@ Diagnostic correlation            Cognitive revision / learning promotion
 
 - Evaluation is evidence about behavior, not hidden authorization.
 - Model-assisted evaluations are explicitly non-authoritative and retain evaluator provenance.
-- Evaluation contracts use bounded references, observations, and metadata instead of raw prompts, responses, tool payloads, credentials, or arbitrary host objects.
+- Evaluation contracts use bounded references, observations, ratings, and metadata instead of raw prompts, responses, tool payloads, credentials, or arbitrary host objects.
 - Evaluation must not mutate authoritative agent state merely because an evaluation passes.
 - Deterministic rules evaluate explicit host-computed facts; they do not independently inspect or authorize host-domain state.
+- Human/Application ratings are externally supplied evidence and never become authorization decisions by virtue of evaluator kind.
 
 ## Architectural outcome
 

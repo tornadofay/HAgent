@@ -161,12 +161,13 @@ namespace HAgent.Tests
                 Kind = "tool.success",
                 Id = "tool-1",
                 ValueKind = AiEvaluationObservationKind.Text,
-                TextValue = "true"
+                TextValue = "sensitive-looking-provider-payload"
             });
             var mismatched = await new AiDeterministicEvaluationEvaluator(AiDeterministicEvaluationRuleKind.ToolSuccess)
                 .EvaluateAsync(request, CancellationToken.None).ConfigureAwait(false);
             Assert.Equal(AiEvaluationOutcome.Inconclusive, mismatched.Outcome);
             Assert.Null(mismatched.Score);
+            Assert.False(mismatched.Metadata.ContainsKey("observed"));
         }
 
         [Fact]

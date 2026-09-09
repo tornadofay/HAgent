@@ -10,12 +10,14 @@ namespace HAgent.Runtime
 {
     /// <summary>
     /// Provider-neutral runtime decorator that creates a root execution trace and observes
-    /// the canonical execution lifecycle. Other HAgent boundaries have dedicated tracing producers.
+    /// the canonical execution lifecycle. Runtime outcome facts are supplied by an optional
+    /// execution observation source; tracing does not infer authoritative retry/fallback state.
     /// </summary>
     public sealed class TracingAgentRuntime : IAgentRuntime
     {
         private readonly IAgentRuntime _inner;
         private readonly ITraceRecorder _recorder;
+        private readonly IExecutionObservationSource _observationSource;
         private readonly ConcurrentDictionary<string, ITraceSpan> _executions =
             new ConcurrentDictionary<string, ITraceSpan>(StringComparer.OrdinalIgnoreCase);
 
@@ -24,6 +26,9 @@ namespace HAgent.Runtime
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             _recorder = recorder ?? throw new ArgumentNullException(nameof(recorder));
             _inner.ExecutionChanged += OnExecutionChanged;
+            _observationSource = _inner as IExecutionObservationSource;
+            if (_observationSource != null)
+                _observationSource.ExecutionObserved += OnExecutionObserved;
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged
@@ -66,10 +71,7 @@ namespace HAgent.Runtime
             {
                 var execution = await _inner.ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
                 if (execution != null)
-                {
-                    RecordFallbackObservation(execution);
                     CompleteRoot(execution);
-                }
                 return execution;
             }
             catch (OperationCanceledException)
@@ -88,24 +90,11 @@ namespace HAgent.Runtime
                 }
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 var current = TraceAmbient.Current;
                 if (current != null)
                 {
-                    if (IsStaleProviderCompletion(ex))
-                    {
-                        var staleMetadata = new TraceMetadata();
-                        staleMetadata.Add("decision", "stale-result");
-                        staleMetadata.Add("reason", "execution-terminal-state-already-reached");
-                        TraceObservation.RecordDecision(
-                            "execution.stale-result",
-                            "Outcome",
-                            TraceSpanStatus.Rejected,
-                            staleMetadata,
-                            TraceAmbient.CurrentCorrelation);
-                    }
-
                     var root = FindRootByTrace(current.TraceId);
                     if (root != null)
                     {
@@ -176,6 +165,57 @@ namespace HAgent.Runtime
             }
         }
 
+        private void OnExecutionObserved(object sender, AgentExecutionObservationEventArgs args)
+        {
+            var observation = args == null ? null : args.Observation;
+            if (observation == null)
+                return;
+
+            var metadata = new TraceMetadata();
+            metadata.Add("decision", ObservationDecision(observation.Kind));
+            if (observation.Attempt > 0)
+                metadata.Add("execution.attempt", observation.Attempt.ToString());
+            if (observation.RetryNumber > 0)
+                metadata.Add("execution.retry", observation.RetryNumber.ToString());
+            if (!string.IsNullOrWhiteSpace(observation.ProviderId))
+                metadata.Add("provider.id", observation.ProviderId);
+            if (!string.IsNullOrWhiteSpace(observation.PreviousProviderId))
+                metadata.Add("provider.previous", observation.PreviousProviderId);
+            if (!string.IsNullOrWhiteSpace(observation.Reason))
+                metadata.Add("reason", observation.Reason);
+            if (observation.WaitDuration.HasValue)
+                metadata.Add("wait.duration.ms", observation.WaitDuration.Value.TotalMilliseconds.ToString("0.###"));
+
+            var status = string.Equals(observation.Kind, ExecutionObservationKinds.ExecutionStaleResult, StringComparison.Ordinal)
+                ? TraceSpanStatus.Rejected
+                : TraceSpanStatus.Succeeded;
+            var kind = string.Equals(observation.Kind, ExecutionObservationKinds.ExecutionWait, StringComparison.Ordinal)
+                ? "Lifecycle"
+                : string.Equals(observation.Kind, ExecutionObservationKinds.ExecutionStaleResult, StringComparison.Ordinal)
+                    ? "Outcome"
+                    : "Provider";
+
+            TraceObservation.RecordDecision(
+                observation.Kind,
+                kind,
+                status,
+                metadata,
+                TraceAmbient.CurrentCorrelation);
+        }
+
+        private static string ObservationDecision(string kind)
+        {
+            if (string.Equals(kind, ExecutionObservationKinds.ExecutionStaleResult, StringComparison.Ordinal))
+                return "stale-result";
+            if (string.Equals(kind, ExecutionObservationKinds.ProviderFallback, StringComparison.Ordinal))
+                return "fallback";
+            if (string.Equals(kind, ExecutionObservationKinds.ProviderRecovery, StringComparison.Ordinal))
+                return "recovery";
+            if (string.Equals(kind, ExecutionObservationKinds.ExecutionWait, StringComparison.Ordinal))
+                return "wait";
+            return "retry";
+        }
+
         private void CompleteRoot(AgentExecution execution)
         {
             ITraceSpan root;
@@ -201,48 +241,6 @@ namespace HAgent.Runtime
                     root.TryComplete(TraceSpanStatus.Unset);
                     break;
             }
-        }
-
-        private void RecordFallbackObservation(AgentExecution execution)
-        {
-            if (execution == null || string.IsNullOrWhiteSpace(execution.Id))
-                return;
-
-            var providerIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var spans = _recorder.GetSpans();
-            foreach (var span in spans)
-            {
-                if (span == null || !string.Equals(span.TraceId, TraceAmbient.Current == null ? string.Empty : TraceAmbient.Current.TraceId, StringComparison.Ordinal))
-                    continue;
-                if (!string.Equals(span.OperationName, "provider.invoke", StringComparison.Ordinal))
-                    continue;
-
-                string providerId;
-                if (span.Metadata.Values.TryGetValue("provider.id", out providerId) && !string.IsNullOrWhiteSpace(providerId))
-                    providerIds.Add(providerId);
-            }
-
-            if (providerIds.Count <= 1)
-                return;
-
-            var metadata = new TraceMetadata();
-            metadata.Add("decision", "fallback");
-            metadata.Add("provider.count", providerIds.Count.ToString());
-            metadata.Add("reason", "multiple-provider-attempts-observed");
-            TraceObservation.RecordDecision(
-                "provider.fallback",
-                "Provider",
-                TraceSpanStatus.Succeeded,
-                metadata,
-                TraceAmbient.CurrentCorrelation);
-        }
-
-        private static bool IsStaleProviderCompletion(Exception exception)
-        {
-            var message = exception == null ? string.Empty : exception.Message ?? string.Empty;
-            return message.IndexOf(
-                "terminal state before the provider response could be committed",
-                StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private void RemoveCompletedRoot(ITraceSpan completed)

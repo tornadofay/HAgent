@@ -197,13 +197,12 @@ namespace HAgent.Example
                 cancellationToken.ThrowIfCancellationRequested();
                 LastRequest = request.Clone();
 
-                var result = new AiKnowledgeRetrievalResult();
+                var matches = new List<AiKnowledgeRetrievalCandidate>();
                 foreach (var resource in _resources)
                 {
                     if (request.ResourceIds.Count > 0 && !request.ResourceIds.Contains(resource.Id))
                         continue;
 
-                    var chunkContent = resource.Content;
                     var score = 0.1;
                     var terms = request.Query.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (var term in terms)
@@ -213,7 +212,6 @@ namespace HAgent.Example
                         if (resource.Content.IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0)
                             score += 0.5;
                     }
-
                     if (score <= 0.1)
                         continue;
 
@@ -222,12 +220,11 @@ namespace HAgent.Example
                         Id = resource.Id + ":0",
                         ResourceId = resource.Id,
                         ChunkIndex = 0,
-                        Content = chunkContent
+                        Content = resource.Content
                     };
                     if (chunk.Content.Length > request.MaxChunkCharacters)
                         chunk.Content = chunk.Content.Substring(0, request.MaxChunkCharacters);
-
-                    result.Candidates.Add(new AiKnowledgeRetrievalCandidate
+                    matches.Add(new AiKnowledgeRetrievalCandidate
                     {
                         Resource = resource.Clone(),
                         Chunk = chunk,
@@ -235,13 +232,38 @@ namespace HAgent.Example
                     });
                 }
 
-                result.Candidates = result.Candidates
+                var ordered = matches
                     .OrderByDescending(candidate => candidate.Score)
                     .ThenBy(candidate => candidate.Resource.Id, StringComparer.OrdinalIgnoreCase)
-                    .Take(request.MaxResults)
                     .ToList();
-                result.ConsideredCount = _resources.Length;
-                result.ReturnedCharacterCount = result.Candidates.Sum(candidate => candidate.Chunk.Content.Length);
+                var result = new AiKnowledgeRetrievalResult
+                {
+                    ConsideredCount = _resources.Length,
+                    Truncated = ordered.Count > request.MaxResults
+                };
+                var characterCount = 0;
+                foreach (var candidate in ordered)
+                {
+                    if (result.Candidates.Count >= request.MaxResults || result.Candidates.Count >= request.MaxChunks)
+                    {
+                        result.Truncated = true;
+                        break;
+                    }
+                    var remaining = request.MaxCharacters - characterCount;
+                    if (remaining <= 0)
+                    {
+                        result.Truncated = true;
+                        break;
+                    }
+                    if (candidate.Chunk.Content.Length > remaining)
+                    {
+                        candidate.Chunk.Content = candidate.Chunk.Content.Substring(0, remaining);
+                        result.Truncated = true;
+                    }
+                    result.Candidates.Add(candidate);
+                    characterCount += candidate.Chunk.Content.Length;
+                }
+                result.ReturnedCharacterCount = characterCount;
                 result.Validate();
                 return Task.FromResult(result);
             }

@@ -5,9 +5,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** In progress — Slice 4 implementation checkpoint
+- **Status:** In progress — Slice 5 implementation checkpoint
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Normalize the canonical provider-neutral Memory family/type and provenance/evidence contract over the existing `MemoryEntry` foundation. Keep storage/provider implementations unchanged in this slice except where the new contract is naturally serialized by existing stores.
+- **Scope:** Govern Memory family/type access through the existing tri-state resource capability model and add provider-neutral bounded retrieval and retention policy over the existing `IMemoryStore` / `MemoryEntry` foundation.
 
 ## Completed milestone
 
@@ -33,27 +33,37 @@ This file is the compact handoff state for work currently in progress. It is not
 - .NET 9 Example: `HAgent.Example → Cognition → Skills → Skill Definitions` succeeded.
 - Full `HAgent.Tests`: **158/158 passed, 0 failed, 0 skipped** on .NET 9.
 
-The verified Skill boundary provides reusable versioned definitions/references, explicit scope/ownership, lifecycle/provenance, bounded input/output contracts, preconditions, ordered procedures, Knowledge/Tool dependencies, constraints, execution snapshot isolation, and governance denial before source access. Executable handlers remain runtime-owned and outside persisted Skill contracts.
+0.9575 Slice 4 — Memory family/type and provenance contract — **verified by user** 2026-09-09.
 
-## Current Slice 4 — Memory family/type and provenance contract
+- .NET Framework 4.8.1 Example: `HAgent.Example → Memory → Memory Families` succeeded.
+- .NET 9 Example: `HAgent.Example → Memory → Memory Families` succeeded.
+- Full `HAgent.Tests`: **167/167 passed, 0 failed, 0 skipped** on .NET 9.
 
-**Objective:** normalize Memory around explicit reusable families (`Working`, `Episodic`, `Semantic`, `Procedural`, and extensible `Custom`) and stable type identifiers, while preserving provenance/evidence/confidence metadata. This slice is a contract/foundation change only; governed retrieval, retention policy, profile/runtime memory capability enforcement, and candidate promotion remain later slices.
+Slice 4 is closed.
 
-**Entry condition:** Slice 3 is verified and closed.
+## Current Slice 5 — Memory governance and retention
 
-**Completion condition:**
+**Objective:** reuse the existing generic capability snapshot for Memory, add explicit family/type-aware retrieval, and enforce bounded retrieval/retention through one provider-neutral `IMemoryStore` decorator.
 
-- Canonical `MemoryEntry` carries explicit family/type metadata and bounded provenance/evidence/confidence state.
-- The contract supports future memory types without adding one persisted class per type.
-- Contract validation and cloning are deterministic and deep-copy mutable metadata/provenance.
-- Existing memory stores serialize/restore the new fields through their existing `MemoryEntry` representation without introducing a second persistence model.
-- Focused tests cover every supported family, custom type extensibility, malformed/bounded provenance, cloning isolation, expiration metadata, and invalid combinations.
-- Matching public Example demonstrates all four core families plus a custom type and provenance preservation.
+**Complete within this slice:**
 
-**Example to run:** `HAgent.Example → Memory → Memory Families` on **.NET Framework 4.8.1** and **.NET 9**.
+- canonical Memory capability resource keys: `memory`, `memory.family`, `memory.type`;
+- family/type/expiration filters on `MemoryQuery`;
+- deterministic global and family/type retrieval limits capped at 1000;
+- optional expiration exclusion during recall;
+- per-family/type retention caps that never extend an existing shorter expiration;
+- `AiMemoryGovernancePolicy` validation/clone semantics;
+- `AiMemoryGovernanceEvaluator` over the existing `AiResourceCapabilitySnapshot`;
+- `AiGovernedMemoryStore` over the existing `IMemoryStore` boundary;
+- focused tests for policy precedence, retention, capability denial, filtering, bounds, and cloning;
+- matching public Example.
 
-**Tests to run:** `tests/HAgent.Tests/MemoryFamilyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+**Out of scope:** Learning candidates/promotion, Knowledge Manager, Skill Manager, management UI, persistence redesign, or replacing the existing generic authorization model.
 
-## Current blocker
+**Example to run:** `HAgent.Example → Memory → Memory Governance` on **.NET Framework 4.8.1** and **.NET 9**.
 
-Slice 4 implementation is the active run. Do not begin memory governance/retention or learning work until this slice reaches its verification checkpoint.
+**Tests to run:** `tests/HAgent.Tests/MemoryGovernanceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+
+## Verification status
+
+Slice 5 implementation is not yet verified. Do not close it until the affected projects build, focused tests pass, the full .NET 9 suite passes, and the matching Example succeeds on both supported frameworks.

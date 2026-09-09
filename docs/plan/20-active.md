@@ -1,79 +1,56 @@
 # Active implementation plan
 
-Only the current implementation milestone belongs here. Completed implementation history is recorded in the ordered roadmap under `docs/roadmap/`; future work does not belong here.
+Only the current implementation milestone belongs here. Completed implementation history is recorded in `docs/roadmap/`; future work does not belong here.
 
 ## 0.957 Evaluation and Quality Measurement — VERIFIED
 
-Phase 0.957 Evaluation and Quality Measurement is complete through Slice 6. The provider-neutral evaluation architecture now covers evaluation contracts, deterministic evaluators, human/application ratings, model-assisted judging, aggregation/comparison, and repeated regression-suite execution.
-
-### Verification
-
-- Slice 1 — provider-neutral evaluation contracts and evaluator boundary — verified.
-- Slice 2 — deterministic evaluators and evaluation evidence — verified; user reported 109/109 tests and both supported Examples succeeded.
-- Slice 3 — human/application ratings and labeled evaluation evidence — verified; user reported 115/115 tests and both supported Examples succeeded.
-- Slice 4 — model-assisted evaluator/judge boundary — verified; user reported 123/123 tests and both supported Examples succeeded.
-- Slice 5 — aggregation and alternative-target comparison — verified; user reported 130/130 tests and both supported Examples succeeded.
-- Slice 6 — regression suites and repeated target execution — verified by user on 2026-09-09: **139/139 HAgent.Tests passed**, `HAgent.Example → Diagnostics → Evaluation → Evaluation Regression Suites` succeeded on **.NET Framework 4.8.1 and .NET 9**, with 3 cases × 2 targets, bounded concurrency of 2, isolated failures, late cancellation-result discard, and successful-sample-only aggregation handoff.
-
-Requirement 9 (repeated test cases/regression suites) and requirement 10 (aggregate metrics) are therefore verified. Requirement 11 is verified through the matching public Examples for evaluation creation/ratings, aggregation/comparison, failure handling, and regression execution.
+Phase 0.957 is complete through Slice 6. User verification on 2026-09-09 recorded 139/139 tests passed and the required evaluation Example succeeded on .NET Framework 4.8.1 and .NET 9.
 
 ## 0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT
 
-Phase 0.9575 consumes the canonical resource foundations established in 0.8 and the identity, policy, context, observability, and evaluation boundaries already completed. It must not introduce a parallel resource model.
+Phase 0.9575 consumes the canonical resource, identity, policy, instruction, context, observability, evaluation, and runtime foundations. It must not introduce a parallel resource architecture.
 
-### Slice 1 — Mature resource capability governance foundation — VERIFIED
+### Slice 1 — Resource capability governance — VERIFIED
 
-The first slice established one provider-neutral admission boundary over the existing resource capability, identity/ownership, and unified policy contracts. Effective capability state is captured with `Default`, `Profile`, or `RuntimeOverride` source provenance; non-global requests require authoritative owner identity; ownership mismatch and disabled resources fail before policy evaluation; policy outcomes remain explicit and fail-closed.
-
-#### Verification
-
-User verification on 2026-09-09:
-
-- `.NET Framework 4.8.1` Example `HAgent.Example → Cognition → Resource Governance → Resource Governance` succeeded.
-- `.NET 9` Example `HAgent.Example → Cognition → Resource Governance → Resource Governance` succeeded.
-- Full `HAgent.Tests` on .NET 9: **146/146 passed, 0 failed, 0 skipped**.
-
-Slice 1 is closed. Its implementation, focused tests, matching Example, and roadmap evidence are complete.
+Verified on 2026-09-09. Resource governance composes canonical ownership, effective capability state, and unified policy authorization. User reported 146/146 tests passed and the required Example succeeded on both supported frameworks.
 
 ### Slice 2 — Knowledge/Wiki governed resource contract — VERIFIED
 
-The second slice completed the provider-neutral Knowledge/Wiki contract over the verified generic governance boundary. It provides managed `Knowledge` / `Wiki` resource identity, explicit scope/ownership, provenance, lifecycle and versioning, source metadata, bounded tags/categories/metadata, typed relationships, chunk evidence, and bounded provider/index-neutral retrieval contracts. `AiGovernedKnowledgeRetriever` reuses the same governance boundary before forwarding admitted resource IDs to a retrieval implementation.
+Verified on 2026-09-09. Managed Knowledge/Wiki resources provide explicit identity, scope/ownership, provenance, lifecycle/versioning, bounded metadata, relationships, chunks, and provider/index-neutral governed retrieval. User reported 153/153 tests passed and the required Example succeeded on both supported frameworks.
 
-#### Verification
+### Slice 3 — Stable/versioned Skill definition and reference contract — VERIFIED
 
-User verification on 2026-09-09:
+Verified by user on 2026-09-09.
 
-- `.NET Framework 4.8.1` Example `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` succeeded.
-- `.NET 9` Example `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` succeeded.
-- Full `HAgent.Tests` on .NET 9: **153/153 passed, 0 failed, 0 skipped**.
+- Example: `HAgent.Example → Cognition → Skills → Skill Definitions` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Full `HAgent.Tests`: 158/158 passed, 0 failed, 0 skipped on .NET 9.
 
-The verification demonstrated managed Wiki representation, explicit scope/owner boundaries, published version and provenance preservation, non-authoritative model-generated drafts, exclusion of another user's resource before retrieval, and bounded provider/index-independent retrieval.
+The Skill architecture includes versioned reusable definitions/references, explicit scope/ownership, lifecycle/provenance, bounded contracts, preconditions, ordered procedure steps, Knowledge/Tool dependencies, constraints, execution snapshot isolation, governed resolution, and runtime-owned executable handlers outside persisted definitions.
 
-Slice 2 is closed. Retrieval-facing bounds are verified; the separate context-budget integration requirement remains open for a later context/runtime slice.
+Slice 3 is closed.
 
-### Slice 3 — Stable/versioned Skill definition and reference contract — IMPLEMENTED, VERIFICATION PENDING
+### Slice 4 — Memory family/type and provenance contract — CURRENT
 
-**Objective:** complete the provider-neutral reusable Skill definition/reference model over the existing resource and governance foundations. The slice should preserve stable identity/version/lifecycle metadata, input/output contracts, preconditions, procedure steps, required knowledge/tools, constraints, and reusable references while keeping executable handlers outside persistence and subjecting skill access to the same generic governance boundary.
+**Objective:** normalize the canonical `MemoryEntry` contract around explicit reusable memory families (`Working`, `Episodic`, `Semantic`, `Procedural`, `Custom`) and stable type identifiers, while preserving bounded provenance/evidence/confidence metadata and optional expiration metadata.
 
-**Implemented:**
+**Entry condition:** Slice 3 verified and closed.
 
-- `AiSkillDefinition` with stable ID/version, explicit scope/owner, lifecycle, provenance, bounded input/output contracts, preconditions, ordered procedure steps, Knowledge/Tool dependencies, constraints, metadata, and relationships.
-- `AiSkillReference` and `AiSkillSet` for reusable version-pinnable references without duplicating definitions.
-- `AiAgent.Skills` as the canonical profile-owned skill reference set.
-- `IAiSkillDefinitionSource` plus `AiGovernedSkillResolver`, reusing `AiResourceGovernanceEvaluator` for `skill.invoke` before definition-source access.
-- `AiSkillBinding` / `AiSkillExecutionSnapshot` plus `AgentExecutionSnapshot.Skills` for deep-cloned in-flight Skill version/state isolation.
-- Matching `tests/HAgent.Tests/SkillResourceTests.cs` covering lifecycle/contracts, cloning, reference scope/owner/version, execution snapshot isolation, governed version resolution, and denial before source access.
-- Matching public Example at `src/HAgent.Example/MainForm.Skills.cs`, registered as `HAgent.Example → Cognition → Skills → Skill Definitions`.
-- Authoritative architecture in `docs/architecture/82-skills.md`, durable decision D-010, and dedicated `.github/workflows/verify-phase-0-9575-slice-3.yml`.
+**Complete within this slice:**
 
-**Focused verification target:** `tests/HAgent.Tests/SkillResourceTests.cs`, then the full `HAgent.Tests` suite on .NET 9; both supported framework builds are required for the Core and Example projects.
+- Extend the canonical `MemoryEntry`; do not introduce a second persisted memory model.
+- Add explicit family and stable type identifier with future/custom type support.
+- Add bounded provenance and confidence/evidence metadata.
+- Add optional expiration metadata with deterministic validation.
+- Provide deep cloning/validation for mutable contract state.
+- Keep existing File/SQL Server/MySQL/InMemory stores on the same `MemoryEntry` representation.
+- Add focused `tests/HAgent.Tests/MemoryFamilyTests.cs`.
+- Add matching public Example `HAgent.Example → Memory → Memory Families`.
+- Add the authoritative memory contract architecture document and durable decision as required.
 
-**Current verification state:** GitHub Actions run for Slice 3 has been queued from `master`. No test/build result is recorded here until an actual run completes. The public Example remains a manual WinForms verification and has not been claimed as executed in this environment.
+**Out of scope:** memory governance/authorization orchestration, retention policy enforcement, profile/runtime memory capability UI, learning candidates, promotion, Knowledge Manager, Skill Manager, or broader storage redesign.
 
-## Current blocker
-
-No design blocker is known. Slice 3 implementation is present and the remaining checkpoint is execution of the focused/full verification plus the required public Example on both supported frameworks.
+**Completion checkpoint:** affected projects build; focused tests and full .NET 9 tests pass; Example succeeds on .NET Framework 4.8.1 and .NET 9.
 
 ## Run rule
 
-Do not implement multiple numbered slices in one run merely because they are related. Finish the current slice, verify it, update this file, and only then select the next slice.
+Complete the current slice and record its verification before selecting the next slice. Do not combine multiple numbered slices in one run.

@@ -5,9 +5,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** In progress — Slice 1 implementation checkpoint
+- **Status:** In progress — Slice 2 implementation checkpoint
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Establish the mature resource-governance boundary over the existing 0.8 resource foundations: explicit capability policy, effective runtime resource state, governed access to Skills/Knowledge/Memory families, and typed learning-candidate admission without introducing a parallel resource model.
+- **Scope:** Complete the provider-neutral Knowledge/Wiki resource contract over the verified generic resource-governance boundary without introducing a parallel authorization, ownership, or persistence model.
 
 ## Completed milestone
 
@@ -24,22 +24,36 @@ The completed evaluation path is:
 
 Evaluation remains measurement-only. Aggregation and regression results do not authorize, route production execution, mutate configuration, promote learning, or become cognitive authority.
 
-**Latest verification evidence:** `HAgent.Tests` 139/139 passed; `HAgent.Example → Diagnostics → Evaluation → Evaluation Regression Suites` succeeded on .NET Framework 4.8.1 and .NET 9.
+**Latest evaluation verification evidence:** `HAgent.Tests` 139/139 passed; `HAgent.Example → Diagnostics → Evaluation → Evaluation Regression Suites` succeeded on .NET Framework 4.8.1 and .NET 9.
 
-## Current Slice 1 — Mature resource governance foundation
+## Completed current-phase slice
 
-The next work is Phase 0.9575, consuming the canonical resource foundations established in 0.8 and the identity/policy/evaluation boundaries already verified. Do not create a second Skill/Knowledge/Memory/Learning model.
+0.9575 Slice 1 — Mature resource capability governance foundation — is **verified** on 2026-09-09.
 
-The first slice should establish the provider-neutral governance boundary for effective resource capability state and governed access decisions while keeping authoritative resource definitions separate from runtime snapshots.
+User verification evidence:
+
+- `.NET Framework 4.8.1` `HAgent.Example → Cognition → Resource Governance → Resource Governance` succeeded.
+- `.NET 9` `HAgent.Example → Cognition → Resource Governance → Resource Governance` succeeded.
+- Full `.NET 9` `HAgent.Tests`: **146/146 passed, 0 failed, 0 skipped**.
+
+The verified boundary composes canonical ownership, effective capability source (`Default` / `Profile` / `RuntimeOverride`), and unified policy authorization. Cross-owner and disabled-resource access fail before policy evaluation; approval remains explicitly non-admitted.
+
+## Current Slice 2 — Knowledge/Wiki governed resource contract
+
+The next work consumes the verified governance boundary and existing 0.8 Knowledge/Wiki foundation. The goal is to establish the canonical provider-neutral resource/reference shape and bounded retrieval metadata needed by later context and learning slices.
+
+The slice must preserve resource identity, explicit scope/ownership, provenance, lifecycle/status, version, source, relationships, and bounded retrieval metadata. Authoritative Knowledge content must remain distinct from candidate/model-generated content. Reuse `AiResourceGovernanceEvaluator` for admission and existing resource/storage foundations for persistence boundaries.
+
+Do not implement the full Knowledge Manager UI, semantic/vector indexing, learning promotion, or broad retrieval orchestration merely as part of this contract slice.
 
 ### Verification checkpoint
 
-Implementation and matching Example/test coverage are pending for Phase 0.9575 Slice 1.
+Implementation and matching Example/test coverage are pending for Phase 0.9575 Slice 2.
 
-**Example to run:** `HAgent.Example → Cognition → Resource Governance` on **.NET Framework 4.8.1** and **.NET 9**.
+**Example to run:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki`
 
-**Tests to run:** `tests/HAgent.Tests/ResourceGovernanceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+**Tests to run:** `tests/HAgent.Tests/KnowledgeResourceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ## Current blocker
 
-No design blocker is known. Before coding, read the authoritative resource/identity/policy architecture documents and inspect the existing resource capability, runtime snapshot, and learning-policy implementation so the new governance boundary composes existing contracts instead of duplicating them.
+No design blocker is known. Before coding, inspect the existing Knowledge/Wiki foundation models, resource/storage contracts, provenance/version metadata, and Example organization so the new contract composes established boundaries instead of duplicating them.

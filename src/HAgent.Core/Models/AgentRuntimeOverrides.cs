@@ -11,6 +11,7 @@ namespace HAgent.Models
         public double? Temperature { get; set; }
         public int? MaxOutputTokens { get; set; }
         public string SystemPrompt { get; set; }
+        public AiLearningMode? LearningMode { get; set; }
         public IDictionary<string, string> Context { get; private set; }
         public AiResourceCapabilityPolicy ResourceCapabilityOverrides { get; set; }
 
@@ -18,6 +19,7 @@ namespace HAgent.Models
         {
             Context = new Dictionary<string, string>();
             ResourceCapabilityOverrides = new AiResourceCapabilityPolicy();
+            LearningMode = null;
         }
     }
 }

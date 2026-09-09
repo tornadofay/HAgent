@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — Slice 2 is the next implementation checkpoint.**
+**In progress — Slice 2 implementation checkpoint; local verification pending.**
 
 ## Goal
 
@@ -36,13 +36,23 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 - User Example verification: **.NET Framework 4.8.1 at 2026-09-09 06:26:48** succeeded, verifying provider-neutral target kinds, outcome/score/label representation, evaluator provenance, execution/runtime/goal/plan/trace correlation, bounded input/evidence references, owned clone isolation, no agent-state mutation or authorization side effect, no remote grading/provider transport, and no real provider request.
 - User Example verification: **.NET 9 at 2026-09-09 06:26:18** succeeded with the same public-API checks.
 
+## Slice 2 — Deterministic evaluators and evaluation evidence
+
+**Implementation checkpoint; local verification pending.**
+
+- Added bounded `AiEvaluationObservation` values with explicit `Boolean`, `Decimal`, and `Text` value kinds and optional bounded units.
+- Extended `AiEvaluationRequest` with bounded, owned observations and clone/validation behavior.
+- Added `AiDeterministicEvaluationRuleKind` for schema validity, required-field completeness, policy compliance, tool success, latency, cost, and task completion.
+- Added `AiDeterministicEvaluationEvaluator` implementing `IAiEvaluator` with deterministic pass/fail scoring, evaluator provenance, execution/runtime/agent/goal/plan/trace correlation, bounded evidence references, threshold handling, cancellation, and `Inconclusive` outcomes for missing/mismatched signals.
+- Duplicate observations for the same deterministic signal are rejected as ambiguous rather than arbitrarily selecting one.
+- Added focused `tests/HAgent.Tests/DeterministicEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.DeterministicEvaluation.cs` coverage.
+- Classified the new Example as `Diagnostics → Evaluation → Deterministic Evaluation`.
+- This slice does not implement model-assisted grading, human-rating workflows, aggregation, regression suites, persistence, or management UI.
+
 ## Next checkpoint
 
-2. **Deterministic evaluators and evaluation evidence — NOT STARTED**
-- Implement deterministic evaluator contracts/implementations such as bounded schema validity, required-field checks, policy-compliance signals, tool success, latency, cost, and task-completion signals.
-- Keep evaluator results non-authoritative and preserve evidence/provenance without mutating runtime or cognitive state.
-- Add focused tests and a public Example for deterministic evaluation evidence.
-- Do not implement later model-assisted grading, aggregation, regression-suite, or management-UI slices in the same run.
+3. **Human/application ratings and labeled evaluation evidence — NOT STARTED**
+- Do not implement this checkpoint until Slice 2 has passed its required repository build, focused/full tests, and both supported Example verification targets.
 
 ## Architectural invariants
 
@@ -57,8 +67,9 @@ Diagnostic correlation            Cognitive revision / learning promotion
 
 - Evaluation is evidence about behavior, not hidden authorization.
 - Model-assisted evaluations are explicitly non-authoritative and retain evaluator provenance.
-- Evaluation contracts use bounded references/metadata instead of raw prompts, responses, tool payloads, credentials, or arbitrary host objects.
+- Evaluation contracts use bounded references, observations, and metadata instead of raw prompts, responses, tool payloads, credentials, or arbitrary host objects.
 - Evaluation must not mutate authoritative agent state merely because an evaluation passes.
+- Deterministic rules evaluate explicit host-computed facts; they do not independently inspect or authorize host-domain state.
 
 ## Architectural outcome
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — Slice 3 is the current implementation checkpoint.**
+**In progress — Slice 3 is verified; the next numbered slice is not yet started.**
 
 ## Goal
 
@@ -53,7 +53,7 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 
 ## Slice 3 — Human/application ratings and labeled evaluation evidence
 
-**Implementation checkpoint; local verification pending.**
+**Verified on 2026-09-09.**
 
 - Added bounded `AiEvaluationRating` for externally supplied outcome, score, confidence, label, reason, evidence references, and metadata.
 - Added `AiSuppliedRatingEvaluator` through the existing `IAiEvaluator` boundary; it accepts only `Human` or `Application` evaluator kinds and requires explicit evaluator identity/version.
@@ -62,6 +62,9 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 - Cancellation is checked before producing supplied evaluation evidence.
 - Added focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs` coverage.
 - Classified the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
+- User verification: **115/115 `HAgent.Tests` passed** on .NET 9.
+- User Example verification — **.NET Framework 4.8.1 at 2026-09-09 06:53:44**: `Supplied Evaluation Ratings` succeeded, verifying Human/Application outcome, score, label, provenance, evidence ownership, execution/response correlation, non-authoritative behavior, and no provider/model transport.
+- User Example verification — **.NET 9 at 2026-09-09 06:52:58**: `Supplied Evaluation Ratings` succeeded with the same public-API checks.
 - This slice does not add model-assisted grading, aggregation, regression suites, persistence, or management UI.
 
 ## Architectural invariants

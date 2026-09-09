@@ -43,6 +43,7 @@ namespace HAgent.Example
             AddModelAssistedEvaluationTab();
             AddEvaluationAggregationTab();
             AddEvaluationRegressionTab();
+            AddResourceGovernanceTab();
             // This example was implemented ahead of the roadmap order. Keep its public-API
             // verification available without changing the ordered roadmap milestone.
             AddLearningCandidateInterventionTab();
@@ -127,6 +128,7 @@ namespace HAgent.Example
         {
             return string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(group, "Runtime", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase);
         }
 
@@ -138,6 +140,8 @@ namespace HAgent.Example
                 subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
             else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase))
                 subgroupOrder = new[] { "Observability", "Evaluation", "Other Diagnostics" };
+            else if (string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase))
+                subgroupOrder = new[] { "Resource Governance", "Learning", "Other Cognition" };
             else
                 subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
 
@@ -274,6 +278,10 @@ namespace HAgent.Example
                 return "Observability";
             if (key == "EVALUATION CONTRACTS" || key == "DETERMINISTIC EVALUATION" || key == "SUPPLIED EVALUATION RATINGS" || key == "MODEL-ASSISTED EVALUATION" || key == "EVALUATION AGGREGATION" || key == "EVALUATION REGRESSION SUITES")
                 return "Evaluation";
+            if (key == "RESOURCE GOVERNANCE")
+                return "Resource Governance";
+            if (key.Contains("LEARNING") || key.Contains("COGNITION"))
+                return "Learning";
 
             if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY")
                 return "Runtime Instances";
@@ -325,14 +333,14 @@ namespace HAgent.Example
             if (key.Contains("EVALUATION"))
                 return "Diagnostics";
 
+            if (key == "RESOURCE GOVERNANCE" || key.Contains("LEARNING") || key.Contains("COGNITION"))
+                return "Cognition";
+
             if (key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION")
                 return "Runtime";
 
             if (key.Contains("WORKSPACE"))
                 return "Workspace";
-
-            if (key.Contains("LEARNING") || key.Contains("COGNITION"))
-                return "Cognition";
 
             if (key.Contains("CONFIGURATION"))
                 return "Configuration";

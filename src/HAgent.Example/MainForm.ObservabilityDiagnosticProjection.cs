@@ -14,7 +14,7 @@ namespace HAgent.Example
                 "Observability Diagnostic Projection",
                 "Run diagnostic projection test",
                 "Runs bounded human-readable trace projection checks through the public tracing APIs.",
-                "The scenario verifies deterministic ordering, bounded span and text output, safe correlation visibility, allowlisted diagnostic metadata, explicit omission accounting, status/duration/parent relationships, and suppression of unsampled spans.",
+                "The scenario verifies deterministic ordering, bounded span and text output, safe correlation visibility, allowlisted diagnostic metadata, explicit omission accounting, redaction markers, status/duration/parent relationships, and suppression of unsampled spans.",
                 "No network provider or remote telemetry service is contacted. The projection consumes deterministic in-memory trace data only.",
                 RunObservabilityDiagnosticProjectionTest,
                 "Diagnostic projection",
@@ -34,6 +34,7 @@ namespace HAgent.Example
             });
             var metadata = new TraceMetadata();
             metadata.Add("provider.id", "provider-42");
+            metadata.AddRedacted("provider.secret");
             metadata.Add("decision", "Allow");
             metadata.Add("prompt", "secret prompt content");
             metadata.Add("custom.payload", "sensitive payload");
@@ -83,10 +84,13 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Diagnostic projection lost completed duration information.");
 
             var projectedMetadata = projection.Spans[2].Metadata;
-            if (projectedMetadata.Count != 2 ||
+            if (projectedMetadata.Count != 3 ||
                 projectedMetadata[0].Key != "decision" ||
-                projectedMetadata[1].Key != "provider.id")
+                projectedMetadata[1].Key != "provider.id" ||
+                projectedMetadata[2].Key != "provider.secret")
                 throw new InvalidOperationException("Diagnostic metadata allowlist/order was not deterministic.");
+            if (projectedMetadata[2].Value != "[Redacted]")
+                throw new InvalidOperationException("Diagnostic projection lost the explicit redaction marker.");
             if (unsafeChild.Record.Metadata.Values.ContainsKey("prompt") &&
                 ContainsMetadataKey(projectedMetadata, "prompt"))
                 throw new InvalidOperationException("Sensitive prompt metadata reached the diagnostic projection.");
@@ -119,6 +123,7 @@ namespace HAgent.Example
                 "Execution correlation and parent relationship: verified." + Environment.NewLine +
                 "Status and duration projection: verified." + Environment.NewLine +
                 "Allowlisted metadata only: verified." + Environment.NewLine +
+                "Explicit [Redacted] marker preserved for safe diagnostic metadata: verified." + Environment.NewLine +
                 "Sensitive/arbitrary metadata omission accounting: verified." + Environment.NewLine +
                 "Unsampled trace suppression: verified." + Environment.NewLine +
                 "Raw prompts/responses, tool payloads, host context, secrets, and arbitrary objects: not exposed." + Environment.NewLine +

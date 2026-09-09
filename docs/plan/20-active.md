@@ -35,34 +35,33 @@ User verification on 2026-09-09:
 
 Slice 1 is closed. Its implementation, focused tests, matching Example, and roadmap evidence are complete.
 
-### Slice 2 — Knowledge/Wiki governed resource contract — IMPLEMENTATION CHECKPOINT
+### Slice 2 — Knowledge/Wiki governed resource contract — VERIFIED
 
-**Objective:** complete the provider-neutral Knowledge/Wiki resource contract on top of the verified generic governance boundary without creating a second authorization, ownership, or persistence model.
+The second slice completed the provider-neutral Knowledge/Wiki contract over the verified generic governance boundary. It provides managed `Knowledge` / `Wiki` resource identity, explicit scope/ownership, provenance, lifecycle and versioning, source metadata, bounded tags/categories/metadata, typed relationships, chunk evidence, and bounded provider/index-neutral retrieval contracts. `AiGovernedKnowledgeRetriever` reuses the same governance boundary before forwarding admitted resource IDs to a retrieval implementation.
 
-#### Implemented in this checkpoint
+#### Verification
 
-- Added `AiKnowledgeResource` with explicit `Knowledge` / `Wiki` kind, scope/owner, title/content/summary, lifecycle status, version, source, timestamps, tags/categories, bounded metadata, relationships, and provenance.
-- Added `AiKnowledgeProvenance` preserving source kind, source identity, URI/creator, source execution/runtime provenance, evidence, and bounded confidence.
-- Added `AiKnowledgeChunk` as bounded retrieval evidence without coupling Core to a physical index or search engine.
-- Added `AiKnowledgeRetrievalRequest`, `AiKnowledgeRetrievalCandidate`, `AiKnowledgeRetrievalResult`, and `IAiKnowledgeRetriever` as provider/index-neutral retrieval contracts with explicit result bounds.
-- Added `AiGovernedKnowledgeRetriever`, which applies the verified `AiResourceGovernanceEvaluator` before allowing resource IDs into the underlying retriever and excludes drafts unless explicitly requested.
-- Added matching `tests/HAgent.Tests/KnowledgeResourceTests.cs` for authority/lifecycle, owner requirements, cloning/provenance, bounded request state, authorized retrieval, cross-owner/draft rejection, and cancellation.
-- Added matching public `src/HAgent.Example/MainForm.KnowledgeWiki.cs` and registered it under `Cognition → Knowledge/Wiki`.
-- Added `.github/workflows/verify-phase-0-9575-slice-2.yml` for Core/Example builds on .NET Framework 4.8.1 and .NET 9 plus focused/full tests.
+User verification on 2026-09-09:
 
-The model-generated path defaults to `Draft`, so generated content is not authoritative merely because it exists. `Published` is an explicit lifecycle state for authoritative knowledge; promotion/approval remains outside this slice.
+- `.NET Framework 4.8.1` Example `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` succeeded.
+- `.NET 9` Example `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` succeeded.
+- Full `HAgent.Tests` on .NET 9: **153/153 passed, 0 failed, 0 skipped**.
 
-**Example to run:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` on **.NET Framework 4.8.1** and **.NET 9**.
+The verification demonstrated managed Wiki representation, explicit scope/owner boundaries, published version and provenance preservation, non-authoritative model-generated drafts, exclusion of another user's resource before retrieval, and bounded provider/index-independent retrieval.
 
-**Tests to run:** `tests/HAgent.Tests/KnowledgeResourceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+Slice 2 is closed. Retrieval-facing bounds are verified; the separate context-budget integration requirement remains open for a later context/runtime slice.
 
-### Slice 2 boundary
+### Slice 3 — Stable/versioned Skill definition and reference contract
 
-This slice establishes the provider-neutral Knowledge/Wiki contract and governed retrieval boundary. It does not add Knowledge Manager CRUD UI, persistent resource repositories, semantic/vector indexing, candidate promotion, retention governance, or broader learning lifecycle workflows.
+**Objective:** complete the provider-neutral reusable Skill definition/reference model over the existing resource and governance foundations. The slice should preserve stable identity/version/lifecycle metadata, input/output contracts, preconditions, procedure steps, required knowledge/tools, constraints, and reusable references while keeping executable handlers outside persistence and subjecting skill access to the same generic governance boundary.
+
+**Example to run:** `HAgent.Example → Cognition → Skills → Skill Definitions`
+
+**Tests to run:** `tests/HAgent.Tests/SkillResourceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ## Current blocker
 
-Implementation is complete for the bounded Slice 2 scope, but verification is pending. Do not start Slice 3 until the affected projects build, `KnowledgeResourceTests` and the full .NET 9 test suite pass, and the matching Example succeeds on both required framework targets.
+No design blocker is known. Slice 2 is verified. Slice 3 should begin by inspecting the existing Skill foundation and storage/runtime snapshot relationships, then compose the existing resource identity, governance, and execution-snapshot boundaries rather than creating parallel ownership, authorization, or handler-persistence models.
 
 ## Run rule
 

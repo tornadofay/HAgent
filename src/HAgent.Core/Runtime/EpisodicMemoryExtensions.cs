@@ -33,11 +33,14 @@ namespace HAgent.Runtime
                 { "occurredAt", episode.OccurredAt.ToString("O") }
             };
 
-            return await client.RememberAsync(
+            return await client.RememberMemoryFamilyAsync(
                 episode.OwnerId,
                 content,
+                AiMemoryFamily.Episodic,
+                "episodic.experience",
                 scope,
                 metadata,
+                episode.OccurredAt,
                 cancellationToken).ConfigureAwait(false);
         }
 

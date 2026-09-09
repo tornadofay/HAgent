@@ -11,18 +11,20 @@ namespace HAgent.Runtime
         private readonly List<TraceSpan> _spans = new List<TraceSpan>();
         private readonly ITraceSampler _sampler;
         private readonly TraceRetentionOptions _retention;
+        private readonly TraceSinkDispatcher _sinkDispatcher;
         private long _sequence;
 
         public InMemoryTraceRecorder()
-            : this(null, null)
+            : this(null, null, null)
         {
         }
 
-        public InMemoryTraceRecorder(ITraceSampler sampler, TraceRetentionOptions retentionOptions = null)
+        public InMemoryTraceRecorder(ITraceSampler sampler, TraceRetentionOptions retentionOptions = null, TraceSinkDispatcher sinkDispatcher = null)
         {
             _sampler = sampler;
             _retention = retentionOptions == null ? new TraceRetentionOptions() : retentionOptions.Clone();
             _retention.Validate();
+            _sinkDispatcher = sinkDispatcher;
         }
 
         public ITraceSpan StartSpan(TraceSpanStartOptions options)
@@ -60,7 +62,7 @@ namespace HAgent.Runtime
                 if (sampled)
                     RetainUnsafe(span);
 
-                return new InMemoryTraceSpanHandle(span);
+                return new InMemoryTraceSpanHandle(this, span);
             }
         }
 
@@ -71,6 +73,20 @@ namespace HAgent.Runtime
                 PruneExpiredUnsafe(DateTimeOffset.UtcNow);
                 return new List<TraceSpan>(_spans).AsReadOnly();
             }
+        }
+
+        private void OnSpanCompleted(TraceSpan span)
+        {
+            if (_sinkDispatcher == null || !span.Sampled)
+                return;
+
+            lock (_sync)
+            {
+                if (!ContainsSpanUnsafe(span))
+                    return;
+            }
+
+            _sinkDispatcher.TryEnqueue(span);
         }
 
         private void RetainUnsafe(TraceSpan span)
@@ -164,6 +180,17 @@ namespace HAgent.Runtime
             return false;
         }
 
+        private bool ContainsSpanUnsafe(TraceSpan target)
+        {
+            foreach (var span in _spans)
+            {
+                if (string.Equals(span.TraceId, target.TraceId, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(span.SpanId, target.SpanId, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
         private int CountTraceIdsUnsafe()
         {
             var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -201,10 +228,12 @@ namespace HAgent.Runtime
 
         private sealed class InMemoryTraceSpanHandle : ITraceSpan
         {
+            private readonly InMemoryTraceRecorder _owner;
             private readonly TraceSpan _span;
 
-            public InMemoryTraceSpanHandle(TraceSpan span)
+            public InMemoryTraceSpanHandle(InMemoryTraceRecorder owner, TraceSpan span)
             {
+                _owner = owner;
                 _span = span;
             }
 
@@ -217,7 +246,10 @@ namespace HAgent.Runtime
 
             public bool TryComplete(TraceSpanStatus status)
             {
-                return _span.TryComplete(status, DateTimeOffset.UtcNow);
+                var completed = _span.TryComplete(status, DateTimeOffset.UtcNow);
+                if (completed)
+                    _owner.OnSpanCompleted(_span);
+                return completed;
             }
         }
     }

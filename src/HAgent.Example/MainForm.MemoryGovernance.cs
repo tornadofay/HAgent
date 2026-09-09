@@ -55,7 +55,16 @@ namespace HAgent.Example
             var expiring = CreateEntry(AiMemoryFamily.Semantic, "semantic.fact", "Expiring fact.", DateTimeOffset.UtcNow.AddDays(-8));
             await governedStore.AddAsync(expiring);
 
-            if (!expiring.ExpiresAt.HasValue || expiring.ExpiresAt.Value > expiring.CreatedAt.AddDays(7))
+            var retained = await backingStore.SearchAsync(new MemoryQuery
+            {
+                OwnerId = "owner-42",
+                Family = AiMemoryFamily.Semantic,
+                TypeId = "semantic.fact",
+                Text = "Expiring",
+                MaxResults = 10,
+                IncludeExpired = true
+            });
+            if (retained.Count != 1 || !retained[0].ExpiresAt.HasValue || retained[0].ExpiresAt.Value > retained[0].CreatedAt.AddDays(7))
                 throw new InvalidOperationException("Retention policy did not cap the stored expiration.");
 
             await AssertDeniedAsync(CreateEntry(AiMemoryFamily.Procedural, "procedural.strategy", "Blocked procedure.", DateTimeOffset.UtcNow));
@@ -72,7 +81,7 @@ namespace HAgent.Example
             if (results.Count != 1 || results[0].Content != "Current fact.")
                 throw new InvalidOperationException("Governed retrieval did not apply capability, expiration, and result-limit rules correctly.");
 
-            var broad = await governedStore.SearchAsync(new MemoryQuery { OwnerId = "owner-42", Text = "fact" });
+            var broad = await governedStore.SearchAsync(new MemoryQuery { OwnerId = "owner-42", Text = "fact", MaxResults = 100 });
             if (broad.Count != 1 || broad[0].Family != AiMemoryFamily.Semantic)
                 throw new InvalidOperationException("Broad governed retrieval exposed an unauthorized or expired memory entry.");
 

@@ -36,6 +36,7 @@ namespace HAgent.Example
             AddObservabilitySinksTab();
             AddObservabilityDiagnosticProjectionTab();
             AddObservabilityTracePropagationTab();
+            AddObservabilityOutcomeTracingTab();
             // This example was implemented ahead of the roadmap order. Keep its public-API
             // verification available without changing the ordered roadmap milestone.
             AddLearningCandidateInterventionTab();

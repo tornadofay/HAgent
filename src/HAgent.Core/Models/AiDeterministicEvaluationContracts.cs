@@ -81,11 +81,11 @@ namespace HAgent.Models
             switch (ValueKind)
             {
                 case AiEvaluationObservationKind.Boolean:
-                    if (!BooleanValue.HasValue || DecimalValue.HasValue || TextValue != null && TextValue.Length > 0)
+                    if (!BooleanValue.HasValue || DecimalValue.HasValue || (TextValue != null && TextValue.Length > 0))
                         throw new ArgumentException("Boolean observations must contain exactly one boolean value.", nameof(BooleanValue));
                     break;
                 case AiEvaluationObservationKind.Decimal:
-                    if (!DecimalValue.HasValue || BooleanValue.HasValue || TextValue != null && TextValue.Length > 0)
+                    if (!DecimalValue.HasValue || BooleanValue.HasValue || (TextValue != null && TextValue.Length > 0))
                         throw new ArgumentException("Decimal observations must contain exactly one decimal value.", nameof(DecimalValue));
                     break;
                 case AiEvaluationObservationKind.Text:
@@ -153,7 +153,8 @@ namespace HAgent.Models
                 Id = observation.Id,
                 Role = observation.Kind
             });
-            result.Metadata["observed"] = observation.GetDisplayValue();
+            if (observation.ValueKind != AiEvaluationObservationKind.Text)
+                result.Metadata["observed"] = observation.GetDisplayValue();
             if (!string.IsNullOrEmpty(observation.Unit))
                 result.Metadata["unit"] = observation.Unit;
 

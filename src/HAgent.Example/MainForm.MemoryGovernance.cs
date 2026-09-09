@@ -28,10 +28,17 @@ namespace HAgent.Example
                 Name = "Memory Governance Agent"
             };
             profile.ResourceCapabilities.Set(AiMemoryResourceTypes.Memory, AiResourceCapabilityState.Enabled);
-            profile.ResourceCapabilities.Set(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic), AiResourceCapabilityState.Enabled);
+            profile.ResourceCapabilities.Set(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic), AiResourceCapabilityState.Disabled);
             profile.ResourceCapabilities.Set(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Procedural), AiResourceCapabilityState.Disabled);
             profile.ResourceCapabilities.Set(AiMemoryResourceTypes.Type, "semantic.secret", AiResourceCapabilityState.Disabled);
-            var snapshot = AiResourceCapabilitySnapshot.Resolve(profile.ResourceCapabilities);
+
+            var runtimeOverrides = new AgentRuntimeOverrides();
+            runtimeOverrides.ResourceCapabilityOverrides.Set(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic), AiResourceCapabilityState.Enabled);
+            var snapshot = AiResourceCapabilitySnapshot.Resolve(profile.ResourceCapabilities, runtimeOverrides.ResourceCapabilityOverrides);
+            if (snapshot.GetState(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic)) != AiResourceCapabilityState.Enabled)
+                throw new InvalidOperationException("Runtime Enabled override did not enable the Semantic memory family.");
+            if (snapshot.GetSource(AiMemoryResourceTypes.Family, AiMemoryResourceTypes.FamilyId(AiMemoryFamily.Semantic)) != AiResourceCapabilitySource.RuntimeOverride)
+                throw new InvalidOperationException("Runtime memory capability source was not preserved.");
 
             var policy = new AiMemoryGovernancePolicy { MaxResults = 5, ExcludeExpired = true };
             policy.Rules.Add(new AiMemoryPolicyRule
@@ -76,7 +83,8 @@ namespace HAgent.Example
                 "MEMORY GOVERNANCE",
                 "Contract test succeeded." + Environment.NewLine +
                 "Memory capability enabled: verified." + Environment.NewLine +
-                "Semantic family enabled: verified." + Environment.NewLine +
+                "Runtime Semantic family override: verified." + Environment.NewLine +
+                "Runtime capability source: RuntimeOverride." + Environment.NewLine +
                 "Procedural family disabled: enforced." + Environment.NewLine +
                 "semantic.secret type disabled: enforced." + Environment.NewLine +
                 "Bounded retrieval: max 2 for Semantic family." + Environment.NewLine +

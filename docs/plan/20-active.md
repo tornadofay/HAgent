@@ -80,7 +80,7 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User verification — 2026-09-09 05:09:** .NET 9 Example succeeded with the same checks.
    - **User verification — 2026-09-09:** full `HAgent.Tests` completed with **77/77 tests passed** after the Slice 6 Example helper correction.
 
-7. **Cross-process trace context and correlation boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+7. **Cross-process trace context and correlation boundary — VERIFIED**
    - Added provider-neutral `TracePropagationCarrier`, `TracePropagationImportOptions`, `TracePropagationImportStatus`, and `TracePropagationImportResult` contracts with bounded key/value counts and lengths.
    - Extended `TracePropagation` to export `TraceContext` plus the existing bounded correlation identities into the carrier and import them deterministically without coupling Core to HTTP, message buses, OpenTelemetry, or vendor-specific telemetry.
    - Preserved the distinction between `TraceId`, `ParentSpanId`, sampled state, and `ExecutionId`, `ExecutionCorrelationId`, `HostCorrelationId`, `EventId`, `CausationId`, plus the other bounded identity dimensions.
@@ -88,7 +88,17 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - Correlation values remain diagnostic identity only and do not become authentication or authorization authority. Host trust remains outside Core.
    - Added focused `tests/HAgent.Tests/ObservabilityTracePropagationTests.cs` covering round-trip identity preservation, unsampled propagation, missing context, explicit trust rejection, malformed context, invalid sampling, oversized correlation input, and carrier clone/bounds behavior.
    - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityTracePropagation.cs` under `Diagnostics → Observability → Observability Trace Propagation`.
-   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not begin Slice 8 in the same run.
+   - **User verification — 2026-09-09 05:15:** full `HAgent.Tests` completed with **85/85 tests passed**.
+   - **User Example verification — .NET Framework 4.8.1, 2026-09-09 05:15:46:** cross-process trace/correlation propagation succeeded, including round-trip identity preservation, explicit trust acceptance/rejection, missing/malformed handling, unsampled preservation, carrier bounds, and no HTTP/message/OpenTelemetry/remote telemetry/provider transport.
+   - **User Example verification — .NET 9, 2026-09-09 05:16:23:** same public-API scenario succeeded with the same checks.
+
+8. **Failure, retry, fallback, waiting, and stale-result observability — CURRENT**
+   - Make important non-success and recovery decisions observable without changing their execution semantics: policy denial/defer, provider failure, retry, fallback target, waiting/backpressure, cancellation/timeout, runtime recovery, and stale/late result rejection.
+   - Reconcile existing execution lifecycle state, intervention/terminal-state handling, provider attempts, fallback planning, scheduling/waiting, and stale-result protection with the trace hierarchy so each decision is represented by bounded provider-neutral metadata/status rather than raw payloads.
+   - Ensure a late or stale completion cannot overwrite the accepted terminal execution outcome merely because tracing records the attempt; tracing observes the accepted lifecycle transition separately from rejected late work.
+   - Add focused `HAgent.Tests` coverage for failure classification, retry/fallback relationships, waiting/backpressure, cancellation/timeout, stale-result rejection, and recovery ordering.
+   - Add a matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Outcomes & Recovery` using deterministic in-process fakes only.
+   - Do not add real network transport, remote telemetry delivery, or provider-vendor dependencies in this slice.
 
 ### Verification rule
 

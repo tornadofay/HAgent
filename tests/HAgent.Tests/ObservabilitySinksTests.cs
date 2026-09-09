@@ -85,21 +85,51 @@ namespace HAgent.Tests
         [Fact]
         public async Task UnsampledOrNotRetainedSpans_AreNotExported()
         {
-            var sink = new RecordingSink();
-            var dispatcher = new TraceSinkDispatcher(new[] { sink });
-            var recorder = new InMemoryTraceRecorder(
+            var unsampledSink = new RecordingSink();
+            var unsampledDispatcher = new TraceSinkDispatcher(new[] { unsampledSink });
+            var unsampledRecorder = new InMemoryTraceRecorder(
                 new FixedTraceSampler(false),
                 new TraceRetentionOptions(),
-                dispatcher);
+                unsampledDispatcher);
 
-            var span = StartRoot(recorder, "sink-unsampled-42");
-            Assert.True(span.TryComplete(TraceSpanStatus.Succeeded));
-            await dispatcher.FlushAsync().ConfigureAwait(false);
+            var unsampled = StartRoot(unsampledRecorder, "sink-unsampled-42");
+            Assert.True(unsampled.TryComplete(TraceSpanStatus.Succeeded));
+            await unsampledDispatcher.FlushAsync().ConfigureAwait(false);
 
-            Assert.Empty(sink.Spans);
-            Assert.Equal(0L, dispatcher.AcceptedCount);
+            Assert.Empty(unsampledSink.Spans);
+            Assert.Equal(0L, unsampledDispatcher.AcceptedCount);
 
-            dispatcher.Dispose();
+            var retainedSink = new RecordingSink();
+            var retainedDispatcher = new TraceSinkDispatcher(new[] { retainedSink });
+            var retention = new TraceRetentionOptions
+            {
+                MaxTraceCount = 8,
+                MaxSpanCount = 8,
+                MaxSpansPerTrace = 1,
+                MaxAggregateMetadataCharacters = 10000,
+                MaxAge = Timeout.InfiniteTimeSpan
+            };
+            var retainedRecorder = new InMemoryTraceRecorder(new FixedTraceSampler(true), retention, retainedDispatcher);
+            var root = StartRoot(retainedRecorder, "sink-not-retained-42");
+            Assert.True(root.TryComplete(TraceSpanStatus.Succeeded));
+            await retainedDispatcher.FlushAsync().ConfigureAwait(false);
+
+            var rejectedChild = retainedRecorder.StartSpan(new TraceSpanStartOptions
+            {
+                ParentContext = root.Context,
+                OperationName = "tool.execute",
+                Kind = "Tool",
+                Correlation = root.Record.Correlation
+            });
+            Assert.True(rejectedChild.TryComplete(TraceSpanStatus.Succeeded));
+            await retainedDispatcher.FlushAsync().ConfigureAwait(false);
+
+            Assert.Single(retainedSink.Spans);
+            Assert.Equal(root.Record.SpanId, retainedSink.Spans[0].SpanId);
+            Assert.Equal(1L, retainedDispatcher.AcceptedCount);
+
+            unsampledDispatcher.Dispose();
+            retainedDispatcher.Dispose();
         }
 
         private static ITraceSpan StartRoot(ITraceRecorder recorder, string executionId)

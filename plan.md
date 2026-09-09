@@ -78,7 +78,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.954 Prompt and Instruction Governance is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.955 Context Engineering is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.956 Observability and Distributed Tracing is completed and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9, including authoritative execution-outcome observations consumed by tracing without provider-side state inference.
 
-0.957 Slice 1 (provider-neutral evaluation contracts and evaluator boundary) is verified. Slice 2 (deterministic evaluators and evaluation evidence) is verified with 109/109 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification. Slice 3 (human/application ratings and labeled evaluation evidence) is now verified with 115/115 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification.
+0.957 Slice 1 (provider-neutral evaluation contracts and evaluator boundary) is verified. Slice 2 (deterministic evaluators and evaluation evidence) is verified with 109/109 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification. Slice 3 (human/application ratings and labeled evaluation evidence) is verified with 115/115 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification. Slice 4 (model-assisted evaluators and non-authoritative judge boundary) is implemented and currently at a verification checkpoint; it adds `IAiEvaluationJudge`, detached evaluation judge requests, `AiModelAssistedEvaluationEvaluator`, judge/evaluator provenance, cancellation and late-result protection, bounded evidence ownership, and explicit non-authoritative semantics.
 
 The remaining ordered foundation includes 0.957 Evaluation/Quality Measurement, 0.9575 Knowledge/Skills/Memory Governance + Learning, 0.958 Agent Lifecycle/Health, 0.9591 Goal/Plan Persistence/Recovery, and 0.959 Human-in-the-Loop/Intervention. Phase 0.9591 remains intentionally ordered before 0.959 because durable goal/plan revisions, checkpoints, and recovery state provide the persistent authority for later goal/plan intervention. Execution-level intervention remains valid independently. 0.9592 Provider Ecosystem/Adapter Lifecycle follows these foundations, then 0.96 Capability-Aware Execution.
 
@@ -149,6 +149,12 @@ The numbered roadmap is dependency-driven, not permanently locked. When architec
 ## 0.955 Context Engineering completion boundary
 
 0.955 Context Engineering is complete and verified. The canonical context subsystem now provides provider-neutral bounded context items and snapshots; separate retrieval planning; deterministic ranking, deduplication, compaction, and provenance-safe diagnostics; reusable cache components; execution/provider context propagation; policy/capability admission; host authorization composition for protected data-backed sources; and one canonical end-to-end assembly boundary. The context subsystem remains distinct from cognitive decision making and does not duplicate policy, host authorization, or instruction authority. Its complete verified Example/test matrix was exercised on .NET Framework 4.8.1 and .NET 9 through the ordered Context slices.
+
+## 0.957 Evaluation completion boundary
+
+0.957 Evaluation and Quality Measurement remains in progress. Slices 1–3 are fully verified. Slice 4 establishes the model-assisted evaluation architecture but remains at a verification checkpoint until its focused tests, supported-target builds, and matching Examples have actually executed.
+
+Slice 4 deliberately stops before aggregation, regression suites, persistent evaluation storage, and management UI. Model-specific provider transport remains outside `HAgent.Core`; a provider/application implementation can inject an `IAiEvaluationJudge` that resolves bounded input references through its own owning boundary and returns a bounded `AiEvaluationRating`.
 
 ## Storage implications
 

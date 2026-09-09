@@ -80,7 +80,9 @@ namespace HAgent.Models
         {
             if (query == null) throw new ArgumentNullException(nameof(query));
             Validate();
-            var limit = MaxResults;
+
+            var requested = query.MaxResults <= 0 ? 10 : query.MaxResults;
+            var limit = Math.Min(MaxResults, requested);
             var rule = FindRule(query.Family, query.TypeId);
             if (rule != null && rule.MaxResults > 0) limit = Math.Min(limit, rule.MaxResults);
             return Math.Max(1, Math.Min(limit, 1000));

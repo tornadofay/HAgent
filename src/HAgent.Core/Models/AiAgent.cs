@@ -16,6 +16,7 @@ namespace HAgent.Models
         public AiCapabilityRequirements CapabilityRequirements { get; set; }
         public AiResourceCapabilityPolicy ResourceCapabilities { get; set; }
         public AiSkillSet Skills { get; set; }
+        public AiLearningMode LearningMode { get; set; }
 
         public AiAgent()
         {
@@ -31,6 +32,7 @@ namespace HAgent.Models
             CapabilityRequirements = new AiCapabilityRequirements();
             ResourceCapabilities = new AiResourceCapabilityPolicy();
             Skills = new AiSkillSet { Name = "Default skills" };
+            LearningMode = AiLearningMode.Disabled;
         }
     }
 }

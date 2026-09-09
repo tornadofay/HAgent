@@ -53,16 +53,19 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User verification — .NET 9, 2026-09-09:** full `HAgent.Tests` completed with **67/67 tests passed**.
    - **User Example verification — .NET Framework 4.8.1, 2026-09-09 04:16:56:** `Observability Sampling & Retention` succeeded, verifying deterministic sampling stability, unsampled child inheritance/suppression, lifecycle independence from sampling/retention, maximum retained traces/spans, per-trace bounds, aggregate metadata bound, no provider transport, and no real provider request.
    - **User Example verification — .NET 9, 2026-09-09 04:17:25:** same public-API scenario succeeded with the same checks.
-   - The supplied verification establishes the Slice 4 implementation/test/Example boundary as passing. A separate solution-build result was not restated in the latest verification message, so this plan records only the results explicitly supplied.
+   - The supplied latest verification did not separately restate a solution-build result; therefore only the explicitly supplied verification results are recorded here.
 
-5. **Integrated trace sinks and safe export boundary — CURRENT**
-   - Define the next provider-neutral sink/export boundary for completed trace spans without coupling Core to OpenTelemetry, a vendor SDK, network transport, or persistence technology.
-   - Preserve the existing default-deny/redaction guarantees at the sink boundary; sinks receive only trace data already admitted by the trace contract and bounded retention/sampling rules.
-   - Support deterministic in-process sink testing, ordering, completion semantics, and safe behavior when a sink is slow or rejects a span.
-   - Keep execution correctness independent from sink availability or sink failure; telemetry failure must not turn a successful execution into a failed execution.
-   - Do not introduce remote telemetry transport, durable trace storage, management UI, or broad diagnostic projection in this slice.
-   - Add focused `HAgent.Tests` coverage and a matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Sinks`.
-   - Verification boundary: solution build, full `HAgent.Tests`, and the exact Example scenario on .NET Framework 4.8.1 and .NET 9 using deterministic in-process sinks/fakes only.
+5. **Integrated trace sinks and safe export boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+   - Added provider-neutral `ITraceSink` and bounded `TraceSinkOptions` contracts.
+   - Added `TraceSinkDispatcher` with a bounded non-blocking enqueue boundary, FIFO processing, asynchronous sink delivery, flush support for deterministic tests, and isolated sink-failure accounting.
+   - Integrated sink dispatch into `InMemoryTraceRecorder` only after a sampled span completes and only while that span remains retained by the recorder; sampled-out and retention-rejected spans never cross the sink boundary.
+   - Preserved the existing trace metadata/redaction contract; sinks receive the canonical bounded `TraceSpan` rather than prompts, provider payloads, tool payloads, host raw context, or arbitrary serialized objects.
+   - Sink latency, queue saturation, and sink exceptions remain telemetry concerns and do not alter span lifecycle completion or execution correctness. One failing sink does not prevent other registered sinks from receiving the same span.
+   - Added focused `tests/HAgent.Tests/ObservabilitySinksTests.cs` covering FIFO delivery, sink-failure isolation, slow asynchronous sink behavior, sampled-out suppression, and retention-boundary suppression.
+   - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilitySinks.cs` scenario under `Diagnostics → Observability → Observability Sinks`.
+   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Verify no real provider or remote telemetry transport is contacted.
+   - Do not mark Slice 5 verified until those user-side results are supplied.
+   - Do not begin Slice 6 in the same run.
 
 ### Verification rule
 

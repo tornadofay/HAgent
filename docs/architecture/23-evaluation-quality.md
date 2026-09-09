@@ -117,6 +117,29 @@ AiModelAssistedEvaluationEvaluator
 
 The model judge may be deterministic in tests or backed by a real model in an adapter implementation. The evaluation layer does not treat either as inherently authoritative.
 
+## Aggregation and alternative-target comparison
+
+Evaluation aggregation consumes completed `AiEvaluation` evidence plus bounded metric observations; it does not run providers or reinterpret host-domain payloads. `AiEvaluationSample` binds a stable `CaseId` to a `VariantId`, one evaluation, and bounded metrics. `AiEvaluationAggregationRequest` is limited to 256 samples and clones its samples before aggregation so caller mutation cannot affect active work.
+
+`AiEvaluationMetricKind` provides the canonical initial measurement vocabulary:
+
+```text
+SuccessRate          -> higher is better
+QualityScore         -> higher is better
+LatencyMilliseconds  -> lower is better
+Cost                 -> lower is better
+FallbackFrequency    -> lower is better
+ToolSuccessRate      -> higher is better
+PlanCompletionRate   -> higher is better
+Custom               -> direction required explicitly
+```
+
+`AiEvaluationAggregator.Aggregate` groups samples by variant and computes outcome counts, passed/sample success rate, average non-null evaluation score, and average/minimum/maximum values for explicit metrics. Standard ratio metrics are bounded to `[0,1]`; other standard metrics remain non-negative. Results are deterministic and bounded, and cancellation is checked before and during work.
+
+`AiEvaluationAggregator.Compare` consumes two validated aggregates and produces one `AiEvaluationComparison` containing left/right averages, left-minus-right delta, metric direction, and an optional `PreferredVariantId`. A preferred variant is present only when both sides have a value and the comparison is strictly better for one side; ties and one-sided metrics do not produce a preference. This field is comparative evidence only, not a routing recommendation, authorization decision, policy decision, configuration mutation, learning promotion, or cognitive authority.
+
+Derived success/quality metrics are part of the canonical aggregate and comparison shape rather than ad-hoc example calculations. Explicit custom metrics retain their declared direction. The aggregation layer does not persist results, schedule regression runs, invoke human review, or call provider/model transport.
+
 ## Safety and ownership
 
 Evaluation contracts intentionally contain bounded references, observations, ratings, and metadata rather than raw prompts, responses, tool arguments, credentials, or arbitrary host objects. Storage and retention are separate concerns and must apply their own governance.
@@ -133,4 +156,6 @@ Phase 0.957 Slice 2 adds the deterministic observation contract and deterministi
 
 Phase 0.957 Slice 3 adds bounded externally supplied Human/Application ratings through the same provider-neutral evaluator boundary.
 
-Phase 0.957 Slice 4 adds the provider-neutral `IAiEvaluationJudge` boundary and `AiModelAssistedEvaluationEvaluator`, including detached request snapshots, judge/evaluator provenance, cancellation/late-result protection, bounded rating/evidence ownership, and explicit non-authoritative semantics. It does not add model-specific provider adapters, evaluation aggregation, regression suites, persistence, or management UI.
+Phase 0.957 Slice 4 adds the provider-neutral `IAiEvaluationJudge` boundary and `AiModelAssistedEvaluationEvaluator`, including detached request snapshots, judge/evaluator provenance, cancellation/late-result protection, bounded rating/evidence ownership, and explicit non-authoritative semantics.
+
+Phase 0.957 Slice 5 adds bounded aggregation and alternative-target comparison over completed evaluation evidence. It does not add provider/model adapters, regression-suite orchestration, persistence, or management UI.

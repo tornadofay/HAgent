@@ -5,13 +5,13 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.957 Evaluation and Quality Measurement
-- **Status:** In progress — Slice 4 implementation complete, verification pending
+- **Status:** In progress — Slice 5 implementation checkpoint, verification pending
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Add the provider-neutral model-assisted evaluation boundary without coupling Core to a provider/model transport or making evaluation authoritative.
+- **Scope:** Add provider-neutral aggregation and comparison over bounded evaluation samples, including success/quality/latency/cost/fallback/tool-success/plan-completion metrics, without adding routing, authorization, persistence, regression-suite orchestration, or management UI.
 
 ## Completed prerequisite
 
-0.956 Observability and Distributed Tracing is complete and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9. The execution runtime is authoritative for outcome facts; tracing observes those facts without reconstructing execution state.
+0.956 Observability and Distributed Tracing is complete and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9. The execution runtime remains authoritative for outcome facts; tracing observes those facts without reconstructing execution state.
 
 ## Completed evaluation slices
 
@@ -21,27 +21,28 @@ This file is the compact handoff state for work currently in progress. It is not
 
 0.957 Slice 3 — human/application ratings and labeled evaluation evidence is verified with 115/115 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification.
 
-## Current Slice 4 — Model-assisted evaluators and non-authoritative judge boundary
+0.957 Slice 4 — model-assisted evaluators and non-authoritative judge boundary is verified. The user verified **123/123 HAgent.Tests**, plus the Slice 4 Example on **.NET Framework 4.8.1 and .NET 9**.
 
-- Added `IAiEvaluationJudge` as the provider-neutral model-judge boundary.
-- Added detached `AiEvaluationJudgeRequest` snapshots so asynchronous judge calls cannot observe caller mutation.
-- Added `AiModelAssistedEvaluationEvaluator` behind `IAiEvaluator` with evaluator/judge provenance, bounded evidence/metadata ownership, explicit `evaluation.authoritative=false`, cancellation checks before and after judging, and fail-closed null/invalid/failure handling.
-- Kept provider selection, credentials, model transport, retries, and host-specific evidence resolution outside `HAgent.Core` in the injected judge implementation/owning subsystem.
-- Added focused `tests/HAgent.Tests/ModelAssistedEvaluationTests.cs` covering provenance, NeedsReview, detached snapshots, concurrency, cancellation, late cancellation, judge failure/null output, and bounded evaluator identity.
-- Added matching public `src/HAgent.Example/MainForm.ModelAssistedEvaluation.cs`.
-- Registered and classified the Example as `HAgent.Example → Diagnostics → Evaluation → Model-Assisted Evaluation`.
-- Updated `docs/architecture/23-evaluation-quality.md` with the authoritative model-assisted boundary and `docs/plan/00-decisions.md` with decision D-006.
+## Current Slice 5 — Evaluation aggregation and alternative-target comparison
 
-**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Model-Assisted Evaluation` on **.NET Framework 4.8.1** and **.NET 9**.
+- Added `AiEvaluationMetricKind` and bounded `AiEvaluationMetric` contracts with provider-neutral higher/lower comparison semantics and explicit direction for custom metrics.
+- Added `AiEvaluationSample` and `AiEvaluationAggregationRequest` with bounded sample counts, owned cloning, and validation.
+- Added `AiEvaluationAggregate` / `AiEvaluationAggregateMetric` for per-variant outcome and measurement summaries.
+- Added `AiEvaluationComparison` / `AiEvaluationMetricComparison` for left/right metric averages, deltas, and strictly comparable preferred variants.
+- Added `AiEvaluationAggregator.Aggregate` and `.Compare` with cancellation checks, deterministic ordering, bounded input, detached aggregation snapshots, and no authoritative side effects.
+- Added focused `tests/HAgent.Tests/EvaluationAggregationTests.cs` covering validation, grouping, outcome counts, success/quality averages, explicit metrics, comparison direction, one-sided metrics, cancellation, and detached snapshots.
+- Added matching public `src/HAgent.Example/MainForm.EvaluationAggregation.cs`.
+- Registered/classified the Example as `HAgent.Example → Diagnostics → Evaluation → Evaluation Aggregation`.
+- Added a Windows CI workflow to build Core/Example on .NET Framework 4.8.1 and .NET 9 and run focused/full tests.
 
-**Tests to run:** `tests/HAgent.Tests/ModelAssistedEvaluationTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9** before marking Slice 4 verified.
+**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Evaluation Aggregation` on **.NET Framework 4.8.1** and **.NET 9**.
+
+**Tests to run:** `tests/HAgent.Tests/EvaluationAggregationTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ## Verification checkpoint
 
-A Windows GitHub Actions verification workflow was added for this branch to build HAgent.Core and HAgent.Example on .NET Framework 4.8.1/.NET 9 Windows targets and run the focused model-assisted tests. Manual Example execution is still required because `HAgent.Example` is a WinForms developer host rather than a headless test runner.
-
-Until the actual build/test workflow result and both Example targets are confirmed, Slice 4 remains a **verified checkpoint/blocker**, not a completed slice.
+The Slice 5 implementation is committed to `phase-0.957-slice-5-evaluation-aggregation`. CI/build/test verification and manual Example execution remain pending. Do not mark Slice 5 verified until the focused tests, full suite, supported-target builds, and both Example targets are actually confirmed.
 
 ## Current blocker
 
-No implementation blocker is known. Verification is pending because the current execution environment cannot directly run the Windows solution or the WinForms Example UI. The next safe step is to consume the branch CI result, fix any compiler/test defect within Slice 4 if present, then run the exact Example path above on both supported targets and record the results.
+No design blocker is known. The repository currently requires the Slice 5 focused test/full-suite results and manual Example execution on both targets. Regression-suite orchestration remains deliberately outside this slice and is the next distinct implementation objective only after Slice 5 verification.

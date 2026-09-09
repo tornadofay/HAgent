@@ -15,11 +15,8 @@ Phase 0.956 Observability and Distributed Tracing is complete and verified throu
    - Defined asynchronous `IAiEvaluator` with explicit evaluator identity, kind, and version. The abstraction is independent of a specific LLM vendor or grading service.
    - Kept evaluation evidence separate from authorization, execution terminal state, persistent configuration, memory, knowledge, skills, and learning promotion.
    - Avoided raw prompts, responses, tool arguments, credentials, or arbitrary host objects in the contracts; bounded references/metadata are used instead.
-   - Added focused `tests/HAgent.Tests/EvaluationContractsTests.cs` covering target identity, clone isolation, score/confidence bounds, provenance, correlation identities, cancellation-aware evaluator behavior, and bounded collections.
-   - Added and classified `src/HAgent.Example/MainForm.EvaluationContracts.cs` as `Diagnostics → Other Diagnostics → Evaluation Contracts` using a deterministic in-process evaluator and no provider/model transport.
-   - User verification — 2026-09-09: full `HAgent.Tests` completed with 96/96 tests passed on .NET 9.
-   - User Example verification — .NET Framework 4.8.1 and .NET 9 both succeeded with the same public-API checks.
-   - Slice 1 is complete and no longer awaits local verification.
+   - Added focused `tests/HAgent.Tests/EvaluationContractsTests.cs` and public `src/HAgent.Example/MainForm.EvaluationContracts.cs` verification.
+   - User verification — 2026-09-09: full `HAgent.Tests` completed with 96/96 tests passed on .NET 9; .NET Framework 4.8.1 and .NET 9 Example checks succeeded.
 
 2. **Deterministic evaluators and evaluation evidence — VERIFIED**
    - Established bounded host-computed `AiEvaluationObservation` values so deterministic evaluators inspect explicit facts instead of raw payloads.
@@ -31,20 +28,28 @@ Phase 0.956 Observability and Distributed Tracing is complete and verified throu
    - User verification — 2026-09-09: `HAgent.Tests` completed with **109/109 tests passed**.
    - User Example verification — .NET Framework 4.8.1: `Deterministic Evaluation` succeeded.
    - User Example verification — .NET 9: `Deterministic Evaluation` succeeded.
-   - Slice 2 is complete and no longer awaits local verification.
 
 3. **Human/application ratings and labeled evaluation evidence — VERIFIED**
-   - Establish bounded externally supplied rating data for Human and Application evaluators without introducing a second evaluation result model.
-   - Use one provider-neutral evaluator implementation for supplied ratings while requiring the evaluator kind to be `Human` or `Application`.
-   - Preserve outcome, score, confidence, label, reason, bounded evidence references, metadata, evaluator identity/version, and execution/runtime/agent/goal/plan/trace correlation.
-   - Clone supplied rating data on evaluator construction and produced evaluation data so later caller mutation cannot alter the evaluation result.
-   - Observe cancellation before producing externally supplied evaluation evidence.
+   - Established bounded externally supplied rating data for Human and Application evaluators without introducing a second evaluation result model.
+   - Used one provider-neutral evaluator implementation for supplied ratings while requiring the evaluator kind to be `Human` or `Application`.
+   - Preserved outcome, score, confidence, label, reason, bounded evidence references, metadata, evaluator identity/version, and execution/runtime/agent/goal/plan/trace correlation.
+   - Cloned supplied rating data on evaluator construction and produced evaluation data so later caller mutation cannot alter the evaluation result.
+   - Observed cancellation before producing externally supplied evaluation evidence.
    - Added focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs` verification.
    - Explicitly classified the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
    - User verification — 2026-09-09: full `HAgent.Tests` completed with **115/115 tests passed**.
-   - User Example verification — .NET Framework 4.8.1 at **2026-09-09 06:53:44**: `Supplied Evaluation Ratings` succeeded with Human/Application outcome, score, label, provenance, evidence ownership, correlation, non-authoritative behavior, and no provider/model transport verified.
-   - User Example verification — .NET 9 at **2026-09-09 06:52:58**: `Supplied Evaluation Ratings` succeeded with the same public-API checks.
-   - Slice 3 is complete and no longer awaits local verification.
+   - User Example verification — .NET Framework 4.8.1 at **2026-09-09 06:53:44** and .NET 9 at **2026-09-09 06:52:58** succeeded.
+
+4. **Model-assisted evaluators and non-authoritative judge boundary — CURRENT**
+   - Define provider-neutral `IAiEvaluationJudge` and detached `AiEvaluationJudgeRequest` contracts for model-backed grading without coupling `HAgent.Core` to a specific provider, model, credential, transport, or host object.
+   - Implement `AiModelAssistedEvaluationEvaluator` behind `IAiEvaluator`; map bounded `AiEvaluationRating` output into normal `AiEvaluation` evidence and preserve evaluator/judge provenance.
+   - Keep model-assisted results explicitly non-authoritative and allow `NeedsReview`/inconclusive outcomes without converting them into authorization or cognitive mutations.
+   - Protect active evaluation from caller mutation by cloning the request before asynchronous judging; remain stateless across concurrent invocations.
+   - Check cancellation before judging and after judge completion so late results cannot become successful evaluations after cancellation.
+   - Propagate judge failures and reject null/invalid judge output rather than fabricating evaluation results.
+   - Add focused `tests/HAgent.Tests/ModelAssistedEvaluationTests.cs` covering provenance, non-authoritative semantics, detached snapshots, concurrency, cancellation, late cancellation, failure, null output, and bounded identity validation.
+   - Add matching public `src/HAgent.Example/MainForm.ModelAssistedEvaluation.cs` and classify it as `Diagnostics → Evaluation → Model-Assisted Evaluation`.
+   - Verification checkpoint is pending actual build/test execution and Example execution on the supported targets.
 
 ### Verification rule
 

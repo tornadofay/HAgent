@@ -10,53 +10,46 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.957 Evaluation and Quality Measurement
-- **Status:** In progress
+- **Status:** In progress — Slice 4 implementation complete, verification pending
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Build the provider-neutral evaluation and quality measurement foundation after verified completion of 0.956 Observability and Distributed Tracing.
+- **Scope:** Add the provider-neutral model-assisted evaluation boundary without coupling Core to a provider/model transport or making evaluation authoritative.
 
 ## Completed prerequisite
 
 0.956 Observability and Distributed Tracing is complete and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9. The execution runtime is authoritative for outcome facts; tracing observes those facts without reconstructing execution state.
 
-## Completed Slice 2
+## Completed evaluation slices
 
-0.957 Slice 2 — Deterministic evaluators and evaluation evidence is verified.
+0.957 Slice 1 — provider-neutral evaluation contracts and evaluator boundary is verified.
 
-- Added bounded `AiEvaluationObservation` values with explicit Boolean, Decimal, and Text value kinds.
-- Added deterministic schema validity, required-field completeness, policy compliance, tool success, latency, cost, and task-completion evaluation rules.
-- Added `AiDeterministicEvaluationEvaluator` with deterministic pass/fail scoring, bounded evidence, provenance/correlation, cancellation, threshold handling, ambiguity rejection, and explicit `Inconclusive` outcomes.
-- Added focused deterministic evaluation tests and matching public Example.
-- User verification — 2026-09-09: `HAgent.Tests` completed with **109/109 tests passed**.
-- User Example verification — .NET Framework 4.8.1: `Diagnostics → Evaluation → Deterministic Evaluation` succeeded.
-- User Example verification — .NET 9: `Diagnostics → Evaluation → Deterministic Evaluation` succeeded.
+0.957 Slice 2 — deterministic evaluators and evaluation evidence is verified with 109/109 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification.
 
-## Completed Slice 3
+0.957 Slice 3 — human/application ratings and labeled evaluation evidence is verified with 115/115 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification.
 
-0.957 Slice 3 — Human/application ratings and labeled evaluation evidence is verified.
+## Current Slice 4 — Model-assisted evaluators and non-authoritative judge boundary
 
-- Added bounded `AiEvaluationRating` for externally supplied outcomes, scores, confidence, labels, reasons, evidence references, and metadata.
-- Added `AiSuppliedRatingEvaluator` using the existing `IAiEvaluator` contract and accepting only `Human` or `Application` evaluator kinds.
-- Preserved evaluator identity/version, supplied rating values, bounded evidence/metadata, and execution/runtime/agent/goal/plan/trace correlation.
-- Added owned cloning so caller mutation of a supplied rating cannot mutate a produced evaluation.
-- Added cancellation-aware public API behavior and kept supplied ratings non-authoritative.
-- Added focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs`.
-- Added matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs`.
-- Explicitly classified the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
-- User verification — 2026-09-09: full `HAgent.Tests` completed with **115/115 tests passed**.
-- User Example verification — .NET Framework 4.8.1 at **2026-09-09 06:53:44**: `Supplied Evaluation Ratings` succeeded and verified Human/Application outcome, score, label, provenance, evidence ownership, correlation, non-authoritative behavior, and no provider/model transport.
-- User Example verification — .NET 9 at **2026-09-09 06:52:58**: `Supplied Evaluation Ratings` succeeded with the same public-API checks.
+- Added `IAiEvaluationJudge` as the provider-neutral model-judge boundary.
+- Added detached `AiEvaluationJudgeRequest` snapshots so asynchronous judge calls cannot observe caller mutation.
+- Added `AiModelAssistedEvaluationEvaluator` behind `IAiEvaluator` with evaluator/judge provenance, bounded evidence/metadata ownership, explicit `evaluation.authoritative=false`, cancellation checks before and after judging, and fail-closed null/invalid/failure handling.
+- Kept provider selection, credentials, model transport, retries, and host-specific evidence resolution outside `HAgent.Core` in the injected judge implementation/owning subsystem.
+- Added focused `tests/HAgent.Tests/ModelAssistedEvaluationTests.cs` covering provenance, NeedsReview, detached snapshots, concurrency, cancellation, late cancellation, judge failure/null output, and bounded evaluator identity.
+- Added matching public `src/HAgent.Example/MainForm.ModelAssistedEvaluation.cs`.
+- Registered and classified the Example as `HAgent.Example → Diagnostics → Evaluation → Model-Assisted Evaluation`.
+- Updated `docs/architecture/23-evaluation-quality.md` with the authoritative model-assisted boundary and `docs/plan/00-decisions.md` with decision D-006.
 
-## Current run
+**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Model-Assisted Evaluation` on **.NET Framework 4.8.1** and **.NET 9**.
 
-**0.957 Slice 3 is complete. The next implementation checkpoint must be selected from the authoritative 0.957 roadmap before any further code changes.**
+**Tests to run:** `tests/HAgent.Tests/ModelAssistedEvaluationTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9** before marking Slice 4 verified.
 
-## Verification boundary
+## Verification checkpoint
 
-Slice 3 is locally verified. No later slice has been implemented in this checkpoint.
+A Windows GitHub Actions verification workflow was added for this branch to build HAgent.Core and HAgent.Example on .NET Framework 4.8.1/.NET 9 Windows targets and run the focused model-assisted tests. Manual Example execution is still required because `HAgent.Example` is a WinForms developer host rather than a headless test runner.
 
-## Current blockers
+Until the actual build/test workflow result and both Example targets are confirmed, Slice 4 remains a **verified checkpoint/blocker**, not a completed slice.
 
-None for Slice 3. The next 0.957 slice remains intentionally unstarted until its scope is established from the authoritative roadmap/architecture.
+## Current blocker
+
+No implementation blocker is known. Verification is pending because the current execution environment cannot directly run the Windows solution or the WinForms Example UI. The next safe step is to consume the branch CI result, fix any compiler/test defect within Slice 4 if present, then run the exact Example path above on both supported targets and record the results.
 
 ## Current project state
 
@@ -85,7 +78,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 0.952 First-Class Event Subsystem is completed and verified. 0.953 Unified Policy Engine is completed for its verified runtime/persistence/resource/learning-policy foundation. 0.954 Prompt and Instruction Governance is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.955 Context Engineering is completed and verified on .NET Framework 4.8.1 and .NET 9. 0.956 Observability and Distributed Tracing is completed and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9, including authoritative execution-outcome observations consumed by tracing without provider-side state inference.
 
-0.957 Slice 1 (provider-neutral evaluation contracts and evaluator boundary) is verified. Slice 2 (deterministic evaluators and evaluation evidence) is verified with 109/109 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification. Slice 3 (human/application ratings and labeled evaluation evidence) is now verified with 115/115 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification.
+0.957 Slice 1 (provider-neutral evaluation contracts and evaluator boundary) is verified. Slice 2 (deterministic evaluators and evaluation evidence) is verified with 109/109 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification. Slice 3 (human/application ratings and labeled evaluation evidence) is verified with 115/115 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification. Slice 4 (model-assisted evaluators and non-authoritative judge boundary) is implemented and currently at a verification checkpoint; it adds `IAiEvaluationJudge`, detached evaluation judge requests, `AiModelAssistedEvaluationEvaluator`, judge/evaluator provenance, cancellation and late-result protection, bounded evidence ownership, and explicit non-authoritative semantics.
 
 The remaining ordered foundation includes 0.957 Evaluation/Quality Measurement, 0.9575 Knowledge/Skills/Memory Governance + Learning, 0.958 Agent Lifecycle/Health, 0.9591 Goal/Plan Persistence/Recovery, and 0.959 Human-in-the-Loop/Intervention. Phase 0.9591 remains intentionally ordered before 0.959 because durable goal/plan revisions, checkpoints, and recovery state provide the persistent authority for later goal/plan intervention. Execution-level intervention remains valid independently. 0.9592 Provider Ecosystem/Adapter Lifecycle follows these foundations, then 0.96 Capability-Aware Execution.
 
@@ -157,6 +150,12 @@ The numbered roadmap is dependency-driven, not permanently locked. When architec
 
 0.955 Context Engineering is complete and verified. The canonical context subsystem now provides provider-neutral bounded context items and snapshots; separate retrieval planning; deterministic ranking, deduplication, compaction, and provenance-safe diagnostics; reusable cache components; execution/provider context propagation; policy/capability admission; host authorization composition for protected data-backed sources; and one canonical end-to-end assembly boundary. The context subsystem remains distinct from cognitive decision making and does not duplicate policy, host authorization, or instruction authority. Its complete verified Example/test matrix was exercised on .NET Framework 4.8.1 and .NET 9 through the ordered Context slices.
 
+## 0.957 Evaluation completion boundary
+
+0.957 Evaluation and Quality Measurement remains in progress. Slices 1–3 are fully verified. Slice 4 establishes the model-assisted evaluation architecture but remains at a verification checkpoint until its focused tests, supported-target builds, and matching Examples have actually executed.
+
+Slice 4 deliberately stops before aggregation, regression suites, persistent evaluation storage, and management UI. Model-specific provider transport remains outside `HAgent.Core`; a provider/application implementation can inject an `IAiEvaluationJudge` that resolves bounded input references through its own owning boundary and returns a bounded `AiEvaluationRating`.
+
 ## Storage implications
 
 The configuration/storage evolution defined by `docs/roadmap/38-configuration-storage-and-portability.md` remains a cross-cutting foundation before 0.96. It must directly support authoritative resource relationships, scoped ownership, capability state, and portable configuration rather than creating a second resource configuration model.
@@ -210,6 +209,16 @@ Current unfinished work is represented by the compact active-work document. When
 **Status:** Active
 
 Testing and implementation may reveal requirements or interactions that could not reasonably be known beforehand. Such discoveries should produce an explicit architectural decision or update to the authoritative source rather than an undocumented workaround.
+
+## D-006 — Model-assisted evaluation uses an injected judge boundary
+
+**Status:** Active
+
+Model-assisted evaluation must not make `HAgent.Core` a provider router or a model-specific grading client. `IAiEvaluationJudge` is the provider-neutral boundary for model judging, and `AiModelAssistedEvaluationEvaluator` is the `IAiEvaluator` adapter that maps a bounded judge rating into `AiEvaluation` evidence.
+
+The evaluator owns detached per-call request snapshots, validation, cancellation checks, evidence ownership, and evaluator/judge provenance. Provider transport, credentials, model selection, retries, and host-specific evidence resolution remain inside the injected judge implementation or its owning subsystem.
+
+Model-assisted output is explicitly non-authoritative. It can produce `Passed`, `Failed`, `Inconclusive`, or `NeedsReview`, but it never grants authorization, changes configuration, promotes learning, or mutates authoritative cognitive state by itself.
 
 ## HAgent Master Plan
 
@@ -589,11 +598,8 @@ Phase 0.956 Observability and Distributed Tracing is complete and verified throu
    - Defined asynchronous `IAiEvaluator` with explicit evaluator identity, kind, and version. The abstraction is independent of a specific LLM vendor or grading service.
    - Kept evaluation evidence separate from authorization, execution terminal state, persistent configuration, memory, knowledge, skills, and learning promotion.
    - Avoided raw prompts, responses, tool arguments, credentials, or arbitrary host objects in the contracts; bounded references/metadata are used instead.
-   - Added focused `tests/HAgent.Tests/EvaluationContractsTests.cs` covering target identity, clone isolation, score/confidence bounds, provenance, correlation identities, cancellation-aware evaluator behavior, and bounded collections.
-   - Added and classified `src/HAgent.Example/MainForm.EvaluationContracts.cs` as `Diagnostics → Other Diagnostics → Evaluation Contracts` using a deterministic in-process evaluator and no provider/model transport.
-   - User verification — 2026-09-09: full `HAgent.Tests` completed with 96/96 tests passed on .NET 9.
-   - User Example verification — .NET Framework 4.8.1 and .NET 9 both succeeded with the same public-API checks.
-   - Slice 1 is complete and no longer awaits local verification.
+   - Added focused `tests/HAgent.Tests/EvaluationContractsTests.cs` and public `src/HAgent.Example/MainForm.EvaluationContracts.cs` verification.
+   - User verification — 2026-09-09: full `HAgent.Tests` completed with 96/96 tests passed on .NET 9; .NET Framework 4.8.1 and .NET 9 Example checks succeeded.
 
 2. **Deterministic evaluators and evaluation evidence — VERIFIED**
    - Established bounded host-computed `AiEvaluationObservation` values so deterministic evaluators inspect explicit facts instead of raw payloads.
@@ -605,20 +611,28 @@ Phase 0.956 Observability and Distributed Tracing is complete and verified throu
    - User verification — 2026-09-09: `HAgent.Tests` completed with **109/109 tests passed**.
    - User Example verification — .NET Framework 4.8.1: `Deterministic Evaluation` succeeded.
    - User Example verification — .NET 9: `Deterministic Evaluation` succeeded.
-   - Slice 2 is complete and no longer awaits local verification.
 
 3. **Human/application ratings and labeled evaluation evidence — VERIFIED**
-   - Establish bounded externally supplied rating data for Human and Application evaluators without introducing a second evaluation result model.
-   - Use one provider-neutral evaluator implementation for supplied ratings while requiring the evaluator kind to be `Human` or `Application`.
-   - Preserve outcome, score, confidence, label, reason, bounded evidence references, metadata, evaluator identity/version, and execution/runtime/agent/goal/plan/trace correlation.
-   - Clone supplied rating data on evaluator construction and produced evaluation data so later caller mutation cannot alter the evaluation result.
-   - Observe cancellation before producing externally supplied evaluation evidence.
+   - Established bounded externally supplied rating data for Human and Application evaluators without introducing a second evaluation result model.
+   - Used one provider-neutral evaluator implementation for supplied ratings while requiring the evaluator kind to be `Human` or `Application`.
+   - Preserved outcome, score, confidence, label, reason, bounded evidence references, metadata, evaluator identity/version, and execution/runtime/agent/goal/plan/trace correlation.
+   - Cloned supplied rating data on evaluator construction and produced evaluation data so later caller mutation cannot alter the evaluation result.
+   - Observed cancellation before producing externally supplied evaluation evidence.
    - Added focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs` and matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs` verification.
    - Explicitly classified the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
    - User verification — 2026-09-09: full `HAgent.Tests` completed with **115/115 tests passed**.
-   - User Example verification — .NET Framework 4.8.1 at **2026-09-09 06:53:44**: `Supplied Evaluation Ratings` succeeded with Human/Application outcome, score, label, provenance, evidence ownership, correlation, non-authoritative behavior, and no provider/model transport verified.
-   - User Example verification — .NET 9 at **2026-09-09 06:52:58**: `Supplied Evaluation Ratings` succeeded with the same public-API checks.
-   - Slice 3 is complete and no longer awaits local verification.
+   - User Example verification — .NET Framework 4.8.1 at **2026-09-09 06:53:44** and .NET 9 at **2026-09-09 06:52:58** succeeded.
+
+4. **Model-assisted evaluators and non-authoritative judge boundary — CURRENT**
+   - Define provider-neutral `IAiEvaluationJudge` and detached `AiEvaluationJudgeRequest` contracts for model-backed grading without coupling `HAgent.Core` to a specific provider, model, credential, transport, or host object.
+   - Implement `AiModelAssistedEvaluationEvaluator` behind `IAiEvaluator`; map bounded `AiEvaluationRating` output into normal `AiEvaluation` evidence and preserve evaluator/judge provenance.
+   - Keep model-assisted results explicitly non-authoritative and allow `NeedsReview`/inconclusive outcomes without converting them into authorization or cognitive mutations.
+   - Protect active evaluation from caller mutation by cloning the request before asynchronous judging; remain stateless across concurrent invocations.
+   - Check cancellation before judging and after judge completion so late results cannot become successful evaluations after cancellation.
+   - Propagate judge failures and reject null/invalid judge output rather than fabricating evaluation results.
+   - Add focused `tests/HAgent.Tests/ModelAssistedEvaluationTests.cs` covering provenance, non-authoritative semantics, detached snapshots, concurrency, cancellation, late cancellation, failure, null output, and bounded identity validation.
+   - Add matching public `src/HAgent.Example/MainForm.ModelAssistedEvaluation.cs` and classify it as `Diagnostics → Evaluation → Model-Assisted Evaluation`.
+   - Verification checkpoint is pending actual build/test execution and Example execution on the supported targets.
 
 ### Verification rule
 

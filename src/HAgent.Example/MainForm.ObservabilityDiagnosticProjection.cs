@@ -153,20 +153,5 @@ namespace HAgent.Example
             }
             return false;
         }
-
-        private sealed class FixedTraceSampler : ITraceSampler
-        {
-            private readonly bool _sample;
-
-            public FixedTraceSampler(bool sample)
-            {
-                _sample = sample;
-            }
-
-            public bool ShouldSample(TraceSpanStartOptions options)
-            {
-                return _sample;
-            }
-        }
     }
 }

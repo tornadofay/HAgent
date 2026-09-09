@@ -32,17 +32,22 @@ namespace HAgent.Runtime
 
         public static IDisposable Push(TraceContext context)
         {
-            return Push(context, null);
+            return Push(context, null, CurrentRecorder);
         }
 
         public static IDisposable Push(TraceContext context, TraceCorrelation correlation)
+        {
+            return Push(context, correlation, CurrentRecorder);
+        }
+
+        public static IDisposable Push(TraceContext context, TraceCorrelation correlation, ITraceRecorder recorder)
         {
             var previous = CurrentValue.Value;
             CurrentValue.Value = new AmbientState
             {
                 Context = context,
                 Correlation = correlation == null ? null : correlation.Clone(),
-                Recorder = previous == null ? null : previous.Recorder
+                Recorder = recorder
             };
             return new Scope(previous);
         }

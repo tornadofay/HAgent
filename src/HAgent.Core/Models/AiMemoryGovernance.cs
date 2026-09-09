@@ -86,13 +86,7 @@ namespace HAgent.Models
             return Math.Max(1, Math.Min(limit, 1000));
         }
 
-        public int GetMaxResults(AiMemoryFamily family, string typeId = null)
-        {
-            var query = new MemoryQuery { Family = family, TypeId = typeId ?? string.Empty };
-            return GetMaxResults(query);
-        }
-
-        public DateTimeOffset? GetEffectiveExpiration(MemoryEntry entry, DateTimeOffset now)
+        public DateTimeOffset? GetEffectiveExpiration(MemoryEntry entry)
         {
             if (entry == null) throw new ArgumentNullException(nameof(entry));
             Validate();
@@ -129,24 +123,28 @@ namespace HAgent.Models
                 rule.Validate();
                 var key = (rule.Family.HasValue ? rule.Family.Value.ToString() : string.Empty) + "\n" + (rule.TypeId ?? string.Empty).Trim();
                 if (!keys.Add(key)) throw new ArgumentException("Memory policy rules must be unique: " + key, nameof(Rules));
-                if (rule.Family == null && !string.IsNullOrWhiteSpace(rule.TypeId))
-                    MemoryEntryTypeValidator.ValidateKnownTypeId(rule.TypeId);
             }
         }
 
         private AiMemoryPolicyRule FindRule(AiMemoryFamily? family, string typeId)
         {
             var normalizedType = string.IsNullOrWhiteSpace(typeId) ? string.Empty : typeId.Trim();
-            var exact = (Rules ?? new List<AiMemoryPolicyRule>()).FirstOrDefault(x =>
-                x != null && !string.IsNullOrWhiteSpace(x.TypeId) &&
-                string.Equals(x.TypeId.Trim(), normalizedType, StringComparison.OrdinalIgnoreCase));
-            if (exact != null) return exact;
+            var rules = Rules ?? new List<AiMemoryPolicyRule>();
+
+            if (!string.IsNullOrEmpty(normalizedType))
+            {
+                var exact = rules.FirstOrDefault(x => x != null && !string.IsNullOrWhiteSpace(x.TypeId) &&
+                    string.Equals(x.TypeId.Trim(), normalizedType, StringComparison.OrdinalIgnoreCase));
+                if (exact != null) return exact;
+            }
 
             if (family.HasValue)
             {
-                var familyRule = (Rules ?? new List<AiMemoryPolicyRule>()).FirstOrDefault(x => x != null && !x.Family.HasValue ? false : x != null && x.Family == family && string.IsNullOrWhiteSpace(x.TypeId));
+                var familyRule = rules.FirstOrDefault(x => x != null && x.Family.HasValue &&
+                    x.Family.Value == family.Value && string.IsNullOrWhiteSpace(x.TypeId));
                 if (familyRule != null) return familyRule;
             }
+
             return null;
         }
     }
@@ -172,21 +170,6 @@ namespace HAgent.Models
         {
             if (!capabilities.IsEnabled(resourceType, resourceId))
                 throw new InvalidOperationException(message);
-        }
-    }
-
-    internal static class MemoryEntryTypeValidator
-    {
-        public static void ValidateKnownTypeId(string typeId)
-        {
-            if (string.IsNullOrWhiteSpace(typeId) || typeId.Length > 256)
-                throw new ArgumentException("Memory TypeId is invalid.", nameof(typeId));
-            var value = typeId.Trim();
-            if (!(value.StartsWith("working.", StringComparison.OrdinalIgnoreCase) ||
-                  value.StartsWith("episodic.", StringComparison.OrdinalIgnoreCase) ||
-                  value.StartsWith("semantic.", StringComparison.OrdinalIgnoreCase) ||
-                  value.StartsWith("procedural.", StringComparison.OrdinalIgnoreCase)))
-                return;
         }
     }
 }

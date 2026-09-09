@@ -45,6 +45,7 @@ namespace HAgent.Example
             AddEvaluationRegressionTab();
             AddResourceGovernanceTab();
             AddKnowledgeWikiTab();
+            AddSkillsTab();
             // This example was implemented ahead of the roadmap order. Keep its public-API
             // verification available without changing the ordered roadmap milestone.
             AddLearningCandidateInterventionTab();
@@ -142,7 +143,7 @@ namespace HAgent.Example
             else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase))
                 subgroupOrder = new[] { "Observability", "Evaluation", "Other Diagnostics" };
             else if (string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase))
-                subgroupOrder = new[] { "Resource Governance", "Knowledge/Wiki", "Learning", "Other Cognition" };
+                subgroupOrder = new[] { "Resource Governance", "Knowledge/Wiki", "Skills", "Learning", "Other Cognition" };
             else
                 subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
 
@@ -283,6 +284,8 @@ namespace HAgent.Example
                 return "Resource Governance";
             if (key == "KNOWLEDGE/WIKI")
                 return "Knowledge/Wiki";
+            if (key == "SKILLS")
+                return "Skills";
             if (key.Contains("LEARNING") || key.Contains("COGNITION"))
                 return "Learning";
 
@@ -317,8 +320,7 @@ namespace HAgent.Example
             if (key.Contains("TOOL"))
                 return "Tools";
 
-            if (key.Contains("PROVIDER") || key == "CAPABILITIES" || key == "RESPONSE NORMALIZATION" ||
-                key == "STREAMING" || key == "LIVE STREAMING")
+            if (key.Contains("PROVIDER") || key == "CAPABILITIES" || key == "RESPONSE NORMALIZATION" || key == "STREAMING" || key == "LIVE STREAMING")
                 return "Providers";
 
             if (key.Contains("POLICY") || key == "APPROVAL WORKFLOW")
@@ -336,7 +338,7 @@ namespace HAgent.Example
             if (key.Contains("EVALUATION"))
                 return "Diagnostics";
 
-            if (key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key.Contains("LEARNING") || key.Contains("COGNITION"))
+            if (key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILLS" || key.Contains("LEARNING") || key.Contains("COGNITION"))
                 return "Cognition";
 
             if (key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION")

@@ -62,6 +62,8 @@ namespace HAgent.Models
             Require(ExecutionId, nameof(ExecutionId), 512, false);
             if (!Enum.IsDefined(typeof(AgentResourceScope), Scope))
                 throw new ArgumentOutOfRangeException(nameof(Scope));
+            if (Scope != AgentResourceScope.Global && string.IsNullOrWhiteSpace(ResourceOwnerId))
+                throw new ArgumentException("Non-global resource governance requests require the authoritative resource owner ID.", nameof(ResourceOwnerId));
             if (Identity != null)
                 Identity.Validate();
             if (Attributes == null)
@@ -97,7 +99,7 @@ namespace HAgent.Models
             RuntimeInstanceId = string.Empty;
             ExecutionId = string.Empty;
             Reason = string.Empty;
-            OwnershipMatches = true;
+            OwnershipMatches = false;
             Allowed = false;
             RequiresApproval = false;
             ResourceCapabilityState = AiResourceCapabilityState.Enabled;
@@ -147,13 +149,15 @@ namespace HAgent.Models
             Require(ResourceType, nameof(ResourceType), 256);
             Require(ResourceId, nameof(ResourceId), 512, false);
             Require(ResourceOwnerId, nameof(ResourceOwnerId), 2048, false);
-            Require(ExpectedOwnerId, nameof(ExpectedOwnerId), 2048, false);
+            Require(ExpectedOwnerId, nameof(ExpectedOwnerId), 2048);
             Require(AgentProfileId, nameof(AgentProfileId), 512, false);
             Require(RuntimeInstanceId, nameof(RuntimeInstanceId), 512, false);
             Require(ExecutionId, nameof(ExecutionId), 512, false);
             Require(Reason, nameof(Reason), 2048, false);
             if (!Enum.IsDefined(typeof(AgentResourceScope), Scope))
                 throw new ArgumentOutOfRangeException(nameof(Scope));
+            if (Scope != AgentResourceScope.Global && string.IsNullOrWhiteSpace(ResourceOwnerId))
+                throw new ArgumentException("Non-global resource governance decisions require the authoritative resource owner ID.", nameof(ResourceOwnerId));
             if (!Enum.IsDefined(typeof(AiResourceCapabilityState), ResourceCapabilityState) || ResourceCapabilityState == AiResourceCapabilityState.Inherit)
                 throw new ArgumentOutOfRangeException(nameof(ResourceCapabilityState));
             if (!Enum.IsDefined(typeof(AiResourceCapabilitySource), ResourceCapabilitySource))
@@ -212,8 +216,9 @@ namespace HAgent.Models
             snapshot.Validate();
 
             var expectedOwnerId = AgentResourceOwnership.GetOwnerId(snapshot.Scope, snapshot.Identity, snapshot.ResourceId);
-            var ownershipMatches = string.IsNullOrWhiteSpace(snapshot.ResourceOwnerId) ||
-                                    string.Equals(snapshot.ResourceOwnerId, expectedOwnerId, StringComparison.Ordinal);
+            var ownershipMatches = snapshot.Scope == AgentResourceScope.Global && string.IsNullOrWhiteSpace(snapshot.ResourceOwnerId)
+                ? true
+                : string.Equals(snapshot.ResourceOwnerId, expectedOwnerId, StringComparison.Ordinal);
 
             var decision = new AiResourceGovernanceDecision
             {
@@ -248,7 +253,7 @@ namespace HAgent.Models
                 return decision;
             }
 
-            decision.PolicyDecision = _policyEngine.Evaluate(ToPolicyContext(snapshot));
+            decision.PolicyDecision = _policyEngine.Evaluate(ToPolicyContext(snapshot, expectedOwnerId));
             if (decision.PolicyDecision == null)
                 throw new InvalidOperationException("The policy engine returned no resource governance decision.");
 
@@ -273,7 +278,7 @@ namespace HAgent.Models
             return decision;
         }
 
-        private static AiPolicyEvaluationContext ToPolicyContext(AiResourceGovernanceRequest request)
+        private static AiPolicyEvaluationContext ToPolicyContext(AiResourceGovernanceRequest request, string expectedOwnerId)
         {
             var context = new AiPolicyEvaluationContext
             {
@@ -286,9 +291,8 @@ namespace HAgent.Models
                 Identity = request.Identity == null ? new AgentIdentityContext() : request.Identity.Clone()
             };
             context.Attributes["resource.scope"] = request.Scope.ToString();
-            context.Attributes["resource.expectedOwnerId"] = AgentResourceOwnership.GetOwnerId(request.Scope, request.Identity, request.ResourceId);
-            if (!string.IsNullOrWhiteSpace(request.ResourceOwnerId))
-                context.Attributes["resource.ownerId"] = request.ResourceOwnerId;
+            context.Attributes["resource.expectedOwnerId"] = expectedOwnerId;
+            context.Attributes["resource.ownerId"] = request.ResourceOwnerId ?? string.Empty;
             foreach (var pair in request.Attributes ?? new Dictionary<string, string>())
                 context.Attributes[pair.Key] = pair.Value;
             return context;
@@ -302,12 +306,6 @@ namespace HAgent.Models
             if (decision.IsDeferred)
                 return "Resource admission was deferred by policy. " + reason;
             return "Resource admission was denied by policy. " + reason;
-        }
-
-        private static void RequirePolicyDecision(AiPolicyDecision decision)
-        {
-            if (decision == null)
-                throw new InvalidOperationException("The policy engine returned no resource governance decision.");
         }
     }
 }

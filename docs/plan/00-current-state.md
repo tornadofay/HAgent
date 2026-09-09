@@ -95,9 +95,11 @@ Evaluation remains measurement-only. Regression results and aggregate preference
 
 ## 0.9575 Resource governance completion boundary
 
-0.9575 is now in progress. Slice 1 establishes the mature resource admission foundation over the existing 0.8 resource primitives, canonical identity ownership, and unified policy engine. The new `AiResourceGovernanceEvaluator` composes owner proof, effective capability state, and policy authorization without introducing a second authorization or resource model. `AiResourceCapabilitySnapshot` now preserves the source of effective configuration as `Default`, `Profile`, or `RuntimeOverride` for operator diagnostics.
+0.9575 Slice 1 is **verified**. The mature resource admission foundation is established over the existing 0.8 resource primitives, canonical identity ownership, and unified policy engine. The `AiResourceGovernanceEvaluator` composes owner proof, effective capability state, and policy authorization without introducing a second authorization or resource model. `AiResourceCapabilitySnapshot` preserves the source of effective configuration as `Default`, `Profile`, or `RuntimeOverride` for operator diagnostics.
 
-Slice 1 deliberately stops before resource-specific repositories, Knowledge/Skill management CRUD, Memory retention, Learning Mode administration, candidate promotion workflows, and broader resource persistence. Those are subsequent 0.9575 slices.
+User verification on 2026-09-09 succeeded on both `.NET Framework 4.8.1` and `.NET 9` for `HAgent.Example → Cognition → Resource Governance → Resource Governance`. The full `.NET 9` `HAgent.Tests` suite passed **146/146** with **0 failed** and **0 skipped**.
+
+Slice 1 deliberately stops before resource-specific repositories, Knowledge/Skill management CRUD, Memory retention, Learning Mode administration, candidate promotion workflows, and broader resource persistence. Slice 2 is now the active implementation target: the provider-neutral Knowledge/Wiki resource contract over the verified governance boundary.
 
 ## Storage implications
 

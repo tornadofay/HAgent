@@ -42,14 +42,15 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User Example verification — .NET 9, 2026-09-09 03:50:11:** same public-API scenario succeeded with the same checks.
    - A final Slice 3 test correction was required for ambient correlation propagation through tool/context/event boundaries; the resulting full suite passed 63/63.
 
-4. **Sampling and bounded retention controls — CURRENT**
-   - Implement provider-neutral sampling policy contracts and deterministic sampling behavior without changing span identity or lifecycle semantics.
-   - Add bounded retention controls for in-memory tracing, including maximum trace/span counts and aggregate diagnostic limits defined by the observability architecture.
-   - Keep sampling/retention separate from correctness: execution lifecycle, authorization, event delivery, and audit behavior must not depend on telemetry retention or sampling outcomes.
-   - Preserve the default-deny payload boundary and existing redaction/omission semantics under sampled and retained records.
-   - Add focused `HAgent.Tests` coverage for deterministic sampling decisions, retention eviction/bounds, per-trace limits, and isolation of sampling/retention from execution correctness.
-   - Add a matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Sampling & Retention`.
-   - Local verification must include solution build, the full `HAgent.Tests` suite, and the exact Example scenario on .NET Framework 4.8.1 and .NET 9 before Slice 4 is marked verified.
+4. **Sampling and bounded retention controls — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+   - Added provider-neutral `TraceSamplingOptions`, `ITraceSampler`, and `TraceRetentionOptions` contracts.
+   - Added deterministic root sampling through `DeterministicTraceSampler`; sampled state is inherited by child spans through `TraceContext` and unsampled spans remain lifecycle-capable without being retained.
+   - Extended `InMemoryTraceRecorder` with optional sampling and bounded retention while preserving the existing no-argument recorder behavior.
+   - Added retention bounds for maximum trace count, maximum span count, maximum spans per trace, aggregate metadata characters, and maximum age; eviction operates on whole older traces where possible and avoids evicting the active trace merely to admit a child span.
+   - Sampling/retention do not alter execution, authorization, event delivery, or span completion semantics, and existing default-deny metadata behavior remains unchanged.
+   - Added focused `HAgent.Tests/ObservabilitySamplingRetentionTests.cs` covering deterministic sampling, unsampled inheritance/suppression, trace/span retention bounds, aggregate metadata limits, and lifecycle independence from retention.
+   - Added and classified the matching public-API `HAgent.Example/MainForm.ObservabilitySamplingRetention.cs` scenario under `Diagnostics → Observability → Observability Sampling & Retention`.
+   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not mark Slice 4 verified until those results are supplied.
    - Do not begin Slice 5 in the same run.
 
 ### Verification rule

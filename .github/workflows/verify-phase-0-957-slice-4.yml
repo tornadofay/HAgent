@@ -33,5 +33,8 @@ jobs:
       - name: Build Example (.NET 9 Windows)
         run: dotnet build src/HAgent.Example/HAgent.Example.csproj --configuration Release --framework net9.0-windows --no-restore
 
-      - name: Run evaluation-focused tests
+      - name: Run model-assisted evaluation tests
         run: dotnet test tests/HAgent.Tests/HAgent.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~ModelAssistedEvaluationTests
+
+      - name: Run full test suite (.NET 9)
+        run: dotnet test tests/HAgent.Tests/HAgent.Tests.csproj --configuration Release --framework net9.0 --no-restore

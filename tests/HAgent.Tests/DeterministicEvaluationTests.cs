@@ -45,8 +45,7 @@ namespace HAgent.Tests
             observation.DecimalValue = null;
             observation.TextValue = new string('x', 2049);
             observation.ValueKind = AiEvaluationObservationKind.Text;
-            observation.Validate();
-            Assert.Equal(string.Empty, "");
+            Assert.Throws<ArgumentOutOfRangeException>(() => observation.Validate());
         }
 
         [Fact]

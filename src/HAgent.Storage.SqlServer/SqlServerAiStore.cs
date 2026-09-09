@@ -44,12 +44,15 @@ BEGIN
         Enabled bit NOT NULL CONSTRAINT DF_HAgentAgents_Enabled DEFAULT(1),
         ToolIdsJson nvarchar(max) NULL,
         ExecutionSelectionJson nvarchar(max) NULL,
-        CapabilityRequirementsJson nvarchar(max) NULL
+        CapabilityRequirementsJson nvarchar(max) NULL,
+        LearningMode nvarchar(50) NULL
     );
 END;
 IF COL_LENGTH(N'dbo.HAgentAgents', N'ToolIdsJson') IS NULL ALTER TABLE dbo.HAgentAgents ADD ToolIdsJson nvarchar(max) NULL;
 IF COL_LENGTH(N'dbo.HAgentAgents', N'ExecutionSelectionJson') IS NULL ALTER TABLE dbo.HAgentAgents ADD ExecutionSelectionJson nvarchar(max) NULL;
 IF COL_LENGTH(N'dbo.HAgentAgents', N'CapabilityRequirementsJson') IS NULL ALTER TABLE dbo.HAgentAgents ADD CapabilityRequirementsJson nvarchar(max) NULL;
+IF COL_LENGTH(N'dbo.HAgentAgents', N'LearningMode') IS NULL ALTER TABLE dbo.HAgentAgents ADD LearningMode nvarchar(50) NULL;
+UPDATE dbo.HAgentAgents SET LearningMode=N'Disabled' WHERE LearningMode IS NULL;
 IF OBJECT_ID(N'dbo.HAgentPolicies', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.HAgentPolicies (
@@ -81,8 +84,7 @@ END;";
                             Id = reader.GetString(0), Name = reader.GetString(1), Kind = reader.GetString(2), BaseUrl = reader.GetString(3),
                             DefaultModel = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
                             DefaultSystemPrompt = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-                            SecretId = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
-                            Enabled = reader.GetBoolean(7)
+                            SecretId = reader.IsDBNull(6) ? string.Empty : reader.GetString(6), Enabled = reader.GetBoolean(7)
                         });
             }
             return list.AsReadOnly();
@@ -91,7 +93,7 @@ END;";
         public async Task<IReadOnlyList<AiAgent>> GetAgentsAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             var list = new List<AiAgent>();
-            const string sql = "SELECT Id, Name, SystemPrompt, UseProviderSystemPrompt, Temperature, MaxOutputTokens, Enabled, ToolIdsJson, ExecutionSelectionJson, CapabilityRequirementsJson FROM dbo.HAgentAgents ORDER BY Name";
+            const string sql = "SELECT Id, Name, SystemPrompt, UseProviderSystemPrompt, Temperature, MaxOutputTokens, Enabled, ToolIdsJson, ExecutionSelectionJson, CapabilityRequirementsJson, LearningMode FROM dbo.HAgentAgents ORDER BY Name";
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand(sql, connection))
             {
@@ -107,7 +109,8 @@ END;";
                             UseProviderSystemPrompt = reader.GetBoolean(3),
                             Temperature = reader.IsDBNull(4) ? (double?)null : reader.GetDouble(4),
                             MaxOutputTokens = reader.IsDBNull(5) ? (int?)null : reader.GetInt32(5),
-                            Enabled = reader.GetBoolean(6)
+                            Enabled = reader.GetBoolean(6),
+                            LearningMode = ParseLearningMode(reader.IsDBNull(10) ? null : reader.GetString(10))
                         };
                         DeserializeInto(reader.IsDBNull(7) ? null : reader.GetString(7), agent.ToolIds);
                         var selection = Deserialize<AiExecutionSelectionPolicy>(reader.IsDBNull(8) ? null : reader.GetString(8));
@@ -129,9 +132,7 @@ END;";
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
                 var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-                if (value == null || value == DBNull.Value)
-                    return new AiPolicySet();
-
+                if (value == null || value == DBNull.Value) return new AiPolicySet();
                 var policy = Deserialize<AiPolicySet>(Convert.ToString(value));
                 if (policy == null) throw new InvalidOperationException("Persisted HAgent policy configuration is invalid.");
                 policy.Validate();
@@ -178,7 +179,6 @@ WHEN NOT MATCHED THEN INSERT (Id,PolicyVersion,PolicyJson) VALUES (@Id,@PolicyVe
                     }
                 }
             }
-
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand("DELETE FROM dbo.HAgentProviders WHERE Id=@id", connection))
             {
@@ -216,8 +216,8 @@ WHEN NOT MATCHED THEN INSERT (Id,Name,Kind,BaseUrl,DefaultModel,DefaultSystemPro
         {
             const string sql = @"MERGE dbo.HAgentAgents AS target
 USING (SELECT @Id Id) AS source ON target.Id=source.Id
-WHEN MATCHED THEN UPDATE SET Name=@Name, SystemPrompt=@SystemPrompt, UseProviderSystemPrompt=@UseProviderSystemPrompt, Temperature=@Temperature, MaxOutputTokens=@MaxOutputTokens, Enabled=@Enabled, ToolIdsJson=@ToolIdsJson, ExecutionSelectionJson=@ExecutionSelectionJson, CapabilityRequirementsJson=@CapabilityRequirementsJson
-WHEN NOT MATCHED THEN INSERT (Id,Name,SystemPrompt,UseProviderSystemPrompt,Temperature,MaxOutputTokens,Enabled,ToolIdsJson,ExecutionSelectionJson,CapabilityRequirementsJson) VALUES (@Id,@Name,@SystemPrompt,@UseProviderSystemPrompt,@Temperature,@MaxOutputTokens,@Enabled,@ToolIdsJson,@ExecutionSelectionJson,@CapabilityRequirementsJson);";
+WHEN MATCHED THEN UPDATE SET Name=@Name, SystemPrompt=@SystemPrompt, UseProviderSystemPrompt=@UseProviderSystemPrompt, Temperature=@Temperature, MaxOutputTokens=@MaxOutputTokens, Enabled=@Enabled, ToolIdsJson=@ToolIdsJson, ExecutionSelectionJson=@ExecutionSelectionJson, CapabilityRequirementsJson=@CapabilityRequirementsJson, LearningMode=@LearningMode
+WHEN NOT MATCHED THEN INSERT (Id,Name,SystemPrompt,UseProviderSystemPrompt,Temperature,MaxOutputTokens,Enabled,ToolIdsJson,ExecutionSelectionJson,CapabilityRequirementsJson,LearningMode) VALUES (@Id,@Name,@SystemPrompt,@UseProviderSystemPrompt,@Temperature,@MaxOutputTokens,@Enabled,@ToolIdsJson,@ExecutionSelectionJson,@CapabilityRequirementsJson,@LearningMode);";
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand(sql, connection))
             {
@@ -242,6 +242,15 @@ WHEN NOT MATCHED THEN INSERT (Id,Name,SystemPrompt,UseProviderSystemPrompt,Tempe
             c.Parameters.AddWithValue("@ToolIdsJson", JsonSerializer.Serialize(a.ToolIds ?? new List<string>(), JsonOptions));
             c.Parameters.AddWithValue("@ExecutionSelectionJson", JsonSerializer.Serialize(a.ExecutionSelection ?? new AiExecutionSelectionPolicy(), JsonOptions));
             c.Parameters.AddWithValue("@CapabilityRequirementsJson", JsonSerializer.Serialize(a.CapabilityRequirements ?? new AiCapabilityRequirements(), JsonOptions));
+            c.Parameters.AddWithValue("@LearningMode", a.LearningMode.ToString());
+        }
+
+        private static AiLearningMode ParseLearningMode(string value)
+        {
+            AiLearningMode parsed;
+            if (!Enum.TryParse(value, true, out parsed) || !Enum.IsDefined(typeof(AiLearningMode), parsed))
+                return AiLearningMode.Disabled;
+            return parsed;
         }
 
         private static T Deserialize<T>(string json) where T : class

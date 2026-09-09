@@ -97,8 +97,6 @@ namespace HAgent.Models
 
             if (CreatedAt == default(DateTimeOffset) || OccurredAt == default(DateTimeOffset))
                 throw new ArgumentException("Memory timestamps are required.");
-            if (OccurredAt < CreatedAt)
-                throw new ArgumentException("Memory OccurredAt cannot be earlier than CreatedAt.");
             if (ExpiresAt.HasValue && ExpiresAt.Value <= CreatedAt)
                 throw new ArgumentException("Memory ExpiresAt must be later than CreatedAt.");
 

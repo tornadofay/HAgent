@@ -116,8 +116,6 @@ namespace HAgent.Models
 
         public AiDeterministicEvaluationEvaluator(AiDeterministicEvaluationRuleKind ruleKind, string id = null, string version = "1")
         {
-            if (!Enum.IsDefined(typeof(AiDeterministicEvaluationRuleKind), ruleKind))
-                throw new ArgumentOutOfRangeException(nameof(ruleKind));
             RuleKind = ruleKind;
             _id = string.IsNullOrWhiteSpace(id) ? "deterministic." + ruleKind.ToString() : id;
             _version = version ?? string.Empty;
@@ -245,23 +243,34 @@ namespace HAgent.Models
         {
             string thresholdText;
             if (!request.Criteria.TryGetValue(MaxThresholdCriterion, out thresholdText) || string.IsNullOrWhiteSpace(thresholdText))
-                return Inconclusive(result, "The deterministic threshold rule requires a non-empty 'max' criterion.");
+            {
+                MarkInconclusive(result, "The deterministic threshold rule requires a non-empty 'max' criterion.");
+                return null;
+            }
 
             decimal threshold;
             if (!decimal.TryParse(thresholdText, NumberStyles.Number, CultureInfo.InvariantCulture, out threshold) || threshold < 0m)
-                return Inconclusive(result, "The deterministic threshold rule received an invalid non-negative 'max' criterion.");
+            {
+                MarkInconclusive(result, "The deterministic threshold rule received an invalid non-negative 'max' criterion.");
+                return null;
+            }
             result.Metadata["threshold"] = threshold.ToString(CultureInfo.InvariantCulture);
             return observation.DecimalValue.Value <= threshold;
         }
 
         private static AiEvaluation Inconclusive(AiEvaluation result, string reason)
         {
+            MarkInconclusive(result, reason);
+            return result;
+        }
+
+        private static void MarkInconclusive(AiEvaluation result, string reason)
+        {
             result.Outcome = AiEvaluationOutcome.Inconclusive;
             result.Score = null;
             result.Confidence = 1d;
             result.Label = "inconclusive";
             result.Reason = reason;
-            return result;
         }
     }
 }

@@ -117,7 +117,8 @@ namespace HAgent.Models
                 ExecutionId = ExecutionId,
                 GoalId = GoalId,
                 PlanId = PlanId,
-                TraceId = TraceId
+                TraceId = TraceId,
+                RequestedAt = RequestedAt
             };
             foreach (var input in Inputs ?? new List<AiEvaluationInputReference>())
                 if (input != null) clone.Inputs.Add(input.Clone());
@@ -175,6 +176,12 @@ namespace HAgent.Models
             EvaluatorVersion = string.Empty;
             Label = string.Empty;
             Reason = string.Empty;
+            AgentId = string.Empty;
+            RuntimeInstanceId = string.Empty;
+            ExecutionId = string.Empty;
+            GoalId = string.Empty;
+            PlanId = string.Empty;
+            TraceId = string.Empty;
             Evidence = new List<AiEvaluationInputReference>();
             Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             Confidence = null;
@@ -224,7 +231,8 @@ namespace HAgent.Models
                 ExecutionId = ExecutionId,
                 GoalId = GoalId,
                 PlanId = PlanId,
-                TraceId = TraceId
+                TraceId = TraceId,
+                EvaluatedAt = EvaluatedAt
             };
             foreach (var item in Evidence ?? new List<AiEvaluationInputReference>())
                 if (item != null) clone.Evidence.Add(item.Clone());

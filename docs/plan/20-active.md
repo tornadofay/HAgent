@@ -80,12 +80,15 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User verification — 2026-09-09 05:09:** .NET 9 Example succeeded with the same checks.
    - **User verification — 2026-09-09:** full `HAgent.Tests` completed with **77/77 tests passed** after the Slice 6 Example helper correction.
 
-7. **Cross-process trace context and correlation boundary — CURRENT**
-   - Define the provider-neutral host/transport boundary for carrying `TraceContext` and existing correlation identity across process boundaries without coupling HAgent.Core to HTTP, OpenTelemetry, message formats, or a specific telemetry vendor.
-   - Reconcile trace propagation with `ExecutionCorrelationId`, `HostCorrelationId`, `EventId`, and `CausationId` so cross-process transport does not collapse distinct identity concepts.
-   - Define bounded import/export values and invalid/incomplete incoming-context handling, including safe behavior when a remote trace context is absent, malformed, unsampled, or no longer trusted by the host boundary.
-   - Add focused `HAgent.Tests` coverage and a matching public-API `HAgent.Example` scenario using deterministic in-process transport fakes only.
-   - Do not add real network transport, vendor-specific tracing dependencies, or remote telemetry delivery in this slice.
+7. **Cross-process trace context and correlation boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+   - Added provider-neutral `TracePropagationCarrier`, `TracePropagationImportOptions`, `TracePropagationImportStatus`, and `TracePropagationImportResult` contracts with bounded key/value counts and lengths.
+   - Extended `TracePropagation` to export `TraceContext` plus the existing bounded correlation identities into the carrier and import them deterministically without coupling Core to HTTP, message buses, OpenTelemetry, or vendor-specific telemetry.
+   - Preserved the distinction between `TraceId`, `ParentSpanId`, sampled state, and `ExecutionId`, `ExecutionCorrelationId`, `HostCorrelationId`, `EventId`, `CausationId`, plus the other bounded identity dimensions.
+   - Incoming trace context is explicitly rejected as untrusted by default; missing context returns `Missing`, malformed trace data returns `InvalidTraceContext`, malformed correlation data returns `InvalidCorrelation`, and accepted unsampled state remains unsampled.
+   - Correlation values remain diagnostic identity only and do not become authentication or authorization authority. Host trust remains outside Core.
+   - Added focused `tests/HAgent.Tests/ObservabilityTracePropagationTests.cs` covering round-trip identity preservation, unsampled propagation, missing context, explicit trust rejection, malformed context, invalid sampling, oversized correlation input, and carrier clone/bounds behavior.
+   - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityTracePropagation.cs` under `Diagnostics → Observability → Observability Trace Propagation`.
+   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not begin Slice 8 in the same run.
 
 ### Verification rule
 

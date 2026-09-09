@@ -27,16 +27,21 @@ This file is the compact handoff state for work currently in progress. It is not
 - Added `src/HAgent.Example/MainForm.DeterministicEvaluation.cs` as the public API Example for the deterministic rule set, including explicit failure, missing-evidence, and ambiguity cases without provider/model transport.
 - Explicitly classified the new Example as `Diagnostics → Evaluation → Deterministic Evaluation`.
 - Updated `docs/architecture/23-evaluation-quality.md` to make bounded host observations and deterministic evaluator semantics authoritative.
+- Fixed deterministic threshold/boolean inconclusive-path return types so `EvaluateAsync` consistently returns `Task<AiEvaluation>`.
 
 ## Verification boundary
 
 The repository implementation and matching Example/test coverage are present, but this run has not executed the supported repository build/test/WinForms Example sequence from this connected session. Do not mark Slice 2 verified yet.
 
-Required local verification checkpoint:
+### Exact user verification commands/targets
+
+**Tests to run:** `tests/HAgent.Tests/DeterministicEvaluationTests.cs` (`DeterministicEvaluationTests`) and then the full `HAgent.Tests` suite as required by the slice.
+
+**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Deterministic Evaluation` on **.NET Framework 4.8.1** and **.NET 9**.
 
 - Build the affected solution/projects after pulling the current branch.
-- Run the full `HAgent.Tests` suite.
-- Run `HAgent.Example → Diagnostics → Evaluation → Deterministic Evaluation` on .NET Framework 4.8.1.
+- Run the focused deterministic evaluation tests and the full `HAgent.Tests` suite.
+- Run the exact Example above on .NET Framework 4.8.1.
 - Run the same Example on .NET 9.
 - Confirm deterministic evidence remains provider-neutral, bounded, cancellation-aware, and non-authoritative.
 

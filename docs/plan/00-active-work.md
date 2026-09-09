@@ -15,28 +15,31 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current run
 
-**0.956 Slice 7 cross-process trace context and correlation boundary — CURRENT.**
+**0.956 Slice 7 cross-process trace context and correlation boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
 
-This slice defines the provider-neutral host/transport boundary for moving trace context and existing correlation identity across process boundaries without coupling HAgent.Core to HTTP, OpenTelemetry, a message format, or a telemetry vendor.
+Slice 7 now provides a bounded provider-neutral host/transport boundary for moving `TraceContext` and existing correlation identities across process boundaries. It does not implement a wire transport or remote telemetry service.
 
-## Completed immediately before Slice 7
+## Implemented in Slice 7
 
-- Slice 6 added bounded `TraceDiagnosticProjectionOptions`, `TraceDiagnosticMetadataItem`, `TraceDiagnosticSpan`, and `TraceDiagnosticProjection` contracts.
-- Slice 6 added `TraceDiagnosticProjector` with deterministic ordering and bounded trace/span identity, timing, status, parentage, correlation, and safe diagnostic metadata.
-- Slice 6 added focused tests for safe allowlisting, omission accounting, explicit redaction markers, parent/correlation relationships, bounds, status/duration, and unsampled suppression.
-- Slice 6 added the public-API Example under `Diagnostics → Observability → Observability Diagnostic Projection`.
-- **User verification — 2026-09-09:** full `HAgent.Tests` completed with **77/77 tests passed**.
-- **User Example verification — .NET Framework 4.8.1, 2026-09-09 05:08:18:** diagnostic projection succeeded with all stated safety and determinism checks.
-- **User Example verification — .NET 9, 2026-09-09 05:09:01:** same scenario succeeded with the same checks.
+- Added bounded `TracePropagationCarrier`, `TracePropagationImportOptions`, `TracePropagationImportStatus`, and `TracePropagationImportResult` contracts.
+- Extended `TracePropagation` with deterministic export/import of trace context and bounded deployment, tenant, principal, user, session, workspace, agent-profile, runtime, execution, execution-correlation, host-correlation, event, and causation identities.
+- Preserved distinct trace, execution, host, event, and causation identities rather than collapsing them into one cross-process value.
+- Added explicit host trust acceptance for incoming trace context; the default rejects untrusted incoming trace context.
+- Added safe handling for missing, malformed, incomplete, unsampled, and oversized incoming propagation values.
+- Kept Core independent of HTTP headers, W3C/OpenTelemetry types, vendor SDKs, message buses, and remote telemetry delivery.
+- Added focused `tests/HAgent.Tests/ObservabilityTracePropagationTests.cs` covering round-trip propagation, identity separation, unsampled state, missing context, explicit trust rejection, malformed trace input, invalid sampled state, oversized correlation input, and carrier clone/bounds behavior.
+- Added `src/HAgent.Example/MainForm.ObservabilityTracePropagation.cs` and registered it under `Diagnostics → Observability → Observability Trace Propagation`.
+- Updated `docs/architecture/22-observability.md` with the cross-process propagation boundary and its trust/validation semantics.
 
-## Slice 7 scope
+## Slice 7 verification boundary
 
-- Define the bounded provider-neutral import/export representation needed for `TraceContext` and relevant existing correlation identifiers at a host/transport boundary.
-- Preserve the distinction between `TraceId`/`SpanId`/`ParentSpanId` and `ExecutionId`/`ExecutionCorrelationId`/`HostCorrelationId`/`EventId`/`CausationId`.
-- Define deterministic handling for missing, malformed, incomplete, unsampled, or otherwise untrusted incoming trace context.
-- Keep Core independent of HTTP headers, W3C/OpenTelemetry types, vendor SDKs, message buses, and remote telemetry services.
-- Add focused `HAgent.Tests` coverage and a matching public-API `HAgent.Example` using deterministic in-process transport fakes only.
-- Do not implement real network transport or remote telemetry delivery in this slice.
+- Build the solution after pulling the current branch.
+- Run the full `HAgent.Tests` suite.
+- Run `HAgent.Example → Diagnostics → Observability → Observability Trace Propagation` on .NET Framework 4.8.1.
+- Run the same Example on .NET 9.
+- Confirm no real network transport, remote telemetry service, or real provider request is contacted.
+- Do not mark Slice 7 verified until all required local results are supplied.
+- Do not begin Slice 8 in the same run.
 
 ## Current blockers
 

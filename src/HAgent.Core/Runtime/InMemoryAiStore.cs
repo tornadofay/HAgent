@@ -40,6 +40,7 @@ namespace HAgent.Runtime
         public Task SaveAgentAsync(AiAgent agent, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (agent == null) throw new ArgumentNullException(nameof(agent));
+            AiLearningModePolicy.Validate(agent.LearningMode);
             lock (_sync) _agents[agent.Id] = Clone(agent);
             return Task.CompletedTask;
         }
@@ -94,7 +95,9 @@ namespace HAgent.Runtime
             Enabled = x.Enabled,
             ExecutionSelection = x.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : x.ExecutionSelection.Clone(),
             CapabilityRequirements = x.CapabilityRequirements == null ? new AiCapabilityRequirements() : x.CapabilityRequirements.Clone(),
-            ResourceCapabilities = x.ResourceCapabilities == null ? new AiResourceCapabilityPolicy() : x.ResourceCapabilities.Clone()
+            ResourceCapabilities = x.ResourceCapabilities == null ? new AiResourceCapabilityPolicy() : x.ResourceCapabilities.Clone(),
+            Skills = x.Skills == null ? new AiSkillSet { Name = "Default skills" } : x.Skills.Clone(),
+            LearningMode = x.LearningMode
         };
     }
 }

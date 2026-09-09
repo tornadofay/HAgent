@@ -43,6 +43,8 @@ namespace HAgent.Models
         private readonly IAiEvaluationJudge _judge;
         private readonly string _id;
         private readonly string _version;
+        private readonly string _judgeId;
+        private readonly string _judgeVersion;
 
         public AiModelAssistedEvaluationEvaluator(
             IAiEvaluationJudge judge,
@@ -65,6 +67,8 @@ namespace HAgent.Models
 
             _id = id;
             _version = version ?? string.Empty;
+            _judgeId = _judge.Id;
+            _judgeVersion = _judge.Version ?? string.Empty;
         }
 
         public string Id { get { return _id; } }
@@ -120,9 +124,9 @@ namespace HAgent.Models
 
             evaluation.Metadata["evaluation.source"] = "model-assisted";
             evaluation.Metadata["evaluation.authoritative"] = "false";
-            evaluation.Metadata["judge.id"] = _judge.Id;
-            if (!string.IsNullOrEmpty(_judge.Version))
-                evaluation.Metadata["judge.version"] = _judge.Version;
+            evaluation.Metadata["judge.id"] = _judgeId;
+            if (!string.IsNullOrEmpty(_judgeVersion))
+                evaluation.Metadata["judge.version"] = _judgeVersion;
 
             evaluation.Validate();
             return evaluation;

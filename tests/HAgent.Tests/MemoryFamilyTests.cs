@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using HAgent.Models;
 using Xunit;
 
@@ -10,9 +11,7 @@ namespace HAgent.Tests
         public void MemoryEntry_DefaultsToSemanticFactFamilyAndType()
         {
             var entry = CreateEntry();
-
             entry.Validate();
-
             Assert.Equal(AiMemoryFamily.Semantic, entry.Family);
             Assert.Equal("semantic.fact", entry.TypeId);
             Assert.False(entry.IsExpired());
@@ -21,13 +20,7 @@ namespace HAgent.Tests
         [Fact]
         public void MemoryEntry_AllBuiltInFamiliesRequireTheirOwnTypeNamespace()
         {
-            foreach (var family in new[]
-            {
-                AiMemoryFamily.Working,
-                AiMemoryFamily.Episodic,
-                AiMemoryFamily.Semantic,
-                AiMemoryFamily.Procedural
-            })
+            foreach (var family in new[] { AiMemoryFamily.Working, AiMemoryFamily.Episodic, AiMemoryFamily.Semantic, AiMemoryFamily.Procedural })
             {
                 var entry = CreateEntry();
                 entry.Family = family;
@@ -54,7 +47,6 @@ namespace HAgent.Tests
             var entry = CreateEntry();
             entry.Family = AiMemoryFamily.Custom;
             entry.TypeId = "semantic.customer";
-
             Assert.Throws<ArgumentException>(() => entry.Validate());
         }
 
@@ -79,6 +71,35 @@ namespace HAgent.Tests
         }
 
         [Fact]
+        public void MemoryEntry_JsonRoundTripPreservesFamilyTypeProvenanceAndExpiration()
+        {
+            var entry = CreateEntry();
+            entry.Family = AiMemoryFamily.Procedural;
+            entry.TypeId = "procedural.review-step";
+            entry.Provenance = new AiMemoryProvenance
+            {
+                Kind = AiMemoryProvenanceKind.ModelGenerated,
+                Source = "model",
+                SourceExecutionId = "execution-42",
+                SourceRuntimeInstanceId = "runtime-42",
+                Evidence = "Repeated successful execution.",
+                Confidence = 0.91m
+            };
+            entry.ExpiresAt = entry.CreatedAt.AddHours(4);
+
+            var json = JsonSerializer.Serialize(entry);
+            var roundTrip = JsonSerializer.Deserialize<MemoryEntry>(json);
+            roundTrip.Validate();
+
+            Assert.Equal(AiMemoryFamily.Procedural, roundTrip.Family);
+            Assert.Equal("procedural.review-step", roundTrip.TypeId);
+            Assert.Equal(AiMemoryProvenanceKind.ModelGenerated, roundTrip.Provenance.Kind);
+            Assert.Equal("execution-42", roundTrip.Provenance.SourceExecutionId);
+            Assert.Equal(0.91m, roundTrip.Provenance.Confidence);
+            Assert.Equal(entry.ExpiresAt, roundTrip.ExpiresAt);
+        }
+
+        [Fact]
         public void MemoryEntry_RejectsUnboundedProvenanceAndMetadata()
         {
             var entry = CreateEntry();
@@ -87,8 +108,7 @@ namespace HAgent.Tests
 
             entry = CreateEntry();
             entry.Provenance.Evidence = null;
-            for (var i = 0; i < 33; i++)
-                entry.Metadata["key-" + i] = "value";
+            for (var i = 0; i < 33; i++) entry.Metadata["key-" + i] = "value";
             Assert.Throws<ArgumentException>(() => entry.Validate());
         }
 
@@ -109,9 +129,7 @@ namespace HAgent.Tests
         {
             var entry = CreateEntry();
             entry.OccurredAt = entry.CreatedAt.AddDays(-3);
-
             entry.Validate();
-
             Assert.True(entry.OccurredAt < entry.CreatedAt);
         }
 

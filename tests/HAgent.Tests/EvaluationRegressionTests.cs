@@ -15,10 +15,12 @@ namespace HAgent.Tests
         {
             var suite = CreateSuite();
             suite.Cases.Add(Case("case-1"));
-
+            suite.Cases.Add(Case("case-1"));
             Assert.Throws<ArgumentException>(() => suite.Validate());
 
             suite = CreateSuite();
+            suite.Cases.Add(Case("case-1"));
+            suite.Targets.Add(Target("variant-a"));
             suite.Targets.Add(Target("variant-a"));
             Assert.Throws<ArgumentException>(() => suite.Validate());
         }
@@ -176,8 +178,9 @@ namespace HAgent.Tests
             var run = await AiEvaluationRegressionRunner.RunAsync(suite, executor, CancellationToken.None);
 
             var request = run.CreateAggregationRequest();
-            Assert.Equal(2, request.Samples.Count);
-            Assert.All(request.Samples, sample => Assert.Equal("variant-a", sample.VariantId));
+            Assert.Equal(3, request.Samples.Count);
+            Assert.Equal(2, request.Samples.Count(sample => sample.VariantId == "variant-a"));
+            Assert.Equal(1, request.Samples.Count(sample => sample.VariantId == "variant-b"));
 
             request.Samples[0].Evaluation.Score = 0m;
             Assert.NotEqual(0m, run.Samples[0].Evaluation.Score);
@@ -252,17 +255,20 @@ namespace HAgent.Tests
         private sealed class ConcurrencyTrackingExecutor : IAiEvaluationRegressionExecutor
         {
             private int _active;
-            public int MaximumObserved { get; private set; }
+            private int _maximumObserved;
+
+            public int MaximumObserved { get { return Volatile.Read(ref _maximumObserved); } }
 
             public async Task<AiEvaluationSample> ExecuteAsync(AiEvaluationRegressionCase testCase, AiEvaluationRegressionTarget target, CancellationToken cancellationToken)
             {
                 var active = Interlocked.Increment(ref _active);
-                var observed = Volatile.Read(ref MaximumObserved);
-                while (active > observed)
+                while (true)
                 {
-                    if (Interlocked.CompareExchange(ref MaximumObserved, active, observed) == observed)
+                    var observed = Volatile.Read(ref _maximumObserved);
+                    if (active <= observed)
                         break;
-                    observed = Volatile.Read(ref MaximumObserved);
+                    if (Interlocked.CompareExchange(ref _maximumObserved, active, observed) == observed)
+                        break;
                 }
 
                 try

@@ -86,19 +86,21 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - Preserved the distinction between `TraceId`, `ParentSpanId`, sampled state, and `ExecutionId`, `ExecutionCorrelationId`, `HostCorrelationId`, `EventId`, `CausationId`, plus the other bounded identity dimensions.
    - Incoming trace context is explicitly rejected as untrusted by default; missing context returns `Missing`, malformed trace data returns `InvalidTraceContext`, malformed correlation data returns `InvalidCorrelation`, and accepted unsampled state remains unsampled.
    - Correlation values remain diagnostic identity only and do not become authentication or authorization authority. Host trust remains outside Core.
-   - Added focused `tests/HAgent.Tests/ObservabilityTracePropagationTests.cs` covering round-trip identity preservation, unsampled propagation, missing context, explicit trust rejection, malformed context, invalid sampling, oversized correlation input, and carrier clone/bounds behavior.
+   - Added focused `tests/HAgent.Tests/ObservabilityTracePropagationTests.cs` covering round-trip identity preservation, unsampled propagation, missing context, explicit trust rejection, malformed trace input, invalid sampled state, oversized correlation input, and carrier clone/bounds behavior.
    - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityTracePropagation.cs` under `Diagnostics → Observability → Observability Trace Propagation`.
    - **User verification — 2026-09-09 05:15:** full `HAgent.Tests` completed with **85/85 tests passed**.
    - **User Example verification — .NET Framework 4.8.1, 2026-09-09 05:15:46:** cross-process trace/correlation propagation succeeded, including round-trip identity preservation, explicit trust acceptance/rejection, missing/malformed handling, unsampled preservation, carrier bounds, and no HTTP/message/OpenTelemetry/remote telemetry/provider transport.
    - **User Example verification — .NET 9, 2026-09-09 05:16:23:** same public-API scenario succeeded with the same checks.
 
-8. **Failure, retry, fallback, waiting, and stale-result observability — CURRENT**
-   - Make important non-success and recovery decisions observable without changing their execution semantics: policy denial/defer, provider failure, retry, fallback target, waiting/backpressure, cancellation/timeout, runtime recovery, and stale/late result rejection.
-   - Reconcile existing execution lifecycle state, intervention/terminal-state handling, provider attempts, fallback planning, scheduling/waiting, and stale-result protection with the trace hierarchy so each decision is represented by bounded provider-neutral metadata/status rather than raw payloads.
-   - Ensure a late or stale completion cannot overwrite the accepted terminal execution outcome merely because tracing records the attempt; tracing observes the accepted lifecycle transition separately from rejected late work.
-   - Add focused `HAgent.Tests` coverage for failure classification, retry/fallback relationships, waiting/backpressure, cancellation/timeout, stale-result rejection, and recovery ordering.
-   - Add a matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Outcomes & Recovery` using deterministic in-process fakes only.
-   - Do not add real network transport, remote telemetry delivery, or provider-vendor dependencies in this slice.
+8. **Failure, retry, fallback, waiting, and stale-result observability — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+   - Added provider-neutral `TraceObservation` as the bounded runtime decision-observation helper. When no traced recorder is active, observations are suppressed.
+   - Extended ambient trace state to carry the active recorder so runtime decisions can emit child spans without introducing a second execution-state authority.
+   - Extended `TracingProviderAdapter` so repeated provider invocations emit explicit `provider.retry` observations, retry-wait boundary observations, and `provider.recovery` observations; provider invocation spans also expose bounded attempt numbers.
+   - Extended `TracingAgentRuntime` to observe true multi-provider fallback when multiple provider targets appear in one traced execution and to record stale/late provider completion as `execution.stale-result` with `Rejected` status. These observations cannot change accepted execution terminal state.
+   - The implementation does not add retry/fallback behavior; it observes behavior already controlled by the execution runtime. No raw provider payloads, prompts, responses, credentials, or exceptions are copied into decision metadata.
+   - Added focused `tests/HAgent.Tests/ObservabilityOutcomeTracingTests.cs` covering observation suppression without an ambient trace, parent/correlation propagation, outcome statuses, and an actual traced retry/recovery path using a deterministic transient failure fake.
+   - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityOutcomeTracing.cs` under `Diagnostics → Observability → Observability Outcome Tracing`.
+   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Confirm no remote telemetry or real provider request is used. Do not begin Slice 9 in the same run.
 
 ### Verification rule
 

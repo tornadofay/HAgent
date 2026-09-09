@@ -54,6 +54,8 @@ namespace HAgent.Models
             InstructionSnapshot = instructionSnapshot == null ? new AiInstructionSnapshot(null, null) : instructionSnapshot.Clone();
             Context = contextSnapshot == null ? null : contextSnapshot.Clone();
             Skills = skillSnapshot == null ? new AiSkillExecutionSnapshot(new AiSkillBinding[0]) : skillSnapshot.Clone();
+            LearningMode = Agent.LearningMode;
+            AiLearningModePolicy.Validate(LearningMode);
             EffectivePolicy.Validate();
             EffectiveResourceCapabilities.Validate();
             CreatedAt = DateTimeOffset.UtcNow;
@@ -69,6 +71,7 @@ namespace HAgent.Models
         public AiResourceCapabilitySnapshot EffectiveResourceCapabilities { get; private set; }
         public AiInstructionSnapshot InstructionSnapshot { get; private set; }
         public AiSkillExecutionSnapshot Skills { get; private set; }
+        public AiLearningMode LearningMode { get; private set; }
 
         /// <summary>
         /// Optional execution-owned provider-neutral context snapshot captured from the canonical request.
@@ -104,13 +107,15 @@ namespace HAgent.Models
                 ExecutionSelection = source.ExecutionSelection == null ? new AiExecutionSelectionPolicy() : source.ExecutionSelection.Clone(),
                 CapabilityRequirements = source.CapabilityRequirements == null ? new AiCapabilityRequirements() : source.CapabilityRequirements.Clone(),
                 ResourceCapabilities = source.ResourceCapabilities == null ? new AiResourceCapabilityPolicy() : source.ResourceCapabilities.Clone(),
-                Skills = source.Skills == null ? new AiSkillSet { Name = "Default skills" } : source.Skills.Clone()
+                Skills = source.Skills == null ? new AiSkillSet { Name = "Default skills" } : source.Skills.Clone(),
+                LearningMode = source.LearningMode
             };
 
             if (overrides == null) return clone;
             if (overrides.Temperature.HasValue) clone.Temperature = overrides.Temperature;
             if (overrides.MaxOutputTokens.HasValue) clone.MaxOutputTokens = overrides.MaxOutputTokens;
             if (!string.IsNullOrWhiteSpace(overrides.SystemPrompt)) clone.SystemPrompt = overrides.SystemPrompt;
+            if (overrides.LearningMode.HasValue) clone.LearningMode = overrides.LearningMode.Value;
             return clone;
         }
 

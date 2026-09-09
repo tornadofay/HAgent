@@ -20,37 +20,29 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current run
 
-**0.956 Slice 4 sampling and bounded retention controls — CURRENT.**
+**0.956 Slice 4 sampling and bounded retention controls — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
 
-The next slice adds provider-neutral, deterministic sampling policy and bounded in-memory retention. Sampling and retention remain observability concerns only and must not alter execution correctness, authorization, event delivery, or execution audit semantics.
+This slice adds provider-neutral deterministic sampling and bounded in-memory retention. Sampling and retention remain observability concerns only and do not alter execution correctness, authorization, event delivery, or execution audit semantics.
 
-## Implemented and verified through Slice 3
+## Implemented in Slice 4
 
-- Slice 2 trace identity/span lifecycle contracts and bounded in-memory recorder are verified.
-- `TracingAgentRuntime` creates and completes execution-root spans from canonical runtime lifecycle events and restores outer ambient trace context after nested execution.
-- `TracingPolicyEngine` records policy evaluation outcome/rule/reason as bounded metadata without changing policy authority.
-- `TracingProviderAdapter` records provider invocation and preserves execution correlation without sending trace state in provider payloads.
-- `TracingAgentTool` records tool execution while explicitly omitting raw arguments/results and preserving ambient correlation.
-- `TracingContextAssembler` records context assembly metadata without copying context payloads and preserves ambient correlation.
-- `TracingEventDispatcher` traces event publication and handler execution and propagates trace context through the cloned `EventEnvelope` without copying payload/context.
-- `TracePropagation` exposes explicit provider-neutral propagation scopes.
-- `EventEnvelope.TraceContext` carries optional trace propagation metadata while retaining event correlation and causation separately.
-- Focused `HAgent.Tests` and the matching `HAgent.Example` scenario cover success, hierarchy, correlation, tool/context/event propagation, payload exclusion, failure, cancellation, and nested propagation restoration.
+- Added `TraceSamplingOptions`, `ITraceSampler`, and `TraceRetentionOptions` to the provider-neutral trace contracts.
+- Added `DeterministicTraceSampler` using stable correlation/operation material and a configurable sample rate/salt.
+- Extended `InMemoryTraceRecorder` with optional sampling and bounded retention while preserving the existing default constructor behavior.
+- Sampling is decided for root spans and inherited through child `TraceContext`; unsampled spans still receive normal trace identity and can complete normally, but are not retained.
+- Retention bounds include maximum trace count, maximum span count, maximum spans per trace, aggregate metadata characters, and maximum age.
+- Retention eviction is trace-aware and avoids evicting the active trace simply to admit another child span when the configured span/metadata bound is reached.
+- Added `tests/HAgent.Tests/ObservabilitySamplingRetentionTests.cs` covering deterministic sampling, unsampled inheritance/suppression, retention bounds, per-trace limits, aggregate metadata limits, and lifecycle independence.
+- Added `src/HAgent.Example/MainForm.ObservabilitySamplingRetention.cs` and registered it under `Diagnostics → Observability → Observability Sampling & Retention`.
 
-## Slice 3 verification evidence
+## Slice 4 verification boundary
 
-- User `HAgent.Tests`: **63/63 passed** on 2026-09-09.
-- User `HAgent.Example` `.NET Framework 4.8.1`: **Observability Runtime Instrumentation succeeded** at 2026-09-09 03:49:21.
-- User `HAgent.Example` `.NET 9`: **Observability Runtime Instrumentation succeeded** at 2026-09-09 03:50:11.
-- Both Examples verified execution/policy/provider hierarchy, distinct execution/host correlation, tool/context/event propagation, event publication→handler parentage, sensitive payload omission, failure and cancellation terminal statuses, deterministic fake provider transport, and no real provider request.
-
-## Current Slice 4 boundary
-
-- Define deterministic provider-neutral sampling decisions for trace/span capture.
-- Define bounded in-memory retention/eviction behavior using the limits already established by the observability architecture.
-- Preserve trace/span lifecycle semantics and default-deny metadata regardless of sampling/retention configuration.
-- Add focused tests for deterministic sampling, retention bounds/eviction, per-trace limits, and isolation from execution correctness.
-- Add matching public-API Example verification under `Diagnostics → Observability → Sampling & Retention`.
+- Build the solution after pulling the current branch.
+- Run the full `HAgent.Tests` suite.
+- Run `HAgent.Example → Diagnostics → Observability → Observability Sampling & Retention → Run sampling & retention test` on .NET Framework 4.8.1.
+- Run the same Example on .NET 9.
+- Confirm sampling/retention bounds and deterministic behavior without any real provider request.
+- Do not mark Slice 4 verified until all required local results are supplied.
 - Do not begin Slice 5 in the same run.
 
 ## Current blockers
@@ -613,14 +605,15 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User Example verification — .NET 9, 2026-09-09 03:50:11:** same public-API scenario succeeded with the same checks.
    - A final Slice 3 test correction was required for ambient correlation propagation through tool/context/event boundaries; the resulting full suite passed 63/63.
 
-4. **Sampling and bounded retention controls — CURRENT**
-   - Implement provider-neutral sampling policy contracts and deterministic sampling behavior without changing span identity or lifecycle semantics.
-   - Add bounded retention controls for in-memory tracing, including maximum trace/span counts and aggregate diagnostic limits defined by the observability architecture.
-   - Keep sampling/retention separate from correctness: execution lifecycle, authorization, event delivery, and audit behavior must not depend on telemetry retention or sampling outcomes.
-   - Preserve the default-deny payload boundary and existing redaction/omission semantics under sampled and retained records.
-   - Add focused `HAgent.Tests` coverage for deterministic sampling decisions, retention eviction/bounds, per-trace limits, and isolation of sampling/retention from execution correctness.
-   - Add a matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Sampling & Retention`.
-   - Local verification must include solution build, the full `HAgent.Tests` suite, and the exact Example scenario on .NET Framework 4.8.1 and .NET 9 before Slice 4 is marked verified.
+4. **Sampling and bounded retention controls — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+   - Added provider-neutral `TraceSamplingOptions`, `ITraceSampler`, and `TraceRetentionOptions` contracts.
+   - Added deterministic root sampling through `DeterministicTraceSampler`; sampled state is inherited by child spans through `TraceContext` and unsampled spans remain lifecycle-capable without being retained.
+   - Extended `InMemoryTraceRecorder` with optional sampling and bounded retention while preserving the existing no-argument recorder behavior.
+   - Added retention bounds for maximum trace count, maximum span count, maximum spans per trace, aggregate metadata characters, and maximum age; eviction operates on whole older traces where possible and avoids evicting the active trace merely to admit a child span.
+   - Sampling/retention do not alter execution, authorization, event delivery, or span completion semantics, and existing default-deny metadata behavior remains unchanged.
+   - Added focused `HAgent.Tests/ObservabilitySamplingRetentionTests.cs` covering deterministic sampling, unsampled inheritance/suppression, trace/span retention bounds, aggregate metadata limits, and lifecycle independence from retention.
+   - Added and classified the matching public-API `HAgent.Example/MainForm.ObservabilitySamplingRetention.cs` scenario under `Diagnostics → Observability → Observability Sampling & Retention`.
+   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not mark Slice 4 verified until those results are supplied.
    - Do not begin Slice 5 in the same run.
 
 ### Verification rule

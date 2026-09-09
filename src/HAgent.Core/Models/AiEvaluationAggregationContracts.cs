@@ -26,26 +26,19 @@ namespace HAgent.Models
         public string Unit { get; set; }
         public bool? HigherIsBetter { get; set; }
         public AiEvaluationMetric Clone() => new AiEvaluationMetric { Kind = Kind, Name = Name, Value = Value, Unit = Unit, HigherIsBetter = HigherIsBetter };
-
         public void Validate()
         {
             Require(Name, nameof(Name), 128);
             if (Unit != null && Unit.Length > 64) throw new ArgumentOutOfRangeException(nameof(Unit));
             if (Value < 0m) throw new ArgumentOutOfRangeException(nameof(Value));
             if (IsRatio(Kind) && Value > 1m) throw new ArgumentOutOfRangeException(nameof(Value));
-            if (Kind != AiEvaluationMetricKind.Custom && HigherIsBetter.HasValue)
-                throw new ArgumentException("Standard evaluation metrics derive comparison direction from their metric kind.", nameof(HigherIsBetter));
-            if (Kind == AiEvaluationMetricKind.Custom && !HigherIsBetter.HasValue)
-                throw new ArgumentException("Custom evaluation metrics require an explicit comparison direction.", nameof(HigherIsBetter));
+            if (Kind != AiEvaluationMetricKind.Custom && HigherIsBetter.HasValue) throw new ArgumentException("Standard evaluation metrics derive comparison direction from their metric kind.", nameof(HigherIsBetter));
+            if (Kind == AiEvaluationMetricKind.Custom && !HigherIsBetter.HasValue) throw new ArgumentException("Custom evaluation metrics require an explicit comparison direction.", nameof(HigherIsBetter));
         }
-
         internal static bool IsRatio(AiEvaluationMetricKind kind)
         {
-            return kind == AiEvaluationMetricKind.SuccessRate || kind == AiEvaluationMetricKind.QualityScore ||
-                   kind == AiEvaluationMetricKind.FallbackFrequency || kind == AiEvaluationMetricKind.ToolSuccessRate ||
-                   kind == AiEvaluationMetricKind.PlanCompletionRate;
+            return kind == AiEvaluationMetricKind.SuccessRate || kind == AiEvaluationMetricKind.QualityScore || kind == AiEvaluationMetricKind.FallbackFrequency || kind == AiEvaluationMetricKind.ToolSuccessRate || kind == AiEvaluationMetricKind.PlanCompletionRate;
         }
-
         internal static string GetCanonicalName(AiEvaluationMetricKind kind)
         {
             switch (kind)
@@ -60,14 +53,11 @@ namespace HAgent.Models
                 default: return string.Empty;
             }
         }
-
         internal static bool GetHigherIsBetter(AiEvaluationMetricKind kind, bool? customDirection)
         {
             if (kind == AiEvaluationMetricKind.Custom) return customDirection.GetValueOrDefault();
-            return kind == AiEvaluationMetricKind.SuccessRate || kind == AiEvaluationMetricKind.QualityScore ||
-                   kind == AiEvaluationMetricKind.ToolSuccessRate || kind == AiEvaluationMetricKind.PlanCompletionRate;
+            return kind == AiEvaluationMetricKind.SuccessRate || kind == AiEvaluationMetricKind.QualityScore || kind == AiEvaluationMetricKind.ToolSuccessRate || kind == AiEvaluationMetricKind.PlanCompletionRate;
         }
-
         private static void Require(string value, string name, int maxLength)
         {
             if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException(name + " is required.", name);
@@ -235,16 +225,7 @@ namespace HAgent.Models
             foreach (var group in snapshot.Samples.GroupBy(s => s.VariantId, StringComparer.Ordinal).OrderBy(g => g.Key, StringComparer.Ordinal))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var aggregate = new AiEvaluationAggregate
-                {
-                    VariantId = group.Key,
-                    SampleCount = group.Count(),
-                    PassedCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.Passed),
-                    FailedCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.Failed),
-                    InconclusiveCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.Inconclusive),
-                    NeedsReviewCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.NeedsReview),
-                    NotEvaluatedCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.NotEvaluated)
-                };
+                var aggregate = new AiEvaluationAggregate { VariantId = group.Key, SampleCount = group.Count(), PassedCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.Passed), FailedCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.Failed), InconclusiveCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.Inconclusive), NeedsReviewCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.NeedsReview), NotEvaluatedCount = group.Count(s => s.Evaluation.Outcome == AiEvaluationOutcome.NotEvaluated) };
                 aggregate.SuccessRate = decimal.Round((decimal)aggregate.PassedCount / aggregate.SampleCount, 6, MidpointRounding.AwayFromZero);
                 var scores = group.Select(s => s.Evaluation.Score).Where(s => s.HasValue).Select(s => s.Value).ToList();
                 if (scores.Count > 0) aggregate.QualityScoreAverage = decimal.Round(scores.Average(), 6, MidpointRounding.AwayFromZero);
@@ -255,25 +236,30 @@ namespace HAgent.Models
                     cancellationToken.ThrowIfCancellationRequested();
                     var values = metricGroup.Select(m => m.Value).ToList();
                     var metric = new AiEvaluationAggregateMetric { Kind = metricGroup.Key.Kind, Name = metricGroup.Key.Name, Count = values.Count, Average = decimal.Round(values.Average(), 6, MidpointRounding.AwayFromZero), Minimum = values.Min(), Maximum = values.Max(), Unit = metricGroup.Key.Unit, HigherIsBetter = AiEvaluationMetric.GetHigherIsBetter(metricGroup.Key.Kind, metricGroup.Key.HigherIsBetter) };
-                    metric.Validate(); aggregate.Metrics.Add(metric);
+                    metric.Validate();
+                    aggregate.Metrics.Add(metric);
                 }
-                aggregate.Validate(); result.Add(aggregate);
+                aggregate.Validate();
+                result.Add(aggregate);
             }
             return result;
         }
 
         public static AiEvaluationComparison Compare(AiEvaluationAggregate left, AiEvaluationAggregate right, CancellationToken cancellationToken)
         {
-            if (left == null) throw new ArgumentNullException(nameof(left)); if (right == null) throw new ArgumentNullException(nameof(right));
-            cancellationToken.ThrowIfCancellationRequested(); left.Validate(); right.Validate();
+            if (left == null) throw new ArgumentNullException(nameof(left));
+            if (right == null) throw new ArgumentNullException(nameof(right));
+            cancellationToken.ThrowIfCancellationRequested();
+            left.Validate();
+            right.Validate();
             if (string.Equals(left.VariantId, right.VariantId, StringComparison.Ordinal)) throw new ArgumentException("Compared variants must be distinct.", nameof(right));
             var comparison = new AiEvaluationComparison { LeftVariantId = left.VariantId, RightVariantId = right.VariantId };
-            var pairs = new Dictionary<string, MetricPair>(StringComparer.Ordinal);
-            AddDerivedPair(pairs, left, right, AiEvaluationMetricKind.SuccessRate, left.SuccessRate, right.SuccessRate, "ratio");
-            if (left.QualityScoreAverage.HasValue || right.QualityScoreAverage.HasValue) AddDerivedPair(pairs, left, right, AiEvaluationMetricKind.QualityScore, left.QualityScoreAverage, right.QualityScoreAverage, "ratio");
-            foreach (var metric in left.Metrics) AddMetric(pairs, metric, true);
-            foreach (var metric in right.Metrics) AddMetric(pairs, metric, false);
-            foreach (var pair in pairs.OrderBy(p => p.Key, StringComparer.Ordinal))
+            var pairs = new Dictionary<string, MetricPair>(StringComparer.OrdinalIgnoreCase);
+            AddDerivedPair(pairs, AiEvaluationMetricKind.SuccessRate, left.SuccessRate, right.SuccessRate, "ratio");
+            if (left.QualityScoreAverage.HasValue || right.QualityScoreAverage.HasValue) AddDerivedPair(pairs, AiEvaluationMetricKind.QualityScore, left.QualityScoreAverage, right.QualityScoreAverage, "ratio");
+            foreach (var metric in left.Metrics) if (metric.Kind != AiEvaluationMetricKind.SuccessRate && metric.Kind != AiEvaluationMetricKind.QualityScore) AddMetric(pairs, metric, true);
+            foreach (var metric in right.Metrics) if (metric.Kind != AiEvaluationMetricKind.SuccessRate && metric.Kind != AiEvaluationMetricKind.QualityScore) AddMetric(pairs, metric, false);
+            foreach (var pair in pairs.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var item = pair.Value;
@@ -283,19 +269,21 @@ namespace HAgent.Models
                 var metric = new AiEvaluationMetricComparison { Kind = item.Kind, Name = item.Name, LeftAverage = item.Left, RightAverage = item.Right, Delta = delta, Unit = item.Unit, HigherIsBetter = item.HigherIsBetter, PreferredVariantId = preferred };
                 metric.Validate(); comparison.Metrics.Add(metric);
             }
-            comparison.Validate(); return comparison;
+            comparison.Validate();
+            return comparison;
         }
 
-        private static void AddDerivedPair(IDictionary<string, MetricPair> pairs, AiEvaluationAggregate left, AiEvaluationAggregate right, AiEvaluationMetricKind kind, decimal? leftValue, decimal? rightValue, string unit)
+        private static void AddDerivedPair(IDictionary<string, MetricPair> pairs, AiEvaluationMetricKind kind, decimal? leftValue, decimal? rightValue, string unit)
         {
-            var key = kind + "|" + AiEvaluationMetric.GetCanonicalName(kind);
-            pairs[key] = new MetricPair(kind, AiEvaluationMetric.GetCanonicalName(kind), unit, AiEvaluationMetric.GetHigherIsBetter(kind, null), leftValue, rightValue);
+            var name = AiEvaluationMetric.GetCanonicalName(kind);
+            var key = kind + "|" + name + "|" + (unit ?? string.Empty);
+            pairs[key] = new MetricPair(kind, name, unit, AiEvaluationMetric.GetHigherIsBetter(kind, null), leftValue, rightValue);
         }
 
         private static void AddMetric(IDictionary<string, MetricPair> pairs, AiEvaluationAggregateMetric metric, bool leftSide)
         {
             if (metric == null) return;
-            var key = metric.Kind + "|" + metric.Name.ToUpperInvariant() + "|" + (metric.Unit ?? string.Empty).ToUpperInvariant();
+            var key = metric.Kind + "|" + metric.Name + "|" + (metric.Unit ?? string.Empty);
             MetricPair pair;
             if (!pairs.TryGetValue(key, out pair))
             {
@@ -322,7 +310,11 @@ namespace HAgent.Models
             public void Set(bool leftSide, decimal value) { if (leftSide) Left = value; else Right = value; }
         }
 
-        private struct MetricGroupKey { public MetricGroupKey(AiEvaluationMetricKind kind, string name, string unit, bool? higherIsBetter) { Kind = kind; Name = name; Unit = unit ?? string.Empty; HigherIsBetter = higherIsBetter; } public AiEvaluationMetricKind Kind; public string Name; public string Unit; public bool? HigherIsBetter; }
+        private struct MetricGroupKey
+        {
+            public MetricGroupKey(AiEvaluationMetricKind kind, string name, string unit, bool? higherIsBetter) { Kind = kind; Name = name; Unit = unit ?? string.Empty; HigherIsBetter = higherIsBetter; }
+            public AiEvaluationMetricKind Kind; public string Name; public string Unit; public bool? HigherIsBetter;
+        }
         private sealed class MetricGroupKeyComparer : IEqualityComparer<MetricGroupKey>
         {
             public static readonly MetricGroupKeyComparer Instance = new MetricGroupKeyComparer();

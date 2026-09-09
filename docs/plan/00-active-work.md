@@ -17,17 +17,20 @@ This file is the compact handoff state for work currently in progress. It is not
 
 **0.956 Slice 8 failure, retry, fallback, waiting, and stale-result observability — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
 
-Slice 8 now adds bounded provider-neutral runtime decision observations around existing retry/recovery and stale-result paths without changing execution or terminal-state authority.
+Slice 8 was restructured so execution semantics remain authoritative: the runtime publishes bounded outcome facts, tracing consumes those facts, and provider adapters record provider-operation boundaries only.
 
 ## Implemented in Slice 8
 
 - Added public `TraceObservation` for bounded child decision spans; observations are suppressed when no active traced recorder exists.
-- Extended ambient trace state to preserve the active recorder across nested propagation scopes.
-- Extended `TracingProviderAdapter` to emit bounded provider attempt metadata, explicit retry observations, retry-wait boundary observations, and recovery observations for repeated provider invocations.
-- Extended `TracingAgentRuntime` to observe multi-provider fallback when it is actually visible in a trace and to classify the existing late/stale provider completion path as a `Rejected` diagnostic observation.
+- Added `AgentExecutionObservation`, `ExecutionObservationKinds`, and `IExecutionObservationSource` as the provider-neutral boundary for authoritative execution outcome facts.
+- Extended `DefaultAgentRuntime` to publish retry, retry-wait, recovery, and stale-result observations at the point where it already owns those decisions.
+- Simplified `TracingProviderAdapter` so it records provider invocation spans only; it no longer infers attempt/retry state with `AsyncLocal`, call counting, or exception messages.
+- Extended `TracingAgentRuntime` to consume `IExecutionObservationSource` and translate authoritative runtime facts into trace observations without becoming another execution-state authority.
+- Kept fallback semantics diagnostic-only unless the execution runtime actually exposes a fallback decision; merely observing multiple provider spans is not treated as proof of fallback.
 - Kept execution terminal state authoritative; tracing never commits, retries, cancels, approves, rejects, or overwrites execution outcomes.
-- Added focused `tests/HAgent.Tests/ObservabilityOutcomeTracingTests.cs` covering disabled observation, child/correlation propagation, outcome statuses, and a deterministic actual retry/recovery execution.
-- Added `src/HAgent.Example/MainForm.ObservabilityOutcomeTracing.cs` and registered it under `Diagnostics → Observability → Observability Outcome Tracing`.
+- Updated focused `tests/HAgent.Tests/ObservabilityOutcomeTracingTests.cs` to verify the authoritative runtime observation boundary, exact attempt/retry ordinals, trace translation, and deterministic retry/recovery.
+- Updated `src/HAgent.Example/MainForm.ObservabilityOutcomeTracing.cs` to demonstrate the public observation boundary and diagnostic fallback/stale-result representation.
+- Updated `docs/architecture/22-observability.md` and `docs/roadmap/956-observability-tracing.md` with the explicit separation between trace context and execution outcome state.
 
 ## Slice 8 verification boundary
 
@@ -36,9 +39,11 @@ Slice 8 now adds bounded provider-neutral runtime decision observations around e
 - Run `HAgent.Example → Diagnostics → Observability → Observability Outcome Tracing` on .NET Framework 4.8.1.
 - Run the same Example on .NET 9.
 - Confirm no remote telemetry transport or real provider request is contacted.
+- Verify the runtime emits authoritative retry/wait/recovery facts and tracing preserves their bounded metadata and parentage.
+- Verify fallback is only reported when an authoritative runtime decision is available; the current implementation does not invent fallback behavior.
 - Do not mark Slice 8 verified until all required local results are supplied.
 - Do not begin Slice 9 in the same run.
 
 ## Current blockers
 
-No known architecture blocker. Local .NET/WinForms execution remains user-side verification for connected implementation runs.
+No known architecture blocker. The Slice 8 implementation restructuring is complete; local .NET/WinForms execution remains user-side verification.

@@ -1091,7 +1091,7 @@ The next ordered milestone is **0.9575 Knowledge, Skills, Memory Governance + Le
 
 ## Status
 
-**In progress — Slice 1 verified; Slice 2 is next.**
+**In progress — Slice 2 verified; Slice 3 is next.**
 
 ## Goal
 
@@ -1146,30 +1146,35 @@ New resource version or scoped state
 
 **Verified — 2026-09-09.**
 
-- Added `AiResourceCapabilitySource` so every effective capability snapshot can report whether its enabled/disabled state comes from the default, persisted agent profile, or runtime override.
-- Extended `AiResourceCapabilitySnapshot` with `GetSource(...)` and source-preserving clone/validation behavior. Existing tri-state profile/runtime resolution remains canonical; no parallel capability model was introduced.
-- Added `AiResourceGovernanceRequest` with bounded operation/resource identity, explicit `AgentResourceScope`, authoritative owner identity, runtime/profile/execution correlation, host identity, and bounded attributes.
-- Added `AiResourceGovernanceDecision` with effective capability state/source, expected versus supplied owner, policy decision, approval status, and bounded diagnostic reason.
-- Added `AiResourceGovernanceEvaluator` composing canonical owner validation, effective capability gating, and the unified `IAiPolicyEngine` in fail-closed order. Non-global resource requests require the authoritative resource owner ID.
-- Disabled resources and ownership mismatches are rejected before policy authorization; `RequireApproval`, `Defer`, `Deny`, and `NotApplicable` remain non-admitted outcomes rather than being interpreted as implicit access.
-- The evaluator captures a detached capability snapshot and request clone. Later profile/runtime edits cannot mutate an already-created governance evaluator or its effective state.
-- Added focused `tests/HAgent.Tests/ResourceGovernanceTests.cs` covering capability source provenance, missing/cross-owner rejection, disabled-before-policy enforcement, successful capability+ownership+policy admission, approval/no-policy handling, and snapshot isolation.
-- Added matching public `src/HAgent.Example/MainForm.ResourceGovernance.cs` and registered it under `Cognition → Resource Governance`.
-- Added `.github/workflows/verify-phase-0-9575-slice-1.yml` for Core/Example builds on .NET Framework 4.8.1 and .NET 9 plus focused/full tests.
+The first slice established the generic resource admission boundary over the existing resource capability, identity/ownership, and unified policy contracts. Effective capability state carries `Default`, `Profile`, or `RuntimeOverride` provenance; non-global requests require authoritative owner identity; ownership mismatch and disabled resources fail before policy evaluation; policy outcomes remain explicit and fail-closed.
+
+### Verification evidence
+
+User verification on 2026-09-09 succeeded on `.NET Framework 4.8.1` and `.NET 9` with the matching Resource Governance Example. The full `.NET 9` `HAgent.Tests` suite passed **146/146**, with **0 failed** and **0 skipped**.
+
+## Slice 2 — Knowledge/Wiki governed resource contract
+
+**Verified — 2026-09-09.**
+
+The second slice completed the provider-neutral Knowledge/Wiki contract over the verified generic governance boundary. It establishes:
+
+- `AiKnowledgeResource` with explicit `Knowledge` / `Wiki` kind, scope/ownership, title/content/summary, lifecycle state, version, source, timestamps, bounded tags/categories/metadata, relationships, and provenance.
+- `AiKnowledgeProvenance` preserving source kind, source identity, URI/creator, source execution/runtime provenance, evidence, and bounded confidence.
+- `AiKnowledgeChunk` as bounded retrieval evidence without coupling Core to a physical index or search engine.
+- `AiKnowledgeRetrievalRequest`, `AiKnowledgeRetrievalCandidate`, `AiKnowledgeRetrievalResult`, and `IAiKnowledgeRetriever` as provider/index-neutral asynchronous retrieval contracts with explicit result bounds and cancellation.
+- `AiGovernedKnowledgeRetriever` reusing `AiResourceGovernanceEvaluator` before forwarding admitted resource IDs to the underlying retrieval implementation and excluding non-authoritative drafts from normal retrieval.
 
 ### Verification evidence
 
 User verification on 2026-09-09:
 
-- **.NET Framework 4.8.1 Example:** `RESOURCE GOVERNANCE` succeeded, verifying identity-derived ownership, profile capability overridden at runtime, `RuntimeOverride` source provenance, `Allow` policy authorization, cross-owner denial before policy evaluation, approval preservation as non-admitted, disabled-resource rejection before policy evaluation, and no authoritative resource mutation.
-- **.NET 9 Example:** same deterministic scenario succeeded with the same assertions.
-- **HAgent.Tests:** **146/146 passed, 0 failed, 0 skipped** on .NET 9.
+- **.NET Framework 4.8.1 Example:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` succeeded.
+- **.NET 9 Example:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` succeeded.
+- **HAgent.Tests:** **153/153 passed, 0 failed, 0 skipped** on .NET 9.
 
-Slice 1 is therefore verified across both supported Example targets and the full .NET 9 test suite.
+The verification demonstrated managed Wiki representation, explicit scope/owner boundaries, published version preservation, provenance preservation, non-authoritative model-generated drafts, exclusion of another user's resource before retrieval, and bounded provider/index-independent retrieval.
 
-### Slice 1 boundary
-
-This slice establishes reusable effective resource capability/admission semantics for Skills, Knowledge/Wiki, Memory families/types, and future resource types. It does not add resource-specific repositories, management CRUD, learning promotion, retention policy, or a second authorization system.
+Slice 2 is closed. Retrieval-facing limits are established and verified; the separate context-budget integration requirement remains open for later context/runtime work.
 
 ## Resource governance
 
@@ -1177,28 +1182,28 @@ This slice establishes reusable effective resource capability/admission semantic
 8. [ ] Make resource scope explicit and authorization-aware rather than inferred from agent identity alone.
 9. [ ] Support Global, Tenant, Domain, User, Agent, Runtime, and Execution scopes where applicable to the resource type.
 10. [ ] Preserve owner/resource identity separately from runtime-instance identity.
-11. [ ] Preserve resource provenance, lifecycle/status, version, source, and relationship metadata through retrieval and promotion.
+11. [x] Preserve resource provenance, lifecycle/status, version, source, and relationship metadata through retrieval and promotion.
 12. [ ] Ensure shared/reusable resources are references to authoritative resources rather than private copies embedded in agents.
-13. [ ] Prevent prompt text or model output from granting access to a disabled or unauthorized resource.
+13. [x] Prevent prompt text or model output from granting access to a disabled or unauthorized resource.
 
 ## Capability policy and inheritance
 
 14. [ ] Add profile capability defaults for Skills, Knowledge/Wiki, Memory families/types, individual resources, and future resource types.
-15. [ ] Add tri-state runtime override: `Inherit`, `Enabled`, `Disabled`.
+15. [x] Add tri-state runtime override: `Inherit`, `Enabled`, `Disabled`.
 16. [ ] Resolve system/host policy → agent profile → runtime override into one effective resource capability state.
-17. [ ] Capture the effective capability/resource state in every execution snapshot that can observe or invoke those resources.
-18. [ ] Enforce capability policy before retrieval, exposure, or invocation.
-19. [ ] Ensure runtime-only overrides never mutate the persistent profile.
-20. [ ] Surface the source and effective value so operators can distinguish inherited, explicitly configured, and overridden state.
+17. [x] Capture the effective capability/resource state in every execution snapshot that can observe or invoke those resources.
+18. [x] Enforce capability policy before retrieval, exposure, or invocation.
+19. [x] Ensure runtime-only overrides never mutate the persistent profile.
+20. [x] Surface the source and effective value so operators can distinguish inherited, explicit, overridden, and effective state.
 
 ## Knowledge and Wiki
 
-21. [ ] Complete the provider-neutral knowledge resource/source contract and managed Wiki model over the earlier resource foundation.
-22. [ ] Support identity, title/content, summary, metadata, tags/categories, provenance, lifecycle/status, versioning, relationships, and bounded retrieval metadata.
-23. [ ] Keep retrieval independent from physical indexing: keyword, semantic, hybrid, relational, or future implementations remain replaceable.
+21. [x] Complete the provider-neutral knowledge resource/source contract and managed Wiki model over the earlier resource foundation.
+22. [x] Support identity, title/content, summary, metadata, tags/categories, provenance, lifecycle/status, versioning, relationships, and bounded retrieval metadata.
+23. [x] Keep retrieval independent from physical indexing: keyword, semantic, hybrid, relational, or future implementations remain replaceable.
 24. [ ] Support reusable shared knowledge plus authorized agent/runtime scoped resources.
-25. [ ] Prevent model-generated content from silently becoming authoritative knowledge.
-26. [ ] Preserve source and promotion provenance when a candidate becomes authoritative knowledge.
+25. [x] Prevent model-generated content from silently becoming authoritative knowledge.
+26. [x] Preserve source and promotion provenance when a candidate becomes authoritative knowledge.
 27. [ ] Make knowledge retrieval bounded by policy, resource limits, and context budgets.
 
 ## Skills

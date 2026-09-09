@@ -4,23 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
 
-namespace HAgent.Abstractions
-{
-    /// <summary>
-    /// Provider-neutral boundary for model-assisted evaluation.
-    /// Implementations own model/provider interaction; Core only consumes the bounded judge contract.
-    /// </summary>
-    public interface IAiEvaluationJudge
-    {
-        string Id { get; }
-        string Version { get; }
-
-        Task<HAgent.Models.AiEvaluationRating> JudgeAsync(
-            HAgent.Models.AiEvaluationJudgeRequest request,
-            CancellationToken cancellationToken);
-    }
-}
-
 namespace HAgent.Models
 {
     /// <summary>

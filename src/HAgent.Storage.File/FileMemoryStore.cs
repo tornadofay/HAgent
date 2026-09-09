@@ -30,8 +30,10 @@ namespace HAgent.Storage.File
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(entry.Id)) entry.Id = Guid.NewGuid().ToString("N");
             if (entry.Metadata == null) entry.Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (entry.Provenance == null) entry.Provenance = new AiMemoryProvenance();
             if (entry.CreatedAt == default(DateTimeOffset)) entry.CreatedAt = DateTimeOffset.UtcNow;
             if (entry.OccurredAt == default(DateTimeOffset)) entry.OccurredAt = entry.CreatedAt;
+            entry.Validate();
 
             var json = JsonSerializer.Serialize(entry, _jsonOptions);
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);

@@ -86,6 +86,49 @@ When an operation begins without an incoming trace context, the tracer creates a
 
 Cross-process propagation is a host/transport concern. HAgent Core defines the values and relationship semantics but does not prescribe HTTP headers, W3C/OpenTelemetry types, message formats, or a particular distributed tracing transport.
 
+## Cross-process propagation boundary
+
+HAgent Core exposes a bounded transport-neutral carrier for hosts that need to move trace context and existing correlation identities across a process boundary. The carrier is a constrained key/value representation rather than a network protocol.
+
+The canonical Core boundary is:
+
+```text
+TraceContext + TraceCorrelation
+            |
+            v
+   TracePropagation.Export
+            |
+            v
+ TracePropagationCarrier
+            |
+       host / transport
+            |
+            v
+ TracePropagation.Import
+            |
+            v
+TraceContext + TraceCorrelation
+```
+
+The carrier may contain:
+
+- `TraceId`;
+- optional `ParentSpanId`;
+- sampled state;
+- bounded deployment, tenant, principal, user, session, workspace, agent-profile, runtime, execution, execution-correlation, host-correlation, event, and causation identifiers.
+
+These values remain semantically distinct during export/import. In particular, a trace ID is never treated as an execution ID, execution correlation ID, event ID, or causation ID merely because they crossed the same transport boundary.
+
+The carrier has bounded key/value counts and lengths. Export does not serialize prompts, responses, provider payloads, tool arguments/results, host context, credentials, connection strings, raw exceptions, or arbitrary objects.
+
+Incoming trace context is not implicitly trusted. The host must explicitly choose whether the incoming trace context is trusted at its own boundary. Core import defaults to rejecting an incoming trace context as untrusted until that acceptance is explicit. Missing trace context creates no synthetic remote identity; the receiving operation may create a new local root as appropriate. Malformed trace or correlation values are rejected without constructing a partial `TraceContext`.
+
+Correlation values may still be carried as bounded diagnostic identity even when a trace context is rejected, but they do not become authorization or authentication authority. Host authentication/authorization remains the source of trust.
+
+An accepted imported context preserves sampled state exactly. An unsampled imported context remains unsampled; import does not upgrade it to sampled. A receiving tracer may then create a child span using the imported context according to normal HAgent span lifecycle rules.
+
+The Core boundary intentionally stops before wire serialization, transport headers, message envelopes, authentication, signature verification, replay protection, or vendor-specific telemetry APIs. Those concerns belong to the host/adapter that owns the process boundary.
+
 ## Span model
 
 The canonical provider-neutral span represents one bounded observable operation.

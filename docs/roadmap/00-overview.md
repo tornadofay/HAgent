@@ -17,8 +17,8 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.953 — Unified Policy Engine — completed for its verified runtime/persistence/resource/learning-policy foundation
 - 0.954 — Prompt + Instruction Governance — **completed and verified on .NET Framework 4.8.1 and .NET 9**
 - 0.955 — Context Engineering — **completed and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.956 — Observability + Distributed Tracing — **current ordered milestone**
-- 0.957 — Evaluation + Quality Measurement — planned architectural foundation
+- 0.956 — Observability + Distributed Tracing — **completed and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9**
+- 0.957 — Evaluation + Quality Measurement — **current ordered milestone; Slice 1 implementation checkpoint**
 - 0.9575 — Knowledge, Skills, Memory Governance + Learning — planned mature resource/governance phase
 - 0.958 — Agent Lifecycle + Health Management — planned architectural foundation
 - 0.9591 — Goal/Plan Persistence + Recovery — **ordered before 0.959**; planned foundation
@@ -88,9 +88,9 @@ The current ordered foundations are:
         ↓
 0.955 Context Engineering — verified
         ↓
-0.956 Observability / Tracing — current
+0.956 Observability / Tracing — verified
         ↓
-0.957 Evaluation / Quality Measurement
+0.957 Evaluation / Quality Measurement — current
         ↓
 0.9575 Knowledge / Skills / Memory Governance + Learning
         ↓

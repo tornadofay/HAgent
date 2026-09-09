@@ -8,7 +8,7 @@ using HAgent.Models;
 
 namespace HAgent.Runtime
 {
-    public sealed class DefaultAgentRuntime : IAgentRuntime, IInterventionControllableRuntime
+    public sealed class DefaultAgentRuntime : IAgentRuntime, IInterventionControllableRuntime, IExecutionObservationSource
     {
         private readonly IAiStore _store;
         private readonly ISecretStore _secrets;
@@ -69,6 +69,7 @@ namespace HAgent.Runtime
         }
 
         public event EventHandler<AgentExecutionEventArgs> ExecutionChanged;
+        public event EventHandler<AgentExecutionObservationEventArgs> ExecutionObserved;
 
         public Task<AgentExecution> ExecuteAsync(
             string agentId,
@@ -292,11 +293,33 @@ namespace HAgent.Runtime
 
                                     if (execution.TryCompleteSucceeded(response, DateTimeOffset.UtcNow))
                                     {
+                                        if (retries > 0)
+                                        {
+                                            ObserveExecution(
+                                                execution,
+                                                ExecutionObservationKinds.ProviderRecovery,
+                                                provider.Id,
+                                                null,
+                                                attempts,
+                                                retries,
+                                                "provider-recovered-after-retry",
+                                                null);
+                                        }
+
                                         Notify(execution);
                                         await PersistAuditAsync(execution).ConfigureAwait(false);
                                         return execution;
                                     }
 
+                                    ObserveExecution(
+                                        execution,
+                                        ExecutionObservationKinds.ExecutionStaleResult,
+                                        provider.Id,
+                                        null,
+                                        attempts,
+                                        retries,
+                                        "execution-terminal-state-already-reached",
+                                        null);
                                     throw new InvalidOperationException("Execution reached a terminal state before the provider response could be committed.");
                                 }
                                 catch (Exception ex)
@@ -315,6 +338,24 @@ namespace HAgent.Runtime
 
                                     retries++;
                                     var delay = CalculateBackoff(options.RetryBaseDelay, retries, lastErrorKind == ProviderErrorKind.RateLimited);
+                                    ObserveExecution(
+                                        execution,
+                                        ExecutionObservationKinds.ProviderRetry,
+                                        provider.Id,
+                                        null,
+                                        attempts,
+                                        retries,
+                                        lastErrorKind.ToString(),
+                                        null);
+                                    ObserveExecution(
+                                        execution,
+                                        ExecutionObservationKinds.ExecutionWait,
+                                        provider.Id,
+                                        null,
+                                        attempts,
+                                        retries,
+                                        "retry-backoff",
+                                        delay);
                                     if (delay > TimeSpan.Zero)
                                     {
                                         await _interventionCoordinator.WaitIfPausedAsync(execution.Id, token).ConfigureAwait(false);
@@ -648,6 +689,32 @@ namespace HAgent.Runtime
             var multiplier = Math.Pow(2, Math.Max(0, retryNumber - 1));
             if (rateLimited) multiplier *= 2;
             return TimeSpan.FromMilliseconds(Math.Min(baseDelay.TotalMilliseconds * multiplier, 30000d));
+        }
+
+        private void ObserveExecution(
+            AgentExecution execution,
+            string kind,
+            string providerId,
+            string previousProviderId,
+            int attempt,
+            int retryNumber,
+            string reason,
+            TimeSpan? waitDuration)
+        {
+            var handler = ExecutionObserved;
+            if (handler == null)
+                return;
+
+            handler(this, new AgentExecutionObservationEventArgs(new AgentExecutionObservation(
+                execution.Id,
+                kind,
+                providerId,
+                previousProviderId,
+                attempt,
+                retryNumber,
+                reason,
+                waitDuration,
+                DateTimeOffset.UtcNow)));
         }
 
         private void Notify(AgentExecution execution)

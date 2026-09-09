@@ -51,17 +51,28 @@ The verification demonstrated managed Wiki representation, explicit scope/owner 
 
 Slice 2 is closed. Retrieval-facing bounds are verified; the separate context-budget integration requirement remains open for a later context/runtime slice.
 
-### Slice 3 — Stable/versioned Skill definition and reference contract
+### Slice 3 — Stable/versioned Skill definition and reference contract — IMPLEMENTED, VERIFICATION PENDING
 
 **Objective:** complete the provider-neutral reusable Skill definition/reference model over the existing resource and governance foundations. The slice should preserve stable identity/version/lifecycle metadata, input/output contracts, preconditions, procedure steps, required knowledge/tools, constraints, and reusable references while keeping executable handlers outside persistence and subjecting skill access to the same generic governance boundary.
 
-**Example to run:** `HAgent.Example → Cognition → Skills → Skill Definitions`
+**Implemented:**
 
-**Tests to run:** `tests/HAgent.Tests/SkillResourceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+- `AiSkillDefinition` with stable ID/version, explicit scope/owner, lifecycle, provenance, bounded input/output contracts, preconditions, ordered procedure steps, Knowledge/Tool dependencies, constraints, metadata, and relationships.
+- `AiSkillReference` and `AiSkillSet` for reusable version-pinnable references without duplicating definitions.
+- `AiAgent.Skills` as the canonical profile-owned skill reference set.
+- `IAiSkillDefinitionSource` plus `AiGovernedSkillResolver`, reusing `AiResourceGovernanceEvaluator` for `skill.invoke` before definition-source access.
+- `AiSkillBinding` / `AiSkillExecutionSnapshot` plus `AgentExecutionSnapshot.Skills` for deep-cloned in-flight Skill version/state isolation.
+- Matching `tests/HAgent.Tests/SkillResourceTests.cs` covering lifecycle/contracts, cloning, reference scope/owner/version, execution snapshot isolation, governed version resolution, and denial before source access.
+- Matching public Example at `src/HAgent.Example/MainForm.Skills.cs`, registered as `HAgent.Example → Cognition → Skills → Skill Definitions`.
+- Authoritative architecture in `docs/architecture/82-skills.md`, durable decision D-010, and dedicated `.github/workflows/verify-phase-0-9575-slice-3.yml`.
+
+**Focused verification target:** `tests/HAgent.Tests/SkillResourceTests.cs`, then the full `HAgent.Tests` suite on .NET 9; both supported framework builds are required for the Core and Example projects.
+
+**Current verification state:** GitHub Actions run for Slice 3 has been queued from `master`. No test/build result is recorded here until an actual run completes. The public Example remains a manual WinForms verification and has not been claimed as executed in this environment.
 
 ## Current blocker
 
-No design blocker is known. Slice 2 is verified. Slice 3 should begin by inspecting the existing Skill foundation and storage/runtime snapshot relationships, then compose the existing resource identity, governance, and execution-snapshot boundaries rather than creating parallel ownership, authorization, or handler-persistence models.
+No design blocker is known. Slice 3 implementation is present and the remaining checkpoint is execution of the focused/full verification plus the required public Example on both supported frameworks.
 
 ## Run rule
 

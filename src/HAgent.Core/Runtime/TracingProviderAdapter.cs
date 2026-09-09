@@ -50,6 +50,7 @@ namespace HAgent.Runtime
                 var retryMetadata = new TraceMetadata();
                 retryMetadata.Add("decision", "retry");
                 retryMetadata.Add("execution.attempt", attempt.ToString());
+                retryMetadata.Add("wait.kind", "retry-backoff");
                 if (request.Provider != null)
                     retryMetadata.Add("provider.id", request.Provider.Id ?? string.Empty);
                 TraceObservation.RecordDecision(
@@ -57,6 +58,17 @@ namespace HAgent.Runtime
                     "Provider",
                     TraceSpanStatus.Succeeded,
                     retryMetadata,
+                    correlation);
+
+                var waitMetadata = new TraceMetadata();
+                waitMetadata.Add("decision", "wait");
+                waitMetadata.Add("wait.kind", "retry-backoff");
+                waitMetadata.Add("execution.attempt", attempt.ToString());
+                TraceObservation.RecordDecision(
+                    "execution.wait",
+                    "Lifecycle",
+                    TraceSpanStatus.Succeeded,
+                    waitMetadata,
                     correlation);
             }
 

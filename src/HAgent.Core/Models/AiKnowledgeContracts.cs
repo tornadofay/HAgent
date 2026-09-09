@@ -189,7 +189,6 @@ namespace HAgent.Models
                 CreatedUtc = CreatedUtc,
                 UpdatedUtc = UpdatedUtc
             };
-
             foreach (var pair in Metadata)
                 clone.Metadata[pair.Key] = pair.Value;
             foreach (var tag in Tags)
@@ -198,7 +197,6 @@ namespace HAgent.Models
                 clone.Categories.Add(category);
             foreach (var relationship in Relationships)
                 clone.Relationships.Add(relationship == null ? null : relationship.Clone());
-
             return clone;
         }
 
@@ -327,6 +325,7 @@ namespace HAgent.Models
     {
         public string Query { get; set; }
         public string ResourceType { get; set; }
+        public AgentIdentityContext Identity { get; set; }
         public IList<string> ResourceIds { get; private set; }
         public int MaxResults { get; set; }
         public int MaxCharacters { get; set; }
@@ -351,6 +350,7 @@ namespace HAgent.Models
             {
                 Query = Query,
                 ResourceType = ResourceType,
+                Identity = Identity == null ? null : Identity.Clone(),
                 MaxResults = MaxResults,
                 MaxCharacters = MaxCharacters,
                 MaxChunks = MaxChunks,
@@ -480,7 +480,6 @@ namespace HAgent.Models
                 throw new ArgumentNullException("governance");
             if (resources == null)
                 throw new ArgumentNullException("resources");
-
             _inner = inner;
             _governance = governance;
             _resources = resources.Select(resource =>
@@ -516,11 +515,9 @@ namespace HAgent.Models
                     ResourceId = resource.Id,
                     Scope = resource.Scope,
                     ResourceOwnerId = resource.OwnerId,
-                    Identity = new AgentIdentityContext()
+                    Identity = request.Identity
                 });
 
-                // The governance evaluator remains the authoritative authorization boundary.
-                // This adapter only permits explicitly admitted resource IDs to reach retrieval.
                 if (decision.Allowed)
                     governedIds.Add(resource.Id);
             }
@@ -531,9 +528,7 @@ namespace HAgent.Models
                 retrievalRequest.ResourceIds.Add(id);
 
             if (governedIds.Count == 0)
-            {
                 return new AiKnowledgeRetrievalResult();
-            }
 
             var result = await _inner.RetrieveAsync(retrievalRequest, cancellationToken).ConfigureAwait(false);
             if (result == null)

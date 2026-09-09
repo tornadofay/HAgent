@@ -28,6 +28,16 @@ namespace HAgent.Tests
         }
 
         [Fact]
+        public void Governance_RequiresAuthoritativeOwnerForNonGlobalResource()
+        {
+            var request = Request("resource.read", "knowledge", "kb-1");
+            request.Scope = AgentResourceScope.User;
+            request.Identity = new AgentIdentityContext("deployment-1", "tenant-1", userId: "user-1");
+
+            Assert.Throws<ArgumentException>(() => request.Validate());
+        }
+
+        [Fact]
         public void Governance_DeniesDisabledResourceBeforePolicyEvaluation()
         {
             var policy = new AiPolicySet();

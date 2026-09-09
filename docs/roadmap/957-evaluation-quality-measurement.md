@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — Slice 6 implementation checkpoint; build/test/Example verification pending.**
+**Verified through Slice 6 on 2026-09-09.**
 
 ## Goal
 
@@ -18,7 +18,7 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 6. [x] Preserve evaluation provenance, evaluator identity/type, input references, timestamp, and confidence where meaningful.
 7. [x] Correlate evaluations with execution/runtime/agent/goal/plan/trace identities.
 8. [x] Keep evaluation data separate from authoritative agent state; an evaluation does not automatically mutate configuration, memory, skill, or knowledge.
-9. [ ] Support repeated test cases and regression suites for provider/model/agent comparisons.
+9. [x] Support repeated test cases and regression suites for provider/model/agent comparisons.
 10. [x] Support aggregate metrics such as success rate, quality score, latency, cost, fallback frequency, tool success, and plan completion.
 11. [x] Add deterministic Example verification for evaluation creation, aggregation, human rating, failed evaluations, and comparison of alternative execution targets.
 
@@ -37,7 +37,7 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 **Verified on 2026-09-09.**
 
 - Added bounded `AiEvaluationObservation` values with explicit Boolean, Decimal, and Text value kinds.
-- Added deterministic schema validity, required-field completeness, policy compliance, tool success, latency, cost, and task-completion rules.
+- Added deterministic schema validity, required-field completeness, policy compliance, tool success, cost, latency, and task-completion rules.
 - Added `AiDeterministicEvaluationEvaluator` with deterministic scoring, bounded evidence, provenance/correlation, threshold handling, cancellation, ambiguity rejection, and `Inconclusive` outcomes.
 - Added focused `DeterministicEvaluationTests.cs` and matching public `Deterministic Evaluation` Example.
 - User verification: **109/109 tests passed**; .NET Framework 4.8.1 and .NET 9 Example scenarios succeeded.
@@ -63,7 +63,7 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 - Reused `AiEvaluationRating` as the bounded judge result instead of introducing a second evaluation-result model; the evaluator maps it into normal `AiEvaluation` evidence while retaining judge provenance.
 - Explicitly records `evaluation.source=model-assisted` and `evaluation.authoritative=false`.
 - Provider transport, credentials, model selection, retries, and host-specific evidence resolution remain outside Core in the injected judge implementation/owning subsystem.
-- Cancellation is checked before judge invocation and after judge completion so a late result cannot become an evaluation after cancellation.
+- Cancellation is checked before judge invocation and after judge completion so a late judge result cannot become an evaluation after cancellation.
 - Judge failure, null output, and invalid bounded rating are rejected rather than converted into fabricated evaluation evidence.
 - Added focused `ModelAssistedEvaluationTests.cs` and public `Model-Assisted Evaluation` Example.
 - User verification: **123/123 HAgent.Tests passed** and the Slice 4 Example succeeded on **.NET Framework 4.8.1 and .NET 9**.
@@ -76,15 +76,15 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 - Added bounded `AiEvaluationMetric` with provider-neutral direction semantics; custom metrics require an explicit higher-is-better/lower-is-better declaration.
 - Added `AiEvaluationSample` and `AiEvaluationAggregationRequest` with stable case/variant identity, bounded sample count, validation, and detached clone ownership.
 - Added `AiEvaluationAggregate` / `AiEvaluationAggregateMetric` for outcome counts and average/minimum/maximum metric summaries.
-- Added `AiEvaluationComparison` / `AiEvaluationMetricComparison` for left/right averages, left-minus-right deltas, and strictly preferred variants where both sides are comparable.
-- Added `AiEvaluationAggregator.Aggregate` and `.Compare` with cancellation checks, deterministic ordering, bounded input, detached aggregation snapshots, and no authoritative side effects.
+- Added `AiEvaluationComparison` / `AiEvaluationMetricComparison` for left/right metric averages, left-minus-right deltas, and strictly preferred variants where both sides are comparable.
+- Added `AiEvaluationAggregator` with cancellation checks, deterministic ordering, bounded input, detached aggregation snapshots, and no authoritative side effects.
 - Added focused `EvaluationAggregationTests.cs` and public `Evaluation Aggregation` Example verification.
 - User verification: **130/130 HAgent.Tests passed**, with 0 failed and 0 skipped.
 - User Example verification on .NET Framework 4.8.1 and .NET 9 produced baseline success rate `0.333333`, candidate success rate `1`, candidate average quality `0.85`, candidate average latency `110 ms`, and no authoritative routing or authorization decision.
 
 ## Slice 6 — Evaluation regression suites and repeated target execution
 
-**Implementation checkpoint — verification pending.**
+**Verified on 2026-09-09.**
 
 - Added `AiEvaluationRegressionCase` for bounded reusable test-case identity, input references, and host-defined parameters.
 - Added `AiEvaluationRegressionTarget` for bounded alternative target identity, name, and metadata without hard-coding provider/model semantics into Core.
@@ -95,8 +95,8 @@ Give HAgent a provider-neutral way to measure whether executions, tool use, plan
 - Added `AiEvaluationRegressionRun.CreateAggregationRequest()` to expose only completed, validated `AiEvaluationSample` evidence through the existing Slice 5 aggregation contract.
 - Added focused `EvaluationRegressionTests.cs` covering suite validation, matrix execution, deterministic ordering, concurrency bounds, failure isolation, identity mismatch, cancellation/late-result protection, snapshot isolation, and aggregation handoff ownership.
 - Added public `MainForm.EvaluationRegression.cs` and registered it as `Diagnostics → Evaluation → Evaluation Regression Suites`.
-- Added `.github/workflows/verify-phase-0-957-slice-6.yml` for supported-target builds, focused regression tests, and the full .NET 9 test suite from `master`.
-- Requirement 9 remains unchecked until supported-target builds, focused/full tests, and both manual Example runs are confirmed.
+- User verification: **139/139 HAgent.Tests passed** with 0 failed and 0 skipped.
+- User Example verification on **.NET Framework 4.8.1 and .NET 9** succeeded with 3 cases × 2 targets, 6 completed executions, maximum observed concurrency of 2, isolated failure handling, late-result cancellation protection, and successful-sample-only aggregation handoff.
 
 ## Architectural invariants
 
@@ -143,3 +143,5 @@ Execution / Response / Tool / Goal / Plan / Memory-Knowledge / Learning Candidat
 ```
 
 Evaluation measures behavior; later policy-controlled subsystems may consume evaluation evidence, but evaluation itself does not become a decision-maker for authorization or execution routing.
+
+The next ordered milestone is **0.9575 Knowledge, Skills, Memory Governance + Learning**. The active implementation work for that milestone is maintained in `docs/plan/20-active.md`.

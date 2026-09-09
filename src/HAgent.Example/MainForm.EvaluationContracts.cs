@@ -26,7 +26,7 @@ namespace HAgent.Example
                 "Evaluation results are evidence about behavior, not hidden authorization or automatic state mutation.");
         }
 
-        private static Task TestEvaluationContractsAsync(string unused)
+        private async Task TestEvaluationContractsAsync(string unused)
         {
             var request = new AiEvaluationRequest
             {
@@ -50,10 +50,7 @@ namespace HAgent.Example
 
             IAiEvaluator evaluator = new DeterministicEvaluationExampleEvaluator();
             var evaluationTask = evaluator.EvaluateAsync(request, CancellationToken.None);
-            if (!evaluationTask.Wait(TimeSpan.FromSeconds(5)))
-                throw new InvalidOperationException("Deterministic evaluation did not complete.");
-
-            var evaluation = evaluationTask.GetAwaiter().GetResult();
+            var evaluation = await evaluationTask.ConfigureAwait(true);
             evaluation.Validate();
 
             if (evaluation.TargetKind != AiEvaluationTargetKind.Response || evaluation.TargetId != request.TargetId)
@@ -84,8 +81,6 @@ namespace HAgent.Example
                 "No agent-state mutation or authorization side effect: verified." + Environment.NewLine +
                 "Remote grading/provider transport: none." + Environment.NewLine +
                 "Real provider request: none.");
-
-            return Task.CompletedTask;
         }
 
         private sealed class DeterministicEvaluationExampleEvaluator : IAiEvaluator

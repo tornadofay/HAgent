@@ -5,50 +5,43 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.957 Evaluation and Quality Measurement
-- **Status:** In progress
+- **Status:** In progress — Slice 4 implementation complete, verification pending
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Build the provider-neutral evaluation and quality measurement foundation after verified completion of 0.956 Observability and Distributed Tracing.
+- **Scope:** Add the provider-neutral model-assisted evaluation boundary without coupling Core to a provider/model transport or making evaluation authoritative.
 
 ## Completed prerequisite
 
 0.956 Observability and Distributed Tracing is complete and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9. The execution runtime is authoritative for outcome facts; tracing observes those facts without reconstructing execution state.
 
-## Completed Slice 2
+## Completed evaluation slices
 
-0.957 Slice 2 — Deterministic evaluators and evaluation evidence is verified.
+0.957 Slice 1 — provider-neutral evaluation contracts and evaluator boundary is verified.
 
-- Added bounded `AiEvaluationObservation` values with explicit Boolean, Decimal, and Text value kinds.
-- Added deterministic schema validity, required-field completeness, policy compliance, tool success, latency, cost, and task-completion evaluation rules.
-- Added `AiDeterministicEvaluationEvaluator` with deterministic pass/fail scoring, bounded evidence, provenance/correlation, cancellation, threshold handling, ambiguity rejection, and explicit `Inconclusive` outcomes.
-- Added focused deterministic evaluation tests and matching public Example.
-- User verification — 2026-09-09: `HAgent.Tests` completed with **109/109 tests passed**.
-- User Example verification — .NET Framework 4.8.1: `Diagnostics → Evaluation → Deterministic Evaluation` succeeded.
-- User Example verification — .NET 9: `Diagnostics → Evaluation → Deterministic Evaluation` succeeded.
+0.957 Slice 2 — deterministic evaluators and evaluation evidence is verified with 109/109 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification.
 
-## Completed Slice 3
+0.957 Slice 3 — human/application ratings and labeled evaluation evidence is verified with 115/115 tests and successful .NET Framework 4.8.1 and .NET 9 Example verification.
 
-0.957 Slice 3 — Human/application ratings and labeled evaluation evidence is verified.
+## Current Slice 4 — Model-assisted evaluators and non-authoritative judge boundary
 
-- Added bounded `AiEvaluationRating` for externally supplied outcomes, scores, confidence, labels, reasons, evidence references, and metadata.
-- Added `AiSuppliedRatingEvaluator` using the existing `IAiEvaluator` contract and accepting only `Human` or `Application` evaluator kinds.
-- Preserved evaluator identity/version, supplied rating values, bounded evidence/metadata, and execution/runtime/agent/goal/plan/trace correlation.
-- Added owned cloning so caller mutation of a supplied rating cannot mutate a produced evaluation.
-- Added cancellation-aware public API behavior and kept supplied ratings non-authoritative.
-- Added focused `tests/HAgent.Tests/SuppliedEvaluationTests.cs`.
-- Added matching public `src/HAgent.Example/MainForm.SuppliedEvaluation.cs`.
-- Explicitly classified the Example as `Diagnostics → Evaluation → Supplied Evaluation Ratings`.
-- User verification — 2026-09-09: full `HAgent.Tests` completed with **115/115 tests passed**.
-- User Example verification — .NET Framework 4.8.1 at **2026-09-09 06:53:44**: `Supplied Evaluation Ratings` succeeded and verified Human/Application outcome, score, label, provenance, evidence ownership, correlation, non-authoritative behavior, and no provider/model transport.
-- User Example verification — .NET 9 at **2026-09-09 06:52:58**: `Supplied Evaluation Ratings` succeeded with the same public-API checks.
+- Added `IAiEvaluationJudge` as the provider-neutral model-judge boundary.
+- Added detached `AiEvaluationJudgeRequest` snapshots so asynchronous judge calls cannot observe caller mutation.
+- Added `AiModelAssistedEvaluationEvaluator` behind `IAiEvaluator` with evaluator/judge provenance, bounded evidence/metadata ownership, explicit `evaluation.authoritative=false`, cancellation checks before and after judging, and fail-closed null/invalid/failure handling.
+- Kept provider selection, credentials, model transport, retries, and host-specific evidence resolution outside `HAgent.Core` in the injected judge implementation/owning subsystem.
+- Added focused `tests/HAgent.Tests/ModelAssistedEvaluationTests.cs` covering provenance, NeedsReview, detached snapshots, concurrency, cancellation, late cancellation, judge failure/null output, and bounded evaluator identity.
+- Added matching public `src/HAgent.Example/MainForm.ModelAssistedEvaluation.cs`.
+- Registered and classified the Example as `HAgent.Example → Diagnostics → Evaluation → Model-Assisted Evaluation`.
+- Updated `docs/architecture/23-evaluation-quality.md` with the authoritative model-assisted boundary and `docs/plan/00-decisions.md` with decision D-006.
 
-## Current run
+**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Model-Assisted Evaluation` on **.NET Framework 4.8.1** and **.NET 9**.
 
-**0.957 Slice 3 is complete. The next implementation checkpoint must be selected from the authoritative 0.957 roadmap before any further code changes.**
+**Tests to run:** `tests/HAgent.Tests/ModelAssistedEvaluationTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9** before marking Slice 4 verified.
 
-## Verification boundary
+## Verification checkpoint
 
-Slice 3 is locally verified. No later slice has been implemented in this checkpoint.
+A Windows GitHub Actions verification workflow was added for this branch to build HAgent.Core and HAgent.Example on .NET Framework 4.8.1/.NET 9 Windows targets and run the focused model-assisted tests. Manual Example execution is still required because `HAgent.Example` is a WinForms developer host rather than a headless test runner.
 
-## Current blockers
+Until the actual build/test workflow result and both Example targets are confirmed, Slice 4 remains a **verified checkpoint/blocker**, not a completed slice.
 
-None for Slice 3. The next 0.957 slice remains intentionally unstarted until its scope is established from the authoritative roadmap/architecture.
+## Current blocker
+
+No implementation blocker is known. Verification is pending because the current execution environment cannot directly run the Windows solution or the WinForms Example UI. The next safe step is to consume the branch CI result, fix any compiler/test defect within Slice 4 if present, then run the exact Example path above on both supported targets and record the results.

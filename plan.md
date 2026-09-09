@@ -16,32 +16,33 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-0.956 Slice 4 sampling and bounded retention controls are complete at the implementation/test/Example verification boundary. Deterministic sampling, unsampled inheritance/suppression, bounded trace/span retention, aggregate metadata limits, and lifecycle independence are verified.
+0.956 Slice 5 integrated trace sinks and the safe export boundary are complete at the implementation/test/Example verification boundary. Provider-neutral sinks, bounded asynchronous delivery, failure isolation, queue saturation handling, sampling suppression, and retention-boundary suppression are verified on both supported Example targets.
 
 ## Current run
 
-**0.956 Slice 5 integrated trace sinks and safe export boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
+**0.956 Slice 6 safe human-readable diagnostic projection — CURRENT.**
 
-This slice introduces a provider-neutral sink boundary for completed trace spans. Sink delivery remains observational only: sink latency, queue saturation, or sink failure cannot change execution/span correctness, and Core remains independent of telemetry vendors, remote transports, and persistence technologies.
+This slice adds a bounded provider-neutral projection for management/diagnostic UI consumers. It must consume retained trace data through a safe projection rather than exposing raw trace storage or sink payloads, and must preserve the existing default-deny sensitive-data boundary.
 
-## Implemented in Slice 5
+## Slice 6 scope
 
-- Added provider-neutral `ITraceSink` and bounded `TraceSinkOptions` contracts.
-- Added `TraceSinkDispatcher` with non-blocking bounded enqueue, FIFO asynchronous delivery, deterministic `FlushAsync`, and isolated failure accounting.
-- Integrated sink dispatch into `InMemoryTraceRecorder` only after sampled spans complete and only while they remain retained; unsampled and retention-rejected spans are suppressed.
-- Preserved the default-deny/bounded trace metadata boundary at the sink interface.
-- Added focused `tests/HAgent.Tests/ObservabilitySinksTests.cs` for ordering, sink failure isolation, slow sinks, sampling suppression, and retention suppression.
-- Added `src/HAgent.Example/MainForm.ObservabilitySinks.cs` and registered it under `Diagnostics → Observability → Observability Sinks`.
+- Define a bounded diagnostic projection over retained `TraceSpan` data.
+- Expose only safe status, operation, timing, correlation, parent/trace identity, and bounded metadata needed for diagnostic display.
+- Preserve deterministic ordering and bounded result/text sizes.
+- Explicitly omit or mark redacted sensitive values; never surface prompts, responses, tool arguments/results, host raw context, secrets, credentials, connection strings, or arbitrary serialized payloads.
+- Keep projection concerns separate from raw trace storage and sink/export contracts.
+- Add focused `tests/HAgent.Tests` coverage for ordering, projection bounds, metadata safety, correlation visibility, and sensitive-data exclusion.
+- Add matching public-API `HAgent.Example` coverage under `Diagnostics → Observability → Observability Diagnostic Projection` using deterministic in-process trace data only.
 
-## Slice 5 verification boundary
+## Slice 6 verification boundary
 
-- Build the solution after pulling the current branch.
+- Build the solution after implementation.
 - Run the full `HAgent.Tests` suite.
-- Run `HAgent.Example → Diagnostics → Observability → Observability Sinks → Run trace sink test` on .NET Framework 4.8.1.
+- Run `HAgent.Example → Diagnostics → Observability → Observability Diagnostic Projection` on .NET Framework 4.8.1.
 - Run the same Example on .NET 9.
 - Confirm no real provider request or remote telemetry transport is contacted.
-- Do not mark Slice 5 verified until all required local results are supplied.
-- Do not begin Slice 6 in the same run.
+- Do not mark Slice 6 verified until all required local results are supplied.
+- Do not begin Slice 7 in the same run.
 
 ## Current blockers
 
@@ -616,7 +617,7 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User Example verification — .NET 9, 2026-09-09 04:17:25:** same public-API scenario succeeded with the same checks.
    - The supplied latest verification did not separately restate a solution-build result; therefore only the explicitly supplied verification results are recorded here.
 
-5. **Integrated trace sinks and safe export boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+5. **Integrated trace sinks and safe export boundary — VERIFIED**
    - Added provider-neutral `ITraceSink` and bounded `TraceSinkOptions` contracts.
    - Added `TraceSinkDispatcher` with a bounded non-blocking enqueue boundary, FIFO processing, asynchronous sink delivery, flush support for deterministic tests, and isolated sink-failure accounting.
    - Integrated sink dispatch into `InMemoryTraceRecorder` only after a sampled span completes and only while that span remains retained by the recorder; sampled-out and retention-rejected spans never cross the sink boundary.
@@ -624,9 +625,18 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - Sink latency, queue saturation, and sink exceptions remain telemetry concerns and do not alter span lifecycle completion or execution correctness. One failing sink does not prevent other registered sinks from receiving the same span.
    - Added focused `tests/HAgent.Tests/ObservabilitySinksTests.cs` covering FIFO delivery, sink-failure isolation, slow asynchronous sink behavior, bounded queue saturation, sampled-out suppression, and retention-boundary suppression.
    - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilitySinks.cs` scenario under `Diagnostics → Observability → Observability Sinks`.
-   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Verify no real provider or remote telemetry transport is contacted.
-   - Do not mark Slice 5 verified until those user-side results are supplied.
-   - Do not begin Slice 6 in the same run.
+   - **User verification — 2026-09-09:** full `HAgent.Tests` completed with **72/72 tests passed**.
+   - **User Example verification — .NET 9, 2026-09-09 04:59:10:** `Observability Sinks` succeeded, verifying retained sampled span delivery order, sink-failure isolation, slow-sink non-blocking span completion, asynchronous flush behavior, bounded queue saturation/drop behavior, sampled-out suppression, retention-rejected suppression, no remote telemetry transport, and no real provider request.
+   - **User Example verification — .NET Framework 4.8.1, 2026-09-09 04:59:52:** same public-API scenario succeeded with the same checks.
+   - The prior Example-only duplicate-helper compiler error was fixed before these successful runs.
+
+6. **Safe human-readable diagnostic projection — CURRENT**
+   - Define a provider-neutral, bounded diagnostic projection over retained trace data for management/diagnostic UI consumers.
+   - Keep projection separate from raw trace storage and sink/export contracts; it must not expose prompts, responses, tool arguments/results, host raw context, secrets, credentials, connection strings, or arbitrary serialized payloads.
+   - Establish deterministic ordering, bounded result counts, bounded text lengths, safe status/duration/correlation fields, and explicit omission/redaction markers suitable for UI display.
+   - Add focused `HAgent.Tests` coverage for projection bounds, safe metadata handling, ordering, correlation visibility, and sensitive-data exclusion.
+   - Add the matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Diagnostic Projection` using deterministic in-process trace data only.
+   - **Local verification required:** after implementation, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not begin Slice 7 in the same run.
 
 ### Verification rule
 

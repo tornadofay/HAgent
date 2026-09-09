@@ -20,9 +20,9 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current run
 
-**0.957 Slice 1 — Provider-neutral evaluation contracts and evaluator boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
+**0.957 Slice 1 — Provider-neutral evaluation contracts and evaluator boundary — VERIFIED.**
 
-## Implemented in Slice 1
+## Implemented and verified in Slice 1
 
 - Added `AiEvaluationTargetKind` for execution, response, tool outcome, goal outcome, plan outcome, memory/knowledge usefulness, and learning-candidate evaluation targets.
 - Added provider-neutral `AiEvaluationRequest`, `AiEvaluationInputReference`, and `AiEvaluation` contracts with bounded validation and owned clone semantics.
@@ -31,20 +31,20 @@ This file is the compact handoff state for work currently in progress. It is not
 - Added focused `tests/HAgent.Tests/EvaluationContractsTests.cs` covering target identity, clone isolation, score/confidence bounds, evaluator provenance, correlation preservation, and bounded collections.
 - Added `src/HAgent.Example/MainForm.EvaluationContracts.cs` as the public API deterministic Example verification for evaluation creation and provenance/correlation preservation.
 - Added `docs/architecture/23-evaluation-quality.md` defining the evaluation ownership boundary and its separation from authorization and authoritative agent state.
+- User verification — **2026-09-09:** full `HAgent.Tests` completed with **96/96 tests passed** on .NET 9.
+- User Example verification — **.NET Framework 4.8.1, 2026-09-09 06:26:48:** `Evaluation Contracts` succeeded.
+- User Example verification — **.NET 9, 2026-09-09 06:26:18:** `Evaluation Contracts` succeeded.
+- Example checks verified provider-neutral target kinds, outcome/score/label representation, evaluator provenance, execution/runtime/goal/plan/trace correlation, bounded input/evidence references, owned clone isolation, no agent-state mutation or authorization side effect, no remote grading/provider transport, and no real provider request.
 
-## Verification boundary
+## Next checkpoint
 
-- Build the solution after pulling the current branch.
-- Run the full `HAgent.Tests` suite.
-- Run `HAgent.Example → Diagnostics → Other Diagnostics → Evaluation Contracts` on .NET Framework 4.8.1.
-- Run the same Example on .NET 9.
-- Confirm the Example uses only an in-process deterministic evaluator and performs no provider transport, model grading service, remote telemetry, or agent-state mutation.
-- Do not mark Slice 1 verified until all required local results are supplied.
-- Do not begin Slice 2 in the same run.
+**0.957 Slice 2 — Deterministic evaluators and evaluation evidence — NOT STARTED.**
+
+Do not implement the next slice until a new run begins.
 
 ## Current blockers
 
-No known architecture blocker. Slice 1 implementation is complete; local .NET/WinForms execution remains user-side verification.
+None. Slice 1 is fully verified and the repository is intentionally paused at the Slice 2 boundary.
 
 ## Current project state
 

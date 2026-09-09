@@ -37,6 +37,7 @@ namespace HAgent.Example
             AddObservabilityDiagnosticProjectionTab();
             AddObservabilityTracePropagationTab();
             AddObservabilityOutcomeTracingTab();
+            AddEvaluationContractsTab();
             // This example was implemented ahead of the roadmap order. Keep its public-API
             // verification available without changing the ordered roadmap milestone.
             AddLearningCandidateInterventionTab();
@@ -131,7 +132,7 @@ namespace HAgent.Example
             if (string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase))
                 subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
             else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase))
-                subgroupOrder = new[] { "Observability", "Other Diagnostics" };
+                subgroupOrder = new[] { "Observability", "Evaluation", "Other Diagnostics" };
             else
                 subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
 
@@ -266,6 +267,8 @@ namespace HAgent.Example
                 return "Data Access Context";
             if (key.StartsWith("OBSERVABILITY", StringComparison.Ordinal))
                 return "Observability";
+            if (key == "EVALUATION CONTRACTS")
+                return "Evaluation";
 
             if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY")
                 return "Runtime Instances";
@@ -312,6 +315,9 @@ namespace HAgent.Example
                 return "Identity";
 
             if (key.Contains("TRACE") || key.Contains("OBSERVABILITY"))
+                return "Diagnostics";
+
+            if (key.Contains("EVALUATION"))
                 return "Diagnostics";
 
             if (key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION")

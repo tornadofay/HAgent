@@ -10,9 +10,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.957 Evaluation and Quality Measurement
-- **Status:** In progress — Slice 5 implementation checkpoint, verification pending
+- **Status:** In progress — Slice 6 implementation checkpoint, verification pending
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Add provider-neutral aggregation and comparison over bounded evaluation samples, including success/quality/latency/cost/fallback/tool-success/plan-completion metrics, without adding routing, authorization, persistence, regression-suite orchestration, or management UI.
+- **Scope:** Add provider-neutral repeated regression cases and alternative target execution with bounded concurrency, failure isolation, cancellation/late-result protection, and direct handoff to the existing evaluation aggregation/comparison contracts.
 
 ## Completed prerequisite
 
@@ -28,29 +28,33 @@ This file is the compact handoff state for work currently in progress. It is not
 
 0.957 Slice 4 — model-assisted evaluators and non-authoritative judge boundary is verified. The user verified **123/123 HAgent.Tests**, plus the Slice 4 Example on **.NET Framework 4.8.1 and .NET 9**.
 
-## Current Slice 5 — Evaluation aggregation and alternative-target comparison
+0.957 Slice 5 — evaluation aggregation and alternative-target comparison is verified by user execution on **2026-09-09**: **130/130 HAgent.Tests passed**, and the `Evaluation Aggregation` Example succeeded on **.NET Framework 4.8.1 and .NET 9**. The verified scenario produced baseline success rate `0.333333`, candidate success rate `1`, candidate average quality `0.85`, and candidate average latency `110 ms`, with no authoritative routing or authorization decision.
 
-- Added `AiEvaluationMetricKind` and bounded `AiEvaluationMetric` contracts with provider-neutral higher/lower comparison semantics and explicit direction for custom metrics.
-- Added `AiEvaluationSample` and `AiEvaluationAggregationRequest` with bounded sample counts, owned cloning, and validation.
-- Added `AiEvaluationAggregate` / `AiEvaluationAggregateMetric` for per-variant outcome and measurement summaries.
-- Added `AiEvaluationComparison` / `AiEvaluationMetricComparison` for left/right metric averages, deltas, and strictly comparable preferred variants.
-- Added `AiEvaluationAggregator.Aggregate` and `.Compare` with cancellation checks, deterministic ordering, bounded input, detached aggregation snapshots, and no authoritative side effects.
-- Added focused `tests/HAgent.Tests/EvaluationAggregationTests.cs` covering validation, grouping, outcome counts, success/quality averages, explicit metrics, comparison direction, one-sided metrics, cancellation, and detached snapshots.
-- Added matching public `src/HAgent.Example/MainForm.EvaluationAggregation.cs`.
-- Registered/classified the Example as `HAgent.Example → Diagnostics → Evaluation → Evaluation Aggregation`.
-- Added a Windows CI workflow to build Core/Example on .NET Framework 4.8.1 and .NET 9 and run focused/full tests.
+## Current Slice 6 — Evaluation regression suites and repeated target execution
 
-**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Evaluation Aggregation` on **.NET Framework 4.8.1** and **.NET 9**.
+- Added `AiEvaluationRegressionCase` for bounded reusable test-case identity, input references, and host-defined parameters.
+- Added `AiEvaluationRegressionTarget` for bounded alternative target identity, name, and metadata without hard-coding provider/model semantics into Core.
+- Added `AiEvaluationRegressionSuite` for bounded case/target matrices, uniqueness validation, a maximum of 1024 case-target executions, and `MaxConcurrency` from 1 to 32.
+- Added `AiEvaluationRegressionCaseResult` and `AiEvaluationRegressionRun` with explicit execution status, completed evaluation samples, bounded failure codes, deterministic result ordering, and validation.
+- Added `IAiEvaluationRegressionExecutor` as the host-owned execution boundary. The runner does not select providers, credentials, authorization, or production routing.
+- Added `AiEvaluationRegressionRunner.RunAsync` with detached suite snapshots, semaphore-bounded concurrency, complete case-target repetition, cancellation propagation, failure isolation, invalid/null sample rejection, case/variant identity protection, and late-result discard after cancellation.
+- Added `AiEvaluationRegressionRun.CreateAggregationRequest()` to expose only completed, validated `AiEvaluationSample` evidence through the existing Slice 5 aggregation contract.
+- Added focused `tests/HAgent.Tests/EvaluationRegressionTests.cs` covering suite validation, matrix execution, deterministic ordering, concurrency bounds, executor failure isolation, identity mismatch, cancellation/late-result protection, snapshot isolation, and aggregation handoff ownership.
+- Added matching public `src/HAgent.Example/MainForm.EvaluationRegression.cs`.
+- Registered/classified the Example as `HAgent.Example → Diagnostics → Evaluation → Evaluation Regression Suites`.
+- Added `.github/workflows/verify-phase-0-957-slice-6.yml` for supported-target builds, focused regression tests, and the full .NET 9 test suite. It runs from `master`.
 
-**Tests to run:** `tests/HAgent.Tests/EvaluationAggregationTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Evaluation Regression Suites` on **.NET Framework 4.8.1** and **.NET 9**.
+
+**Tests to run:** `tests/HAgent.Tests/EvaluationRegressionTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ## Verification checkpoint
 
-The Slice 5 implementation is committed to `phase-0.957-slice-5-evaluation-aggregation`. CI/build/test verification and manual Example execution remain pending. Do not mark Slice 5 verified until the focused tests, full suite, supported-target builds, and both Example targets are actually confirmed.
+Slice 6 implementation and matching Example/test coverage are present directly on `master`. Automated build/test verification and manual Example execution are still pending for this slice. Do not mark requirement 9 or Slice 6 verified until the supported-target builds, focused/full tests, and both Example targets have actually been confirmed.
 
 ## Current blocker
 
-No design blocker is known. The repository currently requires the Slice 5 focused test/full-suite results and manual Example execution on both targets. Regression-suite orchestration remains deliberately outside this slice and is the next distinct implementation objective only after Slice 5 verification.
+No design blocker is known. Slice 6 is intentionally limited to regression-suite orchestration. Persistence, regression history storage, management UI, production provider selection, and authoritative decision-making remain outside this slice.
 
 ## Current project state
 
@@ -615,35 +619,36 @@ Phase 0.956 Observability and Distributed Tracing is complete and verified throu
 1. **Provider-neutral evaluation contracts and evaluator boundary — VERIFIED**
    - Provider-neutral target, request, evidence-reference, result, provenance, correlation, bounded validation, and clone contracts are established.
    - `IAiEvaluator` is the asynchronous evaluator boundary independent of a specific model vendor or grading service.
-   - User verification — 2026-09-09: full `HAgent.Tests` completed with 96/96 tests passed on .NET 9; required Example checks succeeded on .NET Framework 4.8.1 and .NET 9.
 
 2. **Deterministic evaluators and evaluation evidence — VERIFIED**
    - Deterministic host-computed observations and rules for schema validity, required fields, policy compliance, tool success, task completion, latency, and cost are implemented with bounded evidence, provenance, cancellation, threshold handling, ambiguity rejection, and `Inconclusive` outcomes.
-   - User verification — 2026-09-09: full `HAgent.Tests` completed with 109/109 tests passed.
-   - User Example verification — .NET Framework 4.8.1: `Diagnostics → Evaluation → Deterministic Evaluation` succeeded.
-   - User Example verification — .NET 9: `Diagnostics → Evaluation → Deterministic Evaluation` succeeded.
+   - User verification — 2026-09-09: full `HAgent.Tests` completed with 109/109 tests passed; matching Examples succeeded on .NET Framework 4.8.1 and .NET 9.
 
 3. **Human/application ratings and labeled evaluation evidence — VERIFIED**
    - `AiEvaluationRating` and `AiSuppliedRatingEvaluator` provide bounded externally supplied Human/Application evidence through the same evaluator boundary with owned cloning and non-authoritative semantics.
-   - User verification — 2026-09-09: full `HAgent.Tests` completed with 115/115 tests passed.
-   - User Example verification — .NET Framework 4.8.1 and .NET 9: `Diagnostics → Evaluation → Supplied Evaluation Ratings` succeeded.
+   - User verification — 2026-09-09: full `HAgent.Tests` completed with 115/115 tests passed; matching Examples succeeded on .NET Framework 4.8.1 and .NET 9.
 
 4. **Model-assisted evaluators and non-authoritative judge boundary — VERIFIED**
    - `IAiEvaluationJudge`, detached `AiEvaluationJudgeRequest`, and `AiModelAssistedEvaluationEvaluator` provide provider-neutral model-backed grading without putting transport, credentials, model selection, or evidence resolution in Core.
    - Model-assisted output is explicitly non-authoritative and fail-closed for cancellation, null output, invalid rating, and judge failure.
-   - User verification — 2026-09-09: `HAgent.Tests` completed with **123/123 tests passed**; Slice 4 verification passed on **.NET Framework 4.8.1 and .NET 9**.
+   - User verification — 2026-09-09: `HAgent.Tests` completed with **123/123 tests passed**; Slice 4 Example succeeded on **.NET Framework 4.8.1 and .NET 9**.
 
-## Current Slice 5 — Evaluation aggregation and alternative-target comparison
+5. **Evaluation aggregation and alternative-target comparison — VERIFIED**
+   - `AiEvaluationMetric`, `AiEvaluationSample`, aggregate/comparison contracts, and `AiEvaluationAggregator` provide bounded measurement-only aggregation and explicit higher/lower comparison semantics.
+   - User verification — 2026-09-09: **130/130 HAgent.Tests passed**; `Diagnostics → Evaluation → Evaluation Aggregation` succeeded on **.NET Framework 4.8.1 and .NET 9**.
+   - Verified results included baseline success rate `0.333333`, candidate success rate `1`, candidate average quality `0.85`, and candidate average latency `110 ms`, with no authoritative routing or authorization decision.
 
-**Objective:** add the provider-neutral measurement boundary needed to aggregate bounded evaluation samples by target variant and compare alternative variants using explicit metric direction, without introducing routing, authorization, persistence, regression-suite orchestration, or management UI.
+## Current Slice 6 — Evaluation regression suites and repeated target execution
+
+**Objective:** provide a provider-neutral, host-owned regression-suite boundary that repeats bounded evaluation cases across alternative targets with controlled concurrency, deterministic reporting, failure isolation, cancellation/late-result protection, and direct reuse of Slice 5 aggregation/comparison contracts.
 
 ### Expected files / assemblies
 
-- `src/HAgent.Core/Models/AiEvaluationAggregationContracts.cs`
-- `tests/HAgent.Tests/EvaluationAggregationTests.cs`
-- `src/HAgent.Example/MainForm.EvaluationAggregation.cs`
+- `src/HAgent.Core/Models/AiEvaluationRegressionContracts.cs`
+- `tests/HAgent.Tests/EvaluationRegressionTests.cs`
+- `src/HAgent.Example/MainForm.EvaluationRegression.cs`
 - `src/HAgent.Example/MainForm.ExampleOrganization.cs`
-- `.github/workflows/verify-phase-0-957-slice-5.yml`
+- `.github/workflows/verify-phase-0-957-slice-6.yml`
 - `docs/architecture/23-evaluation-quality.md`
 - `docs/roadmap/957-evaluation-quality-measurement.md`
 - `docs/plan/00-active-work.md`
@@ -652,31 +657,26 @@ Phase 0.956 Observability and Distributed Tracing is complete and verified throu
 
 ### Implemented boundary
 
-- `AiEvaluationMetric` defines bounded standard/custom metric values and explicit direction for custom metrics.
-- `AiEvaluationSample` binds a stable case ID, target variant ID, evaluation result, and bounded metric observations.
-- `AiEvaluationAggregationRequest` limits aggregate input to 256 samples and clones the active snapshot before aggregation.
-- `AiEvaluationAggregator.Aggregate` computes outcome counts, success rate, average evaluation score, and bounded metric average/minimum/maximum values for each variant.
-- `AiEvaluationAggregator.Compare` compares two completed aggregates, computes left-minus-right deltas, and reports a preferred variant only where both sides have a value and the metric's higher/lower direction gives a strict result.
-- Standard metric direction is provider-neutral: success/quality/tool-success/plan-completion are higher-is-better; latency/cost/fallback frequency are lower-is-better. Custom metrics must declare direction.
-- Comparison preference is measurement evidence only. It must not be used as implicit authorization, execution routing, configuration mutation, learning promotion, or cognitive authority.
-- Cancellation is checked at aggregation and comparison boundaries. Aggregation uses detached sample clones so caller mutation after invocation cannot alter produced aggregates.
-- The matching Example uses only public HAgent.Core contracts and deterministic in-process data; no provider or remote grading service is contacted.
+- `AiEvaluationRegressionCase` defines bounded case identity, name, input references, and host-defined parameters. It contains no executable code.
+- `AiEvaluationRegressionTarget` defines bounded comparison-target identity, name, and metadata. Provider/model/agent descriptors remain host metadata rather than Core authority.
+- `AiEvaluationRegressionSuite` owns a validated case-target matrix, unique IDs, `MaxConcurrency` from 1 to 32, and a maximum of 1024 case-target executions.
+- `IAiEvaluationRegressionExecutor` is the host-owned execution boundary. It receives detached case/target descriptors and returns the existing `AiEvaluationSample` evidence contract.
+- `AiEvaluationRegressionRunner.RunAsync` clones/validates the suite, schedules each case against each target under the concurrency bound, validates returned samples, isolates executor failures, propagates cancellation, and discards samples returned after cancellation.
+- `AiEvaluationRegressionRun` reports explicit completed/failed/canceled case-target results in deterministic order and exposes only completed samples to `CreateAggregationRequest()`.
+- Failed/canceled executions do not fabricate `AiEvaluation` outcomes and do not enter aggregation input.
+- Regression orchestration does not route production work, select credentials, authorize actions, persist authoritative state, promote learning, or mutate cognitive state.
 
-**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Evaluation Aggregation` on **.NET Framework 4.8.1** and **.NET 9**.
+**Example to run:** `HAgent.Example → Diagnostics → Evaluation → Evaluation Regression Suites` on **.NET Framework 4.8.1** and **.NET 9**.
 
-**Tests to run:** `tests/HAgent.Tests/EvaluationAggregationTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9** before marking Slice 5 verified.
+**Tests to run:** `tests/HAgent.Tests/EvaluationRegressionTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ### Verification checkpoint
 
-The implementation and matching Example/test scenario are committed to the dedicated Slice 5 branch. CI/build/test verification and manual Example execution remain pending. Until those checks are confirmed, Slice 5 is an **implementation checkpoint**, not a completed slice.
-
-### Explicit boundary for the next slice
-
-Regression-suite execution/repetition remains unimplemented. Slice 6 should define the provider-neutral regression case/suite execution contract and deterministic orchestration over alternative target variants. It must consume the aggregation/comparison contracts rather than introduce another metric/result model.
+Slice 6 implementation and matching Example/test coverage are committed directly to `master`. Supported-target builds and automated tests must pass, and the Example must be manually executed on both supported targets before requirement 9 or Slice 6 is marked verified.
 
 ### Verification rule
 
-A slice becomes complete only after its implementation exists, matching deterministic or focused verification passes locally, the supported-target build checks pass, and the authoritative architecture/roadmap documentation reflects the verified result. Do not claim local build/test/Example success unless actually executed or supplied as user local verification evidence.
+A slice becomes complete only after its implementation exists, matching focused verification passes, supported-target builds pass, and the matching Example succeeds on every required target. User-supplied local results count as verification evidence. Do not claim success unless actually executed or supplied by the user.
 
 ### Run rule
 

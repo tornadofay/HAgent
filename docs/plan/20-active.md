@@ -29,7 +29,7 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User Example verification — .NET 9, 2026-09-09 01:38:** same public-API scenario succeeded with the same contract checks.
    - No Slice 3 implementation was started in this run.
 
-3. **Trace-producing runtime instrumentation and propagation — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+3. **Trace-producing runtime instrumentation and propagation — VERIFIED**
    - Added provider-neutral tracing producers/decorators for the canonical execution lifecycle, policy evaluation, provider invocation, tool execution, context assembly, and event publication/handling boundaries.
    - Added `TracePropagation` as the explicit host/internal propagation scope and `EventEnvelope.TraceContext` as the optional provider-neutral event propagation field; neither replaces existing correlation/causation identity.
    - Kept runtime lifecycle as the sole execution producer so policy/context tracing is not duplicated when their dedicated tracing boundaries are composed.
@@ -37,8 +37,20 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - Hardened nested execution restoration so an outer trace context/correlation is restored after a traced execution completes or fails.
    - Added focused `HAgent.Tests` coverage for execution/policy/provider hierarchy, tool/context/event parent propagation, correlation preservation, payload exclusion, failure and cancellation terminal statuses, and nested ambient-context restoration.
    - Added and classified the matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Runtime Instrumentation`; it exercises success, provider failure, cancellation, policy/provider hierarchy, tool/context/event propagation, event handler parentage, correlation preservation, and payload omission using only deterministic in-process fakes.
-   - **Local verification required:** after pull, build the solution, run the `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not mark Slice 3 verified until those results are supplied.
-   - Do not begin Slice 4 in the same run.
+   - **User verification — 2026-09-09:** `HAgent.Tests` completed with **63/63 tests passed**.
+   - **User Example verification — .NET Framework 4.8.1, 2026-09-09 03:49:21:** `Observability Runtime Instrumentation` succeeded, verifying execution/policy/provider hierarchy, distinct execution/host correlation, tool/context/event propagation, event publication→handler parentage, sensitive payload omission, failure terminal status, cancellation terminal status, deterministic fake provider transport, and no real provider request.
+   - **User Example verification — .NET 9, 2026-09-09 03:50:11:** same public-API scenario succeeded with the same checks.
+   - A final Slice 3 test correction was required for ambient correlation propagation through tool/context/event boundaries; the resulting full suite passed 63/63.
+
+4. **Sampling and bounded retention controls — CURRENT**
+   - Implement provider-neutral sampling policy contracts and deterministic sampling behavior without changing span identity or lifecycle semantics.
+   - Add bounded retention controls for in-memory tracing, including maximum trace/span counts and aggregate diagnostic limits defined by the observability architecture.
+   - Keep sampling/retention separate from correctness: execution lifecycle, authorization, event delivery, and audit behavior must not depend on telemetry retention or sampling outcomes.
+   - Preserve the default-deny payload boundary and existing redaction/omission semantics under sampled and retained records.
+   - Add focused `HAgent.Tests` coverage for deterministic sampling decisions, retention eviction/bounds, per-trace limits, and isolation of sampling/retention from execution correctness.
+   - Add a matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Sampling & Retention`.
+   - Local verification must include solution build, the full `HAgent.Tests` suite, and the exact Example scenario on .NET Framework 4.8.1 and .NET 9 before Slice 4 is marked verified.
+   - Do not begin Slice 5 in the same run.
 
 ### Verification rule
 

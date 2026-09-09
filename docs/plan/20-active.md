@@ -29,27 +29,38 @@ The Skill architecture includes versioned reusable definitions/references, expli
 
 Slice 3 is closed.
 
-### Slice 4 — Memory family/type and provenance contract — CURRENT
+### Slice 4 — Memory family/type and provenance contract — VERIFIED
 
-**Objective:** normalize the canonical `MemoryEntry` contract around explicit reusable memory families (`Working`, `Episodic`, `Semantic`, `Procedural`, `Custom`) and stable type identifiers, while preserving bounded provenance/evidence/confidence metadata and optional expiration metadata.
+Verified by user on 2026-09-09.
 
-**Entry condition:** Slice 3 verified and closed.
+- Example: `HAgent.Example → Memory → Memory Families` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Full `HAgent.Tests`: 167/167 passed, 0 failed, 0 skipped on .NET 9.
+
+Slice 4 is closed.
+
+### Slice 5 — Memory governance and retention — CURRENT
+
+**Objective:** reuse the existing generic tri-state resource capability snapshot for Memory family/type access and add provider-neutral bounded retrieval and retention policy over the existing `IMemoryStore` / `MemoryEntry` foundation.
 
 **Complete within this slice:**
 
-- Extend the canonical `MemoryEntry`; do not introduce a second persisted memory model.
-- Add explicit family and stable type identifier with future/custom type support.
-- Add bounded provenance and confidence/evidence metadata.
-- Add optional expiration metadata with deterministic validation.
-- Provide deep cloning/validation for mutable contract state.
-- Keep existing File/SQL Server/MySQL/InMemory stores on the same `MemoryEntry` representation.
-- Add focused `tests/HAgent.Tests/MemoryFamilyTests.cs`.
-- Add matching public Example `HAgent.Example → Memory → Memory Families`.
-- Add the authoritative memory contract architecture document and durable decision as required.
+- canonical Memory capability resource types: `memory`, `memory.family`, `memory.type`;
+- family/type/expiration filters on `MemoryQuery`;
+- deterministic global and family/type retrieval limits capped at 1000;
+- optional expiration exclusion during recall;
+- per-family/type retention caps that never extend a shorter explicit expiration;
+- `AiMemoryGovernancePolicy` validation and deep clone semantics;
+- `AiMemoryGovernanceEvaluator` over the existing `AiResourceCapabilitySnapshot`;
+- `AiGovernedMemoryStore` over the existing `IMemoryStore` boundary;
+- focused tests and matching public Example.
 
-**Out of scope:** memory governance/authorization orchestration, retention policy enforcement, profile/runtime memory capability UI, learning candidates, promotion, Knowledge Manager, Skill Manager, or broader storage redesign.
+**Out of scope:** Learning candidates/promotion, Knowledge Manager, Skill Manager, management UI, persistence redesign, or a second authorization system.
 
 **Completion checkpoint:** affected projects build; focused tests and full .NET 9 tests pass; Example succeeds on .NET Framework 4.8.1 and .NET 9.
+
+**Example to run:** `HAgent.Example → Memory → Memory Governance` on **.NET Framework 4.8.1** and **.NET 9**.
+
+**Tests to run:** `tests/HAgent.Tests/MemoryGovernanceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ## Run rule
 

@@ -13,6 +13,13 @@ namespace HAgent.Models
         Disabled
     }
 
+    public enum AiResourceCapabilitySource
+    {
+        Default,
+        Profile,
+        RuntimeOverride
+    }
+
     public sealed class AiResourceCapabilityEntry
     {
         public AiResourceCapabilityEntry()
@@ -165,27 +172,36 @@ namespace HAgent.Models
 
     public sealed class AiResourceCapabilitySnapshotEntry
     {
-        internal AiResourceCapabilitySnapshotEntry(string resourceType, string resourceId, AiResourceCapabilityState state)
+        internal AiResourceCapabilitySnapshotEntry(
+            string resourceType,
+            string resourceId,
+            AiResourceCapabilityState state,
+            AiResourceCapabilitySource source)
         {
             ResourceType = resourceType;
             ResourceId = resourceId;
             State = state;
+            Source = source;
         }
 
         public string ResourceType { get; private set; }
         public string ResourceId { get; private set; }
         public AiResourceCapabilityState State { get; private set; }
+        public AiResourceCapabilitySource Source { get; private set; }
     }
 
     public sealed class AiResourceCapabilitySnapshot
     {
         private readonly IReadOnlyDictionary<string, AiResourceCapabilityState> _states;
+        private readonly IReadOnlyDictionary<string, AiResourceCapabilitySource> _sources;
 
         private AiResourceCapabilitySnapshot(
             IReadOnlyDictionary<string, AiResourceCapabilityState> states,
+            IReadOnlyDictionary<string, AiResourceCapabilitySource> sources,
             IReadOnlyList<AiResourceCapabilitySnapshotEntry> entries)
         {
             _states = states;
+            _sources = sources;
             Entries = entries;
         }
 
@@ -211,17 +227,37 @@ namespace HAgent.Models
             return AiResourceCapabilityState.Enabled;
         }
 
+        public AiResourceCapabilitySource GetSource(string resourceType, string resourceId = null)
+        {
+            if (string.IsNullOrWhiteSpace(resourceType))
+                throw new ArgumentException("Resource type is required.", nameof(resourceType));
+
+            var type = resourceType.Trim();
+            var id = string.IsNullOrWhiteSpace(resourceId) ? string.Empty : resourceId.Trim();
+            AiResourceCapabilitySource source;
+            if (_sources.TryGetValue(MakeKey(type, id), out source))
+                return source;
+            if (!string.IsNullOrEmpty(id) && _sources.TryGetValue(MakeKey(type, string.Empty), out source))
+                return source;
+            return AiResourceCapabilitySource.Default;
+        }
+
         public AiResourceCapabilitySnapshot Clone()
         {
             var states = new Dictionary<string, AiResourceCapabilityState>(StringComparer.OrdinalIgnoreCase);
             foreach (var pair in _states)
                 states[pair.Key] = pair.Value;
 
+            var sources = new Dictionary<string, AiResourceCapabilitySource>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in _sources)
+                sources[pair.Key] = pair.Value;
+
             var entries = new List<AiResourceCapabilitySnapshotEntry>();
             foreach (var entry in Entries)
-                entries.Add(new AiResourceCapabilitySnapshotEntry(entry.ResourceType, entry.ResourceId, entry.State));
+                entries.Add(new AiResourceCapabilitySnapshotEntry(entry.ResourceType, entry.ResourceId, entry.State, entry.Source));
             return new AiResourceCapabilitySnapshot(
                 new ReadOnlyDictionary<string, AiResourceCapabilityState>(states),
+                new ReadOnlyDictionary<string, AiResourceCapabilitySource>(sources),
                 entries.AsReadOnly());
         }
 
@@ -231,6 +267,8 @@ namespace HAgent.Models
             {
                 if (entry.State == AiResourceCapabilityState.Inherit)
                     throw new ArgumentException("Effective resource capability snapshots cannot contain Inherit entries.", nameof(Entries));
+                if (!Enum.IsDefined(typeof(AiResourceCapabilitySource), entry.Source))
+                    throw new ArgumentOutOfRangeException(nameof(entry.Source));
             }
         }
 
@@ -249,19 +287,24 @@ namespace HAgent.Models
 
             var orderedKeys = keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
             var states = new Dictionary<string, AiResourceCapabilityState>(StringComparer.OrdinalIgnoreCase);
+            var sources = new Dictionary<string, AiResourceCapabilitySource>(StringComparer.OrdinalIgnoreCase);
             var effectiveEntries = new List<AiResourceCapabilitySnapshotEntry>();
             foreach (var key in orderedKeys)
             {
                 string type;
                 string id;
                 SplitKey(key, out type, out id);
-                var state = ResolveState(profilePolicy, runtimePolicy, type, id);
+
+                AiResourceCapabilitySource source;
+                AiResourceCapabilityState state = ResolveState(profilePolicy, runtimePolicy, type, id, out source);
                 states[key] = state;
-                effectiveEntries.Add(new AiResourceCapabilitySnapshotEntry(type, id, state));
+                sources[key] = source;
+                effectiveEntries.Add(new AiResourceCapabilitySnapshotEntry(type, id, state, source));
             }
 
             var snapshot = new AiResourceCapabilitySnapshot(
                 new ReadOnlyDictionary<string, AiResourceCapabilityState>(states),
+                new ReadOnlyDictionary<string, AiResourceCapabilitySource>(sources),
                 effectiveEntries.AsReadOnly());
             snapshot.Validate();
             return snapshot;
@@ -271,16 +314,24 @@ namespace HAgent.Models
             AiResourceCapabilityPolicy profile,
             AiResourceCapabilityPolicy runtime,
             string resourceType,
-            string resourceId)
+            string resourceId,
+            out AiResourceCapabilitySource source)
         {
             var runtimeEntry = runtime.Find(resourceType, resourceId);
             if (runtimeEntry != null && runtimeEntry.State != AiResourceCapabilityState.Inherit)
+            {
+                source = AiResourceCapabilitySource.RuntimeOverride;
                 return runtimeEntry.State;
+            }
 
             var profileEntry = profile.Find(resourceType, resourceId);
             if (profileEntry != null && profileEntry.State != AiResourceCapabilityState.Inherit)
+            {
+                source = AiResourceCapabilitySource.Profile;
                 return profileEntry.State;
+            }
 
+            source = AiResourceCapabilitySource.Default;
             return AiResourceCapabilityState.Enabled;
         }
 

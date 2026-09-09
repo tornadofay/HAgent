@@ -28,7 +28,7 @@ namespace HAgent.Example
             var dispatcher = new TraceSinkDispatcher(new ITraceSink[] { recordingSink });
             var recorder = new InMemoryTraceRecorder(null, null, dispatcher);
 
-            var root = StartExampleRoot(recorder, "example-sink-order-42");
+            var root = StartSinkExampleRoot(recorder, "example-sink-order-42");
             var child = recorder.StartSpan(new TraceSpanStartOptions
             {
                 ParentContext = root.Context,
@@ -51,7 +51,7 @@ namespace HAgent.Example
             var secondarySink = new ExampleRecordingTraceSink();
             var failureDispatcher = new TraceSinkDispatcher(new ITraceSink[] { failingSink, secondarySink });
             var failureRecorder = new InMemoryTraceRecorder(null, null, failureDispatcher);
-            var failureSpan = StartExampleRoot(failureRecorder, "example-sink-failure-42");
+            var failureSpan = StartSinkExampleRoot(failureRecorder, "example-sink-failure-42");
 
             if (!failureSpan.TryComplete(TraceSpanStatus.Succeeded) || !failureSpan.Record.IsCompleted)
                 throw new InvalidOperationException("Sink failure changed span lifecycle completion.");
@@ -63,7 +63,7 @@ namespace HAgent.Example
             var blockingSink = new ExampleBlockingTraceSink();
             var slowDispatcher = new TraceSinkDispatcher(new[] { (ITraceSink)blockingSink });
             var slowRecorder = new InMemoryTraceRecorder(null, null, slowDispatcher);
-            var slowSpan = StartExampleRoot(slowRecorder, "example-sink-slow-42");
+            var slowSpan = StartSinkExampleRoot(slowRecorder, "example-sink-slow-42");
             if (!slowSpan.TryComplete(TraceSpanStatus.Succeeded) || !slowSpan.Record.IsCompleted)
                 throw new InvalidOperationException("Slow sink affected span completion.");
 
@@ -80,13 +80,13 @@ namespace HAgent.Example
                 new[] { (ITraceSink)queueSink },
                 new TraceSinkOptions { MaxPendingSpans = 1 });
             var boundedRecorder = new InMemoryTraceRecorder(null, null, boundedDispatcher);
-            var firstQueued = StartExampleRoot(boundedRecorder, "example-sink-queue-1");
+            var firstQueued = StartSinkExampleRoot(boundedRecorder, "example-sink-queue-1");
             if (!firstQueued.TryComplete(TraceSpanStatus.Succeeded))
                 throw new InvalidOperationException("First bounded sink span did not complete.");
 
             await queueSink.Started.ConfigureAwait(true);
-            var secondQueued = StartExampleRoot(boundedRecorder, "example-sink-queue-2");
-            var thirdQueued = StartExampleRoot(boundedRecorder, "example-sink-queue-3");
+            var secondQueued = StartSinkExampleRoot(boundedRecorder, "example-sink-queue-2");
+            var thirdQueued = StartSinkExampleRoot(boundedRecorder, "example-sink-queue-3");
             if (!secondQueued.TryComplete(TraceSpanStatus.Succeeded) || !thirdQueued.TryComplete(TraceSpanStatus.Succeeded))
                 throw new InvalidOperationException("Bounded queue spans did not complete.");
             if (boundedDispatcher.DroppedCount != 1)
@@ -103,7 +103,7 @@ namespace HAgent.Example
                 new FixedTraceSampler(false),
                 new TraceRetentionOptions(),
                 unsampledDispatcher);
-            var unsampled = StartExampleRoot(unsampledRecorder, "example-sink-unsampled-42");
+            var unsampled = StartSinkExampleRoot(unsampledRecorder, "example-sink-unsampled-42");
             if (!unsampled.TryComplete(TraceSpanStatus.Succeeded))
                 throw new InvalidOperationException("Unsampled span could not complete normally.");
             await unsampledDispatcher.FlushAsync().ConfigureAwait(true);
@@ -121,7 +121,7 @@ namespace HAgent.Example
                 MaxAge = Timeout.InfiniteTimeSpan
             };
             var retainedRecorder = new InMemoryTraceRecorder(new FixedTraceSampler(true), retention, retainedDispatcher);
-            var retainedRoot = StartExampleRoot(retainedRecorder, "example-sink-not-retained-42");
+            var retainedRoot = StartSinkExampleRoot(retainedRecorder, "example-sink-not-retained-42");
             if (!retainedRoot.TryComplete(TraceSpanStatus.Succeeded))
                 throw new InvalidOperationException("Retained root span did not complete.");
             await retainedDispatcher.FlushAsync().ConfigureAwait(true);
@@ -161,7 +161,7 @@ namespace HAgent.Example
                 "Real provider request: none.");
         }
 
-        private static ITraceSpan StartExampleRoot(ITraceRecorder recorder, string executionId)
+        private static ITraceSpan StartSinkExampleRoot(ITraceRecorder recorder, string executionId)
         {
             return recorder.StartSpan(new TraceSpanStartOptions
             {

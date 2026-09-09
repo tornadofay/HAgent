@@ -23,15 +23,15 @@ namespace HAgent.Tests
             var runtime = CreateRuntime(store, rawAdapter, recorder);
 
             var execution = await runtime.ExecuteAsync(
-                CreateRequest("host-correlation-42", CancellationToken.None)).ConfigureAwait(false);
+                CreateRequest("host-correlation-42"), CancellationToken.None).ConfigureAwait(false);
 
             Assert.Equal(AgentExecutionState.Succeeded, execution.State);
             var spans = recorder.GetSpans();
             Assert.True(spans.Count >= 3);
 
-            TraceSpan root = Find(spans, "execution");
-            TraceSpan policy = Find(spans, "policy.evaluate");
-            TraceSpan provider = Find(spans, "provider.invoke");
+            var root = Find(spans, "execution");
+            var policy = Find(spans, "policy.evaluate");
+            var provider = Find(spans, "provider.invoke");
 
             Assert.NotNull(root);
             Assert.NotNull(policy);
@@ -44,7 +44,6 @@ namespace HAgent.Tests
             Assert.Equal(execution.Id, root.Correlation.ExecutionId);
             Assert.Equal(execution.CorrelationId, provider.Correlation.ExecutionCorrelationId);
             Assert.Equal("host-correlation-42", provider.Correlation.HostCorrelationId);
-            Assert.Equal("runtime-42", provider.Correlation.RuntimeInstanceId);
             Assert.Equal("deployment-42", provider.Correlation.DeploymentId);
             Assert.Equal("tenant-42", provider.Correlation.TenantId);
             Assert.True(root.IsCompleted);
@@ -64,7 +63,7 @@ namespace HAgent.Tests
                 failureRecorder);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                failureRuntime.ExecuteAsync(CreateRequest("host-failure-42", CancellationToken.None)));
+                failureRuntime.ExecuteAsync(CreateRequest("host-failure-42"), CancellationToken.None));
 
             var failureRoot = Find(failureRecorder.GetSpans(), "execution");
             Assert.NotNull(failureRoot);
@@ -79,7 +78,8 @@ namespace HAgent.Tests
             var cancellationRuntime = CreateRuntime(cancellationStore, cancellationAdapter, cancellationRecorder);
             using (var cancellation = new CancellationTokenSource())
             {
-                var executionTask = cancellationRuntime.ExecuteAsync(CreateRequest("host-cancel-42", cancellation.Token));
+                var executionTask = cancellationRuntime.ExecuteAsync(
+                    CreateRequest("host-cancel-42"), cancellation.Token);
                 await cancellationAdapter.Started.Task.ConfigureAwait(false);
                 cancellation.Cancel();
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => executionTask);
@@ -99,8 +99,7 @@ namespace HAgent.Tests
             {
                 ExecutionId = "execution-42",
                 ExecutionCorrelationId = "execution-correlation-42",
-                HostCorrelationId = "host-correlation-42",
-                RuntimeInstanceId = "runtime-42"
+                HostCorrelationId = "host-correlation-42"
             };
             var root = recorder.StartSpan(new TraceSpanStartOptions
             {
@@ -159,25 +158,26 @@ namespace HAgent.Tests
                 dispatcher.Dispose();
             }
 
-            root.TryComplete(TraceSpanStatus.Succeeded);
             var spans = recorder.GetSpans();
-            TraceSpan toolSpan = Find(spans, "tool.execute");
-            TraceSpan contextSpan = Find(spans, "context.assemble");
-            TraceSpan eventPublish = Find(spans, "event.publish");
-            TraceSpan eventHandle = Find(spans, "event.handle");
+            var toolSpan = Find(spans, "tool.execute");
+            var contextSpan = Find(spans, "context.assemble");
+            var eventPublish = Find(spans, "event.publish");
+            var eventHandle = Find(spans, "event.handle");
 
             Assert.NotNull(toolSpan);
             Assert.NotNull(contextSpan);
             Assert.NotNull(eventPublish);
             Assert.NotNull(eventHandle);
-            Assert.Equal(root.SpanId, toolSpan.ParentSpanId);
-            Assert.Equal(root.SpanId, contextSpan.ParentSpanId);
-            Assert.Equal(root.SpanId, eventPublish.ParentSpanId);
+            Assert.Equal(root.Record.SpanId, toolSpan.ParentSpanId);
+            Assert.Equal(root.Record.SpanId, contextSpan.ParentSpanId);
+            Assert.Equal(root.Record.SpanId, eventPublish.ParentSpanId);
             Assert.Equal(eventPublish.SpanId, eventHandle.ParentSpanId);
-            Assert.Equal(root.Correlation.ExecutionId, toolSpan.Correlation.ExecutionId);
-            Assert.Equal(root.Correlation.ExecutionId, contextSpan.Correlation.ExecutionId);
+            Assert.Equal(root.Record.Correlation.ExecutionId, toolSpan.Correlation.ExecutionId);
+            Assert.Equal(root.Record.Correlation.ExecutionId, contextSpan.Correlation.ExecutionId);
             Assert.DoesNotContain(toolSpan.Metadata.Values.Values, x => x.Contains("do-not-record"));
             Assert.DoesNotContain(eventPublish.Metadata.Values.Values, x => x.Contains("do-not-record"));
+
+            root.TryComplete(TraceSpanStatus.Succeeded);
         }
 
         [Fact]
@@ -198,18 +198,33 @@ namespace HAgent.Tests
 
             using (TracePropagation.Push(outer.Context, outer.Record.Correlation))
             {
-                await runtime.ExecuteAsync(CreateRequest("nested-host-42", CancellationToken.None)).ConfigureAwait(false);
+                await runtime.ExecuteAsync(CreateRequest("nested-host-42"), CancellationToken.None).ConfigureAwait(false);
                 Assert.NotNull(TracePropagation.Current);
-                Assert.Equal(outer.TraceId, TracePropagation.Current.TraceId);
+                Assert.Equal(outer.Record.TraceId, TracePropagation.Current.TraceId);
             }
 
             Assert.Null(TracePropagation.Current);
             outer.TryComplete(TraceSpanStatus.Succeeded);
         }
 
-        private static DefaultExecutionRequest CreateRequest(string hostCorrelationId, CancellationToken cancellationToken)
+        private static AgentExecutionRequest CreateRequest(string hostCorrelationId)
         {
-            return new DefaultExecutionRequest(hostCorrelationId, cancellationToken).Value;
+            return new AgentExecutionRequest
+            {
+                AgentId = "trace-agent-42",
+                Messages = new List<AIMessage> { new AIMessage("user", "trace this") },
+                HostCorrelationId = hostCorrelationId,
+                Identity = new AgentIdentityContext(
+                    deploymentId: "deployment-42",
+                    tenantId: "tenant-42",
+                    userId: "user-42"),
+                Options = new AgentExecutionOptions
+                {
+                    Timeout = TimeSpan.FromSeconds(2),
+                    MaxProviderAttempts = 1,
+                    MaxRetriesPerProvider = 0
+                }
+            };
         }
 
         private static TracingAgentRuntime CreateRuntime(
@@ -221,9 +236,16 @@ namespace HAgent.Tests
             var tracedAdapter = new TracingProviderAdapter(adapter, recorder);
             var inner = new DefaultAgentRuntime(
                 store,
-                new NullSecretStore(),
+                new InMemorySecretStore(),
                 new[] { tracedAdapter },
-                policyEngine: tracedPolicy);
+                new DefaultProviderRouter(),
+                new DefaultProviderErrorClassifier(),
+                null,
+                null,
+                null,
+                null,
+                tracedPolicy,
+                null);
             return new TracingAgentRuntime(inner, recorder);
         }
 
@@ -258,39 +280,32 @@ namespace HAgent.Tests
             return null;
         }
 
-        private sealed class DefaultExecutionRequest
-        {
-            public DefaultExecutionRequest(string hostCorrelationId, CancellationToken token)
-            {
-                Value = new AgentExecutionRequest
-                {
-                    AgentId = "trace-agent-42",
-                    Messages = new List<AIMessage> { new AIMessage("user", "trace this") },
-                    HostCorrelationId = hostCorrelationId,
-                    Identity = new AgentIdentityContext
-                    {
-                        DeploymentId = "deployment-42",
-                        TenantId = "tenant-42",
-                        UserId = "user-42"
-                    },
-                    Options = new AgentExecutionOptions
-                    {
-                        RuntimeInstanceId = "runtime-42",
-                        Timeout = TimeSpan.FromSeconds(2),
-                        MaxProviderAttempts = 1,
-                        MaxRetriesPerProvider = 0
-                    }
-                };
-            }
-
-            public AgentExecutionRequest Value { get; private set; }
-        }
-
         private enum TraceProviderMode
         {
             Success,
             Failure,
             Cancellation
+        }
+
+        private sealed class InMemorySecretStore : ISecretStore
+        {
+            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.CompletedTask;
+            }
+
+            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.FromResult(string.Empty);
+            }
+
+            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.CompletedTask;
+            }
         }
 
         private sealed class TraceTestProviderAdapter : IAiProviderAdapter, IProviderDiscovery
@@ -339,9 +354,7 @@ namespace HAgent.Tests
                 if (_mode == TraceProviderMode.Failure)
                     throw new InvalidOperationException("Deterministic trace provider failure.");
                 if (_mode == TraceProviderMode.Cancellation)
-                {
                     await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
-                }
 
                 return new AIResponse
                 {

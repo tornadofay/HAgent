@@ -9,10 +9,6 @@ using HAgent.Models;
 
 namespace HAgent.Runtime
 {
-    /// <summary>
-    /// Small, dependency-free memory store intended for development and low-memory applications.
-    /// Search is text/metadata based; no embedding model or GPU is required.
-    /// </summary>
     public sealed class InMemoryMemoryStore : IMemoryStore
     {
         private readonly ConcurrentDictionary<string, MemoryEntry> _entries = new ConcurrentDictionary<string, MemoryEntry>(StringComparer.OrdinalIgnoreCase);
@@ -22,7 +18,8 @@ namespace HAgent.Runtime
             cancellationToken.ThrowIfCancellationRequested();
             if (entry == null) throw new ArgumentNullException(nameof(entry));
             if (string.IsNullOrWhiteSpace(entry.Id)) entry.Id = Guid.NewGuid().ToString("N");
-            _entries[entry.Id] = entry;
+            entry.Validate();
+            _entries[entry.Id] = entry.Clone();
             return Task.CompletedTask;
         }
 
@@ -42,7 +39,7 @@ namespace HAgent.Runtime
                 .OrderByDescending(x => x.Score)
                 .ThenByDescending(x => x.Entry.CreatedAt)
                 .Take(maxResults)
-                .Select(x => x.Entry)
+                .Select(x => x.Entry.Clone())
                 .ToList();
 
             return Task.FromResult((IReadOnlyList<MemoryEntry>)matches.AsReadOnly());
@@ -75,12 +72,10 @@ namespace HAgent.Runtime
         {
             if (metadata == null || metadata.Count == 0) return true;
             if (entry.Metadata == null) return false;
-
             foreach (var pair in metadata)
             {
                 string value;
-                if (!entry.Metadata.TryGetValue(pair.Key, out value) || !string.Equals(value, pair.Value, StringComparison.OrdinalIgnoreCase))
-                    return false;
+                if (!entry.Metadata.TryGetValue(pair.Key, out value) || !string.Equals(value, pair.Value, StringComparison.OrdinalIgnoreCase)) return false;
             }
             return true;
         }

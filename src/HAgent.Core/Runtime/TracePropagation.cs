@@ -43,6 +43,13 @@ namespace HAgent.Runtime
             return TraceAmbient.Push(context, correlation);
         }
 
+        public static IDisposable Push(TraceContext context, TraceCorrelation correlation, ITraceRecorder recorder)
+        {
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (recorder == null) throw new ArgumentNullException(nameof(recorder));
+            return TraceAmbient.Push(context, correlation, recorder);
+        }
+
         public static TracePropagationCarrier Export(TraceContext context, TraceCorrelation correlation)
         {
             if (context == null)

@@ -35,21 +35,34 @@ User verification on 2026-09-09:
 
 Slice 1 is closed. Its implementation, focused tests, matching Example, and roadmap evidence are complete.
 
-### Slice 2 — Knowledge/Wiki governed resource contract
+### Slice 2 — Knowledge/Wiki governed resource contract — IMPLEMENTATION CHECKPOINT
 
 **Objective:** complete the provider-neutral Knowledge/Wiki resource contract on top of the verified generic governance boundary without creating a second authorization, ownership, or persistence model.
 
-The slice should establish the canonical knowledge resource/reference shape and bounded retrieval-facing metadata needed by later context and learning slices. It must preserve resource identity, scope/ownership, provenance, lifecycle/status, version, source, relationships, and bounded retrieval metadata. Authoritative resource content must remain distinct from candidate/model-generated content.
+#### Implemented in this checkpoint
 
-The implementation should reuse `AiResourceGovernanceEvaluator` for admission and the existing resource/storage foundations for persistence boundaries. Do not implement the full Knowledge Manager UI, semantic/vector indexing, learning promotion, or broad retrieval orchestration in this slice unless required to establish the contract itself.
+- Added `AiKnowledgeResource` with explicit `Knowledge` / `Wiki` kind, scope/owner, title/content/summary, lifecycle status, version, source, timestamps, tags/categories, bounded metadata, relationships, and provenance.
+- Added `AiKnowledgeProvenance` preserving source kind, source identity, URI/creator, source execution/runtime provenance, evidence, and bounded confidence.
+- Added `AiKnowledgeChunk` as bounded retrieval evidence without coupling Core to a physical index or search engine.
+- Added `AiKnowledgeRetrievalRequest`, `AiKnowledgeRetrievalCandidate`, `AiKnowledgeRetrievalResult`, and `IAiKnowledgeRetriever` as provider/index-neutral retrieval contracts with explicit result bounds.
+- Added `AiGovernedKnowledgeRetriever`, which applies the verified `AiResourceGovernanceEvaluator` before allowing resource IDs into the underlying retriever and excludes drafts unless explicitly requested.
+- Added matching `tests/HAgent.Tests/KnowledgeResourceTests.cs` for authority/lifecycle, owner requirements, cloning/provenance, bounded request state, authorized retrieval, cross-owner/draft rejection, and cancellation.
+- Added matching public `src/HAgent.Example/MainForm.KnowledgeWiki.cs` and registered it under `Cognition → Knowledge/Wiki`.
+- Added `.github/workflows/verify-phase-0-9575-slice-2.yml` for Core/Example builds on .NET Framework 4.8.1 and .NET 9 plus focused/full tests.
 
-**Example to run:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki`
+The model-generated path defaults to `Draft`, so generated content is not authoritative merely because it exists. `Published` is an explicit lifecycle state for authoritative knowledge; promotion/approval remains outside this slice.
+
+**Example to run:** `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki` on **.NET Framework 4.8.1** and **.NET 9**.
 
 **Tests to run:** `tests/HAgent.Tests/KnowledgeResourceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
+### Slice 2 boundary
+
+This slice establishes the provider-neutral Knowledge/Wiki contract and governed retrieval boundary. It does not add Knowledge Manager CRUD UI, persistent resource repositories, semantic/vector indexing, candidate promotion, retention governance, or broader learning lifecycle workflows.
+
 ## Current blocker
 
-No design blocker is known. Slice 1 is verified. Slice 2 should begin by inspecting the existing Knowledge/Wiki foundation models and storage contracts, then compose the verified resource-governance boundary rather than duplicating ownership, capability, policy, or persistence concerns.
+Implementation is complete for the bounded Slice 2 scope, but verification is pending. Do not start Slice 3 until the affected projects build, `KnowledgeResourceTests` and the full .NET 9 test suite pass, and the matching Example succeeds on both required framework targets.
 
 ## Run rule
 

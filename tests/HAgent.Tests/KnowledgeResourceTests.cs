@@ -192,7 +192,7 @@ namespace HAgent.Tests
             }, CancellationToken.None);
 
             Assert.Empty(result.Candidates);
-            Assert.Empty(inner.LastRequest.ResourceIds);
+            Assert.Null(inner.LastRequest);
         }
 
         [Fact]

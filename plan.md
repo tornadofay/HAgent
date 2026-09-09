@@ -16,35 +16,22 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current checkpoint
 
-0.956 Slice 6 safe human-readable diagnostic projection is complete and verified on both supported Example targets. The provider-neutral bounded projection exposes diagnostic trace structure without exposing raw trace storage, prompts, provider responses, tool payloads, host context, secrets, or arbitrary objects.
+0.956 Slice 7 cross-process trace context and correlation boundary is complete and verified on both supported Example targets. The provider-neutral bounded carrier preserves distinct trace, execution, host, event, and causation identities and rejects untrusted or malformed incoming context safely.
 
 ## Current run
 
-**0.956 Slice 7 cross-process trace context and correlation boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING.**
+**0.956 Slice 8 failure, retry, fallback, waiting, and stale-result observability — CURRENT.**
 
-Slice 7 now provides a bounded provider-neutral host/transport boundary for moving `TraceContext` and existing correlation identities across process boundaries. It does not implement a wire transport or remote telemetry service.
+This slice will make important non-success and recovery decisions observable without changing execution semantics or allowing tracing to alter lifecycle outcomes.
 
-## Implemented in Slice 7
+## Slice 8 scope
 
-- Added bounded `TracePropagationCarrier`, `TracePropagationImportOptions`, `TracePropagationImportStatus`, and `TracePropagationImportResult` contracts.
-- Extended `TracePropagation` with deterministic export/import of trace context and bounded deployment, tenant, principal, user, session, workspace, agent-profile, runtime, execution, execution-correlation, host-correlation, event, and causation identities.
-- Preserved distinct trace, execution, host, event, and causation identities rather than collapsing them into one cross-process value.
-- Added explicit host trust acceptance for incoming trace context; the default rejects untrusted incoming trace context.
-- Added safe handling for missing, malformed, incomplete, unsampled, and oversized incoming propagation values.
-- Kept Core independent of HTTP headers, W3C/OpenTelemetry types, vendor SDKs, message buses, and remote telemetry delivery.
-- Added focused `tests/HAgent.Tests/ObservabilityTracePropagationTests.cs` covering round-trip propagation, identity separation, unsampled state, missing context, explicit trust rejection, malformed trace input, invalid sampled state, oversized correlation input, and carrier clone/bounds behavior.
-- Added `src/HAgent.Example/MainForm.ObservabilityTracePropagation.cs` and registered it under `Diagnostics → Observability → Observability Trace Propagation`.
-- Updated `docs/architecture/22-observability.md` with the cross-process propagation boundary and its trust/validation semantics.
-
-## Slice 7 verification boundary
-
-- Build the solution after pulling the current branch.
-- Run the full `HAgent.Tests` suite.
-- Run `HAgent.Example → Diagnostics → Observability → Observability Trace Propagation` on .NET Framework 4.8.1.
-- Run the same Example on .NET 9.
-- Confirm no real network transport, remote telemetry service, or real provider request is contacted.
-- Do not mark Slice 7 verified until all required local results are supplied.
-- Do not begin Slice 8 in the same run.
+- Cover policy denial/defer, provider failure, retry, fallback target, waiting/backpressure, cancellation/timeout, runtime recovery, and stale/late result rejection through bounded provider-neutral trace status/metadata.
+- Reconcile existing execution lifecycle state, intervention/terminal-state handling, provider attempts, fallback planning, scheduling/waiting, and stale-result protection with trace hierarchy and causal relationships.
+- Keep accepted terminal execution state authoritative; a rejected stale/late result may be observed but must never overwrite the accepted outcome.
+- Add focused `HAgent.Tests` coverage for failure classification, retry/fallback relationships, waiting/backpressure, cancellation/timeout, stale-result rejection, and recovery ordering.
+- Add the matching public-API Example under `Diagnostics → Observability → Observability Outcomes & Recovery` using deterministic in-process fakes only.
+- No real network transport, remote telemetry delivery, or provider-vendor dependency in this slice.
 
 ## Current blockers
 
@@ -644,7 +631,7 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - **User verification — 2026-09-09 05:09:** .NET 9 Example succeeded with the same checks.
    - **User verification — 2026-09-09:** full `HAgent.Tests` completed with **77/77 tests passed** after the Slice 6 Example helper correction.
 
-7. **Cross-process trace context and correlation boundary — IMPLEMENTATION CHECKPOINT; LOCAL VERIFICATION PENDING**
+7. **Cross-process trace context and correlation boundary — VERIFIED**
    - Added provider-neutral `TracePropagationCarrier`, `TracePropagationImportOptions`, `TracePropagationImportStatus`, and `TracePropagationImportResult` contracts with bounded key/value counts and lengths.
    - Extended `TracePropagation` to export `TraceContext` plus the existing bounded correlation identities into the carrier and import them deterministically without coupling Core to HTTP, message buses, OpenTelemetry, or vendor-specific telemetry.
    - Preserved the distinction between `TraceId`, `ParentSpanId`, sampled state, and `ExecutionId`, `ExecutionCorrelationId`, `HostCorrelationId`, `EventId`, `CausationId`, plus the other bounded identity dimensions.
@@ -652,7 +639,17 @@ The complete 0.955 implementation and verification sequence is complete. Verifie
    - Correlation values remain diagnostic identity only and do not become authentication or authorization authority. Host trust remains outside Core.
    - Added focused `tests/HAgent.Tests/ObservabilityTracePropagationTests.cs` covering round-trip identity preservation, unsampled propagation, missing context, explicit trust rejection, malformed context, invalid sampling, oversized correlation input, and carrier clone/bounds behavior.
    - Added and classified the matching public-API `src/HAgent.Example/MainForm.ObservabilityTracePropagation.cs` under `Diagnostics → Observability → Observability Trace Propagation`.
-   - **Local verification required:** after pull, build the solution, run the full `HAgent.Tests` suite, then run the exact Example scenario on .NET Framework 4.8.1 and .NET 9. Do not begin Slice 8 in the same run.
+   - **User verification — 2026-09-09 05:15:** full `HAgent.Tests` completed with **85/85 tests passed**.
+   - **User Example verification — .NET Framework 4.8.1, 2026-09-09 05:15:46:** cross-process trace/correlation propagation succeeded, including round-trip identity preservation, explicit trust acceptance/rejection, missing/malformed handling, unsampled preservation, carrier bounds, and no HTTP/message/OpenTelemetry/remote telemetry/provider transport.
+   - **User Example verification — .NET 9, 2026-09-09 05:16:23:** same public-API scenario succeeded with the same checks.
+
+8. **Failure, retry, fallback, waiting, and stale-result observability — CURRENT**
+   - Make important non-success and recovery decisions observable without changing their execution semantics: policy denial/defer, provider failure, retry, fallback target, waiting/backpressure, cancellation/timeout, runtime recovery, and stale/late result rejection.
+   - Reconcile existing execution lifecycle state, intervention/terminal-state handling, provider attempts, fallback planning, scheduling/waiting, and stale-result protection with the trace hierarchy so each decision is represented by bounded provider-neutral metadata/status rather than raw payloads.
+   - Ensure a late or stale completion cannot overwrite the accepted terminal execution outcome merely because tracing records the attempt; tracing observes the accepted lifecycle transition separately from rejected late work.
+   - Add focused `HAgent.Tests` coverage for failure classification, retry/fallback relationships, waiting/backpressure, cancellation/timeout, stale-result rejection, and recovery ordering.
+   - Add a matching public-API `HAgent.Example` scenario under `Diagnostics → Observability → Observability Outcomes & Recovery` using deterministic in-process fakes only.
+   - Do not add real network transport, remote telemetry delivery, or provider-vendor dependencies in this slice.
 
 ### Verification rule
 

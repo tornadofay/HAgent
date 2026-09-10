@@ -6,6 +6,8 @@ HAgent's Persistent Cognitive Runtime is a long-lived cognitive layer above indi
 
 The cognitive runtime does not assume that one cognitive architecture is universally correct. It provides a stable cognitive kernel and an extensible cognitive-strategy layer so new research can be implemented, evaluated, versioned, and replaced without redesigning the runtime substrate.
 
+The detailed executable specifications for the Layer-2 cognitive algorithms are defined in [`17-cognitive-algorithms.md`](17-cognitive-algorithms.md). That document is normative for state transitions, proposal application, reconsideration, impasse handling, deliberative substates, proceduralization, continual resource adaptation, concurrency, bounds, and deterministic verification. This document remains the higher-level runtime architecture and separation-of-concerns definition.
+
 ## Core separation
 
 ```text
@@ -88,6 +90,8 @@ Operators and cognitive actions provide explicit transitions with preconditions,
 
 An **Impasse** represents a bounded state in which current deterministic cognition cannot safely or confidently continue. An impasse can trigger additional deliberation, information gathering, plan revision, or human intervention according to policy.
 
+The distinction between goal authority, intention authority, and method/plan authority is normative. A method may be replaced without automatically changing its intention or goal; changes to each level require an explicit classified cognitive proposal and revision-safe commit.
+
 ## Cognitive actions
 
 Not every cognitive transition is an external tool call. The cognitive layer may expose provider-neutral internal actions such as:
@@ -131,6 +135,8 @@ Experience
 
 Repeated successful reasoning may be partially proceduralized so future occurrences can be handled deterministically. Proceduralization must be evidence-based, versioned, reversible, and policy-governed. Learning must never silently rewrite the cognitive kernel.
 
+The detailed proceduralization algorithm is defined in `17-cognitive-algorithms.md`. In particular, source episodes are retained; candidate preconditions are derived conservatively from positive and negative evidence; causal certainty is not inferred from sequence correlation alone; generalized candidates must be evaluated against both successes and failures; and uncertain learned resources fall back to broader evidence or probabilistic reasoning.
+
 ## Extensible cognition
 
 Cognitive strategy is a replaceable extension point. Future research may introduce strategies with their own names, policies, state requirements, or reasoning approaches while consuming the same HAgent cognitive kernel and execution boundary.
@@ -152,3 +158,4 @@ Authorized intervention should be performed through runtime APIs, not direct mut
 - No automatic kernel rewriting from learned behavior.
 - No coupling between cognitive strategy and a specific model/provider.
 - Persistent cognitive state remains separate from live transport/session objects and secrets.
+- Cognitive algorithms must remain bounded, deterministic where inputs are deterministic, and explicitly observable at decision boundaries.

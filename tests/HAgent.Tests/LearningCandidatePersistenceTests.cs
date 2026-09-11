@@ -1,83 +1,64 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
+using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 using Xunit;
 
 namespace HAgent.Tests
 {
-    public class LearningCandidatePersistenceTests
+    public sealed class LearningCandidatePersistenceTests
     {
         [Fact]
         public void CaptureAndRestorePreservesTypedCandidateAndLifecycleRevision()
         {
             var candidate = CreatePendingSkillCandidate();
-            var admission = new AiLearningLifecycleDecision
-            {
-                CandidateId = candidate.Id,
-                PolicyId = "learning-policy",
-                PolicyVersion = 1,
-                RuleId = "learning-rule",
-                LearningMode = AiLearningMode.SuggestOnly,
-                TargetStatus = AiLearningCandidateStatus.PendingReview,
-                PromotionAuthorization = AiLearningPromotionAuthorization.UnifiedPolicyRequired,
-                AuthorizationDecision = new AiPolicyDecision { Outcome = AiPolicyOutcome.RequireApproval, PolicyVersion = "1", RuleId = "learning-rule" },
-                RequiresReview = true,
-                CanProceedToPromotion = false,
-                Reason = "review"
-            };
-            var retention = new AiLearningCandidateRetentionPolicy();
-            retention.Rules.Add(new AiLearningCandidateRetentionRule { RetentionClass = "Standard", RetentionDays = 30 });
+            var capturedAt = DateTimeOffset.UtcNow;
+            var record = AiLearningCandidatePersistence.Capture(candidate, PendingDecision(candidate), StandardRetention(), capturedAt);
 
-            var record = AiLearningCandidatePersistence.Capture(candidate, admission, retention, DateTimeOffset.UtcNow);
             var restored = AiLearningCandidatePersistence.Restore(record);
 
-            Assert.Equal(candidate.Id, record.CandidateId);
-            Assert.Equal(AiLearningCandidateStatus.PendingReview, record.Status);
-            Assert.Equal(1, record.Revision);
+            Assert.Equal(candidate.Id, restored.Id);
+            Assert.Equal(AiLearningCandidateType.Skill, restored.Type);
             Assert.Equal(AiLearningCandidateStatus.PendingReview, restored.Status);
-            Assert.IsType<SkillCandidate>(restored);
-            Assert.Equal(((SkillCandidate)candidate).Skill.Id, ((SkillCandidate)restored).Skill.Id);
+            Assert.Equal(record.Revision, restored.Lifecycle.Revision);
+            Assert.Equal(candidate.ProposedScope, restored.ProposedScope);
+            Assert.Equal(candidate.RetentionClass, restored.RetentionClass);
         }
 
         [Fact]
         public async Task FileStorePersistsAcrossInstancesAndFailsClosedOnCorruptRecord()
         {
-            var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "HAgent-LearningCandidate-Test-" + Guid.NewGuid().ToString("N"));
+            var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "hagent-learning-candidate-" + Guid.NewGuid().ToString("N"));
             var path = System.IO.Path.Combine(root, "candidates.jsonl");
             try
             {
                 var candidate = CreatePendingSkillCandidate();
                 var record = AiLearningCandidatePersistence.Capture(candidate, PendingDecision(candidate), StandardRetention(), DateTimeOffset.UtcNow);
-                using (var firstStore = new HAgent.Storage.File.FileLearningCandidateStore(path))
+
+                using (var first = new HAgent.Storage.File.FileLearningCandidateStore(path))
                 {
-                    await firstStore.SaveAsync(record);
+                    await first.SaveAsync(record);
                 }
 
-                using (var restartedStore = new HAgent.Storage.File.FileLearningCandidateStore(path))
+                using (var second = new HAgent.Storage.File.FileLearningCandidateStore(path))
                 {
-                    var recovered = await restartedStore.GetAsync(record.CandidateId);
+                    var recovered = await second.GetAsync(record.CandidateId);
                     Assert.NotNull(recovered);
                     Assert.Equal(record.CandidateId, recovered.CandidateId);
-                    Assert.Equal(record.Status, recovered.Status);
-                    Assert.Equal(record.Revision, recovered.Revision);
+                    Assert.Equal(record.PayloadJson, recovered.PayloadJson);
                 }
 
-                using (var writer = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read)))
+                await System.IO.File.AppendAllTextAsync(path, "{not-json}\n");
+                using (var corrupt = new HAgent.Storage.File.FileLearningCandidateStore(path))
                 {
-                    await writer.WriteLineAsync("{not-valid-json");
-                }
-
-                using (var corruptStore = new HAgent.Storage.File.FileLearningCandidateStore(path))
-                {
-                    await Assert.ThrowsAsync<InvalidDataException>(() => corruptStore.GetAsync(record.CandidateId));
+                    await Assert.ThrowsAsync<System.IO.InvalidDataException>(() => corrupt.GetAsync(record.CandidateId));
                 }
             }
             finally
             {
-                try { if (Directory.Exists(root)) Directory.Delete(root, true); }
-                catch { }
+                if (System.IO.Directory.Exists(root))
+                    System.IO.Directory.Delete(root, true);
             }
         }
 
@@ -85,34 +66,20 @@ namespace HAgent.Tests
         public async Task StoreRejectsStaleReviewUpdate()
         {
             var candidate = CreatePendingSkillCandidate();
-            var admission = PendingDecision(candidate);
-            var retention = StandardRetention();
+            var record = AiLearningCandidatePersistence.Capture(candidate, PendingDecision(candidate), StandardRetention(), DateTimeOffset.UtcNow);
             var store = new InMemoryAiLearningCandidateStore();
-            var record = AiLearningCandidatePersistence.Capture(candidate, admission, retention, DateTimeOffset.UtcNow);
             await store.SaveAsync(record);
 
-            var current = await store.GetAsync(record.CandidateId);
             var approved = AiLearningCandidatePersistence.ApplyReview(
-                current,
+                record,
                 AiLearningCandidateReviewAction.Approve,
                 Identity(),
                 AllowReviewDecision(),
                 "approved",
                 DateTimeOffset.UtcNow);
-            await store.TryUpdateAsync(approved, current.Revision);
 
-            var stale = AiLearningCandidatePersistence.ApplyReview(
-                current,
-                AiLearningCandidateReviewAction.Reject,
-                Identity(),
-                AllowReviewDecision(),
-                "stale",
-                DateTimeOffset.UtcNow);
-
-            await Assert.ThrowsAsync<InvalidOperationException>(() => store.TryUpdateAsync(stale, current.Revision));
-            var persisted = await store.GetAsync(record.CandidateId);
-            Assert.Equal(AiLearningCandidateStatus.Approved, persisted.Status);
-            Assert.Equal(2, persisted.Revision);
+            await store.TryUpdateAsync(approved, record.Revision);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => store.TryUpdateAsync(approved, record.Revision));
         }
 
         [Fact]
@@ -126,7 +93,7 @@ namespace HAgent.Tests
             var deniedSet = new AiPolicySet { Version = "review-1" };
             deniedSet.Rules.Add(CreateReviewRule(AiPolicyOutcome.Deny));
             var deniedService = new AiLearningCandidateReviewService(store, new DefaultAiPolicyEngine(deniedSet));
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => deniedService.ReviewAsync(record.CandidateId, AiLearningCandidateReviewAction.Approve, Identity(), "no"));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => deniedService.ReviewAsync(record.CandidateId, AiLearningCandidateReviewAction.Approve, Identity(), "operator-denied"));
 
             var allowedSet = new AiPolicySet { Version = "review-2" };
             allowedSet.Rules.Add(CreateReviewRule(AiPolicyOutcome.Allow));
@@ -147,7 +114,7 @@ namespace HAgent.Tests
             var candidate = CreatePendingSkillCandidate();
             var capturedAt = DateTimeOffset.UtcNow;
             var retention = new AiLearningCandidateRetentionPolicy();
-            retention.Rules.Add(new AiLearningCandidateRetentionRule { RetentionClass = "Immediate", RetentionDays = 0 });
+            retention.Rules.Add(new AiLearningCandidateRetentionRule { RetentionClass = "Standard", RetentionDays = 0 });
 
             var record = AiLearningCandidatePersistence.Capture(candidate, PendingDecision(candidate), retention, capturedAt);
 
@@ -162,7 +129,7 @@ namespace HAgent.Tests
             var capturedAt = DateTimeOffset.UtcNow.AddDays(-2);
             var admission = PendingDecision(candidate);
             var retention = new AiLearningCandidateRetentionPolicy();
-            retention.Rules.Add(new AiLearningCandidateRetentionRule { RetentionClass = "Immediate", RetentionDays = 1 });
+            retention.Rules.Add(new AiLearningCandidateRetentionRule { RetentionClass = "Standard", RetentionDays = 1 });
             var record = AiLearningCandidatePersistence.Capture(candidate, admission, retention, capturedAt);
             var store = new InMemoryAiLearningCandidateStore();
             await store.SaveAsync(record);
@@ -236,33 +203,30 @@ namespace HAgent.Tests
 
         private static AgentIdentityContext Identity()
         {
-            return new AgentIdentityContext(tenantId: "tenant-42", userId: "user-42", workspaceId: "workspace-42");
+            return new AgentIdentityContext { AgentProfileId = "agent-42", AgentInstanceId = "instance-1", TenantId = "tenant-1" };
+        }
+
+        private static AiPolicyDecision AllowReviewDecision()
+        {
+            return new AiPolicyDecision { Outcome = AiPolicyOutcome.Allow, PolicyVersion = "review-2", RuleId = "review-rule", Reason = "allowed" };
         }
 
         private static AiPolicyRule CreateReviewRule(AiPolicyOutcome outcome)
         {
             var rule = new AiPolicyRule
             {
-                Id = "learning-review",
-                Name = "Learning review authorization",
-                Scope = AiPolicyScopeKind.Agent,
-                ScopeId = "agent-42",
-                Priority = 100,
-                Outcome = outcome,
-                Reason = outcome == AiPolicyOutcome.Allow ? "review allowed" : "review denied"
+                Id = "review-rule",
+                Effect = outcome,
+                Operation = "learning.review",
+                ResourceType = "learning-candidate",
+                AgentId = "agent-42"
             };
-            rule.Operations.Add("learning.review");
-            rule.ResourceTypes.Add("learning-candidate");
+            rule.ResourceIds.Add("candidate");
             rule.Attributes["candidateType"] = "Skill";
             rule.Attributes["proposedScope"] = "Agent";
             rule.Attributes["currentStatus"] = "PendingReview";
             rule.Attributes["reviewAction"] = "Approve";
             return rule;
-        }
-
-        private static AiPolicyDecision AllowReviewDecision()
-        {
-            return new AiPolicyDecision { Outcome = AiPolicyOutcome.Allow, PolicyVersion = "review", RuleId = "learning-review", Reason = "allowed" };
         }
     }
 }

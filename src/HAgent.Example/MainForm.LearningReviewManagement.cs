@@ -15,6 +15,8 @@ namespace HAgent.Example
         private const string LearningReviewApproveRuleId = "example-learning-review-ui-approve";
         private const string LearningReviewRejectRuleId = "example-learning-review-ui-reject";
 
+        private string _learningReviewSeedStorePath;
+
         private void AddLearningReviewManagementTab()
         {
             AddApiTab(
@@ -43,6 +45,8 @@ namespace HAgent.Example
             var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
             var root = options.GetEffectiveRootPath();
             var path = Path.Combine(root, "learning", "candidates.jsonl");
+            _learningReviewSeedStorePath = path;
+
             var candidateId = "example-learning-review-" + Guid.NewGuid().ToString("N");
             var candidate = CreateLearningReviewExampleCandidate(candidateId);
             var admission = CreatePendingAdmission(candidate);
@@ -72,18 +76,41 @@ namespace HAgent.Example
 
         private async Task VerifyLearningReviewResultAsync(string input)
         {
-            var candidateId = RequireInput(input);
+            var candidateId = RequireInput(input).Trim();
             var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
-            var path = Path.Combine(options.GetEffectiveRootPath(), "learning", "candidates.jsonl");
+            var configuredPath = Path.Combine(options.GetEffectiveRootPath(), "learning", "candidates.jsonl");
+            var paths = string.Equals(configuredPath, _learningReviewSeedStorePath, StringComparison.OrdinalIgnoreCase)
+                ? new[] { configuredPath }
+                : new[] { configuredPath, _learningReviewSeedStorePath };
 
-            AiLearningCandidateRecord record;
-            using (var candidates = new FileLearningCandidateStore(path))
+            AiLearningCandidateRecord record = null;
+            string resolvedPath = null;
+            foreach (var path in paths)
             {
-                record = await candidates.GetAsync(candidateId).ConfigureAwait(true);
+                if (string.IsNullOrWhiteSpace(path)) continue;
+
+                using (var candidates = new FileLearningCandidateStore(path))
+                {
+                    record = await candidates.GetAsync(candidateId).ConfigureAwait(true);
+                }
+
+                if (record != null)
+                {
+                    resolvedPath = path;
+                    break;
+                }
             }
 
             if (record == null)
-                throw new InvalidOperationException("The candidate was not found after reopening the durable learning candidate store.");
+                throw new InvalidOperationException(
+                    "The candidate was not found after reopening the durable learning candidate store." +
+                    Environment.NewLine +
+                    "Candidate ID: " + candidateId +
+                    Environment.NewLine +
+                    "Configured candidate store: " + configuredPath +
+                    Environment.NewLine +
+                    "Seed candidate store: " + (_learningReviewSeedStorePath ?? "<not recorded in this application session>"));
+
             if (record.Status != AiLearningCandidateStatus.Approved && record.Status != AiLearningCandidateStatus.Rejected)
                 throw new InvalidOperationException("The candidate is still PendingReview. Use Configuration → Learning Review to Approve or Reject it first.");
             if (record.Revision != 2)
@@ -101,6 +128,7 @@ namespace HAgent.Example
                 "Lifecycle revision: " + record.Revision + Environment.NewLine +
                 "Reviewer identity persisted: yes" + Environment.NewLine +
                 "Policy authorization outcome persisted: " + record.LastReviewOutcome + Environment.NewLine +
+                "Candidate store reopened: " + resolvedPath + Environment.NewLine +
                 "Durable Learning Review integration: verified.");
         }
 

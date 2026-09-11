@@ -25,30 +25,16 @@ namespace HAgent.Example
 
         private async Task TestResourceInventoryAsync(string unused)
         {
-            var now = DateTimeOffset.UtcNow;
-            var source = new ExampleResourceInventorySource(
-                CreateInventoryItem("memory", "memory-example", null, "Example Memory", "Working", true, now),
-                CreateInventoryItem("knowledge", "knowledge-example", 2, "Example Knowledge", "Published", true, now.AddMinutes(-1)),
-                CreateInventoryItem("skill", "skill-example", 3, "Example Skill", "Published", true, now.AddMinutes(-2)),
-                CreateInventoryItem("skill", "skill-draft", 1, "Draft Skill", "Draft", false, now));
-
-            var inventory = new AiResourceInventory(new[] { source });
+            var inventory = CreateExampleResourceInventory();
             var all = await inventory.ListAsync(new AiResourceInventoryQuery { AuthoritativeOnly = true }).ConfigureAwait(true);
-            if (all.Count != 3)
-                throw new InvalidOperationException("Authoritative inventory count contract failed.");
+            if (all.Count != 3) throw new InvalidOperationException("Authoritative inventory count contract failed.");
 
-            var skills = await inventory.ListAsync(new AiResourceInventoryQuery
-            {
-                ResourceTypes = { "skill" },
-                AuthoritativeOnly = true,
-                SearchText = "example"
-            }).ConfigureAwait(true);
+            var skills = await inventory.ListAsync(new AiResourceInventoryQuery { ResourceTypes = { "skill" }, AuthoritativeOnly = true, SearchText = "example" }).ConfigureAwait(true);
             if (skills.Count != 1 || !string.Equals(skills[0].ResourceId, "skill-example", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Filtered inventory contract failed.");
 
             var limited = await inventory.ListAsync(new AiResourceInventoryQuery { MaxResults = 2 }).ConfigureAwait(true);
-            if (limited.Count != 2)
-                throw new InvalidOperationException("Bounded inventory result contract failed.");
+            if (limited.Count != 2) throw new InvalidOperationException("Bounded inventory result contract failed.");
 
             Write(
                 "AUTHORITATIVE RESOURCE INVENTORY",
@@ -60,14 +46,18 @@ namespace HAgent.Example
                 "Storage/provider-specific enumeration remains outside the inventory contract: verified.");
         }
 
-        private static AiResourceInventoryItem CreateInventoryItem(
-            string type,
-            string id,
-            long? version,
-            string name,
-            string status,
-            bool authoritative,
-            DateTimeOffset updated)
+        private static IAiResourceInventory CreateExampleResourceInventory()
+        {
+            var now = DateTimeOffset.UtcNow;
+            var source = new ExampleResourceInventorySource(
+                CreateInventoryItem("memory", "memory-example", null, "Example Memory", "Published", true, now),
+                CreateInventoryItem("knowledge", "knowledge-example", 2, "Example Knowledge", "Published", true, now.AddMinutes(-1)),
+                CreateInventoryItem("skill", "skill-example", 3, "Example Skill", "Published", true, now.AddMinutes(-2)),
+                CreateInventoryItem("skill", "skill-draft", 1, "Draft Skill", "Draft", false, now));
+            return new AiResourceInventory(new[] { source });
+        }
+
+        private static AiResourceInventoryItem CreateInventoryItem(string type, string id, long? version, string name, string status, bool authoritative, DateTimeOffset updated)
         {
             return new AiResourceInventoryItem
             {
@@ -87,15 +77,8 @@ namespace HAgent.Example
         private sealed class ExampleResourceInventorySource : IAiResourceInventorySource
         {
             private readonly IReadOnlyList<AiResourceInventoryItem> _items;
-
-            public ExampleResourceInventorySource(params AiResourceInventoryItem[] items)
-            {
-                _items = items;
-            }
-
-            public Task<IReadOnlyList<AiResourceInventoryItem>> ListAsync(
-                AiResourceInventoryQuery query,
-                CancellationToken cancellationToken = default(CancellationToken))
+            public ExampleResourceInventorySource(params AiResourceInventoryItem[] items) { _items = items; }
+            public Task<IReadOnlyList<AiResourceInventoryItem>> ListAsync(AiResourceInventoryQuery query, CancellationToken cancellationToken = default(CancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 return Task.FromResult(_items);

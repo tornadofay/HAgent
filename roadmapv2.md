@@ -34,6 +34,12 @@
 - Autonomous operator simulation.
 - Distributed human-approval consensus.
 - Arbitrary UI automation.
+- Universal heartbeat semantics for every execution.
+- Replacing the host scheduler with an HAgent scheduler.
+- A second workflow engine.
+- Autonomous long-running process supervision.
+- A general workflow engine.
+- Intervention as a replacement for normal host scheduling.
 
 ## Provider and Execution Extensions
 
@@ -43,6 +49,11 @@
 - Autonomous routing AI as a separate routing authority.
 - Distributed rate-limit services.
 - Opaque model-ranking optimization without inspectable selection evidence.
+- Hard-coded provider model matrices in Core.
+- A second execution planner.
+- Provider-specific business logic in agent profiles.
+- A second routing engine in 0.97.
+- Hard-coded vendor behavior.
 
 ## Storage and Platform Extensions
 
@@ -51,6 +62,7 @@
 - Dedicated secret-vault product integration.
 - Event-sourcing the entire HAgent domain.
 - Storage-specific parallel domain models.
+- Backward-compatibility tables for retired redesign-era fields.
 
 ## Status
 

@@ -4,7 +4,7 @@
 
 ### 0.9575 — Knowledge, Skills, Memory Governance + Learning
 
-**Current milestone — Slice 12 in progress.**
+**Current milestone — Slice 12 management work continues.**
 
 - Complete the canonical learning lifecycle gate.
 - Persist learning candidates with retention and expiry.
@@ -40,27 +40,36 @@ Promoted
 
 Learning mode and policy control the permitted paths. Review and promotion are intentionally separate boundaries.
 
-### Slice 12 current work — Learning Review management UI
+### Slice 12 — Management UI — VERIFIED through Learning Review promotion
 
-Implemented management surface, user verification pending:
+Verified by user on 2026-09-11 on both .NET Framework 4.8.1 and .NET 9:
 
-- Durable Learning Review list and review actions.
-- Host-supplied read-only reviewer identity.
-- Candidate-store injection aligned with host storage configuration.
-- Filterable candidate workspace by lifecycle status and candidate type.
-- Read-only candidate details including payload, provenance/evidence, lifecycle, policy, source execution/runtime, and review evidence.
-- Governed Promote action for selected `Approved` candidates through the injected `AiLearningPromotionService`.
-- Fresh `learning.promote` authorization remains inside the existing promotion service.
-- Promotion result refreshes the candidate to `Promoted` revision `3` without direct publication logic in WinForms.
-- `HAgent.Example` injects deterministic provider-neutral promotion targets for the management integration test.
-- Manual .NET Framework 4.8.1 and .NET 9 verification remains required for the completed filter/details/review/promotion workflow.
+- durable Learning Review list and review actions;
+- host-supplied read-only reviewer identity;
+- candidate-store injection aligned with host storage configuration;
+- filterable candidate workspace by lifecycle status and candidate type;
+- read-only candidate details including payload, provenance/evidence, lifecycle, policy, source execution/runtime, and review evidence;
+- governed Promote action for selected `Approved` candidates through the injected `AiLearningPromotionService`;
+- fresh `learning.promote` authorization remains inside the existing promotion service;
+- successful promotion refreshes the candidate to `Promoted` revision `3`;
+- `Learning Review Seed` → real WinForms configuration flow → Approve → Promote → `Learning Review Verify` succeeded on both targets;
+- fresh candidate-store reopen and persisted reviewer identity/policy evidence were verified on both targets.
 
-### Next Slice 12 management work
+The Learning Review management boundary is closed.
 
-- Authoritative Memory/Knowledge/Skill inventory and management surfaces.
-- Resource-specific CRUD/editor workflows where appropriate, preserving provider-neutral contracts.
-- Connect effective authoritative resources back into agent-level management views.
-- Keep resource reliability/adaptation separate for 0.9576, where staleness, contradiction, drift, revalidation, quarantine, retirement, archival, forgetting, and replacement are planned.
+### Next Slice 12 management work — Authoritative Resource Inventory
+
+- Establish one provider-neutral authoritative resource inventory boundary.
+- Inventory authoritative Memory using the existing memory-store contract.
+- Inventory authoritative Knowledge/Wiki through provider-neutral resource-source/query contracts.
+- Inventory authoritative Skills through provider-neutral definition-source/query contracts.
+- Expose bounded resource metadata and explicit resource scope.
+- Connect effective agent resource visibility back into management views without duplicating authoritative resource models.
+- Keep specialized known-resource panels possible while preserving generic inventory for future resource types.
+- Add focused WinForms management pages under `src/HAgent.WinForms/UI/Configuration/`.
+- Add matching `HAgent.Tests` contract/boundary verification and a dedicated `HAgent.Example` scenario.
+- Do not implement SQL Server/MySQL storage in this increment.
+- Keep resource reliability/adaptation separate for `0.9576`, where staleness, contradiction, drift, revalidation, quarantine, retirement, archival, forgetting, and replacement are planned.
 
 ## Planned order
 

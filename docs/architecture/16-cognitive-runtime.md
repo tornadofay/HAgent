@@ -6,7 +6,7 @@ HAgent's Persistent Cognitive Runtime is a long-lived cognitive layer above indi
 
 The cognitive runtime does not assume that one cognitive architecture is universally correct. It provides a stable cognitive kernel and an extensible cognitive-strategy layer so new research can be implemented, evaluated, versioned, and replaced without redesigning the runtime substrate.
 
-The detailed executable specifications for the Layer-2 cognitive algorithms are defined in [`17-cognitive-algorithms.md`](17-cognitive-algorithms.md). That document is normative for state transitions, proposal application, reconsideration, impasse handling, deliberative substates, proceduralization, continual resource adaptation, concurrency, bounds, and deterministic verification. This document remains the higher-level runtime architecture and separation-of-concerns definition.
+The detailed executable specifications for the Layer-2 cognitive algorithms are defined in [`17-cognitive-algorithms.md`](17-cognitive-algorithms.md). That document is the mechanism authority for state transitions, proposal application, reconsideration, impasse handling, proceduralization, concurrency, bounds, and deterministic verification. Its richer research/extension mechanisms do not automatically become V1 scope; the ordered V1 roadmap is authoritative for delivery scope.
 
 ## Core separation
 
@@ -150,6 +150,12 @@ Strategies should be independently evaluable on the same scenarios. HAgent shoul
 `HAgent.WinForms` should provide a complete runtime Cognition Workbench for authorized operators. It should expose the current strategy/version, beliefs, goals, intentions, attention, global workspace, plans and current step, memory, knowledge, skills, experiences, events, executions, reasoning decisions, learning candidates, and full cognitive history.
 
 Authorized intervention should be performed through runtime APIs, not direct mutation. Operations such as inserting or editing beliefs, creating or reprioritizing goals, revising intentions/plans, injecting observations, requesting deliberation, and pausing/resuming runtime activity must be version-checked, atomic, attributable, auditable, and protected from stale-result overwrite.
+
+## Verified architectural evidence
+
+On 2026-09-11, the existing `AgentRuntimeInstance` type was exercised by the Example-only single-owner architecture spike on both supported targets: .NET Framework 4.8.1 and .NET 9. The spike verified per-agent serialized mutation, stale-result rejection, cancellation, shutdown protection, independent runtime isolation, and concurrent operation of 12 independent runtime agents with all 12 owner loops overlapping.
+
+This evidence validates the core ownership/concurrency assumption used by the Persistent Cognitive Runtime architecture. It does not claim that the production cognitive runtime or its future state contracts are implemented.
 
 ## Architectural constraints
 

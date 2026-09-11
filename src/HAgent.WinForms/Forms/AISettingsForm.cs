@@ -8,6 +8,7 @@ using HAgent.WinForms.Controls;
 using HAgent.WinForms.UI.Configuration;
 using HAgent.WinForms.UI.Configuration.About;
 using HAgent.WinForms.UI.Configuration.Agents;
+using HAgent.WinForms.UI.Configuration.Learning;
 using HAgent.WinForms.UI.Configuration.Overview;
 using HAgent.WinForms.UI.Configuration.Policy;
 using HAgent.WinForms.UI.Configuration.Providers;
@@ -33,9 +34,10 @@ namespace HAgent.WinForms.Forms
         private readonly AgentsPage _agents;
         private readonly ToolsPage _tools;
         private readonly PolicyPage _policy;
+        private readonly LearningReviewPage _learningReview;
 
         public AISettingsForm(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IToolRegistry tools = null)
-            : base("AI Configuration", "Providers, agents, tools, policy, permissions, and storage", new Size(1120, 720), new Size(900, 600))
+            : base("AI Configuration", "Providers, agents, tools, policy, learning review, permissions, and storage", new Size(1120, 720), new Size(900, 600))
         {
             _context = new ConfigurationContext(store, secrets, adapters, tools);
             _overview = new OverviewPage(_context);
@@ -43,6 +45,7 @@ namespace HAgent.WinForms.Forms
             _agents = new AgentsPage(_context);
             _tools = new ToolsPage(_context);
             _policy = new PolicyPage(_context);
+            _learningReview = new LearningReviewPage(_context);
             BuildShell();
             RegisterPages();
             Shown += async delegate { await ReloadAsync(); };
@@ -74,6 +77,7 @@ namespace HAgent.WinForms.Forms
             RegisterPage("Agents", delegate { return _agents; });
             RegisterPage("Tools", delegate { return _tools; });
             RegisterPage("Policy", delegate { return _policy; });
+            RegisterPage("Learning Review", delegate { return _learningReview; });
 
             RegisterAction("Permissions", delegate
             {

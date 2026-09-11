@@ -913,6 +913,32 @@ The host remains authoritative over domain truth, host scheduling policy, permis
 
 **Important:** V1 does not require a general multi-writer proposal/merge engine. The owner is the sole state authority.
 
+### Slice 1 architectural verification evidence — VERIFIED 2026-09-11
+
+The owner/queue architecture spike was executed through the existing `AgentRuntimeInstance` type on both supported targets:
+
+- .NET Framework 4.8.1 — **passed**;
+- .NET 9 — **passed**.
+
+The verified spike covered one-owner-per-agent semantics, serialized mutation order, stale older-revision rejection, cancellation, post-shutdown mutation rejection, independent agent isolation, and 12 independent runtime agents operating concurrently.
+
+For the 12-agent concurrency case, all 12 owner loops overlapped and each agent's follow-up mutation remained serialized within its own state owner. This is recorded as **verified architectural evidence**, not as completion of the production Persistent Cognitive Runtime implementation.
+
+The spike did not modify the production runtime architecture and did not introduce a shared cognitive queue.
+
+### Next documentation checkpoint — Slice 2
+
+Before production implementation begins, finalize the provider-neutral contract for:
+
+- observations versus inferred beliefs;
+- provenance, confidence/quality, freshness, validity, scope, and revision;
+- explicit ambiguity and insufficient evidence states;
+- bounded `DecisionWorkspace` selection;
+- deterministic relevance signals and bounded multi-signal selection;
+- workspace isolation from prompt construction and long-term memory.
+
+The detailed mechanism authority for this checkpoint is `docs/architecture/17-cognitive-algorithms.md`, sections 4–5. Documentation must remain consistent with the V1 roadmap boundary before code is introduced.
+
 ### Slice 2 — Observations, beliefs, and bounded decision workspace
 
 - Distinguish host observations/events from inferred beliefs.

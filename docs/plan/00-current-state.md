@@ -83,14 +83,21 @@ The first management-UI increment adds a production configuration surface for Le
 Current implementation:
 
 - `Learning Review` page under `src/HAgent.WinForms/UI/Configuration/Learning/`;
-- explicit reviewer user, tenant, and workspace identity fields;
+- reviewer identity is host-supplied and displayed read-only;
+- default WinForms reference reviewer is system-admin user ID `1` when no identity is supplied;
+- tenant and workspace are optional identity scopes and are displayed read-only as `Not supplied` when absent;
 - Approve/Reject routed through `AiLearningCandidateReviewService` and the existing unified policy engine;
 - bounded PendingReview candidate list projection;
-- durable candidate-store dependency exposed through `ConfigurationContext`;
-- no authoritative Memory/Knowledge/Skill publication from the UI.
+- host-supplied durable candidate-store dependency, aligned with the Example's configured effective root;
+- no authoritative Memory/Knowledge/Skill publication from the UI;
+- Example now contains explicit Seed and Verify scenarios for a real manual Approve/Reject flow.
 
 Architecture: `docs/architecture/93-learning-review-management-ui.md`.
 
-**Example to run:** `HAgent.Example → Configuration → Learning Review` on .NET Framework 4.8.1 and .NET 9.
+**Manual integration test:**
+
+1. Run `HAgent.Example → Cognition → Learning → Learning Review Seed` on .NET Framework 4.8.1 and .NET 9.
+2. Open `Configuration → Learning Review`, select the printed candidate, and explicitly Approve or Reject it.
+3. Run `HAgent.Example → Cognition → Learning → Learning Review Verify` using the printed Candidate ID. It must observe the persisted terminal status, revision `2`, reviewer identity evidence, and `Allow` policy evidence.
 
 **Verification workflow:** `.github/workflows/verify-phase-0-9575-slice-12.yml`.

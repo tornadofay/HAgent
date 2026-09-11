@@ -32,7 +32,7 @@ Current unfinished work is represented by the compact active-work document. When
 
 **Status:** Active
 
-Testing and implementation may reveal requirements or interactions that could not reasonably be known beforehand. Such discoveries should produce an explicit architectural decision or update to the authoritative source rather than an undocumented workaround.
+Testing and implementation may reveal requirements or interactions that could not reasonably have been known beforehand. Such discoveries should produce an explicit architectural decision or update to the authoritative source rather than an undocumented workaround.
 
 ## D-006 — Model-assisted evaluation uses an injected judge boundary
 
@@ -121,3 +121,13 @@ Memory governance is therefore separated into capability authorization, retrieva
 The learning policy is not a replacement for authorization. External promotion remains behind the existing `IAiPolicyEngine` / `AiLearningPromotionPolicy` boundary. Model-generated content may propose a candidate but cannot make Knowledge or Skills authoritative by itself.
 
 Knowledge and Skill candidate payloads must remain non-authoritative (`Draft`). Candidate payloads are cloned at construction so caller mutation does not alter the captured proposal. Source execution/runtime/profile identity remains on the canonical candidate lifecycle object.
+
+## D-014 — Learning candidate persistence remains one lifecycle envelope with revision-checked review
+
+**Status:** Active
+
+Slice 9 persists the existing `AiLearningCandidate` lifecycle through one provider-neutral `AiLearningCandidateRecord` and `IAiLearningCandidateStore`. Persistence stores the canonical lifecycle status/revision, typed payload, provenance/evaluation metadata, retention information, Slice 8 policy/authorization provenance, and review evidence; it does not create a second candidate state machine or authoritative resource model.
+
+Retention is policy metadata over the durable candidate record. Expiry may remove a candidate from normal reads and be purged deterministically, but an unmapped retention class does not invent a default expiry. Review remains an authorization-sensitive host operation using the existing unified `IAiPolicyEngine` with operation `learning.review`; reviewer identity is explicit and never substituted by an anonymous identity.
+
+Review updates use an expected lifecycle revision so stale reviewers cannot overwrite newer candidate state. Store implementations return detached records and must preserve the same contracts across persistence backends. Authoritative Memory/Knowledge/Skill promotion remains the later Slice 10 boundary.

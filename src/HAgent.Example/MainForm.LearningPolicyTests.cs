@@ -11,13 +11,13 @@ namespace HAgent.Example
         {
             AddApiTab(
                 "Learning Policy",
-                "Run learning promotion test",
-                "Verifies typed learning-promotion requests through the unified policy engine and explicit candidate review/approval/promote/reject transitions.",
-                "Learning promotion must remain policy-controlled, preserve candidate provenance and review context, and never allow a model-generated proposal to bypass approval or policy enforcement.",
+                "Run learning promotion and candidate test",
+                "Verifies typed learning-promotion requests through the unified policy engine, the canonical candidate lifecycle, and typed Memory/Knowledge/Skill candidate payload contracts.",
+                "Learning candidates must remain non-authoritative until policy and lifecycle gates permit promotion; published Knowledge and Skills cannot be smuggled into candidate payloads.",
                 "Uses only deterministic in-memory policy evaluation; no learning repository or provider call is used.",
                 TestLearningPromotionPolicyAsync,
                 "Learning governance",
-                "Learning candidates are proposals. Policy decides whether promotion may proceed; typed candidate transitions control review and promotion state.");
+                "Learning candidates are proposals. Policy decides whether promotion may proceed; the existing candidate lifecycle controls review and promotion state.");
         }
 
         private Task TestLearningPromotionPolicyAsync(string unused)
@@ -205,6 +205,118 @@ namespace HAgent.Example
             if (notApplicable.Outcome != AiPolicyOutcome.NotApplicable)
                 throw new InvalidOperationException("An unmatched learning promotion request was incorrectly authorized.");
 
+            var typedMemory = new MemoryEntry
+            {
+                Scope = MemoryScope.Agent,
+                OwnerId = "learning-agent-42",
+                Content = "Deterministic learned fact.",
+                Provenance = new AiMemoryProvenance
+                {
+                    Source = "LearningPolicy Example",
+                    SourceExecutionId = "execution-typed-42",
+                    SourceRuntimeInstanceId = "runtime-42",
+                    Evidence = "Deterministic example evidence",
+                    Confidence = 0.95m
+                }
+            };
+            var typedMemoryCandidate = new MemoryCandidate(
+                typedMemory,
+                new AiLearningCandidate
+                {
+                    Id = "typed-memory-candidate-42",
+                    Type = AiLearningCandidateType.Memory,
+                    ProposedScope = "Agent",
+                    Provenance = "typed memory provenance",
+                    Evidence = "typed memory evidence",
+                    SourceExecutionId = "execution-typed-42",
+                    SourceRuntimeInstanceId = "runtime-42",
+                    SourceAgentProfileId = "learning-agent-42"
+                })
+            {
+                Confidence = 0.95m,
+                EvidenceState = "Strong",
+                ProvenanceState = "Complete",
+                ContradictionState = "None",
+                RetentionClass = "Standard",
+                EvaluationState = "Passed"
+            };
+            typedMemoryCandidate.Validate();
+
+            var draftKnowledge = new AiKnowledgeResource
+            {
+                Id = "typed-knowledge-42",
+                Kind = AiKnowledgeResourceKind.Knowledge,
+                Scope = AgentResourceScope.Agent,
+                OwnerId = "learning-agent-42",
+                Title = "Learned knowledge proposal",
+                Content = "Draft learned knowledge.",
+                Status = AiKnowledgeLifecycleStatus.Draft,
+                Provenance = new AiKnowledgeProvenance
+                {
+                    Kind = AiKnowledgeProvenanceKind.ModelGenerated,
+                    Source = "LearningPolicy Example",
+                    SourceExecutionId = "execution-typed-43",
+                    SourceRuntimeInstanceId = "runtime-42",
+                    Evidence = "Example evidence",
+                    Confidence = 0.88m
+                }
+            };
+            var typedKnowledgeCandidate = new KnowledgeCandidate(
+                draftKnowledge,
+                new AiLearningCandidate
+                {
+                    Id = "typed-knowledge-candidate-42",
+                    Type = AiLearningCandidateType.Knowledge,
+                    ProposedScope = "Agent",
+                    Provenance = "typed knowledge provenance",
+                    Evidence = "typed knowledge evidence"
+                });
+            typedKnowledgeCandidate.Validate();
+
+            var draftSkill = new AiSkillDefinition
+            {
+                Id = "typed-skill-42",
+                Version = 1,
+                Scope = AgentResourceScope.Agent,
+                OwnerId = "learning-agent-42",
+                Name = "Learned skill proposal",
+                Description = "Draft learned skill.",
+                Status = AiSkillLifecycleStatus.Draft,
+                Provenance = new AiSkillProvenance
+                {
+                    Source = "LearningPolicy Example",
+                    SourceExecutionId = "execution-typed-44",
+                    SourceRuntimeInstanceId = "runtime-42",
+                    Evidence = "Example evidence",
+                    Confidence = 0.91m
+                }
+            };
+            var typedSkillCandidate = new SkillCandidate(
+                draftSkill,
+                new AiLearningCandidate
+                {
+                    Id = "typed-skill-candidate-42",
+                    Type = AiLearningCandidateType.Skill,
+                    ProposedScope = "Agent",
+                    Provenance = "typed skill provenance",
+                    Evidence = "typed skill evidence"
+                });
+            typedSkillCandidate.Validate();
+
+            var publishedKnowledge = draftKnowledge.Clone();
+            publishedKnowledge.Status = AiKnowledgeLifecycleStatus.Published;
+            AssertCandidateRejected(() => new KnowledgeCandidate(
+                publishedKnowledge,
+                new AiLearningCandidate { Id = "published-knowledge-candidate-42", Type = AiLearningCandidateType.Knowledge, ProposedScope = "Agent" }).Validate(),
+                "Published knowledge was accepted as a learning candidate.");
+
+            var publishedSkill = draftSkill.Clone();
+            publishedSkill.Status = AiSkillLifecycleStatus.Published;
+            AssertCandidateRejected(() => new SkillCandidate(
+                publishedSkill,
+                new AiLearningCandidate { Id = "published-skill-candidate-42", Type = AiLearningCandidateType.Skill, ProposedScope = "Agent" }).Validate(),
+                "Published skill was accepted as a learning candidate.");
+
             Write(
                 "LEARNING POLICY",
                 "Contract test succeeded." + Environment.NewLine +
@@ -216,9 +328,26 @@ namespace HAgent.Example
                 "Allow -> Approved -> Promoted: verified." + Environment.NewLine +
                 "RequireApproval -> PendingReview -> Approved -> Promoted: verified." + Environment.NewLine +
                 "Deny -> Rejected: verified." + Environment.NewLine +
-                "Unmatched request -> NotApplicable (no promotion authority): verified.");
+                "Unmatched request -> NotApplicable (no promotion authority): verified." + Environment.NewLine +
+                "Typed MemoryCandidate validation: verified." + Environment.NewLine +
+                "Typed KnowledgeCandidate draft validation: verified." + Environment.NewLine +
+                "Typed SkillCandidate draft validation: verified." + Environment.NewLine +
+                "Published Knowledge/Skill candidate rejection: verified.");
 
             return Task.CompletedTask;
+        }
+
+        private static void AssertCandidateRejected(Action action, string message)
+        {
+            try
+            {
+                action();
+            }
+            catch (ArgumentException)
+            {
+                return;
+            }
+            throw new InvalidOperationException(message);
         }
     }
 }

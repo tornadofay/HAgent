@@ -78,6 +78,7 @@ namespace HAgent.Example
             AddPolicyTabs();
             AddLearningPolicyTab();
             AddLearningLifecycleTab();
+            AddLearningCandidatePersistenceTab();
             AddApprovalWorkflowTab();
             AddInstructionContractsTab();
             AddExecutionInterventionTab();

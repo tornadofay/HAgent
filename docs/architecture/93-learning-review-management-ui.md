@@ -13,6 +13,7 @@ The page uses:
 ```text
 ConfigurationContext
     -> durable learning candidate store
+    -> host-supplied reviewer identity
     -> existing AI store/policy set
         ↓
 LearningReviewPage
@@ -26,7 +27,9 @@ The page does not directly mutate candidates. Approve/Reject operations go throu
 
 ## Reviewer identity
 
-The UI requires an explicit reviewer user identifier before a review action. Optional tenant and workspace values are captured as structured `AgentIdentityContext` data. The identity is not inferred from prompt text and is not treated as authenticated merely because the user entered a value; host authentication remains outside HAgent.
+Reviewer identity is host-owned. The UI displays the supplied `AgentIdentityContext` as read-only metadata; it does not accept identity values from editable controls. When a caller does not supply an identity, the WinForms reference composition uses system-admin user ID `1` as its default reviewer identity. Tenant and workspace are optional identity scopes and are displayed as `Not supplied` when absent.
+
+The identity is not inferred from prompt text and is not treated as authenticated merely because it exists; host authentication remains outside HAgent.
 
 ## Candidate visibility
 
@@ -52,7 +55,19 @@ The UI does not publish Memory, Knowledge, or Skill resources. Authoritative pro
 
 ## Storage boundary
 
-The current reference WinForms configuration composition exposes the existing durable `FileLearningCandidateStore` through `ConfigurationContext`. This is intentionally a storage adapter dependency rather than a second learning repository model. Database-backed candidate storage can replace that dependency later without changing the review page contract.
+The current reference WinForms composition receives the durable `FileLearningCandidateStore` from the host when one is available. The Example now creates the store from the same configured effective storage root used by its other file-backed state and injects that store into `AISettingsForm`, preventing the management page from reading a different hardcoded candidate file.
+
+Database-backed candidate storage can replace this adapter dependency later without changing the review page contract.
+
+## Manual integration verification
+
+The Example contains two explicit management tests:
+
+1. `Learning Review Seed` creates a real durable `PendingReview` candidate and ensures deterministic Example policy rules authorize both Approve and Reject.
+2. The user opens `Configuration → Learning Review`, selects that candidate, and explicitly Approves or Rejects it.
+3. `Learning Review Verify` opens a fresh candidate-store instance and verifies the terminal status, lifecycle revision `2`, persisted reviewer identity evidence, and `Allow` policy evidence.
+
+This tests the complete UI-to-governance-to-persistence path rather than merely checking that the controls render.
 
 ## Explicit scope of this increment
 

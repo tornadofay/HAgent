@@ -47,8 +47,8 @@ Verified by user on 2026-09-11. Both required Examples succeeded; full `HAgent.T
 
 Verified by user on 2026-09-11.
 
-- .NET Framework 4.8.1 Example `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` succeeded.
-- .NET 9 Example `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` succeeded.
+- .NET Framework 4.8.1 Example succeeded.
+- .NET 9 Example succeeded.
 - Both Examples verified provider-neutral durable capture, persistence across restart, PendingReview status/revision restoration, authorized Learning Review, revision 1 → 2, reviewer identity/policy evidence, and absence of authoritative publication.
 - Full `HAgent.Tests`: **200/200 passed, 0 failed, 0 skipped** on .NET 9.
 
@@ -58,8 +58,8 @@ The durable candidate boundary is now closed. It remains separate from authorita
 
 Verified by user on 2026-09-11.
 
-- .NET Framework 4.8.1 Example `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` succeeded.
-- .NET 9 Example `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` succeeded.
+- .NET Framework 4.8.1 Example succeeded.
+- .NET 9 Example succeeded.
 - Both Examples verified Memory promotion, creation of a new published Knowledge version, creation of a new immutable Skill version, fresh unified promotion authorization, publication-before-lifecycle transition, provenance evidence, and no mutation of existing published Knowledge or Skill versions.
 - Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
 
@@ -69,8 +69,8 @@ The authoritative promotion boundary is now closed.
 
 Verified by user on 2026-09-11.
 
-- .NET Framework 4.8.1 Example `HAgent.Example → Cognition → Learning → Learning Execution Integration` succeeded.
-- .NET 9 Example `HAgent.Example → Cognition → Learning → Learning Execution Integration` succeeded.
+- .NET Framework 4.8.1 Example succeeded.
+- .NET 9 Example succeeded.
 - Both Examples verified provider-neutral learned instruction, policy/capability-gated learned context, bounded execution context snapshots, authoritative runtime outcome observation capture, non-creation of candidates from observations, and non-authoritative prompt text.
 - Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
 
@@ -78,26 +78,35 @@ The execution-integration boundary is now closed.
 
 ## Slice 12 — Management UI — IN PROGRESS
 
-The first management-UI increment adds a production configuration surface for Learning Review using the existing WinForms configuration-shell conventions.
+Slice 12 establishes the production configuration surface for governed Learning Review using the existing WinForms configuration-shell conventions.
 
-Current implementation:
+### Slice 12 initial increment — durable review management
 
 - `Learning Review` page under `src/HAgent.WinForms/UI/Configuration/Learning/`;
 - reviewer identity is host-supplied and displayed read-only;
 - default WinForms reference reviewer is system-admin user ID `1` when no identity is supplied;
 - tenant and workspace are optional identity scopes and are displayed read-only as `Not supplied` when absent;
 - Approve/Reject routed through `AiLearningCandidateReviewService` and the existing unified policy engine;
-- bounded PendingReview candidate list projection;
 - host-supplied durable candidate-store dependency, aligned with the Example's configured effective root;
 - no authoritative Memory/Knowledge/Skill publication from the UI;
-- Example now contains explicit Seed and Verify scenarios for a real manual Approve/Reject flow.
+- Example Seed and Verify scenarios cover the real manual Approve/Reject persistence path.
 
-Architecture: `docs/architecture/93-learning-review-management-ui.md`.
+### Slice 12 candidate-details increment — IMPLEMENTED, USER VERIFICATION PENDING
 
-**Manual integration test:**
+The Learning Review page is now a filterable inspection workspace rather than a PendingReview-only list.
 
-1. Run `HAgent.Example → Cognition → Learning → Learning Review Seed` on .NET Framework 4.8.1 and .NET 9.
-2. Open `Configuration → Learning Review`, select the printed candidate, and explicitly Approve or Reject it.
-3. Run `HAgent.Example → Cognition → Learning → Learning Review Verify` using the printed Candidate ID. It must observe the persisted terminal status, revision `2`, reviewer identity evidence, and `Allow` policy evidence.
+- lifecycle status filter: All / Proposed / PendingReview / Approved / Rejected / Promoted;
+- candidate type filter: All / Memory / Knowledge / Skill;
+- selected candidate details shown beside the list;
+- read-only overview of scope, source, revision, confidence, evidence/provenance/contradiction, retention, evaluation, timestamps, admission policy, and promotion authorization;
+- existing provider-neutral candidate payload rendered as readable JSON;
+- source execution/runtime/agent information;
+- persisted review action, reviewer identity, policy evidence, outcome, reason, and timestamp;
+- Approve/Reject enabled only for a selected PendingReview candidate;
+- expired candidates remain excluded through the existing store query behavior.
+
+Architecture: `docs/architecture/93-learning-review-management-ui.md` and `docs/architecture/94-learning-review-candidate-details.md`.
+
+The existing Seed → UI review → Verify workflow remains the integration test for the management boundary. The new details/filter workspace should be manually verified on both .NET Framework 4.8.1 and .NET 9. No new persistence contract was introduced.
 
 **Verification workflow:** `.github/workflows/verify-phase-0-9575-slice-12.yml`.

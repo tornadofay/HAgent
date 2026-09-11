@@ -58,26 +58,16 @@ Verified by user on 2026-09-09.
 
 Slice 6 is closed.
 
-### Slice 7 — Learning Policy + Typed Candidates — CURRENT
+### Slice 7 — Learning Policy + Typed Candidates — VERIFIED
 
-**Objective:** define one provider-neutral learning policy contract and typed Memory/Knowledge/Skill candidate payload contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
+Verified by user on 2026-09-11.
 
-**Complete within this slice:**
+- Example: `HAgent.Example → Policy → Learning Policy` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Full `HAgent.Tests`: 187/187 passed, 0 failed, 0 skipped on .NET 9.
 
-- learning policy covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization;
-- typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts;
-- source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence preservation where available;
-- deterministic code-derived learning signals without requiring an LLM;
-- optional model-assisted extraction/evaluation that remains non-authoritative;
-- candidate creation kept separate from candidate promotion.
+The slice defines one provider-neutral Learning Policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It adds typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` payload contracts while reusing the canonical `AiLearningCandidate` lifecycle and promotion boundary.
 
-**Out of scope:** candidate persistence, promotion orchestration, Learning Review UI, Knowledge/Skill management UI, context integration, and the broader 0.9576 roadmap restructuring.
-
-**Completion checkpoint:** affected projects build; focused learning-policy/typed-candidate tests pass; full .NET 9 `HAgent.Tests` passes; matching Example succeeds on .NET Framework 4.8.1 and .NET 9.
-
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on **.NET Framework 4.8.1** and **.NET 9**.
-
-**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+Slice 7 is closed.
 
 ## Run rule
 

@@ -2,9 +2,9 @@
 
 ## Status
 
-**In progress — Slice 8 implementation.**
+**In progress — Slice 9 implementation.**
 
-Slices 1–7 are verified. This roadmap has been normalized against the current implementation so historical checklist entries that already leaked into the code are no longer treated as automatically missing work.
+Slices 1–8 are verified. This roadmap has been normalized against the current implementation so historical checklist entries that already leaked into the code are no longer treated as automatically missing work.
 
 ## Goal
 
@@ -66,6 +66,14 @@ One provider-neutral Learning Policy contract and typed `MemoryCandidate`, `Know
 
 Verification: user reported 187/187 tests, 0 failed, 0 skipped on .NET 9; the `HAgent.Example → Policy → Learning Policy` Example succeeded on .NET Framework 4.8.1 and .NET 9.
 
+### Slice 8 — Canonical Learning Lifecycle Gate — VERIFIED 2026-09-11
+
+`AiLearningLifecycleCoordinator` is the canonical admission gate between validated typed candidates and later authoritative promotion. It composes typed-candidate validation, Learning Policy, Learning Mode, and unified learning-promotion authorization; it does not publish or persist authoritative resources.
+
+Verification: user reported `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` recorded **194/194 passed, 0 failed, 0 skipped** on .NET 9.
+
+The authorization-sensitive identity boundary is fail-closed and requires canonical `AgentIdentityContext`.
+
 ## Remainder audit: historical checklist normalization
 
 The older 0.9575 checklist mixed genuine missing work with requirements that had already been implemented elsewhere. The following distinctions are now authoritative.
@@ -93,7 +101,6 @@ These items remain subject to the final phase verification matrix, but they are 
 
 ### Genuinely outstanding 0.9575 work
 
-- Canonical candidate lifecycle admission/review/promotion gate.
 - Candidate persistence, retention, expiry, rejection/promotion provenance, and durable review state.
 - Authoritative Memory promotion.
 - Knowledge promotion that creates a new authoritative version rather than mutating a published record.
@@ -105,49 +112,36 @@ These items remain subject to the final phase verification matrix, but they are 
 - Learning Review, Knowledge/Wiki, Skill, and Agent Configuration management UI.
 - Persistence and restart verification for the mature learning/resource layer.
 
-## Slice 8 — Canonical Learning Lifecycle Gate — IN PROGRESS
+## Slice 9 — Candidate persistence, retention, and review — IN PROGRESS
 
 ### Purpose
 
-Close the missing boundary between typed candidate validation and later authoritative promotion.
+Make the existing canonical typed learning candidate durable without creating a second candidate lifecycle or authoritative resource model.
 
 ### Scope
 
-- Deterministic typed-candidate validation.
-- `AiLearningPolicy` evaluation.
-- `AiLearningMode` semantics.
-- Existing `IAiPolicyEngine` promotion authorization for automatic paths.
-- Explicit routing to `Rejected`, `PendingReview`, or `Approved`.
-- Candidate-identity/state checks when applying lifecycle decisions.
-- No model call is required.
-- Approval is not publication.
+- provider-neutral `AiLearningCandidateRecord` durable envelope;
+- provider-neutral `IAiLearningCandidateStore` boundary;
+- deterministic InMemory and durable File store implementations;
+- durable lifecycle status/revision;
+- retention/expiry policy and purge;
+- typed payload serialization and round-trip restoration;
+- persisted Learning Policy and promotion-authorization provenance;
+- Learning Review read/update workflow through the existing unified policy boundary;
+- explicit reviewer identity and authorization evidence;
+- optimistic revision-checked review updates;
+- restart/recovery semantics;
+- no authoritative Knowledge/Skill mutation or Memory publication by the candidate store/review boundary.
 
 ### Verification
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Lifecycle` on .NET Framework 4.8.1 and .NET 9.
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` on .NET Framework 4.8.1 and .NET 9.
 
-**Tests to run:** `tests/HAgent.Tests/LearningLifecycleTests.cs` during the checkpoint.
+**Tests to run:** `tests/HAgent.Tests/LearningCandidatePersistenceTests.cs` during the focused checkpoint; full `HAgent.Tests` at the Slice 9 checkpoint.
 
 ### Architecture
 
-See `docs/architecture/87-learning-lifecycle.md`.
-
-## Slice 9 — Candidate persistence, retention, and review
-
-The candidate itself becomes durable without creating a second candidate model.
-
-Scope:
-
-- provider-neutral candidate store boundary;
-- durable lifecycle status/revision;
-- retention/expiry policy;
-- rejected/pending/approved provenance retention according to policy;
-- durable evaluation outcomes;
-- Learning Review read/update workflow;
-- restart/recovery semantics;
-- authorization/audit evidence for review actions.
-
-No authoritative Knowledge/Skill mutation is performed directly by the candidate store.
+See `docs/architecture/88-learning-candidate-persistence.md`.
 
 ## Slice 10 — Authoritative promotion and version-safe resource creation
 

@@ -174,21 +174,6 @@ Routine events should not consume an LLM merely because the runtime is active.
 13. All queues, workspaces, deliberation, recursion, and resource growth are bounded.
 14. Model output is evidence/request input, never authorization.
 
-## Explicitly not V1
-
-The following are outside the production V1 target and may become V2/research work:
-
-- general multi-writer cognitive-state conflict graphs;
-- competing proposal merge engines for one runtime agent;
-- universal BDI/SOAR/ACT-R implementation;
-- consciousness/global-workspace claims;
-- human-equivalent cognitive timing;
-- universal planning or AGI;
-- neural continual-learning algorithms and catastrophic-forgetting solutions;
-- automatic universal Skill induction from arbitrary trajectories;
-- distributed cognitive-state consensus;
-- autonomous cluster supervision.
-
 ## Dependency graph
 
 ```text

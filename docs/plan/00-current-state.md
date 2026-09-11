@@ -13,7 +13,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 10 is in progress.**
+**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 11 is in progress.**
 
 0.957 Evaluation and Quality Measurement is verified through Slice 6. User verification on 2026-09-09 recorded **139/139 HAgent.Tests passed** and the required evaluation Example scenarios succeeded on .NET Framework 4.8.1 and .NET 9.
 
@@ -54,23 +54,28 @@ Verified by user on 2026-09-11.
 
 The durable candidate boundary is now closed. It remains separate from authoritative resource publication.
 
-## Slice 10 — Authoritative Promotion + Version-Safe Resource Creation — IN PROGRESS
+### Slice 10 — Authoritative Promotion + Version-Safe Resource Creation — VERIFIED
 
-Promotion is the canonical boundary that turns an approved durable typed candidate into authoritative state.
+Verified by user on 2026-09-11.
 
-Current architectural requirements:
+- .NET Framework 4.8.1 Example `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` succeeded.
+- .NET 9 Example `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` succeeded.
+- Both Examples verified Memory promotion, creation of a new published Knowledge version, creation of a new immutable Skill version, fresh unified promotion authorization, publication-before-lifecycle transition, provenance evidence, and no mutation of existing published Knowledge or Skill versions.
+- Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
 
-- re-authorize `learning.promote` through the existing unified policy engine with explicit identity;
-- reject expired, rejected, promoted, or non-approved candidates;
-- restore and validate the typed payload before publication;
-- publish Memory through the existing `IMemoryStore` contract;
-- publish Knowledge through an explicit provider-neutral target that creates a new authoritative version without mutating a published version;
-- publish Skill through an explicit provider-neutral target that creates a new immutable version;
-- reject stale/equal Knowledge or Skill versions deterministically;
-- preserve source/candidate provenance and policy authorization evidence;
-- mark the candidate `Promoted` only after successful authoritative publication;
-- produce structured promotion/audit evidence without creating a second lifecycle.
+The authoritative promotion boundary is now closed.
 
-**Required Example:** `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` on .NET Framework 4.8.1 and .NET 9.
+## Slice 11 — Context, Instruction, Runtime, and Observability Integration — IN PROGRESS
 
-**Required tests:** `tests/HAgent.Tests/LearningCandidatePromotionTests.cs`; full `HAgent.Tests` at the Slice 10 checkpoint.
+Current implementation establishes the first canonical bridge from governed learned-resource outputs and authoritative execution observations into the existing execution architecture.
+
+Current contracts:
+
+- `AiLearningExecutionPreparation` validates/clones learned instruction sources for `AgentExecutionRequest.InstructionSources` and routes learned context sources through the existing `ContextAssembler`.
+- `AiLearningExecutionObservationCollector` consumes authoritative `IExecutionObservationSource` facts and writes bounded `AiLearningExecutionObservation` records.
+- `IAiLearningObservationStore` and `InMemoryAiLearningObservationStore` provide a provider-neutral bounded observation store reference implementation.
+- Observations remain learning input, not candidates or authoritative mutations.
+
+**Required Example:** `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
+
+**Required tests:** `tests/HAgent.Tests/LearningExecutionIntegrationTests.cs`; full `HAgent.Tests` at the Slice 11 checkpoint.

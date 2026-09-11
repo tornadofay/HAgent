@@ -83,7 +83,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 12 is in progress.**
+**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 12 is verified; the next management increment is authoritative resource inventory and management.**
 
 0.957 Evaluation and Quality Measurement is verified through Slice 6. User verification on 2026-09-09 recorded **139/139 HAgent.Tests passed** and the required evaluation Example scenarios succeeded on .NET Framework 4.8.1 and .NET 9.
 
@@ -146,74 +146,43 @@ Verified by user on 2026-09-11.
 
 The execution-integration boundary is now closed.
 
-## Slice 12 — Management UI — IN PROGRESS
+### Slice 12 — Learning Review management UI — VERIFIED
 
-Slice 12 establishes the production configuration surface for governed Learning Review using the existing WinForms configuration-shell conventions.
+Verified by user on 2026-09-11.
 
-### Learning lifecycle represented by the management surface
+- .NET Framework 4.8.1 real WinForms configuration flow succeeded.
+- .NET 9 real WinForms configuration flow succeeded.
+- Durable candidate-store reopen was verified on both targets.
+- Manual workflow verified: `Learning Review Seed` → `Configuration → Learning Review` → inspect/filter → Approve → Promote → `Learning Review Verify`.
+- Final candidate status was `Promoted` with lifecycle revision `3` on both targets.
+- Reviewer identity evidence persisted.
+- Review/promotion authorization evidence persisted with outcome `Allow`.
+- The management surface reused the existing provider-neutral `AiLearningPromotionService`; WinForms did not directly publish authoritative resources.
 
-```text
-Proposed
-   ↓ lifecycle / policy evaluation
-PendingReview
-   ├──→ Rejected
-   ↓
-Approved
-   ↓ governed authoritative promotion
-Promoted
-```
+The complete Learning Review management boundary is now closed.
 
-- `Proposed` means a candidate has been formed but has not necessarily entered human review.
-- `PendingReview` means the lifecycle/policy gate requires the review boundary.
-- `Approved` means the candidate passed review but is not yet authoritative.
-- `Rejected` means it is not accepted for authoritative promotion.
-- `Promoted` means the approved candidate has been converted into its authoritative resource by the separate promotion capability.
+## Next Slice 12 management increment — Authoritative Resource Inventory
 
-Learning mode and policy determine which routes are permitted. The UI does not infer or redefine lifecycle semantics.
+The next increment remains inside 0.9575 and will establish management surfaces for authoritative Memory, Knowledge, and Skill resources.
 
-### Slice 12 initial increment — durable review management
+Intended scope:
 
-- `Learning Review` page under `src/HAgent.WinForms/UI/Configuration/Learning/`;
-- reviewer identity is host-supplied and displayed read-only;
-- default WinForms reference reviewer is system-admin user ID `1` when no identity is supplied;
-- tenant and workspace are optional identity scopes and are displayed read-only as `Not supplied` when absent;
-- Approve/Reject routed through `AiLearningCandidateReviewService` and the existing unified policy engine;
-- host-supplied durable candidate-store dependency, aligned with the Example's configured effective root;
-- no authoritative Memory/Knowledge/Skill publication from the UI;
-- Example Seed and Verify scenarios cover the real manual Approve/Reject persistence path.
+- one provider-neutral authoritative resource inventory boundary;
+- Memory inventory using the existing memory store contract;
+- Knowledge/Wiki inventory using provider-neutral resource-source/query contracts;
+- Skill inventory using provider-neutral definition-source/query contracts;
+- bounded read-only inventory metadata and scope filtering;
+- effective agent-resource visibility without duplicating authoritative resource models;
+- focused WinForms management pages under `UI/Configuration/`;
+- matching `HAgent.Tests` contract/boundary tests and dedicated Example verification;
+- no SQL Server/MySQL implementation work in this increment;
+- no resource reliability/adaptation work, which remains 0.9576.
 
-### Slice 12 candidate-details and promotion increment — IMPLEMENTED, USER VERIFICATION PENDING
+Architecture must keep the management UI dependent on provider-neutral resource contracts so later WPF/ASP configuration surfaces can consume the same configuration/resource boundaries.
 
-The Learning Review page is now a filterable inspection and governed promotion workspace rather than a PendingReview-only list.
+Architecture: `docs/architecture/93-learning-review-management-ui.md`, `docs/architecture/94-learning-review-candidate-details.md`, and the resource inventory architecture to be established with the next increment.
 
-- lifecycle status filter: All / Proposed / PendingReview / Approved / Rejected / Promoted;
-- candidate type filter: All / Memory / Knowledge / Skill;
-- selected candidate details shown beside the list;
-- read-only overview of scope, source, revision, confidence, evidence/provenance/contradiction, retention, evaluation, timestamps, admission policy, and promotion authorization;
-- existing provider-neutral candidate payload rendered as readable JSON;
-- source execution/runtime/agent information;
-- persisted review action, reviewer identity, policy evidence, outcome, reason, and timestamp;
-- Approve/Reject enabled only for a selected PendingReview candidate;
-- Promote enabled only for a selected Approved candidate when the host injects `AiLearningPromotionService`;
-- promotion reuses the existing core service and fresh `learning.promote` authorization;
-- the UI never constructs publication targets or directly publishes authoritative resources;
-- successful promotion refreshes the candidate as `Promoted` with lifecycle revision `3`;
-- expired candidates remain excluded through the existing store query behavior;
-- Example injects the promotion service with deterministic provider-neutral publication targets and its Example `learning.promote` policy rule;
-- Example Verify accepts the manual review terminal state (revision `2`) or successful promoted state (revision `3`).
-
-Architecture: `docs/architecture/93-learning-review-management-ui.md` and `docs/architecture/94-learning-review-candidate-details.md`.
-
-The complete manual management workflow is now:
-
-1. `Learning Review Seed` creates a durable Skill candidate at `PendingReview` revision `1`.
-2. Open `Configuration → Learning Review`, inspect the candidate, and Approve or Reject it.
-3. For an Approved candidate, use `Promote` to exercise the existing authoritative promotion service.
-4. Run `Learning Review Verify` to confirm durable revision `2` after review or revision `3` after promotion.
-
-The candidate-details/promotion workspace should be manually verified on both .NET Framework 4.8.1 and .NET 9. No new persistence contract was introduced.
-
-**Verification workflow:** `.github/workflows/verify-phase-0-9575-slice-12.yml`.
+**Verification workflow for the next increment must preserve an exact Example title/path and focused test class in this document before user verification begins.**
 
 ## Architectural Decisions
 

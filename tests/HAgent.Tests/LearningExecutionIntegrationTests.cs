@@ -22,7 +22,7 @@ namespace HAgent.Tests
                 new AiInstructionScope { ScopeType = "Agent", ScopeId = "agent-1" });
             var item = CreateContextItem();
             var source = new TestContextSource(ContextSourceKinds.Knowledge, "knowledge-1", item);
-            var preparation = CreatePreparation(new AllowPolicyEngine());
+            var preparation = CreatePreparation(new FixedPolicyEngine(AiPolicyOutcome.Allow));
 
             var result = await preparation.PrepareAsync(
                 new[] { instruction },
@@ -47,7 +47,7 @@ namespace HAgent.Tests
         [Fact]
         public async Task PreparationExcludesDeniedLearnedContextBeforeBudgetAssembly()
         {
-            var preparation = CreatePreparation(new DenyPolicyEngine());
+            var preparation = CreatePreparation(new FixedPolicyEngine(AiPolicyOutcome.Deny));
             var source = new TestContextSource(ContextSourceKinds.Knowledge, "knowledge-denied", CreateContextItem());
 
             var result = await preparation.PrepareAsync(
@@ -93,11 +93,6 @@ namespace HAgent.Tests
             Assert.Equal(1, observations[0].RetryNumber);
         }
 
-        private static AiLearningExecutionPreparation CreatePreparation(AiPolicyOutcome outcome)
-        {
-            return CreatePreparation(new FixedPolicyEngine(outcome));
-        }
-
         private static AiLearningExecutionPreparation CreatePreparation(IAiPolicyEngine policy)
         {
             var admission = new ContextPolicyAdmissionEvaluator(
@@ -136,7 +131,7 @@ namespace HAgent.Tests
             };
         }
 
-        private sealed class FixedPolicyEngine : IAiPolicyEngine
+        private class FixedPolicyEngine : IAiPolicyEngine
         {
             private readonly AiPolicyOutcome _outcome;
 
@@ -162,16 +157,6 @@ namespace HAgent.Tests
                     Reason = _outcome == AiPolicyOutcome.Allow ? "allowed" : "denied"
                 };
             }
-        }
-
-        private sealed class AllowPolicyEngine : FixedPolicyEngine
-        {
-            public AllowPolicyEngine() : base(AiPolicyOutcome.Allow) { }
-        }
-
-        private sealed class DenyPolicyEngine : FixedPolicyEngine
-        {
-            public DenyPolicyEngine() : base(AiPolicyOutcome.Deny) { }
         }
 
         private sealed class TestContextSource : IContextSource

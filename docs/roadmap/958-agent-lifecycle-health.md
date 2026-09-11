@@ -2,26 +2,115 @@
 
 ## Status
 
-**Planned architectural foundation before persistent cognitive runtime.**
+**Planned after 0.9576 and before durable goal/plan recovery.**
 
-## Goal
+## Purpose
 
-Make agent/runtime lifecycle and health explicit, observable, recoverable, and controllable for both request-oriented and persistent agents.
+Make the lifecycle and health of a live HAgent runtime explicit and observable without duplicating the runtime-instance identity and execution lifecycle already established by earlier phases.
 
-## Requirements
+The phase does **not** create a new runtime-agent class. It extends the existing runtime-instance foundation with the operational state needed by long-running agents and Persistent Cognitive Runtime.
 
-1. [ ] Define normalized lifecycle states for runtime agents and persistent cognitive agents.
-2. [ ] Distinguish lifecycle state from health state and execution state.
-3. [ ] Support at least active, sleeping/idle, waiting, blocked, deliberating, executing, degraded, failed, retired, recovering, and shutdown semantics where applicable.
-4. [ ] Define health/status reasons and safe transitions rather than exposing only a Boolean healthy flag.
-5. [ ] Prevent retired/shutdown agents from originating new executions.
-6. [ ] Support suspension/resume without deleting durable state.
-7. [ ] Expose lifecycle and health changes through events and tracing.
-8. [ ] Define heartbeat/progress or equivalent signals for long-running persistent runtimes where needed.
-9. [ ] Detect stalled or repeatedly failing progress without confusing slow legitimate inference with failure.
-10. [ ] Support operator-visible diagnostics explaining why an agent is blocked, waiting, degraded, or recovering.
-11. [ ] Add deterministic Example verification for lifecycle transitions, suspension/resume, unhealthy/degraded states, stalled work, and shutdown safety.
+## V1 outcome
 
-## Architectural rule
+HAgent distinguishes:
 
-Lifecycle state answers "what is the agent doing?" Health state answers "is the agent operating normally?" Execution state answers "what is this specific operation doing?" These concerns remain separate.
+```text
+Lifecycle state = whether the runtime may operate
+Health state    = whether it is operating normally
+Execution state = what one specific execution is doing
+```
+
+These concerns remain separate.
+
+### Lifecycle
+
+The existing runtime foundation remains authoritative for `Active`, `Retired`, and `Shutdown`.
+
+0.958 adds only the operational states needed for persistent operation:
+
+```text
+Active
+Suspended
+Recovering
+Retired
+Shutdown
+```
+
+`Suspended` preserves durable state while new work is prevented or host-controlled work is paused. It is not retirement.
+
+### Health
+
+Health is orthogonal:
+
+```text
+Healthy
+Degraded
+Failed
+Unknown
+```
+
+Health is evidence, not authorization. Lifecycle and policy decide whether work may continue, wait, recover, or stop.
+
+## Delivery slices
+
+### Slice 1 — Lifecycle state extension
+
+- Extend the existing runtime lifecycle only where long-lived operation requires it.
+- Define valid transitions and terminal behavior.
+- Prevent suspended, retired, recovering, or shutdown runtimes from originating work that policy disallows.
+- Preserve existing revision and stale-result protection.
+
+### Slice 2 — Health state
+
+- Define normalized health status and bounded reason metadata.
+- Record the source of a health determination: runtime observation, provider failure, recovery failure, host signal, or equivalent evidence.
+- Distinguish transient degradation from terminal failure.
+- Do not classify slow but valid inference as failed merely because it is long-running.
+
+### Slice 3 — Progress and recovery signals
+
+- Provide bounded progress/heartbeat metadata where a host needs it.
+- Detect clearly stalled work only when configured evidence supports that conclusion.
+- Support transition into `Recovering` without deleting durable state.
+- Make recovery outcome explicit.
+
+### Slice 4 — Observability and verification
+
+- Emit lifecycle and health transitions through existing event/tracing boundaries.
+- Expose diagnostics explaining why a runtime is active, suspended, recovering, degraded, failed, retired, or shutdown.
+- Verify valid/invalid transitions, suspension/resume, degradation, recovery, stall handling, and shutdown safety.
+
+## Architectural rules
+
+1. Do not duplicate `AgentRuntimeInstance` identity or execution identity.
+2. Lifecycle state is not health state.
+3. Health is evidence, not authorization.
+4. Recovery never makes obsolete asynchronous work authoritative again.
+5. Suspension and recovery preserve durable state.
+6. Host lifecycle/scheduling policy remains authoritative where the host controls runtime admission.
+7. Provider/model-specific lifecycle semantics do not belong in Core.
+
+## Not part of V1
+
+- distributed actor supervision;
+- cluster orchestration;
+- automatic fleet healing;
+- universal heartbeat semantics for every execution;
+- autonomous process management;
+- replacing the host scheduler with an HAgent scheduler.
+
+## Dependencies
+
+```text
+0.9575 governed resources + learning
+        ↓
+0.9576 learned-resource reliability
+        ↓
+0.958 lifecycle + health
+        ↓
+0.9591 durable goals/plans/recovery
+```
+
+## Exit criterion
+
+A long-lived HAgent runtime has explicit lifecycle and health state, safe suspension/recovery semantics, observable progress/failure reasons, and deterministic protection against work becoming authoritative after retirement, shutdown, recovery invalidation, or newer revisions.

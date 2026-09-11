@@ -2674,6 +2674,30 @@ Runtime lifecycle
 
 The target owner remains responsible for applying the transition.
 
+## 2026-09-11 use-case audit
+
+The intended desktop-application and HWorld use cases justify the complete **intervention boundary**, but not a requirement that every action family be implemented against every target.
+
+| Intervention surface | Use-case result | V1 decision |
+|---|---|---|
+| Inspect | Needed for desktop diagnostics and operator visibility into active execution/resource state. | Keep |
+| Approve / Reject / Defer | Needed for governed learning candidates and host/operator approval boundaries. | Keep |
+| Pause / Resume | Needed for controllable long-running execution and future durable plan/goal control. | Keep, target-specific |
+| Cancel | Needed for execution control and host cancellation. | Keep |
+| Retire / Shutdown | Needed for explicit runtime lifecycle control. | Keep |
+| Redirect | Useful for plan/host actions where the owning boundary explicitly supports redirection, but not a generic provider/model routing mechanism. | Keep as optional target capability |
+| Execution target | Directly required by current execution-intervention behavior and host control. | Keep |
+| Tool invocation | Required when host tools have meaningful side effects or can run for significant time. | Keep |
+| Learning candidate | Directly required by the governed learning lifecycle. | Keep |
+| Plan step | Not an immediate HWorld requirement, but required for later durable plan intervention. | Keep for 0.959 V1 |
+| Goal / intention | Not an immediate HWorld requirement, but required for later cognitive control and recovery. | Keep for 0.959 V1 |
+| Consequential host action | Needed because HAgent must participate in approval/control without owning host or world side effects. | Keep |
+| Runtime lifecycle | Directly relevant to desktop/HWorld runtime ownership. | Keep |
+
+The audit therefore **does not remove an intervention target family**, but establishes that action applicability is target-owned and incremental. In particular, `Redirect` must not become a second provider/model selection path; provider/execution-target selection remains owned by Phase 0.96.
+
+The audit also confirms that HWorld does not require 0.10 workspace/chat features before using intervention. HWorld remains authoritative over world state and side effects, while HAgent supplies the generic control boundary.
+
 ## Delivery slices
 
 ### Slice 1 — Canonical intervention contract
@@ -2718,6 +2742,7 @@ The target owner remains responsible for applying the transition.
 5. A rejected or expired intervention never mutates the target.
 6. Host side effects remain host-authoritative.
 7. Intervention state does not replace lifecycle, plan, execution, or learning state.
+8. Redirect is never a provider/model routing shortcut; execution-target selection remains owned by Phase 0.96.
 
 ## Dependency order
 

@@ -73,7 +73,13 @@ The details view is observational. It does not publish authoritative Memory, Kno
 
 Approve and Reject are enabled only for a selected `PendingReview` candidate and remain enforced by `AiLearningCandidateReviewService`. A denied policy decision leaves the candidate unchanged. Successful review advances the candidate lifecycle and persists reviewer/policy evidence through the existing candidate store.
 
-The UI does not publish Memory, Knowledge, or Skill resources. Authoritative promotion remains Slice 10's separate operation.
+## Promotion semantics
+
+Promote is enabled only for an `Approved` candidate when the host injects `AiLearningPromotionService`. The UI calls the existing provider-neutral promotion capability and does not construct publication targets or mutate candidate lifecycle state itself.
+
+The promotion service performs fresh `learning.promote` authorization, publishes the authoritative resource first, and only then advances the candidate from `Approved` revision `2` to `Promoted` revision `3` with optimistic revision protection.
+
+The UI does not publish Memory, Knowledge, or Skill resources itself. Authoritative promotion remains the separate core capability established by Slice 10.
 
 ## Storage boundary
 
@@ -86,11 +92,13 @@ Database-backed candidate storage can replace this adapter dependency later with
 The Example contains two explicit management tests:
 
 1. `Learning Review Seed` creates a real durable `PendingReview` candidate and ensures deterministic Example policy rules authorize both Approve and Reject.
-2. The user opens `Configuration → Learning Review`, uses the status/type filters as needed, selects that candidate, inspects its details, and explicitly Approves or Rejects it.
-3. `Learning Review Verify` opens a fresh candidate-store instance and verifies the terminal status, lifecycle revision `2`, persisted reviewer identity evidence, and `Allow` policy evidence.
+2. The user opens `Configuration → Learning Review`, uses the status/type filters as needed, selects that candidate, inspects its details, Approves it, and uses `Promote` to exercise the existing authoritative promotion service.
+3. `Learning Review Verify` opens a fresh candidate-store instance and verifies the terminal `Promoted` status, lifecycle revision `3`, persisted reviewer identity evidence, and `Allow` policy evidence.
 
-This tests the complete UI-to-governance-to-persistence path rather than merely checking that the controls render.
+The workflow was manually verified by the user on both .NET Framework 4.8.1 and .NET 9 on 2026-09-11.
+
+This tests the complete UI-to-governance-to-persistence-to-authoritative-promotion path rather than merely checking that the controls render.
 
 ## Explicit scope of this increment
 
-This increment establishes Learning Review management, filtering, and candidate inspection. Full Knowledge/Wiki and Skill CRUD editors, effective agent resource inventory editing, editing of learned payloads, replacement workflows, and authoritative publication remain subsequent management slices and must continue to use the same configuration-page and provider-neutral resource contracts.
+This increment establishes Learning Review management, filtering, candidate inspection, and governed promotion through the existing provider-neutral promotion capability. Full Knowledge/Wiki and Skill CRUD editors, effective agent resource inventory editing, editing of learned payloads, replacement workflows, and reliability/adaptation management remain subsequent management work and must continue to use the same configuration-page and provider-neutral resource contracts.

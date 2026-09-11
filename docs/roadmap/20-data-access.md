@@ -21,16 +21,18 @@ This phase establishes the **resource substrate**. Mature resource governance, c
 
 ## Resource foundation
 
-11. [ ] Establish one provider-neutral resource identity contract that can represent Skills, Knowledge/Wiki resources, Memory families/types, Learning candidates, and future resource types without adding hard-coded resource properties to the agent model.
-12. [ ] Establish explicit resource scope/ownership metadata compatible with the canonical identity model: Global, Tenant, Domain, User, Agent, Runtime, and Execution where applicable.
-13. [ ] Establish resource provenance/source metadata and lifecycle/status/version metadata as shared foundation concepts.
-14. [ ] Define the stable distinction between Skills, Knowledge/Wiki, Memory, and Learning candidates; do not collapse them into one persisted object model.
-15. [ ] Establish stable/versioned Skill definitions and references while keeping executable handlers outside persistence.
-16. [ ] Establish provider-neutral Knowledge/Wiki resource/source contracts and bounded retrieval semantics independent of keyword/vector/index implementation.
-17. [ ] Normalize Memory foundations around working, episodic, semantic, procedural, and future extensible types while keeping memory ownership separate from physical storage.
-18. [ ] Establish typed learning-candidate contracts and provenance fields needed for later governed promotion without making the model authoritative.
-19. [ ] Preserve immutable snapshot compatibility: resource definitions and references must be safe to capture into active execution snapshots without later configuration edits mutating running executions.
-20. [ ] Ensure the resource foundation remains usable without GPU hardware, vector databases, embeddings, or large resident indexes.
+11. [x] Establish one provider-neutral resource identity contract that can represent Skills, Knowledge/Wiki resources, Memory families/types, Learning candidates, and future resource types without adding hard-coded resource properties to the agent model.
+12. [x] Establish explicit resource scope/ownership metadata compatible with the canonical identity model: Global, Tenant, User, Workspace, Agent, Runtime, and Execution where applicable. `Workspace` is the canonical scope; historical `Domain` terminology is obsolete.
+13. [x] Establish resource provenance/source metadata and lifecycle/status/version metadata as shared foundation concepts.
+14. [x] Define the stable distinction between Skills, Knowledge/Wiki, Memory, and Learning candidates; do not collapse them into one persisted object model.
+15. [x] Establish stable/versioned Skill definitions and references while keeping executable handlers outside persistence.
+16. [x] Establish provider-neutral Knowledge/Wiki resource/source contracts and bounded retrieval semantics independent of keyword/vector/index implementation.
+17. [x] Normalize Memory foundations around working, episodic, semantic, procedural, and future extensible types while keeping memory ownership separate from physical storage.
+18. [x] Establish typed learning-candidate contracts and provenance fields needed for later governed promotion without making the model authoritative.
+19. [x] Preserve immutable snapshot compatibility: resource definitions and references must be safe to capture into active execution snapshots without later configuration edits mutating running executions.
+20. [x] Ensure the resource foundation remains usable without GPU hardware, vector databases, embeddings, or large resident indexes.
+
+The resource-foundation obligations above are now historical foundation work. Any remaining gaps in mature persistence, governance, promotion, retention, administration, or management UI are owned by their consuming phases, especially 0.9575, 0.96.x, and 0.97. No later phase may create a parallel resource model to finish an incomplete surface.
 
 ## Deferred historical completion obligations
 

@@ -129,8 +129,8 @@ namespace HAgent.Models
             Optional(LastReviewReason, 2048, nameof(LastReviewReason));
             if (CreatedAt == default(DateTimeOffset) || UpdatedAt == default(DateTimeOffset) || UpdatedAt < CreatedAt)
                 throw new ArgumentException("Candidate timestamps are invalid.");
-            if (ExpiresAt.HasValue && ExpiresAt.Value <= CreatedAt)
-                throw new ArgumentException("Candidate ExpiresAt must be later than CreatedAt.");
+            if (ExpiresAt.HasValue && ExpiresAt.Value < CreatedAt)
+                throw new ArgumentException("Candidate ExpiresAt cannot be earlier than CreatedAt.");
             if (string.IsNullOrWhiteSpace(PayloadJson)) throw new ArgumentException("Candidate payload is required.", nameof(PayloadJson));
         }
 

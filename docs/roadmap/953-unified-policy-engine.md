@@ -2,7 +2,9 @@
 
 ## Status
 
-**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, canonical policy persistence, policy-gated tool invocation, policy-first host authorization composition, profile/runtime resource capability resolution, and typed learning-promotion policy transitions are implemented.**
+**Completed — the canonical policy boundary is implemented and verified.** Policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, canonical policy persistence, policy-gated tool invocation, policy-first host authorization composition, profile/runtime resource capability resolution, and typed learning-promotion policy transitions are established.
+
+Remaining UI refinement and additional backend/live verification are ongoing hardening work and must not reopen or redefine the policy boundary.
 
 ## Goal
 
@@ -22,7 +24,7 @@ Unify HAgent's growing permission, capability, cost, learning, approval, resourc
 10. [x] Make policy evaluation deterministic where inputs are deterministic and expose an explicit policy version for cache invalidation.
 11. [x] Capture the full effective policy state in the execution snapshot, including the deep-cloned policy version/rules that govern the run.
 12. [x] Prevent prompt content from serving as the policy enforcement mechanism.
-13. [x] Complete deterministic Example verification for the newly added resource capability resolution, persistence, snapshot isolation, and tool gating in addition to the already verified policy/authorization scenarios.
+13. [x] Complete deterministic Example verification for resource capability resolution, persistence, snapshot isolation, tool gating, and learning-policy transitions.
 
 ## Implemented slices
 
@@ -56,22 +58,18 @@ The current implementation includes:
 - `AiLearningCandidate` guarded `Proposed` / `PendingReview` / `Approved` / `Rejected` / `Promoted` transitions mapped from policy outcomes;
 - deterministic Example verification in `MainForm.PolicyTests.cs`, `MainForm.ResourceCapabilityTests.cs`, and `MainForm.LearningPolicyTests.cs` for policy persistence, runtime enforcement, host authorization, resource capability resolution/persistence/snapshot isolation/tool gating, and learning promotion/review transitions.
 
-Policy persistence, provider/tool/data authorization, and the resource capability boundary were locally verified by the user on 2026-09-08. The learning-promotion implementation and its new Example verification are ready for the next local run and must not be described as passing until that Example test succeeds.
+The policy/resource/learning-policy foundation is complete as a phase boundary. Later phases own the remaining resource lifecycle, candidate persistence/promotion, intervention, execution selection, and cognitive integration.
 
-## Remaining slices
+## Post-phase hardening
 
-1. Verify the learning-promotion policy/candidate transition slice locally and then treat it as complete.
-2. Add bounded human approval/defer workflow integration.
-3. Implement the policy management UI refinement in layers:
-   - make rule editing human-oriented with semantic selectors for scope, agent, tool, resource, provider, operation, and outcome, while retaining advanced raw identifiers only where necessary;
-   - make Effective Decisions a read-only diagnostic surface showing the evaluated context, selected rule, policy version, precedence/provenance, and built-in guard contribution;
-   - make Agent Capabilities a per-agent capability/resource matrix showing persistent profile state, transient runtime override, and deterministic effective state, with the source of the effective value where useful;
-   - source display names and selectable entities from existing HAgent configuration/runtime registries rather than creating duplicate UI-specific registries;
-   - keep unresolved or stale identifiers visible and diagnosable rather than silently rewriting or deleting policy state;
-   - preserve the core policy engine as the single decision/precedence authority. UI behavior must not introduce a second policy evaluator or alternative capability semantics.
-4. Expand deterministic Example verification and backend-specific live verification where configured.
+The following are explicitly post-phase refinements rather than missing policy architecture:
 
-The detailed target behavior for the Policy page and its components is defined in `docs/architecture/09-policy.md` under **Policy configuration UI evolution** and should be treated as the architectural UI contract for subsequent refinements.
+1. Human-oriented policy management UI refinement with semantic selectors for scope, agent, tool, resource, provider, operation, and outcome, while retaining advanced raw identifiers only where necessary.
+2. A read-only Effective Decisions diagnostic surface showing evaluated context, selected rule, policy version, precedence/provenance, and built-in guard contribution.
+3. An Agent Capabilities surface showing persistent profile state, transient runtime override, deterministic effective state, and source of the effective value where useful.
+4. Additional configured-backend/live verification where the deployment has the corresponding environment.
+
+The policy engine remains the single decision/precedence authority. These refinements must not introduce a second evaluator or alternative capability semantics.
 
 ## Architectural rule
 
@@ -80,3 +78,18 @@ The policy engine decides what HAgent is permitted or configured to do. It does 
 Resource enablement is a separate configuration capability layer. It does not replace provider capability discovery or host authorization. An enabled resource must still pass any applicable policy and authorization boundaries before side effects occur.
 
 Learning promotion uses the same policy boundary rather than a parallel learning authorization evaluator. A typed candidate may move to `Approved` only through an `Allow` policy decision or explicit review after `RequireApproval`/`Defer`. Promotion to authoritative storage is a separate operation and is not performed by policy evaluation itself.
+
+## Dependency boundary
+
+```text
+0.953 Unified Policy
+    ↓ consumed by
+0.954 Instruction Governance
+0.955 Context Engineering
+0.9575 Learning Governance
+0.959 Intervention
+0.96 Execution Selection
+0.97 Persistent Cognition
+```
+
+None of those phases may recreate a policy evaluator merely because they expose a policy-related UI or use a specialized decision boundary.

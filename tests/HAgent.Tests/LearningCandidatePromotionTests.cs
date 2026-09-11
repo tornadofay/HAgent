@@ -235,7 +235,7 @@ namespace HAgent.Tests
 
         private static AgentIdentityContext Identity()
         {
-            return new AgentIdentityContext { AgentProfileId = "agent-42", AgentInstanceId = "instance-1", TenantId = "tenant-1" };
+            return new AgentIdentityContext(tenantId: "tenant-1", userId: "agent-42", workspaceId: "promotion-workspace");
         }
 
         private static AiPolicyEngine CreateAllowEngine(string candidateId)
@@ -281,11 +281,18 @@ namespace HAgent.Tests
                 _outcome = outcome;
             }
 
+            public string PolicyVersion { get { return "1"; } }
+
+            public AiPolicySet GetPolicySnapshot()
+            {
+                return new AiPolicySet { Version = PolicyVersion };
+            }
+
             public AiPolicyDecision Evaluate(AiPolicyEvaluationContext context)
             {
                 if (!string.Equals(context.ResourceId, _candidateId, StringComparison.OrdinalIgnoreCase))
-                    return new AiPolicyDecision { Outcome = AiPolicyOutcome.Deny, PolicyVersion = "1", RuleId = "wrong-candidate" };
-                return new AiPolicyDecision { Outcome = _outcome, PolicyVersion = "1", RuleId = "promotion-rule", Reason = _outcome == AiPolicyOutcome.Allow ? "allowed" : "denied" };
+                    return new AiPolicyDecision { Outcome = AiPolicyOutcome.Deny, PolicyVersion = PolicyVersion, RuleId = "wrong-candidate" };
+                return new AiPolicyDecision { Outcome = _outcome, PolicyVersion = PolicyVersion, RuleId = "promotion-rule", Reason = _outcome == AiPolicyOutcome.Allow ? "allowed" : "denied" };
             }
         }
 

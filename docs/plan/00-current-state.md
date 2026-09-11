@@ -82,11 +82,11 @@ Public Example: `HAgent.Example → Cognition → Learning → Learning Mode`.
 
 Implementation is in progress and verification is pending.
 
-The slice will define one provider-neutral learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It will also add typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle.
+The slice defines one provider-neutral learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It also adds typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle.
 
-The slice must preserve source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence where available; support deterministic code-derived learning signals without requiring an LLM; keep model-assisted extraction/evaluation optional and non-authoritative; and keep candidate creation separate from promotion.
+The slice preserves source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence where available; supports deterministic code-derived learning signals without requiring an LLM; keeps model-assisted extraction/evaluation optional and non-authoritative; and keeps candidate creation separate from promotion.
 
-Architecture source: the Slice 7 architecture document that will be added with the implementation.
+Architecture source: `docs/architecture/86-learning-policy.md`.
 Focused tests: `tests/HAgent.Tests/LearningPolicyTests.cs`.
 Public Example: `HAgent.Example → Cognition → Learning → Learning Policy`.
 

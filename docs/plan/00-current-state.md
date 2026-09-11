@@ -13,7 +13,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 12 is verified; the next management increment is authoritative resource inventory and management.**
+**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 12 is verified; the current management increment is authoritative resource inventory and management.**
 
 0.957 Evaluation and Quality Measurement is verified through Slice 6. User verification on 2026-09-09 recorded **139/139 HAgent.Tests passed** and the required evaluation Example scenarios succeeded on .NET Framework 4.8.1 and .NET 9.
 
@@ -91,25 +91,32 @@ Verified by user on 2026-09-11.
 
 The complete Learning Review management boundary is now closed.
 
-## Next Slice 12 management increment — Authoritative Resource Inventory
+## Current Slice 12 management increment — Authoritative Resource Inventory
 
-The next increment remains inside 0.9575 and will establish management surfaces for authoritative Memory, Knowledge, and Skill resources.
+This increment remains inside 0.9575 and currently establishes the provider-neutral inventory foundation before resource-specific storage adapters or CRUD editors.
 
-Intended scope:
+### Implemented foundation
 
-- one provider-neutral authoritative resource inventory boundary;
-- Memory inventory using the existing memory store contract;
-- Knowledge/Wiki inventory using provider-neutral resource-source/query contracts;
-- Skill inventory using provider-neutral definition-source/query contracts;
-- bounded read-only inventory metadata and scope filtering;
-- effective agent-resource visibility without duplicating authoritative resource models;
-- focused WinForms management pages under `UI/Configuration/`;
-- matching `HAgent.Tests` contract/boundary tests and dedicated Example verification;
-- no SQL Server/MySQL implementation work in this increment;
-- no resource reliability/adaptation work, which remains 0.9576.
+- `IAiResourceInventorySource` for host/provider/storage-specific enumeration;
+- `IAiResourceInventory` for the shared management-facing read boundary;
+- bounded `AiResourceInventoryQuery` and `AiResourceInventoryItem` contracts;
+- deterministic aggregation, filtering, authoritative-only selection, logical-resource deduplication, highest-version selection, and result bounds;
+- extensible string resource types so future resource families do not require central Agent model changes;
+- no SQL Server/MySQL enumeration implementation;
+- focused unit coverage in `HAgent.Tests/ResourceInventoryTests.cs`;
+- dedicated Example scenario `HAgent.Example → Authoritative Resource Inventory`.
 
-Architecture must keep the management UI dependent on provider-neutral resource contracts so later WPF/ASP configuration surfaces can consume the same configuration/resource boundaries.
+### Remaining work in this increment
 
-Architecture: `docs/architecture/93-learning-review-management-ui.md`, `docs/architecture/94-learning-review-candidate-details.md`, and the resource inventory architecture to be established with the next increment.
+- connect Memory, Knowledge/Wiki, and Skill authoritative sources where their existing contracts can support enumeration without inventing provider-specific behavior;
+- add the focused WinForms authoritative resource inventory management surface;
+- expose effective agent-resource visibility without duplicating authoritative resource models;
+- extend Example verification through the management surface;
+- keep resource-specific CRUD/editor workflows as subsequent management work;
+- keep reliability/adaptation separate for 0.9576.
 
-**Verification workflow for the next increment must preserve an exact Example title/path and focused test class in this document before user verification begins.**
+Architecture: `docs/architecture/93-learning-review-management-ui.md`, `docs/architecture/94-learning-review-candidate-details.md`, and `docs/architecture/95-authoritative-resource-inventory.md`.
+
+**Tests to run:** `HAgent.Tests → ResourceInventoryTests.cs` (focused), then the full `HAgent.Tests` suite at the slice checkpoint.
+
+**Example to run:** `HAgent.Example → Authoritative Resource Inventory` on .NET Framework 4.8.1 and .NET 9.

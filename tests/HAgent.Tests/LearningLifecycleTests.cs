@@ -130,6 +130,23 @@ namespace HAgent.Tests
                 Identity()));
         }
 
+        [Fact]
+        public void LifecycleGateRequiresIdentityForAuthorizationBoundary()
+        {
+            var candidate = CreateSkillCandidate();
+            var learningPolicy = CreateLearningPolicy(AiLearningPromotionAuthorization.UnifiedPolicyRequired);
+            var authorization = CreateAuthorizationEngine(AiPolicyOutcome.Allow);
+
+            Assert.Throws<ArgumentNullException>(() => AiLearningLifecycleCoordinator.Evaluate(
+                candidate,
+                learningPolicy,
+                AiLearningMode.AutomaticWithPolicy,
+                authorization,
+                null));
+
+            Assert.Equal(AiLearningCandidateStatus.Proposed, candidate.Status);
+        }
+
         private static SkillCandidate CreateSkillCandidate()
         {
             var skill = new AiSkillDefinition

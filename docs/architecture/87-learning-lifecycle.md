@@ -35,6 +35,12 @@ The lifecycle gate does not publish Knowledge, create a new Skill version, or wr
 
 No model call is required.
 
+## Identity boundary
+
+Learning promotion is an authorization-sensitive boundary. The lifecycle coordinator requires a non-null canonical `AgentIdentityContext` before evaluation; it never substitutes an anonymous/empty identity. This preserves the repository-wide fail-closed rule for identity-required authorization while keeping identity separate from candidate and execution identities.
+
+The identity is cloned into the provider-neutral `AiLearningPromotionRequest`, so later caller mutation cannot change the authorization input for the lifecycle decision.
+
 ## Learning Mode semantics
 
 - `Disabled` rejects admission into the active learning lifecycle.

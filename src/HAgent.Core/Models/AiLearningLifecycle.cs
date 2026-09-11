@@ -62,6 +62,7 @@ namespace HAgent.Models
             if (candidate == null) throw new ArgumentNullException(nameof(candidate));
             if (learningPolicy == null) throw new ArgumentNullException(nameof(learningPolicy));
             if (authorizationPolicy == null) throw new ArgumentNullException(nameof(authorizationPolicy));
+            if (identity == null) throw new ArgumentNullException(nameof(identity));
 
             AiLearningModePolicy.Validate(learningMode);
             candidate.Validate();
@@ -143,7 +144,7 @@ namespace HAgent.Models
                 SourceRuntimeInstanceId = candidate.Lifecycle.SourceRuntimeInstanceId,
                 SourceAgentProfileId = candidate.Lifecycle.SourceAgentProfileId,
                 LearningMode = learningMode.ToString(),
-                Identity = identity == null ? new AgentIdentityContext() : identity.Clone()
+                Identity = identity.Clone()
             };
 
             var authorizationDecision = AiLearningPromotionPolicy.Evaluate(authorizationPolicy, request);

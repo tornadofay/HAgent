@@ -88,7 +88,9 @@ Goals describe desired states or outcomes. Intentions represent adopted commitme
 
 Operators and cognitive actions provide explicit transitions with preconditions, effects, applicability, and bounded execution semantics. Routine progress should continue deterministically when possible.
 
-An **Impasse** represents a bounded state in which current deterministic cognition cannot safely or confidently continue. An impasse can trigger additional deliberation, information gathering, plan revision, or human intervention according to policy.
+An **Impasse** represents a bounded state in which current deterministic cognition cannot safely or confidently continue. In V1, impasse handling is intentionally bounded to five explicit outcomes: deterministic recovery or alternate safe action, bounded reasoning/deliberation request, waiting for a required condition or event, abandoning/superseding the current path, or escalation to an authorized host/intervention boundary.
+
+V1 does not require nested impasse substates, recursive subproblem trees, or a separate general cognitive conflict/merge engine. The detailed algorithm specification may expose richer future extension points, but those mechanisms are not required for V1 delivery and must not be introduced as hidden scope.
 
 The distinction between goal authority, intention authority, and method/plan authority is normative. A method may be replaced without automatically changing its intention or goal; changes to each level require an explicit classified cognitive proposal and revision-safe commit.
 
@@ -159,3 +161,4 @@ Authorized intervention should be performed through runtime APIs, not direct mut
 - No coupling between cognitive strategy and a specific model/provider.
 - Persistent cognitive state remains separate from live transport/session objects and secrets.
 - Cognitive algorithms must remain bounded, deterministic where inputs are deterministic, and explicitly observable at decision boundaries.
+- V1 scope decisions in the roadmap are authoritative for delivery: architecture documents must not silently turn a bounded production mechanism into a larger research architecture.

@@ -2,221 +2,135 @@
 
 ## Status
 
-**Required cross-cutting work for Phase 0.96 capability-aware execution and the later 0.97 persistent cognitive runtime.**
+**Cross-cutting foundation required before completion of 0.96 and before 0.97 consumes long-lived configuration.**
 
-## Goal
+## Purpose
 
-Evolve HAgent persistence so the new provider/model selection architecture, capability-aware execution, agent policies, resource relationships, global settings, and configuration portability can be stored consistently across the File, SQL Server, and MySQL backends.
+Provide one authoritative persistence/configuration model for providers, models, concrete execution targets, Agent selection policy, resources, learning configuration, permissions, and global defaults across the supported File, SQL Server, and MySQL backends.
 
-The storage design should remain deliberately simple. HAgent configuration is HAgent-owned data. Provider API keys are persisted with provider configuration and encrypted at rest; there is no separate secret-reference, vault, or centralized secret-provider architecture.
+This phase is infrastructure. It does not perform provider/model routing and does not become a second configuration architecture.
 
-The same database-backed configuration can be consumed by multiple HAgent processes/machines, allowing a network deployment to share providers, models, agents, skills, knowledge, policies, and credentials without configuring each client independently.
-
-## Storage architecture direction
+## V1 storage model
 
 ```text
-HAgent Configuration
-├── General/system settings
-├── Providers
-│   ├── connection configuration
-│   └── encrypted API key
-├── Models
-├── Concrete execution targets
-├── Discovery metadata/evidence
-├── Capability state
-├── Constraints
-├── Quota/rate/capacity state
-├── Agents
-│   ├── selection mode
-│   ├── requirements/preferences
-│   └── fallback/cost policy
-├── Skills
-├── Knowledge / Wiki
-├── Memory configuration/policy
-├── Learning configuration
-├── Tools
-├── Permissions
-└── resource relationships
-
-Configuration Portability
-├── versioned export package
-├── import/compatibility validation
-├── explicit conflict handling
-└── optional encrypted credential bundle
+General settings
+Providers
+Logical models (where identity can be established)
+Concrete execution targets
+Capabilities / evidence
+Constraints
+Operational quota/rate/capacity state
+Cost state
+Agents / selection policy
+Skills
+Knowledge / Wiki
+Memory / learning configuration
+Tools
+Permissions / policy
+Resource relationships
 ```
 
-## Provider credentials
+The same logical configuration model must exist regardless of storage backend.
 
-1. [ ] Replace the current conceptual requirement that provider credentials live only in a separate secret store with direct provider configuration persistence.
-2. [ ] Add an `ApiKey`-style provider credential field to the authoritative provider configuration contract where the provider uses an API key.
-3. [ ] Encrypt provider API keys at rest before writing them to File, SQL Server, or MySQL persistence.
-4. [ ] Keep the encryption mechanism simple, documented, deterministic for the supported deployment model, and independent of provider-specific logic.
-5. [ ] Ensure decrypted credentials are available to provider adapters only when constructing provider execution requests.
-6. [ ] Redact provider credentials from diagnostics, logs, audits, discovery evidence, planner assessments, exceptions, and UI diagnostic output.
-7. [ ] Support credential replacement/removal so revoking a provider credential only requires updating/removing the persisted configuration and refreshing active snapshots.
-8. [ ] Remove the requirement for `SecretReference`-based provider persistence from the new architecture.
-9. [ ] Retire or simplify `ISecretStore` usage as part of implementation; it must not remain an unnecessary parallel source of truth for provider credentials.
-10. [ ] Preserve runtime-only handling of storage-server connection passwords where appropriate; do not place database connection passwords into ordinary provider configuration records.
+## Delivery slices
 
-## Global configuration persistence
+### Slice 1 — Authoritative configuration model
 
-11. [ ] Persist the system-wide `General` configuration described by the architecture, including at minimum Cost Policy, default AI selection mode, default fallback policy, default Learning Mode, and discovery/refresh defaults.
-12. [ ] Support explicit inherit/override semantics for settings that may be overridden at Agent or runtime/host scope.
-13. [ ] Persist effective policy inputs without mutating global defaults when an Agent or runtime override is applied.
-14. [ ] Version configuration records so cache/snapshot invalidation can detect changes reliably.
+- Replace obsolete permanent Agent provider/model binding with selection preferences and requirements.
+- Keep Provider, logical Model, and concrete Execution Target distinct.
+- Persist global defaults such as cost policy, default selection mode, fallback policy, learning defaults, and discovery/refresh defaults.
+- Preserve explicit inherit/override semantics.
+- Version configuration records so active runtime snapshots can detect relevant changes.
 
-## Provider and model persistence
+### Slice 2 — Provider credentials
 
-15. [ ] Redesign the provider persistence model so Provider is independent from Model and concrete Execution Target.
-16. [ ] Remove obsolete permanent Agent `ProviderId`/`ProviderIds` and model-binding storage from the new design rather than preserving legacy fields unnecessarily.
-17. [ ] Persist normalized logical-model records where logical identity can be established.
-18. [ ] Persist provider-native model identifiers separately from logical-model identity.
-19. [ ] Persist concrete execution targets with provider, endpoint/account/project, deployment/model identity, version/revision where available, and routing/deployment identity.
-20. [ ] Persist execution-target commercial state: `Free`, `FreeWithinQuota`, `Paid`, or `Unknown`.
-21. [ ] Persist discovery metadata including verification time, source/provenance, confidence where applicable, and refresh/expiration information.
-22. [ ] Persist capability evidence and normalized tri-state capability state: `Supported`, `Unsupported`, `Unknown`.
-23. [ ] Persist normalized request/target constraints such as context limits, output limits, modality restrictions, schema limitations, and provider-specific values through extensible metadata where needed.
-24. [ ] Persist operational state separately from capability: availability/health, quota, rate, concurrency/capacity, reset information, and observed remaining capacity.
-25. [ ] Distinguish configured/manual overrides from provider-discovered/observed values so refresh does not silently erase administrator intent.
-26. [ ] Permit unknown discovery data without requiring fake defaults. Unknown must remain a valid persisted state.
-27. [ ] Preserve multiple execution targets for the same logical model across different providers/accounts/projects/endpoints.
+- Persist provider API keys with provider configuration where applicable.
+- Encrypt credentials at rest in File, SQL Server, and MySQL storage.
+- Redact credentials from logs, diagnostics, tracing, audit records, Examples, and UI diagnostic output.
+- Support credential replacement/removal and configuration refresh.
+- Keep storage-server passwords outside ordinary provider configuration.
+- Do not introduce a separate secret-vault architecture.
 
-## Agent policy persistence
+### Slice 3 — Resource and relationship persistence
 
-28. [ ] Persist Agent AI selection mode: `Auto`, `Preferred`, or `Fixed`.
-29. [ ] Persist preferred provider/model/execution-target settings without treating them as permanent execution bindings.
-30. [ ] Persist fixed execution-target selection when the administrator intentionally chooses Fixed mode.
-31. [ ] Persist capability requirements and preferences, including required/preferred/optional/forbidden semantics.
-32. [ ] Persist fallback/degradation policy.
-33. [ ] Persist Agent cost-policy inheritance/override and effective policy inputs.
-34. [ ] Persist runtime tri-state capability overrides separately from the reusable Agent profile.
-35. [ ] Ensure execution snapshots contain resolved configuration versions so changes after execution start cannot alter active work.
+- Persist Skills, Knowledge/Wiki, Memory policy, Learning configuration, Tools, Permissions, and explicit resource relationships.
+- Preserve canonical scope/ownership, version, provenance, lifecycle, and relationship identity.
+- Persist learning candidate state/provenance once the 0.9575 lifecycle requires it.
+- Keep executable handlers and live runtime state out of persistence.
 
-## Resource and relationship persistence
+### Slice 4 — Runtime snapshots and invalidation
 
-36. [ ] Extend persistence for Skills, Knowledge/Wiki, Memory policy, Learning configuration, Tools, Permissions, and their Agent/runtime relationships.
-37. [ ] Support reusable Skill definitions and versions without embedding executable handlers in persistence.
-38. [ ] Support Knowledge/Wiki resources independently from Skill storage while allowing explicit Agent access relationships.
-39. [ ] Support extensible resource/type identity so future resource categories can be stored and inventoried without hard-coded Agent columns.
-40. [ ] Persist Agent/resource relationships with explicit scope and enabled/disabled state where required.
-41. [ ] Preserve Learning candidate provenance, source execution/runtime identity, target scope, and evidence/confidence.
+- Persist revisions/version metadata sufficient for long-lived execution snapshots.
+- Avoid reloading unchanged configuration from persistence on every execution when a valid snapshot exists.
+- Define lightweight refresh/invalidation suitable for File, SQL Server, and MySQL.
+- Ensure revoked/changed configuration cannot remain effective indefinitely.
+- Preserve immutable execution snapshots even when persistence changes during execution.
 
-## Runtime and cache coordination
+### Slice 5 — Configuration portability
 
-42. [ ] Add change/version metadata sufficient for long-lived runtime configuration snapshots.
-43. [ ] Support cache invalidation when provider configuration, model/discovery metadata, capabilities, permissions, global settings, or Agent configuration changes.
-44. [ ] Avoid reloading unchanged Agent/provider configuration from persistence on every execution when a valid runtime snapshot exists.
-45. [ ] Ensure database-backed HAgent instances can safely observe shared configuration changes across processes/machines.
-46. [ ] Define a lightweight refresh/invalidation strategy appropriate for File, SQL Server, and MySQL without requiring a distributed cache service.
-47. [ ] Prevent stale configuration snapshots from being used indefinitely after a relevant configuration revision changes.
+- Define one versioned export/import package independent of the physical storage backend.
+- Export HAgent-owned configuration, not process-local state.
+- Exclude live runtimes, active executions, synchronization primitives, provider sessions, and executable handlers.
+- Normal export excludes credentials.
+- Optional credential-bearing export contains encrypted credentials protected by the package mechanism.
+- Validate package compatibility and produce deterministic import-conflict results.
+- Preserve IDs and relationships where possible and explicitly remap only when required.
 
-## Configuration export/import
+### Slice 6 — Backend parity and multi-process behavior
 
-48. [ ] Define a versioned HAgent configuration package format independent of the physical storage backend.
-49. [ ] Export all HAgent-owned configuration that can be recreated on another deployment, including General settings, Providers, Models, execution targets, Agents, Skills, Knowledge/Wiki, Memory configuration/policy, Learning configuration, Tools, Permissions, capability/resource relationships, and relevant metadata.
-50. [ ] Exclude executable tool handlers, live runtime objects, active executions, synchronization primitives, transient provider sessions, raw HTTP state, and other process-local state from portable configuration.
-51. [ ] Support normal export without provider credentials by default.
-52. [ ] Support explicit credential-bearing export for administrators who choose to move credentials with the configuration.
-53. [ ] Encrypt included API keys inside a credential-bearing export package.
-54. [ ] Protect credential-bearing exports with a basic user-supplied password/encryption mechanism; do not introduce a separate secret-vault architecture.
-55. [ ] Validate package format/version compatibility before import.
-56. [ ] Provide explicit conflict behavior for existing IDs, names, providers, models, skills, knowledge resources, and other imported objects.
-57. [ ] Ensure import restores credentials into the normal encrypted-at-rest provider configuration of the selected storage backend.
-58. [ ] Ensure export/import preserves authoritative IDs and relationships when possible while providing deterministic remapping when conflicts require new IDs.
-59. [ ] Support round-trip export/import verification with the File, SQL Server, and MySQL backends.
+- Keep File, SQL Server, and MySQL behavior logically aligned.
+- Add ordered schema migrations where required.
+- Support authorized processes sharing database-backed HAgent configuration.
+- Ensure configuration revision/refresh semantics prevent one process from using revoked configuration forever.
+- Keep HAgent storage isolated from host business databases.
 
-## Multi-machine database deployment
+### Slice 7 — Verification
 
-60. [ ] Treat SQL Server and MySQL configuration storage as centrally shared HAgent configuration for all authorized HAgent processes connected to that database.
-61. [ ] Ensure provider API keys stored in the shared database are usable by authorized execution processes after decryption.
-62. [ ] Do not require each machine to maintain a separate provider API-key copy when using shared database-backed HAgent configuration.
-63. [ ] Ensure configuration refresh/version checks prevent one machine from continuing to use a revoked or replaced provider credential indefinitely.
-64. [ ] Preserve HAgent database isolation: shared HAgent storage remains an HAgent-owned database and must not become a gateway into the host application's business database.
+Verify:
 
-## File, SQL Server, and MySQL parity
+- backend round-trip parity;
+- encrypted-at-rest credentials and redaction;
+- configuration revision invalidation;
+- shared-database visibility;
+- Auto/Preferred/Fixed selection persistence;
+- cost/fallback policy persistence;
+- resource relationships;
+- export/import with and without credentials;
+- deterministic import conflicts;
+- immutable active execution snapshots after configuration edits.
 
-65. [ ] Define one logical configuration/storage contract and maintain equivalent behavior across File, SQL Server, and MySQL implementations.
-66. [ ] Add ordered schema migrations for SQL Server and MySQL covering the redesigned provider/agent/model configuration and new resource/policy records.
-67. [ ] Keep provider-specific SQL differences isolated to storage implementation/migrations; HAgent.Core remains provider-neutral.
-68. [ ] Add File persistence equivalents for the same authoritative configuration concepts so File mode does not become a second architecture.
-69. [ ] Ensure the selected backend can persist the configuration required by Phase 0.96 and Phase 0.97 without depending on a host business database.
+## Architectural rules
 
-## UI implications
+1. There is one authoritative HAgent configuration model.
+2. Persistence is an implementation boundary, not a second domain model.
+3. File, SQL Server, and MySQL are interchangeable storage implementations of the same logical contracts.
+4. Active executions use immutable snapshots rather than mutable database records.
+5. Provider credentials are encrypted at rest and never become diagnostic data.
+6. Export/import never exports executable handlers or live runtime state.
+7. HAgent storage never becomes an implicit gateway to a host application's business database.
+8. Configuration changes invalidate or supersede affected snapshots deterministically.
 
-70. [ ] Update `Providers` UI to edit connection information and API key while exposing encryption/redaction behavior without exposing implementation details.
-71. [ ] Update `Models` UI to display persisted/discovered model and execution-target metadata, capability evidence, limits, availability, cost state, and verification state.
-72. [ ] Update `Agents` UI to edit the new selection policy instead of obsolete permanent ProviderId/Model fields.
-73. [ ] Add configuration export/import management UI, including package type, credential-inclusion choice, password/protection flow, compatibility validation, conflict preview, and import result summary.
-74. [ ] Make it clear in the UI that credential-bearing export is an explicit action and normal export does not include API keys.
-75. [ ] Keep the user-facing UI organized around General, Providers, Models, Agents, Tools, Permissions, Storage, and related resource-management surfaces rather than exposing storage internals.
+## Not part of V1
 
-## Migration strategy
+- distributed cache infrastructure;
+- event-sourced everything;
+- a cloud configuration service;
+- a secret-vault product;
+- storage-specific domain models;
+- backward-compatibility tables for retired redesign-era fields.
 
-Because HAgent is still in active build/test and legacy configuration does not require preservation, this evolution should favor direct model replacement over a large backward-compatibility layer.
-
-76. [ ] Remove obsolete Agent provider/model fields from the authoritative model and schema.
-77. [ ] Remove obsolete provider-secret-reference assumptions from the new provider persistence path.
-78. [ ] Add new schema versions/migrations as needed for the redesigned model without introducing compatibility tables solely for retired fields.
-79. [ ] Update File, SQL Server, and MySQL serialization/persistence together so the backends remain behaviorally aligned.
-80. [ ] Update Example verification and management UI against the new storage contracts before marking the architecture transition complete.
-
-## Verification
-
-81. [ ] File, SQL Server, and MySQL can persist and reload the same logical configuration model.
-82. [ ] Two independent HAgent processes using one database observe the same provider, model, agent, skill, knowledge, and General configuration.
-83. [ ] A stored API key is encrypted at rest and is not emitted by diagnostics/audit/logging paths.
-84. [ ] Updating/removing a provider API key is reflected after configuration snapshot refresh/invalidation.
-85. [ ] Same logical model with different provider/account cost, capability, quota, and health state remains represented as distinct execution targets.
-86. [ ] Auto, Preferred, and Fixed Agent selection policies round-trip correctly through persistence.
-87. [ ] General Cost Policy and Learning defaults round-trip correctly and preserve inherit/override semantics.
-88. [ ] Export without credentials contains no API keys.
-89. [ ] Credential-bearing export contains encrypted credentials and requires the export protection mechanism to import them.
-90. [ ] Export/import round-trips providers, models, execution targets, agents, skills, knowledge/wiki, memory policy, learning configuration, tools, permissions, and relationships.
-91. [ ] Import detects incompatible package versions and reports deterministic conflicts rather than silently overwriting unrelated configuration.
-92. [ ] Running executions use immutable snapshots even when another process edits/deletes the underlying configuration.
-
-## Architectural outcome
-
-After this evolution, HAgent storage should conceptually look like:
+## Dependency relationship
 
 ```text
-                 HAgent Configuration
-                         │
-          ┌──────────────┴──────────────┐
-          │                             │
-      File backend                Database backend
-                                      │
-                               SQL Server / MySQL
-                                      │
-                          shared by authorized HAgent
-                              processes/machines
-
-Provider
-  ├── connection metadata
-  └── encrypted API key
-
-Model
-  ├── logical identity
-  └── provider-native identities
-
-Execution Target
-  ├── provider/account/project/endpoint
-  ├── model/deployment
-  ├── capabilities/evidence
-  ├── constraints
-  ├── quota/rate/capacity
-  ├── health/availability
-  └── cost state
-
-Agent
-  ├── selection policy
-  ├── requirements/preferences
-  ├── fallback
-  ├── cost policy
-  └── resource relationships
-
-Export / Import
-  └── versioned portable representation of the same authoritative configuration
+0.9592 provider/adapters
+        ↓
+0.96.x configuration + storage
+        ↓
+0.96 execution planning
+        ↓
+0.97 persistent cognition
 ```
 
-The storage layer remains an implementation boundary. Provider routing, cognitive planning, and execution behavior consume normalized contracts rather than knowing whether the source was a JSON file, SQL Server, or MySQL.
+## Exit criterion
+
+All configuration required by 0.96 and 0.97 can be represented in one authoritative model, persisted consistently by supported backends, refreshed without corrupting active snapshots, shared safely where database deployment is used, and exported/imported without carrying transient execution state.

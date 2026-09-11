@@ -43,9 +43,11 @@ namespace HAgent.Runtime
             }
 
             var result = all
-                .GroupBy(x => BuildIdentity(x), StringComparer.OrdinalIgnoreCase)
+                .GroupBy(BuildIdentity, StringComparer.OrdinalIgnoreCase)
                 .Select(group => group
-                    .OrderByDescending(x => x.Version ?? 0)
+                    .OrderByDescending(x => x.Version.HasValue ? 1 : 0)
+                    .ThenByDescending(x => x.Version ?? 0)
+                    .ThenByDescending(x => x.IsAuthoritative)
                     .ThenByDescending(x => x.UpdatedUtc)
                     .First())
                 .OrderBy(x => x.ResourceType, StringComparer.OrdinalIgnoreCase)
@@ -83,8 +85,7 @@ namespace HAgent.Runtime
             return (item.ResourceType ?? string.Empty) + "\n" +
                    (item.ResourceId ?? string.Empty) + "\n" +
                    item.Scope + "\n" +
-                   (item.OwnerId ?? string.Empty) + "\n" +
-                   (item.Version.HasValue ? item.Version.Value.ToString() : "latest");
+                   (item.OwnerId ?? string.Empty);
         }
     }
 }

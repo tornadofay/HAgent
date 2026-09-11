@@ -61,7 +61,11 @@ Storage-specific enumeration adapters are a later storage concern and must imple
 
 ## Management boundary
 
-The WinForms configuration surface will consume `IAiResourceInventory` as a read-only inventory projection. Future WPF or ASP configuration surfaces should consume the same contract and retain the same resource semantics; only their presentation and host composition should differ.
+`Configuration → Authoritative Resources` consumes `IAiResourceInventory` through `ConfigurationContext`. The page is read-only and limited to inventory metadata: type, ID, display name, lifecycle, scope, owner, version, update time, and source. It provides type, scope, search, and authoritative-only filtering and never constructs or publishes authoritative resources.
+
+The Example host injects the deterministic `CreateExampleResourceInventory()` implementation into the configuration composition so the management page can be exercised without requiring SQL Server/MySQL enumeration. This is Example verification data, not a storage implementation.
+
+Future WPF or ASP configuration surfaces should consume the same `IAiResourceInventory` contract and retain the same resource semantics; only their presentation and host composition should differ.
 
 This slice does not add resource editors or CRUD operations. Those remain subsequent management increments.
 
@@ -69,8 +73,12 @@ This slice does not add resource editors or CRUD operations. Those remain subseq
 
 The focused test contract is `HAgent.Tests/ResourceInventoryTests.cs`.
 
-The matching Example is:
+The canonical Example is:
 
 `HAgent.Example → Authoritative Resource Inventory`
 
-It verifies deterministic Memory/Knowledge/Skill projections, authoritative-only filtering, type/search filtering, version normalization, bounded results, and the absence of storage/provider-specific enumeration assumptions.
+The WinForms management verification path is:
+
+`Configuration → Authoritative Resources`
+
+The Example contract scenario verifies deterministic Memory/Knowledge/Skill projections, authoritative-only filtering, type/search filtering, version normalization, bounded results, and the absence of storage/provider-specific enumeration assumptions. The configuration page verifies consumption of the same provider-neutral inventory boundary and exposes only read-only inventory metadata.

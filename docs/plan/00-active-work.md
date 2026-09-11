@@ -5,9 +5,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** Slice 9 in progress — Learning Candidate Persistence, Retention + Review
+- **Status:** Slice 10 in progress — Authoritative Promotion + Version-Safe Resource Creation
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the unfinished 0.9575 learning boundary. Slice 8 is verified and closed; Slice 9 makes the canonical typed learning candidate durable without creating a second candidate lifecycle or authoritative resource model.
+- **Scope:** Convert an approved, durable typed learning candidate into authoritative resource state through one canonical promotion boundary. Reuse the existing Memory store contract and explicit publication targets for Knowledge and Skill.
 
 ## Completed current-phase slices
 
@@ -25,18 +25,27 @@ This file is the compact handoff state for work currently in progress. It is not
 
 0.9575 Slice 7 — Learning Policy + Typed Candidates — **verified by user** 2026-09-11: `HAgent.Example → Policy → Learning Policy` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` was 187/187 passed, 0 failed, 0 skipped on .NET 9.
 
-0.9575 Slice 8 — Canonical Learning Lifecycle Gate — **verified by user** 2026-09-11: `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` was **194/194 passed, 0 failed, 0 skipped** on .NET 9. The lifecycle identity boundary is fail-closed and requires canonical `AgentIdentityContext`.
+0.9575 Slice 8 — Canonical Learning Lifecycle Gate — **verified by user** 2026-09-11: `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` was **194/194 passed, 0 failed, 0 skipped** on .NET 9.
 
-## Current Slice 9 boundary
+0.9575 Slice 9 — Learning Candidate Persistence, Retention + Review — **verified by user** 2026-09-11:
+- `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Both Examples verified durable recovery, PendingReview revision restoration, authorized review, revision 1 → 2, reviewer/policy evidence, and absence of authoritative publication.
+- Full `HAgent.Tests`: **200/200 passed, 0 failed, 0 skipped** on .NET 9.
 
-`AiLearningCandidateRecord` is the canonical durable envelope for the existing `AiLearningCandidate` lifecycle. `IAiLearningCandidateStore` provides provider-neutral persistence, bounded query, optimistic revision checks, and expiry cleanup. `AiLearningCandidateReviewService` uses the existing unified `IAiPolicyEngine` with operation `learning.review`; it never publishes Memory, Knowledge, or Skills.
+## Current Slice 10 boundary
 
-The current implementation includes deterministic InMemory and durable File stores, typed payload round-trip, retention expiry, review authorization evidence, and stale-revision protection. Candidate persistence remains storage of a proposal/lifecycle record, not authoritative resource publication.
+Promotion starts only from a durable candidate in `Approved` state, with retention still valid and explicit identity supplied. The promotion boundary must re-authorize `learning.promote` through the existing unified policy engine, validate the typed payload, and preserve candidate/source provenance.
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` on **.NET Framework 4.8.1** and **.NET 9**.
+- Memory promotion uses existing `IMemoryStore`.
+- Knowledge promotion creates a new published version through an explicit provider-neutral publication target; an existing published version is never edited in place.
+- Skill promotion creates a new published immutable version through an explicit provider-neutral publication target; an existing published definition is never edited in place.
+- Equal/lower candidate versions are conflicts/stale candidates and are rejected deterministically.
+- Candidate lifecycle transitions to `Promoted` only after authoritative publication succeeds.
+- Promotion result records authoritative resource identity/version and promotion authorization/audit evidence.
+- No prompt text or model output is itself authoritative.
 
-**Tests to run:** `tests/HAgent.Tests/LearningCandidatePersistenceTests.cs` (focused); full `HAgent.Tests` is required at the Slice 9 checkpoint.
+**Verification gate:** focused Slice 10 tests plus a dedicated Example on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` at the Slice 10 checkpoint.
 
-## Verification status
+## Do not advance
 
-Slice 9 implementation is in progress. The Slice 8 checkpoint is closed from user-provided verification. Do not advance to Slice 10 until the focused Slice 9 tests, both supported Example targets, persistence/restart behavior, retention behavior, review authorization, and stale-revision handling are actually verified.
+Do not start Slice 11 until Memory/Knowledge/Skill promotion, version conflict handling, authorization, provenance/audit evidence, candidate lifecycle transition, and both supported Example targets are actually verified.

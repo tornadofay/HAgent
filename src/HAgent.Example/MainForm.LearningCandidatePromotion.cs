@@ -29,7 +29,7 @@ namespace HAgent.Example
             var memoryStore = new InMemoryMemoryStore();
             var knowledgeTarget = new ExampleKnowledgePromotionTarget();
             var skillTarget = new ExampleSkillPromotionTarget();
-            var identity = new AgentIdentityContext { AgentProfileId = "example-agent", AgentInstanceId = "promotion-instance", TenantId = "example-tenant" };
+            var identity = new AgentIdentityContext(tenantId: "example-tenant", userId: "example-user", workspaceId: "promotion-workspace");
 
             var memoryCandidate = CreatePromotionMemoryCandidate();
             await candidateStore.SaveAsync(CaptureApprovedCandidate(memoryCandidate)).ConfigureAwait(true);
@@ -177,12 +177,27 @@ namespace HAgent.Example
         private sealed class ExamplePromotionPolicyEngine : IAiPolicyEngine
         {
             private readonly string _candidateId;
-            public ExamplePromotionPolicyEngine(string candidateId) { _candidateId = candidateId; }
+
+            public ExamplePromotionPolicyEngine(string candidateId)
+            {
+                _candidateId = candidateId;
+            }
+
+            public string PolicyVersion
+            {
+                get { return "2"; }
+            }
+
+            public AiPolicySet GetPolicySnapshot()
+            {
+                return new AiPolicySet { Version = PolicyVersion };
+            }
+
             public AiPolicyDecision Evaluate(AiPolicyEvaluationContext context)
             {
                 return string.Equals(context.ResourceId, _candidateId, StringComparison.OrdinalIgnoreCase)
-                    ? new AiPolicyDecision { Outcome = AiPolicyOutcome.Allow, PolicyVersion = "2", RuleId = "example-promotion-rule", Reason = "authorized" }
-                    : new AiPolicyDecision { Outcome = AiPolicyOutcome.Deny, PolicyVersion = "2", RuleId = "wrong-candidate" };
+                    ? new AiPolicyDecision { Outcome = AiPolicyOutcome.Allow, PolicyVersion = PolicyVersion, RuleId = "example-promotion-rule", Reason = "authorized" }
+                    : new AiPolicyDecision { Outcome = AiPolicyOutcome.Deny, PolicyVersion = PolicyVersion, RuleId = "wrong-candidate" };
             }
         }
 

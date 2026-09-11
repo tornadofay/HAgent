@@ -13,7 +13,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 11 is in progress.**
+**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 12 is in progress.**
 
 0.957 Evaluation and Quality Measurement is verified through Slice 6. User verification on 2026-09-09 recorded **139/139 HAgent.Tests passed** and the required evaluation Example scenarios succeeded on .NET Framework 4.8.1 and .NET 9.
 
@@ -65,17 +65,32 @@ Verified by user on 2026-09-11.
 
 The authoritative promotion boundary is now closed.
 
-## Slice 11 — Context, Instruction, Runtime, and Observability Integration — IN PROGRESS
+### Slice 11 — Context, Instruction, Runtime, and Observability Integration — VERIFIED
 
-Current implementation establishes the first canonical bridge from governed learned-resource outputs and authoritative execution observations into the existing execution architecture.
+Verified by user on 2026-09-11.
 
-Current contracts:
+- .NET Framework 4.8.1 Example `HAgent.Example → Cognition → Learning → Learning Execution Integration` succeeded.
+- .NET 9 Example `HAgent.Example → Cognition → Learning → Learning Execution Integration` succeeded.
+- Both Examples verified provider-neutral learned instruction, policy/capability-gated learned context, bounded execution context snapshots, authoritative runtime outcome observation capture, non-creation of candidates from observations, and non-authoritative prompt text.
+- Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
 
-- `AiLearningExecutionPreparation` validates/clones learned instruction sources for `AgentExecutionRequest.InstructionSources` and routes learned context sources through the existing `ContextAssembler`.
-- `AiLearningExecutionObservationCollector` consumes authoritative `IExecutionObservationSource` facts and writes bounded `AiLearningExecutionObservation` records.
-- `IAiLearningObservationStore` and `InMemoryAiLearningObservationStore` provide a provider-neutral bounded observation store reference implementation.
-- Observations remain learning input, not candidates or authoritative mutations.
+The execution-integration boundary is now closed.
 
-**Required Example:** `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
+## Slice 12 — Management UI — IN PROGRESS
 
-**Required tests:** `tests/HAgent.Tests/LearningExecutionIntegrationTests.cs`; full `HAgent.Tests` at the Slice 11 checkpoint.
+The first management-UI increment adds a production configuration surface for Learning Review using the existing WinForms configuration-shell conventions.
+
+Current implementation:
+
+- `Learning Review` page under `src/HAgent.WinForms/UI/Configuration/Learning/`;
+- explicit reviewer user, tenant, and workspace identity fields;
+- Approve/Reject routed through `AiLearningCandidateReviewService` and the existing unified policy engine;
+- bounded PendingReview candidate list projection;
+- durable candidate-store dependency exposed through `ConfigurationContext`;
+- no authoritative Memory/Knowledge/Skill publication from the UI.
+
+Architecture: `docs/architecture/93-learning-review-management-ui.md`.
+
+**Example to run:** `HAgent.Example → Configuration → Learning Review` on .NET Framework 4.8.1 and .NET 9.
+
+**Verification workflow:** `.github/workflows/verify-phase-0-9575-slice-12.yml`.

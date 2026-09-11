@@ -16,7 +16,7 @@ HAgent distinguishes:
 
 ```text
 Lifecycle state = whether the runtime may operate
-Health state    = whether it is operating normally
+Health state    = whether the runtime is operating normally
 Execution state = what one specific execution is doing
 ```
 
@@ -51,6 +51,16 @@ Unknown
 
 Health is evidence, not authorization. Lifecycle and policy decide whether work may continue, wait, recover, or stop.
 
+## Ownership boundary
+
+0.958 owns **runtime-agent lifecycle and runtime health**.
+
+The provider ecosystem phase 0.9592 owns provider/adapter lifecycle and provider/target operational evidence. The capability-aware execution phase 0.96 consumes that provider/target evidence for execution admission.
+
+0.958 must not turn provider failures, rate limits, or target outages into a second provider health/routing authority. Likewise, 0.9592 must not create a second runtime-agent lifecycle model.
+
+Human/host intervention is consumed through the canonical 0.959 intervention boundary; 0.958 owns the target transition itself.
+
 ## Delivery slices
 
 ### Slice 1 — Lifecycle state extension
@@ -78,7 +88,7 @@ Health is evidence, not authorization. Lifecycle and policy decide whether work 
 
 - Emit lifecycle and health transitions through existing event/tracing boundaries.
 - Expose diagnostics explaining why a runtime is active, suspended, recovering, degraded, failed, retired, or shutdown.
-- Verify valid/invalid transitions, suspension/resume, degradation, recovery, stall handling, and shutdown safety.
+- Verify valid/invalid transitions, suspension/resume, degradation, recovery, stall handling, intervention, and shutdown safety.
 
 ## Architectural rules
 
@@ -88,7 +98,8 @@ Health is evidence, not authorization. Lifecycle and policy decide whether work 
 4. Recovery never makes obsolete asynchronous work authoritative again.
 5. Suspension and recovery preserve durable state.
 6. Host lifecycle/scheduling policy remains authoritative where the host controls runtime admission.
-7. Provider/model-specific lifecycle semantics do not belong in Core.
+7. Provider/model-specific lifecycle semantics do not belong in Core; provider health evidence is normalized by 0.9592 and consumed by 0.96.
+8. Runtime intervention uses 0.959; this phase does not create a second approval/intervention mechanism.
 
 ## Not part of V1
 
@@ -113,4 +124,4 @@ Health is evidence, not authorization. Lifecycle and policy decide whether work 
 
 ## Exit criterion
 
-A long-lived HAgent runtime has explicit lifecycle and health state, safe suspension/recovery semantics, observable progress/failure reasons, and deterministic protection against work becoming authoritative after retirement, shutdown, recovery invalidation, or newer revisions.
+A long-lived HAgent runtime has explicit lifecycle and runtime-health state, safe suspension/recovery semantics, observable progress/failure reasons, and deterministic protection against work becoming authoritative after retirement, shutdown, recovery invalidation, or newer revisions, while provider health remains owned by the adapter/execution layers.

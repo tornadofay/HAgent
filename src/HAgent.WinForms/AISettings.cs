@@ -12,6 +12,8 @@ namespace HAgent.WinForms
 {
     public static class AISettings
     {
+        public const string DefaultSystemAdminUserId = "1";
+
         public static void ShowMainAISettingsForm(IWin32Window owner = null)
         {
             var basePath = GetDefaultHAgentRootPath();
@@ -19,7 +21,7 @@ namespace HAgent.WinForms
             var store = new HAgent.Storage.File.FileAiStore(Path.Combine(basePath, "configuration", "settings.json"));
             var toolStore = new HAgent.Storage.File.FileToolStore(Path.Combine(basePath, "configuration", "tools", "tools.json"));
             var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(Path.Combine(basePath, "secrets"));
-            ShowMainAISettingsForm(store, secrets, owner, null, toolStore);
+            ShowMainAISettingsForm(store, secrets, owner, null, toolStore, null, null);
         }
 
         public static UiAutomationPermissions LoadUiPermissions()
@@ -44,6 +46,18 @@ namespace HAgent.WinForms
             IEnumerable<IAiProviderAdapter> adapters = null,
             IToolStore toolStore = null)
         {
+            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, null, null);
+        }
+
+        public static void ShowMainAISettingsForm(
+            IAiStore store,
+            ISecretStore secrets,
+            IWin32Window owner,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IToolStore toolStore,
+            IAiLearningCandidateStore learningCandidates,
+            AgentIdentityContext reviewerIdentity)
+        {
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (secrets == null) throw new ArgumentNullException(nameof(secrets));
 
@@ -51,7 +65,7 @@ namespace HAgent.WinForms
                 ? new InMemoryToolRegistry()
                 : new PersistentToolRegistry(toolStore);
 
-            using (var form = new Forms.AISettingsForm(store, secrets, adapters, tools))
+            using (var form = new Forms.AISettingsForm(store, secrets, adapters, tools, learningCandidates, reviewerIdentity))
                 form.ShowDialog(owner);
         }
 

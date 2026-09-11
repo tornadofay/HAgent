@@ -2,44 +2,108 @@
 
 ## Status
 
-**Planned provider-platform foundation before and alongside Phase 0.96.**
+**Planned before 0.96 capability-aware execution.**
 
-## Goal
+## Purpose
 
-Mature the provider adapter boundary so HAgent can support many providers, API variants, models, modalities, discovery mechanisms, and provider API versions without leaking provider-specific behavior into HAgent.Core.
+Provide a clean provider-adapter boundary so HAgent can use multiple providers, API variants, models, and discovery sources without leaking provider-specific behavior into `HAgent.Core` or making provider integration larger than necessary.
 
-## Requirements
+This phase is a provider-platform foundation, not a provider marketplace.
 
-1. [ ] Define a complete provider adapter lifecycle including registration, validation, initialization, refresh, health, disablement, replacement, and retirement.
-2. [ ] Separate transport capability from discovery, usage, quota/rate, health, and other provider-specific data sources.
-3. [ ] Define normalized adapter contracts for model discovery, capability discovery, usage, rate/quota information, health, and supported execution features where available.
-4. [ ] Allow one provider integration to expose multiple models and task families without hard-coded model assumptions in Core.
-5. [ ] Preserve provider-native identifiers, API versions, deployment identifiers, and endpoint metadata alongside normalized identities.
-6. [ ] Support partial provider implementations: a provider may support execution while exposing incomplete discovery or quota telemetry.
-7. [ ] Represent unavailable/unknown provider features explicitly instead of manufacturing defaults.
-8. [ ] Define adapter version/compatibility metadata so provider API changes can be handled deliberately.
-9. [ ] Support provider deprecation/retirement without corrupting persisted agent configuration or historical execution records.
-10. [ ] Keep provider-specific retry, response, streaming, authentication, and error handling inside adapters where appropriate.
-11. [ ] Ensure adapter instances are safe for concurrent use or explicitly scoped when they are not.
-12. [ ] Ensure provider credentials are supplied through the current simple encrypted provider-configuration mechanism; this phase must not introduce a separate secret-vault architecture.
-13. [ ] Add deterministic fake-provider verification for complete discovery, partial discovery, unsupported operations, provider/API version changes, adapter replacement, health changes, and concurrent usage.
-
-## Architectural outcome
+## V1 provider model
 
 ```text
 Provider Configuration
         ↓
 Provider Adapter
  ├── execution
- ├── discovery
- ├── capabilities
- ├── usage/quota
- ├── health
- └── provider-specific metadata
+ ├── model discovery (when available)
+ ├── capability discovery (when available)
+ ├── quota/rate/usage telemetry (when available)
+ ├── health/availability
+ └── provider-native metadata
         ↓
 Normalized HAgent contracts
         ↓
-Execution Planner / Runtime
+0.96 Execution Planner
 ```
 
-HAgent.Core remains provider-neutral; provider-specific knowledge stays behind adapter boundaries.
+Unknown information remains `Unknown`; adapters do not invent capabilities or limits.
+
+## Delivery slices
+
+### Slice 1 — Adapter contract and lifecycle
+
+- Define provider adapter identity/version metadata.
+- Support registration/creation, validation, use, refresh, disablement, replacement, and retirement.
+- Keep adapter instances concurrency-safe or explicitly scoped.
+- Keep transport/authentication/retry/provider-specific error handling inside adapters where appropriate.
+
+### Slice 2 — Discovery and normalized metadata
+
+- Support providers with complete, partial, or absent discovery APIs.
+- Normalize models/execution targets without forcing logical-model correlation when it cannot be established reliably.
+- Preserve provider-native model IDs, deployments, endpoints, accounts/projects, API versions, and provenance.
+- Normalize capability evidence, constraints, cost information, and refresh timestamps.
+
+### Slice 3 — Operational telemetry
+
+- Normalize provider-reported rate/quota/usage information where available.
+- Normalize health and availability evidence.
+- Support incomplete telemetry without manufacturing defaults.
+- Keep observed operational state separate from technical capability.
+
+### Slice 4 — Adapter compatibility and change handling
+
+- Record adapter/provider API compatibility metadata.
+- Support deliberate adapter replacement without corrupting persisted agent configuration or historical execution records.
+- Mark retired/deprecated targets unavailable without deleting historical identity.
+
+### Slice 5 — Verification
+
+Use deterministic fake providers to verify:
+
+- complete discovery;
+- partial discovery;
+- unknown metadata;
+- unsupported operations;
+- API/adapter version changes;
+- replacement/retirement;
+- concurrent adapter use;
+- quota/rate/health telemetry.
+
+## Architectural rules
+
+1. Core remains provider-neutral.
+2. A provider describes transport/service integration, not agent behavior.
+3. Model names are not sufficient execution identity; concrete targets remain distinct.
+4. Unknown capability/cost/quota information remains unknown.
+5. Adapter lifecycle does not become runtime-agent lifecycle.
+6. Provider-specific behavior stays behind adapter boundaries.
+7. 0.96 owns execution-target selection; this phase does not create a routing engine.
+8. Provider credentials use the repository's simple encrypted provider-configuration mechanism; no separate secret-vault architecture is introduced.
+
+## Not part of V1
+
+- provider marketplace/plugin distribution;
+- automatic vendor-specific optimization frameworks;
+- universal provider feature parity;
+- hard-coded provider model matrices in Core;
+- a second execution planner;
+- provider-specific business logic in agent profiles.
+
+## Dependencies
+
+```text
+0.9592 provider/adapters
+        ↓
+0.96.x configuration/storage
+        ↓
+0.96 capability-aware execution
+```
+
+The adapter contracts may be implemented incrementally, but 0.96 cannot depend on provider-specific APIs directly.
+
+## Exit criterion
+
+HAgent can register and use multiple provider adapters, preserve provider-native identities and metadata, consume complete or partial discovery/operational information through normalized contracts, represent unknowns honestly, and hand all execution-target selection to Phase 0.96.

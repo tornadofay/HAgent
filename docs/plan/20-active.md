@@ -69,21 +69,47 @@ The slice defines one provider-neutral Learning Policy contract covering candida
 
 Slice 7 is closed.
 
-### Slice 8 — Canonical Learning Lifecycle Gate — IN PROGRESS
+### Slice 8 — Canonical Learning Lifecycle Gate — VERIFIED
 
-The slice closes the next unfinished 0.9575 boundary: deterministic candidate admission through Learning Policy, Learning Mode, and the existing unified promotion-authorization policy.
+Verified by user on 2026-09-11.
 
-The lifecycle gate may move a Proposed candidate to `Rejected`, `PendingReview`, or `Approved`. Approval is not publication: authoritative Memory writes, Knowledge version creation, Skill version creation, candidate persistence/retention, audit persistence, review UI, context integration, and runtime learning-input capture remain later 0.9575 work.
+- Example: `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Full `HAgent.Tests`: **194/194 passed, 0 failed, 0 skipped** on .NET 9.
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Lifecycle` on .NET Framework 4.8.1 and .NET 9.
+The lifecycle gate composes typed-candidate validation, deterministic Learning Policy, Learning Mode, and the existing unified learning-promotion authorization. It routes candidates to `Rejected`, `PendingReview`, or `Approved` without publishing or persisting authoritative resources. The authorization-sensitive boundary now requires a non-null canonical `AgentIdentityContext` and clones it into the promotion request.
 
-**Tests to run:** `tests/HAgent.Tests/LearningLifecycleTests.cs` (focused); full `HAgent.Tests` is not required until the slice checkpoint.
+Slice 8 is closed.
 
-## Ahead-of-roadmap architectural evidence
+### Slice 9 — Learning Candidate Persistence, Retention + Review — IN PROGRESS
+
+Slice 9 makes the existing canonical candidate lifecycle durable without creating a second candidate model.
+
+Scope:
+
+- provider-neutral `AiLearningCandidateRecord` durable envelope;
+- provider-neutral `IAiLearningCandidateStore` boundary;
+- InMemory and File store implementations;
+- durable lifecycle status/revision;
+- retention/expiry policy and purge;
+- typed payload serialization and round-trip restoration;
+- persisted Learning Policy and promotion-authorization provenance;
+- Learning Review through the existing unified `IAiPolicyEngine` using `learning.review`;
+- reviewer identity and authorization evidence;
+- optimistic revision-checked review updates;
+- restart/recovery semantics;
+- deterministic focused verification plus matching Example on both supported targets.
+
+No authoritative Knowledge/Skill mutation or Memory publication is performed by the candidate store/review boundary.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** `tests/HAgent.Tests/LearningCandidatePersistenceTests.cs` (focused); full `HAgent.Tests` is required at the Slice 9 checkpoint.
+
+### Ahead-of-roadmap architectural evidence
 
 The Phase 0.97 single-owner/runtime-concurrency spike was verified by the user on 2026-09-11 on both .NET Framework 4.8.1 and .NET 9. It is recorded in the 0.97 roadmap and architecture documents as verified architectural evidence.
 
-This evidence does **not** advance the current implementation milestone, does not mark any 0.97 slice complete, and does not authorize production runtime implementation. Future-phase documentation may be updated when new architectural evidence or scope decisions require it, while the active implementation remains 0.9575 Slice 8.
+This evidence does **not** advance the current implementation milestone, does not mark any 0.97 slice complete, and does not authorize production runtime implementation. Future-phase documentation may be updated when new architectural evidence or scope decisions require it, while the active implementation remains 0.9575 Slice 9.
 
 ## Run rule
 

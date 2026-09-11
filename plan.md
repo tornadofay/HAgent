@@ -182,9 +182,9 @@ Learning mode and policy determine which routes are permitted. The UI does not i
 - no authoritative Memory/Knowledge/Skill publication from the UI;
 - Example Seed and Verify scenarios cover the real manual Approve/Reject persistence path.
 
-### Slice 12 candidate-details increment — IMPLEMENTED, USER VERIFICATION PENDING
+### Slice 12 candidate-details and promotion increment — IMPLEMENTED, USER VERIFICATION PENDING
 
-The Learning Review page is now a filterable inspection workspace rather than a PendingReview-only list.
+The Learning Review page is now a filterable inspection and governed promotion workspace rather than a PendingReview-only list.
 
 - lifecycle status filter: All / Proposed / PendingReview / Approved / Rejected / Promoted;
 - candidate type filter: All / Memory / Knowledge / Skill;
@@ -194,17 +194,24 @@ The Learning Review page is now a filterable inspection workspace rather than a 
 - source execution/runtime/agent information;
 - persisted review action, reviewer identity, policy evidence, outcome, reason, and timestamp;
 - Approve/Reject enabled only for a selected PendingReview candidate;
-- expired candidates remain excluded through the existing store query behavior.
+- Promote enabled only for a selected Approved candidate when the host injects `AiLearningPromotionService`;
+- promotion reuses the existing core service and fresh `learning.promote` authorization;
+- the UI never constructs publication targets or directly publishes authoritative resources;
+- successful promotion refreshes the candidate as `Promoted` with lifecycle revision `3`;
+- expired candidates remain excluded through the existing store query behavior;
+- Example injects the promotion service with deterministic provider-neutral publication targets and its Example `learning.promote` policy rule;
+- Example Verify accepts the manual review terminal state (revision `2`) or successful promoted state (revision `3`).
 
 Architecture: `docs/architecture/93-learning-review-management-ui.md` and `docs/architecture/94-learning-review-candidate-details.md`.
 
-The existing Seed → UI review → Verify workflow remains the integration test for the review/persistence boundary. The new details/filter workspace should be manually verified on both .NET Framework 4.8.1 and .NET 9. No new persistence contract was introduced.
+The complete manual management workflow is now:
 
-### Next management increment — authoritative promotion UI
+1. `Learning Review Seed` creates a durable Skill candidate at `PendingReview` revision `1`.
+2. Open `Configuration → Learning Review`, inspect the candidate, and Approve or Reject it.
+3. For an Approved candidate, use `Promote` to exercise the existing authoritative promotion service.
+4. Run `Learning Review Verify` to confirm durable revision `2` after review or revision `3` after promotion.
 
-Authoritative promotion is already implemented as a provider-neutral core operation from Slice 10. The next Slice 12 increment should expose that operation from the selected candidate details workspace for eligible `Approved` candidates.
-
-The UI must remain a management surface only: it should call the existing promotion service, use fresh promotion authorization, preserve version-safe resource creation, refresh persisted candidate state, and never publish Memory/Knowledge/Skill resources directly from WinForms code.
+The candidate-details/promotion workspace should be manually verified on both .NET Framework 4.8.1 and .NET 9. No new persistence contract was introduced.
 
 **Verification workflow:** `.github/workflows/verify-phase-0-9575-slice-12.yml`.
 

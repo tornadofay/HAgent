@@ -13,8 +13,8 @@ namespace HAgent.Example
             AddApiTab(
                 "RUNTIME SINGLE OWNER",
                 "Run single-owner runtime spike",
-                "Validates the proposed one-owner-per-agent state model: asynchronous work may run outside the state owner, but state mutations are serialized through one owner queue.",
-                "The test should preserve event order, reject a late result from an older revision, cancel in-flight work, prevent mutation after shutdown, and keep a second agent independent.",
+                "Validates the one-owner-per-agent state model: asynchronous work may run outside the state owner, state mutations are serialized per agent, and many independent runtime agents can operate concurrently without a shared cognitive bottleneck.",
+                "The test preserves event order, rejects a late result from an older revision, cancels in-flight work, prevents mutation after shutdown, and proves 12 independent agents can overlap while each keeps its own serialized state.",
                 "Single-owner runtime architecture spike.",
                 TestRuntimeSingleOwnerSpikeAsync,
                 "One state owner per agent",
@@ -125,6 +125,8 @@ namespace HAgent.Example
                 if (secondState.Events.Contains("event-2") || secondState.Events.Contains("late-llm-result"))
                     throw new InvalidOperationException("One agent received state belonging to another agent.");
 
+                await TestIndependentAgentConcurrencyAsync(profile).ConfigureAwait(true);
+
                 var beforeShutdown = await first.CaptureSnapshotAsync().ConfigureAwait(true);
                 firstInstance.Shutdown();
                 first.Shutdown();
@@ -167,7 +169,102 @@ namespace HAgent.Example
                     "Cancellation honored: yes" + Environment.NewLine +
                     "Post-shutdown mutation rejected: yes" + Environment.NewLine +
                     "Independent agent isolation: yes" + Environment.NewLine +
+                    "Independent concurrent agents verified: 12" + Environment.NewLine +
+                    "All 12 owner loops overlapped: yes" + Environment.NewLine +
+                    "Per-agent follow-up mutation remained serialized: yes" + Environment.NewLine +
                     "Production runtime changed by spike: no");
+            }
+        }
+
+        private async Task TestIndependentAgentConcurrencyAsync(AiAgent profile)
+        {
+            const int agentCount = 12;
+            var instances = new List<AgentRuntimeInstance>(agentCount);
+            var probes = new List<SingleOwnerRuntimeProbe>(agentCount);
+            var startedGate = new TaskCompletionSource<object>();
+            var workTasks = new List<Task>(agentCount);
+            var followUpTasks = new List<Task>(agentCount);
+            var startedCount = 0;
+            var activeCount = 0;
+            var maximumConcurrent = 0;
+
+            try
+            {
+                for (var i = 0; i < agentCount; i++)
+                {
+                    var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Task);
+                    instances.Add(instance);
+                    probes.Add(new SingleOwnerRuntimeProbe(instance));
+                }
+
+                foreach (var probe in probes)
+                {
+                    workTasks.Add(probe.EnqueueAsync(
+                        "concurrent-work",
+                        async delegate(SingleOwnerRuntimeState state, CancellationToken cancellationToken)
+                        {
+                            var active = Interlocked.Increment(ref activeCount);
+                            UpdateMaximum(ref maximumConcurrent, active);
+
+                            if (Interlocked.Increment(ref startedCount) == agentCount)
+                                startedGate.TrySetResult(null);
+
+                            await startedGate.Task.ConfigureAwait(false);
+                            state.ApplyMutation("concurrent-work");
+                            await Task.Delay(75, cancellationToken).ConfigureAwait(false);
+                            Interlocked.Decrement(ref activeCount);
+                        }));
+                }
+
+                await Task.WhenAll(workTasks).ConfigureAwait(true);
+
+                if (startedCount != agentCount)
+                    throw new InvalidOperationException("Not every independent runtime agent reached the concurrent-work barrier.");
+                if (maximumConcurrent != agentCount)
+                    throw new InvalidOperationException("Independent runtime agents did not all overlap; observed maximum concurrency was " + maximumConcurrent + " of " + agentCount + ".");
+
+                foreach (var probe in probes)
+                    followUpTasks.Add(probe.EnqueueAsync("follow-up", delegate(SingleOwnerRuntimeState state, CancellationToken cancellationToken)
+                    {
+                        state.ApplyMutation("follow-up");
+                        return Task.CompletedTask;
+                    }));
+
+                await Task.WhenAll(followUpTasks).ConfigureAwait(true);
+
+                foreach (var probe in probes)
+                {
+                    var snapshot = await probe.CaptureSnapshotAsync().ConfigureAwait(true);
+                    if (snapshot.Revision != 2)
+                        throw new InvalidOperationException("An independent runtime agent did not preserve its own serialized mutation count.");
+                    if (snapshot.Events.Count != 2 ||
+                        !string.Equals(snapshot.Events[0], "concurrent-work", StringComparison.Ordinal) ||
+                        !string.Equals(snapshot.Events[1], "follow-up", StringComparison.Ordinal))
+                        throw new InvalidOperationException("An independent runtime agent did not preserve per-agent mutation order.");
+                }
+            }
+            finally
+            {
+                foreach (var probe in probes)
+                    probe.Dispose();
+
+                foreach (var instance in instances)
+                {
+                    if (instance.State != AgentRuntimeInstanceState.Shutdown)
+                        instance.Shutdown();
+                }
+            }
+        }
+
+        private static void UpdateMaximum(ref int target, int candidate)
+        {
+            while (true)
+            {
+                var current = Volatile.Read(ref target);
+                if (candidate <= current)
+                    return;
+                if (Interlocked.CompareExchange(ref target, candidate, current) == current)
+                    return;
             }
         }
 

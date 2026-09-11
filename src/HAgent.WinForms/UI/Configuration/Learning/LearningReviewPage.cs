@@ -2,7 +2,6 @@ using System;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 using HAgent.WinForms.Helpers;
@@ -13,20 +12,23 @@ namespace HAgent.WinForms.UI.Configuration.Learning
     {
         private readonly ConfigurationContext _context;
         private readonly ListView _list = new ListView();
-        private readonly TextBox _userId = new TextBox { Width = 180 };
-        private readonly TextBox _tenantId = new TextBox { Width = 180 };
-        private readonly TextBox _workspaceId = new TextBox { Width = 180 };
+        private readonly Label _userId = new Label { AutoSize = true, ForeColor = Text };
+        private readonly Label _tenantId = new Label { AutoSize = true, ForeColor = Text };
+        private readonly Label _workspaceId = new Label { AutoSize = true, ForeColor = Text };
         private readonly Label _status = new Label { AutoSize = true, ForeColor = Muted };
 
         public LearningReviewPage(ConfigurationContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             Build();
+            ApplyIdentityDisplay();
         }
 
         public async Task RefreshDataAsync()
         {
             _list.Items.Clear();
+            ApplyIdentityDisplay();
+
             if (_context.LearningCandidates == null)
             {
                 _status.Text = "Learning candidate storage is not configured.";
@@ -68,6 +70,14 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             Load += async delegate { await RefreshDataAsync(); };
         }
 
+        private void ApplyIdentityDisplay()
+        {
+            var identity = _context.ReviewerIdentity;
+            _userId.Text = string.IsNullOrWhiteSpace(identity.UserId) ? AISettings.DefaultSystemAdminUserId : identity.UserId;
+            _tenantId.Text = string.IsNullOrWhiteSpace(identity.TenantId) ? "Not supplied" : identity.TenantId;
+            _workspaceId.Text = string.IsNullOrWhiteSpace(identity.WorkspaceId) ? "Not supplied" : identity.WorkspaceId;
+        }
+
         private Control CreateActionBar()
         {
             var outer = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
@@ -103,26 +113,21 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             _list.Columns.Add("Confidence", 90);
             _list.Columns.Add("Revision", 70);
             _list.Columns.Add("Updated", 150);
-            _list.DoubleClick += async delegate { await ReviewAsync(AiLearningCandidateReviewAction.Approve); };
             return _list;
         }
 
         private async Task ReviewAsync(AiLearningCandidateReviewAction action)
         {
-            if (_list.SelectedItems.Count == 0) return;
-            var record = _list.SelectedItems[0].Tag as AiLearningCandidateRecord;
-            if (record == null || _context.LearningCandidates == null) return;
-
-            if (string.IsNullOrWhiteSpace(_userId.Text))
+            if (_list.SelectedItems.Count == 0)
             {
-                HMessage.ShowInformation(FindForm(), "Enter the reviewer's user identity before approving or rejecting a candidate.", "Learning Review");
+                HMessage.ShowInformation(FindForm(), "Select a PendingReview candidate first.", "Learning Review");
                 return;
             }
 
-            var identity = new AgentIdentityContext(
-                tenantId: _tenantId.Text,
-                userId: _userId.Text,
-                workspaceId: _workspaceId.Text);
+            var record = _list.SelectedItems[0].Tag as AiLearningCandidateRecord;
+            if (record == null || _context.LearningCandidates == null) return;
+
+            var identity = _context.ReviewerIdentity;
             var policy = new DefaultAiPolicyEngine(await _context.Store.GetPolicySetAsync());
             var reviewer = new AiLearningCandidateReviewService(_context.LearningCandidates, policy);
 

@@ -66,7 +66,7 @@ namespace HAgent.Example
                 "Type: " + record.CandidateType + Environment.NewLine +
                 "Source agent profile: " + record.SourceAgentProfileId + Environment.NewLine +
                 "Candidate store: " + path + Environment.NewLine +
-                "Review policy: "" + LearningReviewApproveRuleId + """ / """ + LearningReviewRejectRuleId + """" + Environment.NewLine +
+                "Review policy: " + LearningReviewApproveRuleId + " / " + LearningReviewRejectRuleId + Environment.NewLine +
                 "Next: open Configuration → Learning Review and explicitly Approve or Reject this candidate.");
         }
 
@@ -110,7 +110,7 @@ namespace HAgent.Example
             if (policy == null) policy = new AiPolicySet();
             if (string.IsNullOrWhiteSpace(policy.Version)) policy.Version = "example-learning-review-1";
 
-            if ((policy.Rules ?? new System.Collections.Generic.List<AiPolicyRule>()).Any(x => x != null && string.Equals(x.Id, LearningReviewApproveRuleId, StringComparison.OrdinalIgnoreCase)))
+            if (policy.Rules.Any(x => x != null && string.Equals(x.Id, LearningReviewApproveRuleId, StringComparison.OrdinalIgnoreCase)))
                 return;
 
             var approveRule = CreateLearningReviewExampleRule(

@@ -138,11 +138,11 @@ namespace HAgent.Example
                         return Task.CompletedTask;
                     }).ConfigureAwait(true);
                 }
-                catch (InvalidOperationException)
+                catch (ObjectDisposedException)
                 {
                     shutdownRejected = true;
                 }
-                catch (ObjectDisposedException)
+                catch (InvalidOperationException)
                 {
                     shutdownRejected = true;
                 }

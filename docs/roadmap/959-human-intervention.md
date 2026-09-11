@@ -106,14 +106,6 @@ The target owner remains responsible for applying the transition.
 6. Host side effects remain host-authoritative.
 7. Intervention state does not replace lifecycle, plan, execution, or learning state.
 
-## Not part of V1
-
-- a general workflow engine;
-- autonomous operator simulation;
-- distributed human approval consensus;
-- arbitrary UI automation;
-- intervention as a replacement for normal host scheduling.
-
 ## Dependency order
 
 ```text

@@ -82,6 +82,7 @@ namespace HAgent.Example
             AddLearningCandidatePromotionTab();
             AddLearningExecutionIntegrationTab();
             AddLearningReviewManagementTab();
+            AddResourceInventoryTab();
             AddApprovalWorkflowTab();
             AddInstructionContractsTab();
             AddExecutionInterventionTab();

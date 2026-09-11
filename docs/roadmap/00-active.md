@@ -42,20 +42,25 @@ Learning mode and policy control the permitted paths. Review and promotion are i
 
 ### Slice 12 current work — Learning Review management UI
 
+Implemented management surface, user verification pending:
+
 - Durable Learning Review list and review actions.
 - Host-supplied read-only reviewer identity.
 - Candidate-store injection aligned with host storage configuration.
 - Filterable candidate workspace by lifecycle status and candidate type.
 - Read-only candidate details including payload, provenance/evidence, lifecycle, policy, source execution/runtime, and review evidence.
-- Manual .NET Framework 4.8.1 and .NET 9 verification of the management workflow.
+- Governed Promote action for selected `Approved` candidates through the injected `AiLearningPromotionService`.
+- Fresh `learning.promote` authorization remains inside the existing promotion service.
+- Promotion result refreshes the candidate to `Promoted` revision `3` without direct publication logic in WinForms.
+- `HAgent.Example` injects deterministic provider-neutral promotion targets for the management integration test.
+- Manual .NET Framework 4.8.1 and .NET 9 verification remains required for the completed filter/details/review/promotion workflow.
 
-### Slice 12 next management increment — Authoritative promotion UI
+### Next Slice 12 management work
 
-- Expose promotion for selected `Approved` candidates from the same Learning Review details workspace.
-- Re-evaluate fresh `learning.promote` authorization through the existing promotion service.
-- Preserve publication-before-lifecycle-transition semantics and optimistic revision safety.
-- Show promotion result and refreshed `Promoted` state without duplicating publication logic in WinForms.
-- Verify Memory, Knowledge, and Skill promotion paths on both supported targets.
+- Authoritative Memory/Knowledge/Skill inventory and management surfaces.
+- Resource-specific CRUD/editor workflows where appropriate, preserving provider-neutral contracts.
+- Connect effective authoritative resources back into agent-level management views.
+- Keep resource reliability/adaptation separate for 0.9576, where staleness, contradiction, drift, revalidation, quarantine, retirement, archival, forgetting, and replacement are planned.
 
 ## Planned order
 

@@ -39,7 +39,7 @@ namespace HAgent.Example
                 LearningReviewInputPlaceholder,
                 VerifyLearningReviewResultAsync,
                 "Restart / persistence boundary",
-                "This is the second half of the UI integration test. It proves that the button click changed durable state rather than merely changing the screen. Leaving the example placeholder unchanged now selects the newest candidate seeded by this Example agent profile.");
+                "This is the second half of the UI integration test. It proves that the button click changed durable state rather than merely changing the screen. Leaving the example placeholder unchanged verifies the candidate most recently created by this Example session.");
         }
 
         private async Task SeedLearningReviewCandidateAsync(string unused)
@@ -87,7 +87,10 @@ namespace HAgent.Example
             if (string.IsNullOrWhiteSpace(candidateId) ||
                 string.Equals(candidateId, LearningReviewInputPlaceholder, StringComparison.OrdinalIgnoreCase))
             {
-                candidateId = await ResolveLatestLearningReviewExampleCandidateIdAsync(configuredPath).ConfigureAwait(true);
+                candidateId = await ResolveLatestLearningReviewExampleCandidateIdAsync(
+                    configuredPath,
+                    _learningReviewSeedStorePath,
+                    _learningReviewSeedCandidateId).ConfigureAwait(true);
                 if (string.IsNullOrWhiteSpace(candidateId))
                     throw new InvalidOperationException(
                         "No Learning Review Example candidate was found in the configured durable candidate store. Run 'Learning Review Seed' first, then review the candidate in Configuration → Learning Review.");
@@ -146,23 +149,50 @@ namespace HAgent.Example
                 "Durable Learning Review integration: verified.");
         }
 
-        private static async Task<string> ResolveLatestLearningReviewExampleCandidateIdAsync(string path)
+        private static async Task<string> ResolveLatestLearningReviewExampleCandidateIdAsync(
+            string configuredPath,
+            string seedPath,
+            string seedCandidateId)
         {
-            if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
-                return null;
+            var paths = string.Equals(configuredPath, seedPath, StringComparison.OrdinalIgnoreCase)
+                ? new[] { configuredPath }
+                : new[] { configuredPath, seedPath };
 
-            using (var candidates = new FileLearningCandidateStore(path))
+            if (!string.IsNullOrWhiteSpace(seedCandidateId))
             {
-                var records = await candidates.QueryAsync(new AiLearningCandidateQuery
+                foreach (var path in paths)
                 {
-                    CandidateType = AiLearningCandidateType.Skill,
-                    SourceAgentProfileId = LearningReviewExampleAgentId,
-                    IncludeExpired = false,
-                    MaxResults = 1
-                }).ConfigureAwait(true);
+                    if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path)) continue;
 
-                return records == null || records.Count == 0 ? null : records[0].CandidateId;
+                    using (var candidates = new FileLearningCandidateStore(path))
+                    {
+                        var seeded = await candidates.GetAsync(seedCandidateId).ConfigureAwait(true);
+                        if (seeded != null)
+                            return seedCandidateId;
+                    }
+                }
             }
+
+            foreach (var path in paths)
+            {
+                if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path)) continue;
+
+                using (var candidates = new FileLearningCandidateStore(path))
+                {
+                    var records = await candidates.QueryAsync(new AiLearningCandidateQuery
+                    {
+                        CandidateType = AiLearningCandidateType.Skill,
+                        SourceAgentProfileId = LearningReviewExampleAgentId,
+                        IncludeExpired = false,
+                        MaxResults = 1
+                    }).ConfigureAwait(true);
+
+                    if (records != null && records.Count > 0)
+                        return records[0].CandidateId;
+                }
+            }
+
+            return null;
         }
 
         private async Task EnsureLearningReviewExamplePolicyAsync(IAiStore store)

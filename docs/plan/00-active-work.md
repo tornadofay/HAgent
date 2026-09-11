@@ -5,9 +5,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** Slice 10 in progress — Authoritative Promotion + Version-Safe Resource Creation
+- **Status:** Slice 11 in progress — Context, Instruction, Runtime, and Observability Integration
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Convert an approved, durable typed learning candidate into authoritative resource state through one canonical promotion boundary. Reuse the existing Memory store contract and explicit publication targets for Knowledge and Skill.
+- **Scope:** Connect governed learned resources to real execution through the existing context/instruction boundaries and capture authoritative runtime observations as bounded learning input.
 
 ## Completed current-phase slices
 
@@ -32,20 +32,28 @@ This file is the compact handoff state for work currently in progress. It is not
 - Both Examples verified durable recovery, PendingReview revision restoration, authorized review, revision 1 → 2, reviewer/policy evidence, and absence of authoritative publication.
 - Full `HAgent.Tests`: **200/200 passed, 0 failed, 0 skipped** on .NET 9.
 
-## Current Slice 10 boundary
+0.9575 Slice 10 — Authoritative Promotion + Version-Safe Resource Creation — **verified by user** 2026-09-11:
+- `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Both Examples verified Memory promotion, new published Knowledge/Skill versions, fresh unified authorization, publication-before-lifecycle transition, provenance evidence, and immutable version behavior.
+- Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
 
-Promotion starts only from a durable candidate in `Approved` state, with retention still valid and explicit identity supplied. The promotion boundary must re-authorize `learning.promote` through the existing unified policy engine, validate the typed payload, and preserve candidate/source provenance.
+## Current Slice 11 boundary
 
-- Memory promotion uses existing `IMemoryStore`.
-- Knowledge promotion creates a new published version through an explicit provider-neutral publication target; an existing published version is never edited in place.
-- Skill promotion creates a new published immutable version through an explicit provider-neutral publication target; an existing published definition is never edited in place.
-- Equal/lower candidate versions are conflicts/stale candidates and are rejected deterministically.
-- Candidate lifecycle transitions to `Promoted` only after authoritative publication succeeds.
-- Promotion result records authoritative resource identity/version and promotion authorization/audit evidence.
-- No prompt text or model output is itself authoritative.
+Learned resources must enter execution only through the canonical resource/context/instruction contracts already owned by HAgent.
 
-**Verification gate:** focused Slice 10 tests plus a dedicated Example on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` at the Slice 10 checkpoint.
+- `AiLearningExecutionPreparation` clones learned instruction sources and returns them for `AgentExecutionRequest.InstructionSources`.
+- Learned context retrieval sources are processed through the existing `ContextAssembler`, including capability/policy admission, bounded retrieval, ranking/deduplication, and compaction.
+- `AiLearningExecutionObservationCollector` consumes the authoritative `IExecutionObservationSource` boundary and stores bounded facts through `IAiLearningObservationStore`.
+- The in-memory observation store is bounded, thread-safe, filtered, and detached-copy based.
+- Observation capture does not create candidates, approve promotion, or mutate authoritative resources.
+- Prompt text remains non-authoritative; no second policy or tracing mechanism is introduced.
+
+**Architecture:** `docs/architecture/90-learning-execution-integration.md`.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** `tests/HAgent.Tests/LearningExecutionIntegrationTests.cs`; full `HAgent.Tests` at the Slice 11 checkpoint.
 
 ## Do not advance
 
-Do not start Slice 11 until Memory/Knowledge/Skill promotion, version conflict handling, authorization, provenance/audit evidence, candidate lifecycle transition, and both supported Example targets are actually verified.
+Do not start Slice 12 until learned-resource context/instruction preparation, policy/capability admission, bounded execution context, authoritative runtime observation capture, and both supported Example targets are actually verified.

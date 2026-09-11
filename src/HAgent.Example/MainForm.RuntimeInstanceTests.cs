@@ -32,6 +32,8 @@ namespace HAgent.Example
                 "Two independent instances",
                 "Uses only a local adapter; no external provider is contacted.");
 
+            AddRuntimeSingleOwnerSpikeTab();
+
             AddApiTab(
                 "RUNTIME STALE RESULTS",
                 "Run stale-result test",

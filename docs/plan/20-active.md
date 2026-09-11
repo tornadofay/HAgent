@@ -79,6 +79,12 @@ The lifecycle gate may move a Proposed candidate to `Rejected`, `PendingReview`,
 
 **Tests to run:** `tests/HAgent.Tests/LearningLifecycleTests.cs` (focused); full `HAgent.Tests` is not required until the slice checkpoint.
 
+## Ahead-of-roadmap architectural evidence
+
+The Phase 0.97 single-owner/runtime-concurrency spike was verified by the user on 2026-09-11 on both .NET Framework 4.8.1 and .NET 9. It is recorded in the 0.97 roadmap and architecture documents as verified architectural evidence.
+
+This evidence does **not** advance the current implementation milestone, does not mark any 0.97 slice complete, and does not authorize production runtime implementation. Future-phase documentation may be updated when new architectural evidence or scope decisions require it, while the active implementation remains 0.9575 Slice 8.
+
 ## Run rule
 
 Complete the current slice and record its verification before selecting the next slice. Do not combine multiple numbered slices in one run.

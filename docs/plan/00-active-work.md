@@ -5,9 +5,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** In progress — Slice 6 implementation checkpoint
+- **Status:** In progress — Slice 7 implementation checkpoint
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Establish provider-neutral Learning Mode semantics at profile/runtime/execution-snapshot boundaries without creating a duplicate learning-candidate model.
+- **Scope:** Define one provider-neutral Learning Policy contract and typed Memory/Knowledge/Skill candidate contracts while reusing the existing canonical learning-candidate lifecycle.
 
 ## Completed current-phase slices
 
@@ -21,26 +21,27 @@ This file is the compact handoff state for work currently in progress. It is not
 
 0.9575 Slice 5 — Memory governance and retention — **verified by user** 2026-09-09: both required Examples succeeded and full `HAgent.Tests` was 175/175 passed.
 
-## Current Slice 6 — Learning Mode foundation
+0.9575 Slice 6 — Learning Mode — **verified by user** 2026-09-09: both required Examples succeeded and full `HAgent.Tests` was 181/181 passed.
 
-**Objective:** define `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, and `FullyAutomatic` as a provider-neutral learning lifecycle setting; keep it separate from resource capability enablement; allow runtime-only override and immutable execution snapshot capture; preserve the existing single learning-candidate contract.
+## Current Slice 7 — Learning Policy + Typed Candidates
+
+**Objective:** define one provider-neutral learning policy contract and typed Memory/Knowledge/Skill candidate payload contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
 
 **Complete within this slice:**
 
-- `AiLearningMode` enum and deterministic interpretation helpers;
-- persistent `AiAgent.LearningMode` defaulting to `Disabled`;
-- nullable runtime-only `AgentRuntimeOverrides.LearningMode`;
-- effective `AgentExecutionSnapshot.LearningMode` captured from profile/runtime state;
-- validation of Learning Mode values in promotion requests;
-- profile/runtime/snapshot isolation tests;
-- matching public Example.
+- learning policy covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization;
+- typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts;
+- source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence preservation where available;
+- deterministic code-derived learning signals without requiring an LLM;
+- optional model-assisted extraction/evaluation that remains non-authoritative;
+- candidate creation kept separate from candidate promotion.
 
-**Out of scope:** candidate storage, promotion orchestration, Learning Review UI, model-assisted extraction, context integration, or a second candidate architecture.
+**Out of scope:** candidate persistence, promotion orchestration, Learning Review UI, Knowledge/Skill management UI, context integration, and the broader 0.9576 roadmap restructuring.
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Mode` on **.NET Framework 4.8.1** and **.NET 9**.
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on **.NET Framework 4.8.1** and **.NET 9**.
 
-**Tests to run:** `tests/HAgent.Tests/LearningModeTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ## Verification status
 
-Slice 6 implementation is not yet verified. Do not close it until the affected projects build, focused tests pass, the full .NET 9 suite passes, and the matching Example succeeds on both supported frameworks.
+Slice 7 implementation is in progress and verification is pending. Do not close it until the affected projects build, the focused tests pass, the full .NET 9 suite passes, and the matching Example succeeds on both supported frameworks.

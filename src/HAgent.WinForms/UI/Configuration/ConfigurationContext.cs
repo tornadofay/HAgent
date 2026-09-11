@@ -17,13 +17,15 @@ namespace HAgent.WinForms.UI.Configuration
             IToolRegistry tools,
             IAiLearningCandidateStore learningCandidates = null,
             AgentIdentityContext reviewerIdentity = null,
-            AiLearningPromotionService learningPromotion = null)
+            AiLearningPromotionService learningPromotion = null,
+            IAiResourceInventory resourceInventory = null)
         {
             Store = store ?? throw new ArgumentNullException(nameof(store));
             Secrets = secrets ?? throw new ArgumentNullException(nameof(secrets));
             Adapters = new List<IAiProviderAdapter>(adapters ?? new List<IAiProviderAdapter>()).AsReadOnly();
             Tools = tools ?? new InMemoryToolRegistry();
             LearningPromotion = learningPromotion;
+            ResourceInventory = resourceInventory;
 
             if (learningCandidates != null)
             {
@@ -54,6 +56,7 @@ namespace HAgent.WinForms.UI.Configuration
         public IAiLearningCandidateStore LearningCandidates { get; private set; }
         public AgentIdentityContext ReviewerIdentity { get; private set; }
         public AiLearningPromotionService LearningPromotion { get; private set; }
+        public IAiResourceInventory ResourceInventory { get; private set; }
         public IReadOnlyList<AiProvider> Providers { get; set; } = new List<AiProvider>();
         public IReadOnlyList<AiAgent> Agents { get; set; } = new List<AiAgent>();
     }

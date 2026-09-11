@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
@@ -13,37 +12,18 @@ namespace HAgent.Example
     {
         private void AddLearningCandidatePromotionTab()
         {
-            AddFeatureTab(
+            AddApiTab(
                 "Learning Candidate Promotion",
-                delegate
-                {
-                    var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12) };
-                    var button = new Button { Text = "Run promotion contract", Dock = DockStyle.Top, Height = 38 };
-                    var output = new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, Dock = DockStyle.Fill };
-                    button.Click += async delegate
-                    {
-                        button.Enabled = false;
-                        try
-                        {
-                            output.Clear();
-                            await RunLearningCandidatePromotionExampleAsync(output).ConfigureAwait(true);
-                        }
-                        catch (Exception ex)
-                        {
-                            output.AppendText("Contract test failed: " + ex.Message + Environment.NewLine);
-                        }
-                        finally
-                        {
-                            button.Enabled = true;
-                        }
-                    };
-                    panel.Controls.Add(output);
-                    panel.Controls.Add(button);
-                    return panel;
-                });
+                "Run authoritative learning promotion workflow",
+                "Verifies approved Memory, Knowledge, and Skill candidates become authoritative only through fresh promotion authorization and version-safe publication.",
+                "Promotion uses the existing Memory store and explicit Knowledge/Skill publication targets. The candidate is marked Promoted only after publication succeeds.",
+                "Uses deterministic in-process policy and publication targets. No model or network provider is required.",
+                TestLearningCandidatePromotionAsync,
+                "Learning candidate promotion",
+                "Promotion is host-controlled; model output and prompt text never become authoritative by themselves.");
         }
 
-        private static async Task RunLearningCandidatePromotionExampleAsync(TextBox output)
+        private async Task TestLearningCandidatePromotionAsync(string unused)
         {
             var candidateStore = new InMemoryAiLearningCandidateStore();
             var memoryStore = new InMemoryMemoryStore();
@@ -52,36 +32,36 @@ namespace HAgent.Example
             var identity = new AgentIdentityContext { AgentProfileId = "example-agent", AgentInstanceId = "promotion-instance", TenantId = "example-tenant" };
 
             var memoryCandidate = CreatePromotionMemoryCandidate();
-            await candidateStore.SaveAsync(CaptureApprovedCandidate(memoryCandidate));
+            await candidateStore.SaveAsync(CaptureApprovedCandidate(memoryCandidate)).ConfigureAwait(true);
             var memoryService = new AiLearningPromotionService(candidateStore, memoryStore, knowledgeTarget, skillTarget, new ExamplePromotionPolicyEngine(memoryCandidate.Id));
-            var memoryResult = await memoryService.PromoteAsync(memoryCandidate.Id, identity);
+            var memoryResult = await memoryService.PromoteAsync(memoryCandidate.Id, identity).ConfigureAwait(true);
             if (memoryResult.CandidateStatus != AiLearningCandidateStatus.Promoted || memoryResult.AuthoritativeResourceType != "memory")
                 throw new InvalidOperationException("Memory promotion contract failed.");
 
             var knowledgeCandidate = CreatePromotionKnowledgeCandidate(1);
-            await candidateStore.SaveAsync(CaptureApprovedCandidate(knowledgeCandidate));
+            await candidateStore.SaveAsync(CaptureApprovedCandidate(knowledgeCandidate)).ConfigureAwait(true);
             var knowledgeService = new AiLearningPromotionService(candidateStore, memoryStore, knowledgeTarget, skillTarget, new ExamplePromotionPolicyEngine(knowledgeCandidate.Id));
-            var knowledgeResult = await knowledgeService.PromoteAsync(knowledgeCandidate.Id, identity);
+            var knowledgeResult = await knowledgeService.PromoteAsync(knowledgeCandidate.Id, identity).ConfigureAwait(true);
             if (knowledgeResult.CandidateStatus != AiLearningCandidateStatus.Promoted || knowledgeResult.AuthoritativeResourceVersion != 1)
                 throw new InvalidOperationException("Knowledge promotion contract failed.");
 
             var skillCandidate = CreatePromotionSkillCandidate(1);
-            await candidateStore.SaveAsync(CaptureApprovedCandidate(skillCandidate));
+            await candidateStore.SaveAsync(CaptureApprovedCandidate(skillCandidate)).ConfigureAwait(true);
             var skillService = new AiLearningPromotionService(candidateStore, memoryStore, knowledgeTarget, skillTarget, new ExamplePromotionPolicyEngine(skillCandidate.Id));
-            var skillResult = await skillService.PromoteAsync(skillCandidate.Id, identity);
+            var skillResult = await skillService.PromoteAsync(skillCandidate.Id, identity).ConfigureAwait(true);
             if (skillResult.CandidateStatus != AiLearningCandidateStatus.Promoted || skillResult.AuthoritativeResourceVersion != 1)
                 throw new InvalidOperationException("Skill promotion contract failed.");
 
-            output.AppendText("[LEARNING CANDIDATE PROMOTION]" + Environment.NewLine);
-            output.AppendText(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine);
-            output.AppendText("Contract test succeeded." + Environment.NewLine);
-            output.AppendText("Approved Memory candidate -> authoritative Memory: verified." + Environment.NewLine);
-            output.AppendText("Approved Knowledge candidate -> new published version 1: verified." + Environment.NewLine);
-            output.AppendText("Approved Skill candidate -> new published immutable version 1: verified." + Environment.NewLine);
-            output.AppendText("Promotion requires fresh unified policy authorization: verified." + Environment.NewLine);
-            output.AppendText("Candidate lifecycle advances to Promoted only after publication: verified." + Environment.NewLine);
-            output.AppendText("Authoritative resources retain candidate/source provenance evidence: verified." + Environment.NewLine);
-            output.AppendText("Promotion does not mutate an existing published Knowledge or Skill version: verified." + Environment.NewLine);
+            Write(
+                "LEARNING CANDIDATE PROMOTION",
+                "Contract test succeeded." + Environment.NewLine +
+                "Approved Memory candidate -> authoritative Memory: verified." + Environment.NewLine +
+                "Approved Knowledge candidate -> new published version 1: verified." + Environment.NewLine +
+                "Approved Skill candidate -> new published immutable version 1: verified." + Environment.NewLine +
+                "Promotion requires fresh unified policy authorization: verified." + Environment.NewLine +
+                "Candidate lifecycle advances to Promoted only after publication: verified." + Environment.NewLine +
+                "Authoritative resources retain candidate/source provenance evidence: verified." + Environment.NewLine +
+                "Promotion does not mutate an existing published Knowledge or Skill version: verified.");
         }
 
         private static AiLearningCandidateRecord CaptureApprovedCandidate(AiLearningTypedCandidate candidate)
@@ -108,6 +88,7 @@ namespace HAgent.Example
         private static MemoryCandidate CreatePromotionMemoryCandidate()
         {
             var lifecycle = NewPromotionLifecycle(AiLearningCandidateType.Memory);
+            var now = DateTimeOffset.UtcNow;
             var memory = new MemoryEntry
             {
                 Id = "example-promotion-memory",
@@ -118,8 +99,8 @@ namespace HAgent.Example
                 OwnerId = "example-agent",
                 Content = "Promoted learning fact",
                 Provenance = new AiMemoryProvenance { Kind = AiMemoryProvenanceKind.ModelGenerated, Source = "example", Evidence = "verified", Confidence = 0.95m },
-                CreatedAt = DateTimeOffset.UtcNow,
-                OccurredAt = DateTimeOffset.UtcNow
+                CreatedAt = now,
+                OccurredAt = now
             };
             return new MemoryCandidate(memory, lifecycle)
             {
@@ -130,6 +111,7 @@ namespace HAgent.Example
         private static KnowledgeCandidate CreatePromotionKnowledgeCandidate(long version)
         {
             var lifecycle = NewPromotionLifecycle(AiLearningCandidateType.Knowledge);
+            var now = DateTime.UtcNow;
             var resource = new AiKnowledgeResource
             {
                 Id = "example-promotion-knowledge",
@@ -143,8 +125,8 @@ namespace HAgent.Example
                 Version = version,
                 Source = "example",
                 Provenance = new AiKnowledgeProvenance { Kind = AiKnowledgeProvenanceKind.ModelGenerated, Source = "example", Evidence = "verified", Confidence = 0.95m },
-                CreatedUtc = DateTime.UtcNow,
-                UpdatedUtc = DateTime.UtcNow
+                CreatedUtc = now,
+                UpdatedUtc = now
             };
             return new KnowledgeCandidate(resource, lifecycle)
             {
@@ -155,6 +137,7 @@ namespace HAgent.Example
         private static SkillCandidate CreatePromotionSkillCandidate(long version)
         {
             var lifecycle = NewPromotionLifecycle(AiLearningCandidateType.Skill);
+            var now = DateTime.UtcNow;
             var skill = new AiSkillDefinition
             {
                 Id = "example-promotion-skill",
@@ -165,8 +148,8 @@ namespace HAgent.Example
                 Description = "Example promoted immutable skill",
                 Status = AiSkillLifecycleStatus.Draft,
                 Provenance = new AiSkillProvenance { Source = "example", Evidence = "verified", Confidence = 0.95m },
-                CreatedUtc = DateTime.UtcNow,
-                UpdatedUtc = DateTime.UtcNow
+                CreatedUtc = now,
+                UpdatedUtc = now
             };
             return new SkillCandidate(skill, lifecycle)
             {

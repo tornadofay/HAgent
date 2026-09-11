@@ -21,7 +21,7 @@ namespace HAgent.WinForms
             var store = new HAgent.Storage.File.FileAiStore(Path.Combine(basePath, "configuration", "settings.json"));
             var toolStore = new HAgent.Storage.File.FileToolStore(Path.Combine(basePath, "configuration", "tools", "tools.json"));
             var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(Path.Combine(basePath, "secrets"));
-            ShowMainAISettingsForm(store, secrets, owner, null, toolStore, null, null);
+            ShowMainAISettingsForm(store, secrets, owner, null, toolStore, null, null, null);
         }
 
         public static UiAutomationPermissions LoadUiPermissions()
@@ -46,7 +46,7 @@ namespace HAgent.WinForms
             IEnumerable<IAiProviderAdapter> adapters = null,
             IToolStore toolStore = null)
         {
-            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, null, null);
+            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, null, null, null);
         }
 
         public static void ShowMainAISettingsForm(
@@ -56,7 +56,8 @@ namespace HAgent.WinForms
             IEnumerable<IAiProviderAdapter> adapters,
             IToolStore toolStore,
             IAiLearningCandidateStore learningCandidates,
-            AgentIdentityContext reviewerIdentity)
+            AgentIdentityContext reviewerIdentity,
+            AiLearningPromotionService learningPromotion)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (secrets == null) throw new ArgumentNullException(nameof(secrets));
@@ -65,7 +66,7 @@ namespace HAgent.WinForms
                 ? new InMemoryToolRegistry()
                 : new PersistentToolRegistry(toolStore);
 
-            using (var form = new Forms.AISettingsForm(store, secrets, adapters, tools, learningCandidates, reviewerIdentity))
+            using (var form = new Forms.AISettingsForm(store, secrets, adapters, tools, learningCandidates, reviewerIdentity, learningPromotion))
                 form.ShowDialog(owner);
         }
 

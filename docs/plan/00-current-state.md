@@ -86,7 +86,7 @@ The slice will define one provider-neutral learning policy contract covering can
 
 The slice must preserve source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence where available; support deterministic code-derived learning signals without requiring an LLM; keep model-assisted extraction/evaluation optional and non-authoritative; and keep candidate creation separate from promotion.
 
-Architecture source: the Learning Policy/Ty​ped Candidate slice documentation to be added with the implementation.
+Architecture source: the Slice 7 architecture document that will be added with the implementation.
 Focused tests: `tests/HAgent.Tests/LearningPolicyTests.cs`.
 Public Example: `HAgent.Example → Cognition → Learning → Learning Policy`.
 

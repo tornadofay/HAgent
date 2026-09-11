@@ -119,11 +119,11 @@ Slice 6 is closed.
 
 ## Slice 7 — Learning Policy + Typed Candidates
 
-**In progress.**
+**Verified — 2026-09-11.**
 
 This slice defines the single provider-neutral Learning Policy contract and typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
 
-### Slice 7 scope
+### Slice 7 scope completed
 
 - Define one learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization.
 - Add typed Memory/Knowledge/Skill candidate payload contracts without creating a second candidate lifecycle.
@@ -132,15 +132,14 @@ This slice defines the single provider-neutral Learning Policy contract and type
 - Keep model-assisted extraction/evaluation optional and non-authoritative.
 - Keep candidate creation separate from promotion.
 
-### Slice 7 verification target
+### Verification evidence
 
-- Focused learning-policy and typed-candidate tests.
-- Full `HAgent.Tests` on .NET 9 when the slice is complete.
-- Matching public Example on .NET Framework 4.8.1 and .NET 9.
+- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Policy → Learning Policy` on 2026-09-11.
+- .NET 9 Example succeeded: same Example on 2026-09-11.
+- Full `HAgent.Tests`: **187/187 passed, 0 failed, 0 skipped** on .NET 9.
+- Example verified typed promotion-policy decisions, canonical candidate lifecycle transitions, typed Memory/Knowledge/Skill validation, and rejection of published Knowledge/Skill payloads.
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on **.NET Framework 4.8.1** and **.NET 9**.
-
-**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+Slice 7 is closed.
 
 ## Resource governance
 
@@ -197,12 +196,12 @@ This slice defines the single provider-neutral Learning Policy contract and type
 
 43. [x] Define provider-neutral `LearningMode`: `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, `FullyAutomatic`.
 44. [x] Keep Learning Mode distinct from resource/capability enablement.
-45. [ ] Define one learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization.
-46. [ ] Support typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts.
-47. [ ] Preserve source execution ID, runtime ID, agent/profile identity, scope, provenance, and evidence/confidence on candidates when available.
-48. [ ] Support deterministic code-derived learning signals without requiring an LLM.
-49. [ ] Allow optional model-assisted extraction/classification while keeping the model non-authoritative.
-50. [ ] Keep candidate creation separate from candidate promotion.
+45. [x] Define one learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization.
+46. [x] Support typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts.
+47. [x] Preserve source execution ID, runtime ID, agent/profile identity, scope, provenance, and evidence/confidence on candidates when available.
+48. [x] Support deterministic code-derived learning signals without requiring an LLM.
+49. [x] Allow optional model-assisted extraction/classification while keeping the model non-authoritative.
+50. [x] Keep candidate creation separate from candidate promotion.
 51. [ ] Preserve published Skill/Knowledge versions when learning produces an improvement; never silently mutate an active version.
 
 ## Learning lifecycle
@@ -257,9 +256,9 @@ This slice defines the single provider-neutral Learning Policy contract and type
 
 85. [ ] Add deterministic Example verification for resource scope isolation, inherited/overridden capability state, memory families/types, knowledge retrieval, skill binding, and future resource types.
 86. [ ] Add Example verification for `SuggestOnly` review, approval, rejection, and candidate retention.
-87. [ ] Add tests that candidates cannot bypass authorization or directly mutate published Knowledge/Skills.
+87. [x] Add tests that candidates cannot bypass authorization or directly mutate published Knowledge/Skills.
 88. [ ] Add tests for resource version/snapshot isolation after profile/resource edits.
-89. [ ] Add tests for promotion conflicts, stale candidates, contradictory evidence, and policy denial.
+89. [x] Add tests for promotion conflicts, stale candidates, contradictory evidence, and policy denial.
 90. [ ] Add tests for runtime isolation across two independent runtime instances.
 91. [ ] Add UI verification that Agent Configuration displays effective resource/capability state, Learning Mode, and inherited/overridden configuration correctly.
 92. [ ] Verify all supported framework targets required by HAgent before declaring the phase complete.

@@ -58,7 +58,7 @@ namespace HAgent.Runtime
             return new AiLearningExecutionPreparationResult(
                 instructionCopies,
                 contextResult == null ? null : contextResult.Snapshot.Clone(),
-                contextResult == null ? null : contextResult.Decisions,
+                contextResult == null ? null : contextResult.AdmissionDecisions,
                 contextResult == null ? null : contextResult.Compaction);
         }
     }

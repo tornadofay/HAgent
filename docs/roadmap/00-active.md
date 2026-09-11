@@ -4,7 +4,7 @@
 
 ### 0.9575 — Knowledge, Skills, Memory Governance + Learning
 
-**Current milestone — Slice 8 in progress.**
+**Current milestone — Slice 12 in progress.**
 
 - Complete the canonical learning lifecycle gate.
 - Persist learning candidates with retention and expiry.
@@ -18,6 +18,15 @@
 - Add learning/resource observability.
 - Add Learning Review, Knowledge/Wiki, Skill, and Agent Configuration UI.
 - Verify persistence, restart/recovery, lifecycle, authorization, concurrency, context integration, UI, and audit behavior on both supported targets.
+
+### Slice 12 current work — Learning Review management UI
+
+- Durable Learning Review list and review actions.
+- Host-supplied read-only reviewer identity.
+- Candidate-store injection aligned with host storage configuration.
+- Filterable candidate workspace by lifecycle status and candidate type.
+- Read-only candidate details including payload, provenance/evidence, lifecycle, policy, source execution/runtime, and review evidence.
+- Manual .NET Framework 4.8.1 and .NET 9 verification of the management workflow.
 
 ## Planned order
 

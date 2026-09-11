@@ -110,15 +110,6 @@ Verify:
 7. HAgent storage never becomes an implicit gateway to a host application's business database.
 8. Configuration changes invalidate or supersede affected snapshots deterministically.
 
-## Not part of V1
-
-- distributed cache infrastructure;
-- event-sourced everything;
-- a cloud configuration service;
-- a secret-vault product;
-- storage-specific domain models;
-- backward-compatibility tables for retired redesign-era fields.
-
 ## Dependency relationship
 
 ```text

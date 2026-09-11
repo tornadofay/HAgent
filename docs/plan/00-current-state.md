@@ -13,7 +13,7 @@ HAgent is a lightweight, provider-neutral .NET cognition and execution runtime. 
 
 ## Current milestone
 
-**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT.**
+**0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT. Slice 9 is in progress.**
 
 0.957 Evaluation and Quality Measurement is verified through Slice 6. User verification on 2026-09-09 recorded **139/139 HAgent.Tests passed** and the required evaluation Example scenarios succeeded on .NET Framework 4.8.1 and .NET 9.
 
@@ -78,7 +78,7 @@ Architecture source: `docs/architecture/85-learning-mode.md`.
 Focused tests: `tests/HAgent.Tests/LearningModeTests.cs`.
 Public Example: `HAgent.Example → Cognition → Learning → Learning Mode`.
 
-## Slice 7 — Learning Policy + Typed Candidates — VERIFIED
+### Slice 7 — Learning Policy + Typed Candidates — VERIFIED
 
 Verified by user on 2026-09-11.
 
@@ -94,10 +94,42 @@ Architecture source: `docs/architecture/86-learning-policy.md`.
 Focused tests: `tests/HAgent.Tests/LearningPolicyTests.cs`.
 Public Example: `HAgent.Example → Policy → Learning Policy`.
 
-## Storage implications
+### Slice 8 — Canonical Learning Lifecycle Gate — VERIFIED
 
-File/in-memory agent persistence uses the canonical `AiAgent` representation. SQL Server explicitly persists `LearningMode` and includes a versioned schema migration. MySQL runtime persistence code now persists the explicit field; its managed bootstrap migration still requires alignment before this slice is considered storage-complete.
+Verified by user on 2026-09-11.
+
+- .NET Framework 4.8.1 Example `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded.
+- .NET 9 Example `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded.
+- Full `HAgent.Tests`: **194/194 passed, 0 failed, 0 skipped** on .NET 9.
+
+`AiLearningLifecycleCoordinator` is the canonical gate from a validated typed candidate to `Rejected`, `PendingReview`, or `Approved`. It composes Learning Policy, Learning Mode, and the existing unified learning-promotion authorization and now fails closed when canonical identity is missing. Approval remains eligibility for later promotion, not publication.
+
+Architecture source: `docs/architecture/87-learning-lifecycle.md`.
+Focused tests: `tests/HAgent.Tests/LearningLifecycleTests.cs`.
+Public Example: `HAgent.Example → Cognition → Learning → Learning Lifecycle`.
+
+## Slice 9 — Learning Candidate Persistence, Retention + Review — IN PROGRESS
+
+The current implementation adds one provider-neutral durable candidate record around the canonical `AiLearningCandidate` lifecycle. It preserves typed payload JSON, lifecycle status/revision, retention metadata, provenance/evaluation state, Slice 8 policy provenance, and review authorization evidence.
+
+Implemented so far:
+
+- `AiLearningCandidateRecord` durable envelope;
+- `IAiLearningCandidateStore` provider-neutral contract;
+- `InMemoryAiLearningCandidateStore` deterministic runtime/test store;
+- `FileLearningCandidateStore` durable JSONL-backed store with atomic rewrite;
+- retention expiry calculation and purge;
+- typed Memory/Knowledge/Skill payload capture and restoration;
+- `AiLearningCandidateReviewService` using unified `IAiPolicyEngine` operation `learning.review`;
+- explicit reviewer identity and persisted review authorization evidence;
+- optimistic expected-revision updates preventing stale review overwrites;
+- dedicated tests and Example registration;
+- Slice 9 architecture document `docs/architecture/88-learning-candidate-persistence.md`.
 
 ### Deferred exclusions
 
-Slice 7 does not implement candidate persistence, promotion orchestration, Learning Review UI, Knowledge/Skill management UI, context integration, or the broader 0.9576 roadmap restructuring.
+Slice 9 does not perform authoritative Memory publication, Knowledge version creation, Skill version creation, production Learning Review UI, context/instruction integration, runtime learning-input capture, or the broader 0.9575 completion verification.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** `tests/HAgent.Tests/LearningCandidatePersistenceTests.cs` (focused); full `HAgent.Tests` at the Slice 9 checkpoint.

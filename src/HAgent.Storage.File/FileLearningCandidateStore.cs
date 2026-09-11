@@ -131,7 +131,7 @@ namespace HAgent.Storage.File
         private async Task<List<AiLearningCandidateRecord>> ReadAllAsync(CancellationToken cancellationToken)
         {
             var records = new List<AiLearningCandidateRecord>();
-            if (!File.Exists(_path)) return records;
+            if (!System.IO.File.Exists(_path)) return records;
             using (var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true))
             using (var reader = new StreamReader(stream))
             {
@@ -173,10 +173,10 @@ namespace HAgent.Storage.File
                 }
             }
 
-            if (File.Exists(_path))
-                File.Replace(tempPath, _path, null);
+            if (System.IO.File.Exists(_path))
+                System.IO.File.Replace(tempPath, _path, null);
             else
-                File.Move(tempPath, _path);
+                System.IO.File.Move(tempPath, _path);
         }
 
         private static AiLearningCandidateRecord Clone(AiLearningCandidateRecord source)

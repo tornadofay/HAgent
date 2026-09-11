@@ -1,4 +1,5 @@
 using System;
+using HAgent.Abstractions;
 using HAgent.Models;
 using HAgent.Runtime;
 using Xunit;

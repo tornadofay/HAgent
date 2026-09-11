@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using HAgent.Models;
 using HAgent.Runtime;
@@ -38,6 +39,46 @@ namespace HAgent.Tests
             Assert.Equal(AiLearningCandidateStatus.PendingReview, restored.Status);
             Assert.IsType<SkillCandidate>(restored);
             Assert.Equal(((SkillCandidate)candidate).Skill.Id, ((SkillCandidate)restored).Skill.Id);
+        }
+
+        [Fact]
+        public async Task FileStorePersistsAcrossInstancesAndFailsClosedOnCorruptRecord()
+        {
+            var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "HAgent-LearningCandidate-Test-" + Guid.NewGuid().ToString("N"));
+            var path = System.IO.Path.Combine(root, "candidates.jsonl");
+            try
+            {
+                var candidate = CreatePendingSkillCandidate();
+                var record = AiLearningCandidatePersistence.Capture(candidate, PendingDecision(candidate), StandardRetention(), DateTimeOffset.UtcNow);
+                using (var firstStore = new HAgent.Storage.File.FileLearningCandidateStore(path))
+                {
+                    await firstStore.SaveAsync(record);
+                }
+
+                using (var restartedStore = new HAgent.Storage.File.FileLearningCandidateStore(path))
+                {
+                    var recovered = await restartedStore.GetAsync(record.CandidateId);
+                    Assert.NotNull(recovered);
+                    Assert.Equal(record.CandidateId, recovered.CandidateId);
+                    Assert.Equal(record.Status, recovered.Status);
+                    Assert.Equal(record.Revision, recovered.Revision);
+                }
+
+                using (var writer = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read)))
+                {
+                    await writer.WriteLineAsync("{not-valid-json");
+                }
+
+                using (var corruptStore = new HAgent.Storage.File.FileLearningCandidateStore(path))
+                {
+                    await Assert.ThrowsAsync<InvalidDataException>(() => corruptStore.GetAsync(record.CandidateId));
+                }
+            }
+            finally
+            {
+                try { if (Directory.Exists(root)) Directory.Delete(root, true); }
+                catch { }
+            }
         }
 
         [Fact]
@@ -98,6 +139,20 @@ namespace HAgent.Tests
             Assert.Equal("Allow", updated.LastReviewOutcome);
             Assert.Equal("operator-approved", updated.LastReviewReason);
             Assert.False(string.IsNullOrWhiteSpace(updated.LastReviewerIdentityJson));
+        }
+
+        [Fact]
+        public void ZeroDayRetentionCreatesImmediatelyExpiredCandidate()
+        {
+            var candidate = CreatePendingSkillCandidate();
+            var capturedAt = DateTimeOffset.UtcNow;
+            var retention = new AiLearningCandidateRetentionPolicy();
+            retention.Rules.Add(new AiLearningCandidateRetentionRule { RetentionClass = "Immediate", RetentionDays = 0 });
+
+            var record = AiLearningCandidatePersistence.Capture(candidate, PendingDecision(candidate), retention, capturedAt);
+
+            Assert.Equal(capturedAt, record.ExpiresAt);
+            Assert.True(record.IsExpired(capturedAt));
         }
 
         [Fact]

@@ -14,6 +14,7 @@ namespace HAgent.Example
         private const string LearningReviewExampleAgentId = "learning-review-ui-example-agent";
         private const string LearningReviewApproveRuleId = "example-learning-review-ui-approve";
         private const string LearningReviewRejectRuleId = "example-learning-review-ui-reject";
+        private const string LearningReviewPromoteRuleId = "example-learning-review-ui-promote";
         private const string LearningReviewInputPlaceholder = "Paste the Candidate ID returned by 'Create review candidate'.";
 
         private string _learningReviewSeedStorePath;
@@ -24,22 +25,22 @@ namespace HAgent.Example
             AddApiTab(
                 "Learning Review Seed",
                 "Create review candidate",
-                "Creates one real durable PendingReview candidate in the same learning-candidate store used by Configuration → Learning Review and ensures the Example policy authorizes reviewing that candidate.",
-                "The output must show Candidate ID, PendingReview status, Revision 1, and the shared candidate-store path. Then open Configuration → Learning Review and review this candidate manually.",
+                "Creates one real durable PendingReview candidate in the same learning-candidate store used by Configuration → Learning Review and ensures the Example policy authorizes reviewing and promoting that candidate.",
+                "The output must show Candidate ID, PendingReview status, Revision 1, and the shared candidate-store path. Then open Configuration → Learning Review and explicitly Approve the candidate before optionally promoting it.",
                 "No AI request is sent. The candidate is provider-neutral test data.",
                 SeedLearningReviewCandidateAsync,
                 "Manual review boundary",
-                "This is the first half of the UI integration test. Approve or Reject the displayed candidate in Configuration → Learning Review before running the verification example.");
+                "Create the candidate, review it in Configuration → Learning Review, then use Promote on the Approved candidate when authoritative promotion is configured.");
 
             AddApiTab(
                 "Learning Review Verify",
                 "Verify review result",
-                "Reopens the durable candidate store from a fresh store instance and verifies that the candidate is no longer PendingReview, its lifecycle revision advanced, and review authorization evidence was persisted.",
-                "Enter the Candidate ID printed by the seed example. The verifier must report Approved or Rejected, Revision 2, a persisted reviewer identity, and Allow review authorization evidence.",
+                "Reopens the durable candidate store from a fresh store instance and verifies the persisted review result or promoted lifecycle state.",
+                "The verifier accepts Approved/Rejected revision 2 after review, or Promoted revision 3 after successful authoritative promotion.",
                 LearningReviewInputPlaceholder,
                 VerifyLearningReviewResultAsync,
                 "Restart / persistence boundary",
-                "This is the second half of the UI integration test. It proves that the button click changed durable state rather than merely changing the screen. Leaving the example placeholder unchanged verifies the candidate most recently created by this Example session.");
+                "Leaving the example placeholder unchanged verifies the candidate most recently created by this Example session.");
         }
 
         private async Task SeedLearningReviewCandidateAsync(string unused)
@@ -74,7 +75,8 @@ namespace HAgent.Example
                 "Source agent profile: " + record.SourceAgentProfileId + Environment.NewLine +
                 "Candidate store: " + path + Environment.NewLine +
                 "Review policy: " + LearningReviewApproveRuleId + " / " + LearningReviewRejectRuleId + Environment.NewLine +
-                "Next: open Configuration → Learning Review and explicitly Approve or Reject this candidate.");
+                "Promotion policy: " + LearningReviewPromoteRuleId + Environment.NewLine +
+                "Next: open Configuration → Learning Review, Approve the candidate, then use Promote if authoritative promotion is configured by the host.");
         }
 
         private async Task VerifyLearningReviewResultAsync(string input)
@@ -128,25 +130,51 @@ namespace HAgent.Example
                     Environment.NewLine +
                     "Seed candidate store: " + (_learningReviewSeedStorePath ?? "<not recorded in this application session>"));
 
-            if (record.Status != AiLearningCandidateStatus.Approved && record.Status != AiLearningCandidateStatus.Rejected)
+            if (record.Status == AiLearningCandidateStatus.PendingReview)
                 throw new InvalidOperationException("The candidate is still PendingReview. Use Configuration → Learning Review to Approve or Reject it first.");
-            if (record.Revision != 2)
-                throw new InvalidOperationException("The reviewed candidate revision is " + record.Revision + "; expected 2 after the first review.");
+
+            if ((record.Status == AiLearningCandidateStatus.Approved || record.Status == AiLearningCandidateStatus.Rejected) && record.Revision == 2)
+            {
+                VerifyReviewedEvidence(record);
+                Write(
+                    "LEARNING REVIEW VERIFY",
+                    "Fresh store instance reopened: verified." + Environment.NewLine +
+                    "Candidate ID: " + record.CandidateId + Environment.NewLine +
+                    "Final status: " + record.Status + Environment.NewLine +
+                    "Lifecycle revision: " + record.Revision + Environment.NewLine +
+                    "Reviewer identity persisted: yes" + Environment.NewLine +
+                    "Policy authorization outcome persisted: " + record.LastReviewOutcome + Environment.NewLine +
+                    "Candidate store reopened: " + resolvedPath + Environment.NewLine +
+                    "Durable Learning Review integration: verified.");
+                return;
+            }
+
+            if (record.Status == AiLearningCandidateStatus.Promoted && record.Revision == 3)
+            {
+                VerifyReviewedEvidence(record);
+                Write(
+                    "LEARNING REVIEW VERIFY",
+                    "Fresh store instance reopened: verified." + Environment.NewLine +
+                    "Candidate ID: " + record.CandidateId + Environment.NewLine +
+                    "Final status: Promoted" + Environment.NewLine +
+                    "Lifecycle revision: 3" + Environment.NewLine +
+                    "Reviewer identity persisted: yes" + Environment.NewLine +
+                    "Review authorization outcome persisted: " + record.LastReviewOutcome + Environment.NewLine +
+                    "Candidate store reopened: " + resolvedPath + Environment.NewLine +
+                    "Promoted Learning Review integration: verified.");
+                return;
+            }
+
+            throw new InvalidOperationException(
+                "The candidate is in " + record.Status + " at lifecycle revision " + record.Revision + "; expected Approved/Rejected revision 2 or Promoted revision 3.");
+        }
+
+        private static void VerifyReviewedEvidence(AiLearningCandidateRecord record)
+        {
             if (string.IsNullOrWhiteSpace(record.LastReviewerIdentityJson))
                 throw new InvalidOperationException("Reviewer identity evidence was not persisted.");
             if (!string.Equals(record.LastReviewOutcome, "Allow", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Review authorization evidence was not persisted as Allow.");
-
-            Write(
-                "LEARNING REVIEW VERIFY",
-                "Fresh store instance reopened: verified." + Environment.NewLine +
-                "Candidate ID: " + record.CandidateId + Environment.NewLine +
-                "Final status: " + record.Status + Environment.NewLine +
-                "Lifecycle revision: " + record.Revision + Environment.NewLine +
-                "Reviewer identity persisted: yes" + Environment.NewLine +
-                "Policy authorization outcome persisted: " + record.LastReviewOutcome + Environment.NewLine +
-                "Candidate store reopened: " + resolvedPath + Environment.NewLine +
-                "Durable Learning Review integration: verified.");
         }
 
         private static async Task<string> ResolveLatestLearningReviewExampleCandidateIdAsync(
@@ -213,6 +241,12 @@ namespace HAgent.Example
                 changed = true;
             }
 
+            if (!policy.Rules.Any(x => x != null && string.Equals(x.Id, LearningReviewPromoteRuleId, StringComparison.OrdinalIgnoreCase)))
+            {
+                policy.Rules.Add(CreateLearningReviewPromotionRule());
+                changed = true;
+            }
+
             if (changed)
                 await store.SavePolicySetAsync(policy).ConfigureAwait(true);
         }
@@ -235,6 +269,25 @@ namespace HAgent.Example
             rule.Attributes["proposedScope"] = "Agent";
             rule.Attributes["currentStatus"] = "PendingReview";
             rule.Attributes["reviewAction"] = action.ToString();
+            return rule;
+        }
+
+        private static AiPolicyRule CreateLearningReviewPromotionRule()
+        {
+            var rule = new AiPolicyRule
+            {
+                Id = LearningReviewPromoteRuleId,
+                Name = "Example Learning Review Promotion",
+                Scope = AiPolicyScopeKind.Agent,
+                ScopeId = LearningReviewExampleAgentId,
+                Priority = 100,
+                Outcome = AiPolicyOutcome.Allow,
+                Reason = "Deterministic Example authorization for authoritative Learning Review promotion."
+            };
+            rule.Operations.Add("learning.promote");
+            rule.ResourceTypes.Add("learning-candidate");
+            rule.Attributes["candidateType"] = "Skill";
+            rule.Attributes["proposedScope"] = "Agent";
             return rule;
         }
 

@@ -218,13 +218,21 @@ namespace HAgent.Example
                 var store = await CreateConfiguredAiStoreAsync().ConfigureAwait(true);
                 var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(System.IO.Path.Combine(_basePath, "secrets"));
                 var toolStore = await CreateConfiguredToolStoreAsync().ConfigureAwait(true);
+                var learningCandidateStore = new HAgent.Storage.File.FileLearningCandidateStore(
+                    System.IO.Path.Combine(runtimeOptions.GetEffectiveRootPath(), "learning", "candidates.jsonl"));
+                var reviewerIdentity = new AgentIdentityContext(userId: AISettings.DefaultSystemAdminUserId);
 
-                AISettings.ShowMainAISettingsForm(
-                    store,
-                    secrets,
-                    this,
-                    new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() },
-                    toolStore);
+                using (learningCandidateStore)
+                {
+                    AISettings.ShowMainAISettingsForm(
+                        store,
+                        secrets,
+                        this,
+                        new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() },
+                        toolStore,
+                        learningCandidateStore,
+                        reviewerIdentity);
+                }
 
                 var updatedOptions = await LoadStorageOptionsAsync().ConfigureAwait(true);
                 if (HasRuntimeStorageChanges(runtimeOptions, updatedOptions))

@@ -5,9 +5,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** Slice 8 in progress — Canonical Learning Lifecycle Gate
+- **Status:** Slice 9 in progress — Learning Candidate Persistence, Retention + Review
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Continue the unfinished 0.9575 learning boundary before moving to 0.958. Do not treat unchecked historical checklist items as automatically missing; the remainder is being audited against the current architecture and implementation.
+- **Scope:** Continue the unfinished 0.9575 learning boundary. Slice 8 is verified and closed; Slice 9 makes the canonical typed learning candidate durable without creating a second candidate lifecycle or authoritative resource model.
 
 ## Completed current-phase slices
 
@@ -25,20 +25,18 @@ This file is the compact handoff state for work currently in progress. It is not
 
 0.9575 Slice 7 — Learning Policy + Typed Candidates — **verified by user** 2026-09-11: `HAgent.Example → Policy → Learning Policy` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` was 187/187 passed, 0 failed, 0 skipped on .NET 9.
 
-## Current Slice 8 boundary
+0.9575 Slice 8 — Canonical Learning Lifecycle Gate — **verified by user** 2026-09-11: `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` was **194/194 passed, 0 failed, 0 skipped** on .NET 9. The lifecycle identity boundary is fail-closed and requires canonical `AgentIdentityContext`.
 
-`AiLearningLifecycleCoordinator` is the canonical gate from a validated typed learning candidate to `Rejected`, `PendingReview`, or `Approved`. It composes Learning Policy, Learning Mode, and existing unified learning-promotion authorization. It does not publish or persist authoritative Memory, Knowledge, or Skills.
+## Current Slice 9 boundary
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Lifecycle` on **.NET Framework 4.8.1** and **.NET 9**.
+`AiLearningCandidateRecord` is the canonical durable envelope for the existing `AiLearningCandidate` lifecycle. `IAiLearningCandidateStore` provides provider-neutral persistence, bounded query, optimistic revision checks, and expiry cleanup. `AiLearningCandidateReviewService` uses the existing unified `IAiPolicyEngine` with operation `learning.review`; it never publishes Memory, Knowledge, or Skills.
 
-**Tests to run:** `tests/HAgent.Tests/LearningLifecycleTests.cs` (focused); full `HAgent.Tests` is not required until the slice checkpoint.
+The current implementation includes deterministic InMemory and durable File stores, typed payload round-trip, retention expiry, review authorization evidence, and stale-revision protection. Candidate persistence remains storage of a proposal/lifecycle record, not authoritative resource publication.
 
-## Remainder audit direction
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` on **.NET Framework 4.8.1** and **.NET 9**.
 
-The historical 0.9575 checklist contains both genuine remaining work and items that have already leaked into the implementation under different names or with a newer architecture. The audit must classify each remaining item as implemented, stale/obsolete, partially implemented, or genuinely outstanding before planning 0.958.
-
-Known example: the current canonical resource scope is `Global`, `Tenant`, `User`, `Workspace`, `Agent`, `Runtime`, and `Execution`; the older checklist wording that says `Domain` is stale.
+**Tests to run:** `tests/HAgent.Tests/LearningCandidatePersistenceTests.cs` (focused); full `HAgent.Tests` is required at the Slice 9 checkpoint.
 
 ## Verification status
 
-Slice 8 implementation is in progress. Do not select the next numbered slice until the focused tests and both supported Example targets have been run and the result recorded here.
+Slice 9 implementation is in progress. The Slice 8 checkpoint is closed from user-provided verification. Do not advance to Slice 10 until the focused Slice 9 tests, both supported Example targets, persistence/restart behavior, retention behavior, review authorization, and stale-revision handling are actually verified.

@@ -1103,7 +1103,7 @@ The next ordered milestone is **0.9575 Knowledge, Skills, Memory Governance + Le
 
 ## Status
 
-**In progress — Slice 4 implementation checkpoint; Slice 3 verified.**
+**In progress — Slice 7 implementation checkpoint; Slices 1–6 verified.**
 
 ## Goal
 
@@ -1161,6 +1161,88 @@ The provider-neutral Skill contract provides versioned reusable definitions/refe
 
 Slice 3 is closed.
 
+## Slice 4 — Memory family/type and provenance contract
+
+**Verified — 2026-09-09.**
+
+The normalized Memory contract extends the existing `MemoryEntry` rather than introducing a second memory persistence model.
+
+Implemented in this slice:
+
+- `AiMemoryFamily`: `Working`, `Episodic`, `Semantic`, `Procedural`, `Custom`.
+- Bounded family `TypeId` namespaces; built-in prefixes are reserved while custom families use application-specific namespaces.
+- `AiMemoryProvenance` with bounded source identity, source execution/runtime IDs, evidence, and confidence.
+- Optional `MemoryEntry.ExpiresAt` metadata and deterministic `IsExpired(...)` evaluation; retention enforcement remains later governance work.
+- Deep-clone and structural validation boundaries on `MemoryEntry` and provenance.
+- In-memory and File stores validate/isolate entries; SQL Server and MySQL preserve the new fields in their existing `HAgentMemoryEntries` tables with schema migration support.
+- Existing episodic/task memory creation maps to the canonical episodic family/type contract.
+- Focused tests: `tests/HAgent.Tests/MemoryFamilyTests.cs`.
+- Public Example: `HAgent.Example → Memory → Memory Families`.
+- Architecture: `docs/architecture/83-memory-contracts.md`.
+- Durable decision: D-011.
+- CI workflow: `.github/workflows/verify-phase-0-9575-slice-4.yml`.
+
+### Verification evidence
+
+- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Memory → Memory Families`.
+- .NET 9 Example succeeded: same Example.
+- Full .NET 9 `HAgent.Tests`: **167/167 passed, 0 failed, 0 skipped**.
+
+Slice 4 is closed.
+
+## Slice 5 — Memory governance and retention
+
+**Verified — 2026-09-09.**
+
+The slice reuses the generic tri-state resource capability snapshot through `memory`, `memory.family`, and `memory.type`, with deterministic bounded retrieval, expiration filtering, per-family/type retention caps, and the provider-neutral `AiGovernedMemoryStore` decorator over the existing memory store boundary.
+
+### Verification evidence
+
+- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Memory → Memory Governance`.
+- .NET 9 Example succeeded: same Example.
+- Full .NET 9 `HAgent.Tests`: **175/175 passed, 0 failed, 0 skipped**.
+
+Slice 5 is closed.
+
+## Slice 6 — Learning Mode foundation
+
+**Verified — 2026-09-09.**
+
+`AiLearningMode` is a provider-neutral profile setting with four values: `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, and `FullyAutomatic`. It is distinct from resource/capability enablement, supports runtime-only override, and is captured in the immutable execution snapshot. The existing learning-candidate/promotion contracts remain the single candidate model; this slice does not introduce a duplicate candidate architecture.
+
+### Verification evidence
+
+- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Cognition → Learning → Learning Mode`.
+- .NET 9 Example succeeded: same Example.
+- Full .NET 9 `HAgent.Tests`: **181/181 passed, 0 failed, 0 skipped**.
+
+Slice 6 is closed.
+
+## Slice 7 — Learning Policy + Typed Candidates
+
+**In progress.**
+
+This slice defines the single provider-neutral Learning Policy contract and typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
+
+### Slice 7 scope
+
+- Define one learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization.
+- Add typed Memory/Knowledge/Skill candidate payload contracts without creating a second candidate lifecycle.
+- Preserve source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence where available.
+- Support deterministic code-derived candidate signals without requiring an LLM.
+- Keep model-assisted extraction/evaluation optional and non-authoritative.
+- Keep candidate creation separate from promotion.
+
+### Slice 7 verification target
+
+- Focused learning-policy and typed-candidate tests.
+- Full `HAgent.Tests` on .NET 9 when the slice is complete.
+- Matching public Example on .NET Framework 4.8.1 and .NET 9.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on **.NET Framework 4.8.1** and **.NET 9**.
+
+**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+
 ## Resource governance
 
 7. [x] Define one generic resource governance model shared by Skills, Knowledge/Wiki, Memory families/types, and future resource types.
@@ -1201,50 +1283,21 @@ Slice 3 is closed.
 33. [ ] Support `SkillCandidate` → validation/evaluation → new skill version or explicit rejection.
 34. [x] Ensure skill invocation remains subject to policy and authorization.
 
-## Slice 4 — Memory family/type and provenance contract
-
-**In progress — verification pending.**
-
-The normalized Memory contract extends the existing `MemoryEntry` rather than introducing a second memory persistence model.
-
-Implemented in this slice:
-
-- `AiMemoryFamily`: `Working`, `Episodic`, `Semantic`, `Procedural`, `Custom`.
-- Bounded family `TypeId` namespaces; built-in prefixes are reserved while custom families use application-specific namespaces.
-- `AiMemoryProvenance` with bounded source identity, source execution/runtime IDs, evidence, and confidence.
-- Optional `MemoryEntry.ExpiresAt` metadata and deterministic `IsExpired(...)` evaluation; retention enforcement remains later governance work.
-- Deep-clone and structural validation boundaries on `MemoryEntry` and provenance.
-- In-memory and File stores validate/isolate entries; SQL Server and MySQL preserve the new fields in their existing `HAgentMemoryEntries` tables with schema migration support.
-- Existing episodic/task memory creation maps to the canonical episodic family/type contract.
-- Focused tests: `tests/HAgent.Tests/MemoryFamilyTests.cs`.
-- Public Example: `HAgent.Example → Memory → Memory Families`.
-- Architecture: `docs/architecture/83-memory-contracts.md`.
-- Durable decision: D-011.
-- CI workflow: `.github/workflows/verify-phase-0-9575-slice-4.yml`.
-
-### Slice 4 verification target
-
-- Build Core on .NET Framework 4.8.1 and .NET 9.
-- Build Example on .NET Framework 4.8.1 and .NET 9 Windows.
-- Run focused `MemoryFamilyTests`.
-- Run the full .NET 9 `HAgent.Tests` suite.
-- Run `HAgent.Example → Memory → Memory Families` on both supported frameworks.
-
 ## Memory
 
 35. [x] Normalize memory families including working, episodic, semantic, procedural, and future extensible types.
 36. [x] Make memory scope explicit in the existing memory contract and keep family/type separate from ownership and authorization.
 37. [x] Preserve independent runtime-instance private-memory isolation through the existing owner model; deeper runtime-governed isolation remains later work.
 38. [x] Keep storage implementation separate from memory ownership and retrieval policy.
-39. [ ] Make memory-type enable/disable state governable at profile and runtime levels.
-40. [ ] Support bounded retrieval and retention policies appropriate to each memory family/type.
+39. [x] Make memory-type enable/disable state governable at profile and runtime levels.
+40. [x] Support bounded retrieval and retention policies appropriate to each memory family/type.
 41. [x] Preserve provenance and confidence/evidence metadata where available.
 42. [x] Keep Memory usable without GPU hardware, vector databases, embeddings, or large resident indexes.
 
 ## Learning modes and candidates
 
-43. [ ] Define provider-neutral `LearningMode`: `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, `FullyAutomatic`.
-44. [ ] Keep Learning Mode distinct from resource/capability enablement.
+43. [x] Define provider-neutral `LearningMode`: `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, `FullyAutomatic`.
+44. [x] Keep Learning Mode distinct from resource/capability enablement.
 45. [ ] Define one learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization.
 46. [ ] Support typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts.
 47. [ ] Preserve source execution ID, runtime ID, agent/profile identity, scope, provenance, and evidence/confidence on candidates when available.

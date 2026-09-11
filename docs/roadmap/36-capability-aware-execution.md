@@ -188,15 +188,6 @@ Deterministic verification must cover:
 9. Fallback never bypasses authorization or capability requirements.
 10. Independent runtime agents may call the planner concurrently without sharing mutable runtime identity/state.
 
-## Not part of V1
-
-- a universal autonomous routing AI;
-- provider-specific model matrices in Core;
-- a second routing engine in 0.97;
-- distributed rate-limit services;
-- hard-coded vendor behavior;
-- optimization based on opaque model rankings without inspectable decision data.
-
 ## Dependency chain
 
 ```text

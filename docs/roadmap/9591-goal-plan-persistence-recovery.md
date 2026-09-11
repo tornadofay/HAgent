@@ -90,14 +90,6 @@ live runtime objects
 6. Do not introduce a second plan model for intervention or cognition.
 7. Keep the phase host-neutral; host side effects remain outside Core.
 
-## Not part of V1
-
-- distributed workflow orchestration;
-- compensating transactions for every arbitrary side effect;
-- universal exactly-once semantics;
-- a second workflow engine;
-- autonomous long-running process supervision.
-
 ## Dependency order
 
 ```text

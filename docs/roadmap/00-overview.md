@@ -169,7 +169,7 @@ many independent runtime instances
     → isolated state and identity
 ```
 
-This removes the need for a general multi-writer cognitive merge architecture in production V1. Revision/stale-result protection remains mandatory; semantic multi-writer proposal arbitration is deferred to optional research.
+This removes the need for a general multi-writer cognitive merge architecture in production V1. Revision/stale-result protection remains mandatory.
 
 ## 0.96 scope
 
@@ -204,8 +204,6 @@ The Persistent Cognitive Runtime provides:
 - a production management/diagnostic workbench built on runtime state-transition APIs rather than direct persistence mutation.
 
 The three auxiliary roadmap documents `cognitive-workbench.md`, `cognitive-workbench-controls.md`, and `cognitive-workbench-learning.md` are subdocuments of 0.97, not separate roadmap phases.
-
-It is explicitly **not** a claim to implement a complete cognitive theory, human cognition, AGI, consciousness, universal planning, neural continual learning, or distributed cognitive consensus.
 
 ## 0.10 vs 1.0 boundary
 

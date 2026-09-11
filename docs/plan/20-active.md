@@ -38,29 +38,46 @@ Verified by user on 2026-09-09.
 
 Slice 4 is closed.
 
-### Slice 5 — Memory governance and retention — CURRENT
+### Slice 5 — Memory governance and retention — VERIFIED
 
-**Objective:** reuse the existing generic tri-state resource capability snapshot for Memory family/type access and add provider-neutral bounded retrieval and retention policy over the existing `IMemoryStore` / `MemoryEntry` foundation.
+Verified by user on 2026-09-09.
+
+- Example: `HAgent.Example → Memory → Memory Governance` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Full `HAgent.Tests`: 175/175 passed, 0 failed, 0 skipped on .NET 9.
+
+Slice 5 is closed.
+
+### Slice 6 — Learning Mode foundation — VERIFIED
+
+Verified by user on 2026-09-09.
+
+- Example: `HAgent.Example → Cognition → Learning → Learning Mode` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Full `HAgent.Tests`: 181/181 passed, 0 failed, 0 skipped on .NET 9.
+
+`AiLearningMode` remains distinct from resource capability enablement, with persistent profile state, runtime-only override, immutable execution-snapshot capture, and the existing single learning-candidate contract.
+
+Slice 6 is closed.
+
+### Slice 7 — Learning Policy + Typed Candidates — CURRENT
+
+**Objective:** define one provider-neutral learning policy contract and typed Memory/Knowledge/Skill candidate payload contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
 
 **Complete within this slice:**
 
-- canonical Memory capability resource types: `memory`, `memory.family`, `memory.type`;
-- family/type/expiration filters on `MemoryQuery`;
-- deterministic global and family/type retrieval limits capped at 1000;
-- optional expiration exclusion during recall;
-- per-family/type retention caps that never extend a shorter explicit expiration;
-- `AiMemoryGovernancePolicy` validation and deep clone semantics;
-- `AiMemoryGovernanceEvaluator` over the existing `AiResourceCapabilitySnapshot`;
-- `AiGovernedMemoryStore` over the existing `IMemoryStore` boundary;
-- focused tests and matching public Example.
+- learning policy covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization;
+- typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts;
+- source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence preservation where available;
+- deterministic code-derived learning signals without requiring an LLM;
+- optional model-assisted extraction/evaluation that remains non-authoritative;
+- candidate creation kept separate from candidate promotion.
 
-**Out of scope:** Learning candidates/promotion, Knowledge Manager, Skill Manager, management UI, persistence redesign, or a second authorization system.
+**Out of scope:** candidate persistence, promotion orchestration, Learning Review UI, Knowledge/Skill management UI, context integration, and the broader 0.9576 roadmap restructuring.
 
-**Completion checkpoint:** affected projects build; focused tests and full .NET 9 tests pass; Example succeeds on .NET Framework 4.8.1 and .NET 9.
+**Completion checkpoint:** affected projects build; focused learning-policy/typed-candidate tests pass; full .NET 9 `HAgent.Tests` passes; matching Example succeeds on .NET Framework 4.8.1 and .NET 9.
 
-**Example to run:** `HAgent.Example → Memory → Memory Governance` on **.NET Framework 4.8.1** and **.NET 9**.
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on **.NET Framework 4.8.1** and **.NET 9**.
 
-**Tests to run:** `tests/HAgent.Tests/MemoryGovernanceTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
 
 ## Run rule
 

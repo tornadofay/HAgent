@@ -106,22 +106,24 @@ namespace HAgent.Example
 
         private async Task EnsureLearningReviewExamplePolicyAsync(IAiStore store)
         {
-            var policy = await store.GetPolicySetAsync().ConfigureAwait(true);
-            if (policy == null) policy = new AiPolicySet();
+            var policy = await store.GetPolicySetAsync().ConfigureAwait(true) ?? new AiPolicySet();
             if (string.IsNullOrWhiteSpace(policy.Version)) policy.Version = "example-learning-review-1";
 
-            if (policy.Rules.Any(x => x != null && string.Equals(x.Id, LearningReviewApproveRuleId, StringComparison.OrdinalIgnoreCase)))
-                return;
+            bool changed = false;
+            if (!policy.Rules.Any(x => x != null && string.Equals(x.Id, LearningReviewApproveRuleId, StringComparison.OrdinalIgnoreCase)))
+            {
+                policy.Rules.Add(CreateLearningReviewExampleRule(LearningReviewApproveRuleId, AiLearningCandidateReviewAction.Approve));
+                changed = true;
+            }
 
-            var approveRule = CreateLearningReviewExampleRule(
-                LearningReviewApproveRuleId,
-                AiLearningCandidateReviewAction.Approve);
-            var rejectRule = CreateLearningReviewExampleRule(
-                LearningReviewRejectRuleId,
-                AiLearningCandidateReviewAction.Reject);
-            policy.Rules.Add(approveRule);
-            policy.Rules.Add(rejectRule);
-            await store.SavePolicySetAsync(policy).ConfigureAwait(true);
+            if (!policy.Rules.Any(x => x != null && string.Equals(x.Id, LearningReviewRejectRuleId, StringComparison.OrdinalIgnoreCase)))
+            {
+                policy.Rules.Add(CreateLearningReviewExampleRule(LearningReviewRejectRuleId, AiLearningCandidateReviewAction.Reject));
+                changed = true;
+            }
+
+            if (changed)
+                await store.SavePolicySetAsync(policy).ConfigureAwait(true);
         }
 
         private static AiPolicyRule CreateLearningReviewExampleRule(string id, AiLearningCandidateReviewAction action)

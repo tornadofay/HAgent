@@ -1,6 +1,6 @@
 # HAgent Roadmap
 
-The roadmap is the ordered implementation path toward the HAgent master plan. Stable architectural definitions belong under `docs/architecture/`, and current work belongs under `docs/plan/`.
+The roadmap is the ordered implementation path toward the HAgent master plan. Stable architectural definitions belong under `docs/architecture/`, current implementation state belongs under `docs/plan/`, and this directory defines the ordered delivery sequence.
 
 ## Current position
 
@@ -9,134 +9,183 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.5 — tool foundation complete; hardening remains
 - 0.6 — safety/permission foundation complete; broader authorization remains
 - 0.7 — WinForms UI Context + Data Discovery complete and locally verified
-- 0.8 — Data Access + Authorization + Internal Storage **and first-class resource foundations** — substantially implemented
+- 0.8 — Data Access + Authorization + Internal Storage and first-class resource foundations substantially implemented
 - 0.9 — Runtime Agent Instances complete and locally verified
-- 0.95 — Generic External Host Integration **complete and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.951 — Identity, Tenancy + User Context — **completed and verified**
-- 0.952 — First-Class Event Subsystem — completed and verified
-- 0.953 — Unified Policy Engine — completed for its verified runtime/persistence/resource/learning-policy foundation
-- 0.954 — Prompt + Instruction Governance — **completed and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.955 — Context Engineering — **completed and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.956 — Observability + Distributed Tracing — **completed and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9**
-- 0.957 — Evaluation + Quality Measurement — **completed and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.9575 — Knowledge, Skills, Memory Governance + Learning — **current ordered milestone; Slices 1–7 verified**
-- 0.9576 — Learned Resource Reliability, Adaptation + Consolidation — planned follow-on reliability/adaptation phase
-- 0.958 — Agent Lifecycle + Health Management — planned architectural foundation
-- 0.9591 — Goal/Plan Persistence + Recovery — **ordered before 0.959**; planned foundation
-- 0.959 — Human-in-the-Loop + Intervention — planned architectural foundation; ahead-of-roadmap execution intervention implementation exists
-- 0.9592 — Provider Ecosystem + Adapter Lifecycle — planned provider-platform foundation
-- 0.96.x — Configuration, Storage + Portability Evolution — cross-cutting foundation for 0.96/0.97
-- 0.96 — Capability-Aware Execution — planned major execution foundation
-- 0.97 — Persistent Cognitive Runtime — planned long-lived cognitive layer
-- 0.10 — Workspaces, Routing + Chat — paused until the generic runtime/capability/cognitive foundations are sufficient
+- 0.95 — Generic External Host Integration complete and verified on .NET Framework 4.8.1 and .NET 9
+- 0.951 — Identity, Tenancy + User Context completed and verified
+- 0.952 — First-Class Event Subsystem completed and verified
+- 0.953 — Unified Policy Engine foundation completed and verified for current runtime/resource/learning-policy boundaries
+- 0.954 — Prompt + Instruction Governance completed and verified on .NET Framework 4.8.1 and .NET 9
+- 0.955 — Context Engineering completed and verified on .NET Framework 4.8.1 and .NET 9
+- 0.956 — Observability + Distributed Tracing completed through its verified slices
+- 0.957 — Evaluation + Quality Measurement completed and verified
+- 0.9575 — Knowledge, Skills, Memory Governance + Learning **current**; Slices 1–7 verified, Slice 8 in progress
+- 0.9576 — Learned Resource Reliability + Adaptation **planned follow-on**
+- 0.958 — Agent Lifecycle + Health **planned**
+- 0.9591 — Goal/Plan Persistence + Recovery **planned and ordered before intervention**
+- 0.959 — Human-in-the-Loop + Intervention **planned; execution/learning intervention exists ahead of roadmap**
+- 0.9592 — Provider Ecosystem + Adapter Lifecycle **planned**
+- 0.96.x — Configuration, Storage + Portability **cross-cutting foundation before 0.96**
+- 0.96 — Capability-Aware Execution **planned major execution foundation**
+- 0.97 — Persistent Cognitive Runtime **planned production V1 cognitive layer**
+- 0.10 — Workspaces, Routing + Chat **deferred until the generic runtime/execution/cognition foundations are sufficient**
 - 1.0 — Collaboration + Workflows
 - Later — extensibility, developer platform, release hardening, and other ecosystem work
 
-## First-class resource architecture
-
-Knowledge, Skills, Memory, and Learning are now treated as a first-class architectural concern from the foundation upward rather than as a late product feature.
-
-The roadmap deliberately separates two layers:
-
-```text
-0.8 Resource Foundations
-    identity / scope / ownership metadata
-    provenance / version / lifecycle metadata
-    Skill definitions and references
-    Knowledge / Wiki resource contracts and retrieval boundaries
-    Memory family/type foundations
-    typed learning-candidate foundations
-    HAgent-owned persistence substrate
-
-0.9575 Mature Resource Governance + Learning
-    policy and authorization
-    capability inheritance and runtime overrides
-    effective execution resource snapshots
-    bounded retrieval / retention governance
-    Knowledge / Skill management
-    Learning modes and learning policy
-    candidate validation / evaluation / approval / promotion
-    resource/version conflict handling
-
-0.9576 Learned Resource Reliability + Adaptation + Consolidation
-    applicability / validity assessment
-    outcome-based trust and confidence revision
-    drift / staleness / contradiction handling
-    safe fallback to reasoning when learned behavior is uncertain
-    revalidation and replacement candidates
-    consolidation / deduplication / conflict handling
-    utility-aware archival and forgetting
-```
-
-This separation is intentional. HAgent establishes canonical resource contracts early enough that Context, Instruction Governance, Runtime, Evaluation, and Persistent Cognition can consume them directly. Mature governance is completed only after the identity, policy, instruction, context, and evaluation boundaries required to govern those resources exist. Phase 0.9576 extends that governance into the post-promotion reliability lifecycle without introducing a parallel resource architecture.
-
-Learning is not treated as a synonym for memory or as a late model feature. It is a controlled lifecycle from experience to typed candidate to validation/policy/approval and finally promotion into an authoritative resource or scoped state, followed by ongoing reliability evaluation where applicable.
-
-The four concepts remain distinct:
-
-```text
-Skills    = reusable executable capabilities/procedures
-Knowledge = reusable retrievable information
-Memory    = scoped experience/state
-Learning  = governed transformation of experience into candidates/promotions
-```
-
-No phase may introduce a parallel resource model merely because the mature governance phase has not yet been completed. Existing resource primitives may be consumed by earlier phases, while access, promotion, and authoritative mutation remain subject to the governance boundaries defined later.
-
-## Foundational sequence
-
-The current ordered foundations are:
+## Ordered V1 dependency chain
 
 ```text
 0.951 Identity / Tenancy / User Context
         ↓
-0.952 Event subsystem
+0.952 Events
         ↓
-0.953 Unified Policy Engine
+0.953 Unified Policy
         ↓
-0.954 Prompt / Instruction Governance — verified
+0.954 Prompt / Instruction Governance
         ↓
-0.955 Context Engineering — verified
+0.955 Context Engineering
         ↓
-0.956 Observability / Tracing — verified
+0.956 Observability / Tracing
         ↓
-0.957 Evaluation / Quality Measurement — verified
+0.957 Evaluation / Quality Measurement
         ↓
-0.9575 Knowledge / Skills / Memory Governance + Learning — current
+0.9575 Knowledge / Skills / Memory Governance + Learning
         ↓
-0.9576 Learned Resource Reliability + Adaptation + Consolidation
+0.9576 Learned Resource Reliability + Adaptation
         ↓
-0.958 Agent Lifecycle / Health
+0.958 Agent Lifecycle + Health
         ↓
-0.9591 Goal / Plan Persistence / Recovery
+0.9591 Goal / Plan Persistence + Recovery
         ↓
-0.959 Human-in-the-Loop / Intervention
+0.959 Human Intervention
         ↓
-0.9592 Provider Ecosystem / Adapter Lifecycle
+0.9592 Provider Ecosystem + Adapters
         ↓
-0.96.x Configuration / Storage / Portability Evolution
+0.96.x Configuration / Storage / Portability
         ↓
 0.96 Capability-Aware Execution
         ↓
 0.97 Persistent Cognitive Runtime
+        ↓
+0.10 Workspaces / Routing / Chat
 ```
 
-The placement of 0.9591 before 0.959 is deliberate: durable goal/plan revisions, checkpoints, and recovery state provide the persistent authority that later goal/plan-step intervention can govern. Execution-level intervention remains independently valid.
+The ordering is dependency-driven. A feature may be implemented early as an ahead-of-roadmap experiment, but that does not mark its ordered phase complete until the phase's full V1 boundaries and verification requirements are satisfied.
 
-The pre-0.96 foundations define reusable identity, events, policy, resource foundations, instruction trust, context assembly, tracing, evaluation, resource governance, learned-resource reliability, lifecycle, durable goal/plan recovery, human intervention, provider adapter boundaries, and configuration/storage evolution that later execution and cognition layers should consume rather than reinvent.
+## First-class resource architecture
 
-## Resource relationship to later cognition
+Knowledge, Skills, Memory, and Learning are one coherent resource architecture.
 
-Phase 0.97 Persistent Cognitive Runtime consumes Memory, Knowledge, and Skills as first-class resources and may consume existing resource contracts before every 0.9575 management surface is complete. It must not create a second memory/knowledge/skill architecture or bypass resource governance.
+```text
+0.8 resource foundations
+    identity / ownership / scope
+    provenance / lifecycle / version metadata
+    Skill definitions/references
+    Knowledge/Wiki contracts
+    Memory family/type foundations
+    storage substrate
 
-Persistent cognition can generate experiences and learning signals, but learned changes remain subject to typed candidates, provenance, evaluation, policy, authorization, versioning, explicit promotion, and post-promotion reliability governance. The cognitive kernel itself remains independently versioned and must never be silently rewritten by model output or learning.
+0.9575 mature resource governance + learning
+    capability inheritance + runtime overrides
+    authorization and resource governance
+    bounded retrieval + retention
+    Learning Mode
+    typed candidates
+    lifecycle / review / promotion
+    version-safe authoritative resource creation
+    context/runtime integration
 
-## Configuration and storage relationship
+0.9576 post-promotion reliability
+    applicability / validity
+    outcome-based trust evidence
+    stale / contradiction / drift handling
+    revalidation / replacement
+    archival / forgetting
+```
 
-The configuration/storage evolution phase remains a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition depend on provider/model/target separation, encrypted provider credentials, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portable configuration contracts.
+No later phase may create a parallel Memory, Knowledge, Skill, or Learning model merely because an earlier phase has not yet completed its management surface.
 
-## Roadmap rules
+## Runtime and execution separation
 
-The roadmap is dependency-driven rather than a permanent product-feature lock. A phase may be reordered when new architectural understanding reveals a genuine dependency change; such changes should update the authoritative roadmap and current-state documents together. Existing ahead-of-roadmap implementation remains implementation evidence, not milestone completion, until its ordered phase and full requirements are verified.
+The roadmap maintains a strict separation:
 
-External consumers use HAgent through public provider-neutral APIs. HAgent does not contain consumer-specific dependencies or domain logic.
+```text
+Persistent Cognitive Runtime (0.97)
+    decides what the agent should do
+
+Execution Planner (0.96)
+    decides where/how a requested inference should execute
+
+Provider Adapter (0.9592)
+    knows provider-specific transport/discovery details
+
+Execution Engine
+    performs the selected request
+```
+
+The cognitive layer must not become a second provider/model router. The execution planner must not become a cognitive planner.
+
+## Single-owner runtime invariant
+
+Persistent cognition uses one authoritative state owner per runtime agent instance.
+
+```text
+one runtime instance
+    → one authoritative state owner
+    → serialized state mutation
+    → asynchronous work returns results/events
+
+many independent runtime instances
+    → concurrent operation
+    → isolated state and identity
+```
+
+This replaces the need for a general multi-writer cognitive merge architecture in production V1. Revision/stale-result protection remains mandatory; semantic multi-writer proposal arbitration is deferred.
+
+## 0.96 scope
+
+Phase 0.96 is the only concrete execution-selection layer. It handles:
+
+- capabilities and constraints;
+- provider/model/execution-target selection;
+- cost policy;
+- quota/rate limits;
+- concurrency/capacity admission;
+- health/availability;
+- latency and bounded waiting;
+- fallback/degradation;
+- target diagnostics.
+
+Cognitive strategies emit provider-neutral reasoning requirements and consume 0.96 rather than naming providers/models.
+
+## 0.97 production V1 scope
+
+The Persistent Cognitive Runtime provides:
+
+- authoritative per-agent cognitive state;
+- observations and beliefs;
+- bounded DecisionWorkspace selection;
+- goals and intentions;
+- deterministic/reactive decisions;
+- bounded deliberation and provider-neutral reasoning requirements;
+- plans and recovery integration;
+- governed learning candidates;
+- learned-resource reliability consumption;
+- lifecycle, persistence, cancellation, shutdown, observability, and evaluation.
+
+It is explicitly **not** a claim to implement a complete cognitive theory, human cognition, AGI, consciousness, universal planning, neural continual learning, or distributed cognitive consensus.
+
+## Ahead-of-roadmap implementation rule
+
+Existing implementation may appear before its ordered phase. Such work is retained when useful, but it is labeled as ahead-of-roadmap evidence and does not silently reorder the roadmap.
+
+This rule applies especially to current execution intervention, learning-candidate intervention, runtime examples, and other experiments created while earlier foundations were still being completed.
+
+## Roadmap maintenance rules
+
+1. One phase owns each responsibility; later phases consume earlier contracts rather than recreating them.
+2. Every substantial phase has a bounded V1 exit criterion.
+3. Production V1 requirements are separated from V2/research work.
+4. Architectural invariants outrank implementation convenience.
+5. If implementation proves a dependency wrong, update this ordered roadmap and the affected phase documents together before continuing.
+6. Generated root `roadmap.md` remains a view; authoritative ordering lives in `docs/roadmap/`.

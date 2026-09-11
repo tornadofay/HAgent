@@ -19,6 +19,27 @@
 - Add Learning Review, Knowledge/Wiki, Skill, and Agent Configuration UI.
 - Verify persistence, restart/recovery, lifecycle, authorization, concurrency, context integration, UI, and audit behavior on both supported targets.
 
+#### Learning lifecycle
+
+```text
+Proposed
+   ↓ lifecycle / policy evaluation
+PendingReview
+   ├──→ Rejected
+   ↓
+Approved
+   ↓ governed authoritative promotion
+Promoted
+```
+
+- `Proposed`: candidate formed; review has not necessarily been required yet.
+- `PendingReview`: lifecycle/policy requires the review boundary.
+- `Approved`: accepted through the review boundary, but still a candidate rather than an authoritative resource.
+- `Rejected`: not accepted for authoritative promotion.
+- `Promoted`: approved candidate converted into the authoritative resource through the separate promotion capability.
+
+Learning mode and policy control the permitted paths. Review and promotion are intentionally separate boundaries.
+
 ### Slice 12 current work — Learning Review management UI
 
 - Durable Learning Review list and review actions.
@@ -27,6 +48,14 @@
 - Filterable candidate workspace by lifecycle status and candidate type.
 - Read-only candidate details including payload, provenance/evidence, lifecycle, policy, source execution/runtime, and review evidence.
 - Manual .NET Framework 4.8.1 and .NET 9 verification of the management workflow.
+
+### Slice 12 next management increment — Authoritative promotion UI
+
+- Expose promotion for selected `Approved` candidates from the same Learning Review details workspace.
+- Re-evaluate fresh `learning.promote` authorization through the existing promotion service.
+- Preserve publication-before-lifecycle-transition semantics and optimistic revision safety.
+- Show promotion result and refreshed `Promoted` state without duplicating publication logic in WinForms.
+- Verify Memory, Knowledge, and Skill promotion paths on both supported targets.
 
 ## Planned order
 

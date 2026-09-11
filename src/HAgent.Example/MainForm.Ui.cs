@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Models;
+using HAgent.Runtime;
 using HAgent.WinForms;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
@@ -221,6 +222,12 @@ namespace HAgent.Example
                 var learningCandidateStore = new HAgent.Storage.File.FileLearningCandidateStore(
                     System.IO.Path.Combine(runtimeOptions.GetEffectiveRootPath(), "learning", "candidates.jsonl"));
                 var reviewerIdentity = new AgentIdentityContext(userId: AISettings.DefaultSystemAdminUserId);
+                var learningPromotion = new AiLearningPromotionService(
+                    learningCandidateStore,
+                    new InMemoryMemoryStore(),
+                    new ExampleKnowledgePromotionTarget(),
+                    new ExampleSkillPromotionTarget(),
+                    new DefaultAiPolicyEngine(await store.GetPolicySetAsync().ConfigureAwait(true)));
 
                 using (learningCandidateStore)
                 {
@@ -231,7 +238,8 @@ namespace HAgent.Example
                         new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() },
                         toolStore,
                         learningCandidateStore,
-                        reviewerIdentity);
+                        reviewerIdentity,
+                        learningPromotion);
                 }
 
                 var updatedOptions = await LoadStorageOptionsAsync().ConfigureAwait(true);

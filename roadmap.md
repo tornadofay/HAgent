@@ -2800,7 +2800,7 @@ Unknown information remains `Unknown`; adapters do not invent capabilities or li
 
 The intended desktop-application and HWorld use cases justify the core of 0.9592. HWorld explicitly intends to support different providers/models in one world, while HAgent's host architecture requires provider/model discovery and normalized execution-target information before 0.96 can make capability-aware selections. The current provider-limit/rate-capacity problems also make operational evidence a concrete requirement rather than a hypothetical platform feature.
 
-| 0.9592 surface | Use-case result | V1 decision |
+| 0.9592 surface | Use-case result | 0.9592 decision |
 |---|---|---|
 | Multiple provider adapters | Required when different agents/actors use different providers/models concurrently. | Keep |
 | Adapter registration/use/disable/retirement | Required for desktop configuration and for hosts that need to remove an unavailable provider without deleting historical identity. | Keep |
@@ -2811,10 +2811,10 @@ The intended desktop-application and HWorld use cases justify the core of 0.9592
 | Health/availability evidence | Needed to avoid repeatedly selecting unavailable execution targets. | Keep |
 | Adapter/API compatibility and replacement | Needed for deliberate adapter replacement while preserving historical provider/target identity and configuration semantics. | Keep, bounded |
 | Cost information | Needed by 0.96's FreeOnly/FreePreferred/NoRestriction policy; 0.9592 only supplies evidence, it does not select. | Keep as evidence |
-| Provider marketplace/ecosystem catalog | Not required by HAgent's intended use cases. | Not part of V1 |
-| Distributed provider-control/rate-limit service | Not required; HAgent should normalize local/provider-reported evidence and leave host/distributed infrastructure outside Core. | Not part of V1 |
-| Autonomous provider-routing logic | Not required here; target selection belongs exclusively to 0.96. | Not part of V1 |
-| Vendor-specific compatibility matrix as a second rules engine | Not required; adapter-specific behavior stays behind adapter contracts and normalized evidence. | Not part of V1 |
+| Provider marketplace/ecosystem catalog | Not required by the intended use cases and not part of the ordered 0.9592 responsibility. | Exclude from this phase |
+| Distributed provider-control/rate-limit service | Not required; HAgent should normalize local/provider-reported evidence and leave host/distributed infrastructure outside Core. | Exclude from this phase |
+| Autonomous provider-routing logic | Not required here; target selection belongs exclusively to 0.96. | Exclude from this phase |
+| Vendor-specific compatibility matrix as a second rules engine | Not required; adapter-specific behavior stays behind adapter contracts and normalized evidence. | Exclude from this phase |
 
 The audit therefore **keeps 0.9592 substantially intact but confirms its boundary**: the phase supplies adapters, discovery, provider-native evidence, and operational observations. It does not become a marketplace, billing system, distributed provider-control plane, or second routing engine.
 

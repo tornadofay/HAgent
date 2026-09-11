@@ -3,29 +3,68 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def build_directory(source_dir: Path, output: Path, title: str) -> None:
-    part = source_dir / "00-overview.md"
-    if not part.exists():
-        raise SystemExit(f"Missing roadmap source: {part}")
+ROADMAP_SOURCES = [
+    "00-overview.md",
+    "10-foundation.md",
+    "20-data-access.md",
+    "30-agent-runtime.md",
+    "35-generic-host-integration.md",
+    "36-capability-aware-execution.md",
+    "37-persistent-cognitive-runtime.md",
+    "38-configuration-storage-and-portability.md",
+    "40-workspaces-chat.md",
+    "50-collaboration-workflows.md",
+    "60-platform-and-release.md",
+    "951-identity-tenancy-user-context.md",
+    "952-event-subsystem.md",
+    "953-unified-policy-engine.md",
+    "954-prompt-instruction-governance.md",
+    "955-context-engineering.md",
+    "956-observability-tracing.md",
+    "957-evaluation-quality-measurement.md",
+    "9575-resource-governance-learning.md",
+    "9576-learned-resource-reliability-adaptation-consolidation.md",
+    "958-agent-lifecycle-health.md",
+    "9591-goal-plan-persistence-recovery.md",
+    "959-human-intervention.md",
+    "9592-provider-ecosystem-adapter-lifecycle.md",
+    # These are subdocuments of 0.97, not separate roadmap phases.
+    "cognitive-workbench.md",
+    "cognitive-workbench-controls.md",
+    "cognitive-workbench-learning.md",
+]
 
-    text = part.read_text(encoding="utf-8").strip()
+
+def normalize_heading(text: str) -> str:
     lines = text.splitlines()
     if lines and lines[0].startswith("# "):
         lines[0] = "## " + lines[0][2:]
-        text = "\n".join(lines)
+    return "\n".join(lines)
 
-    output.write_text(
-        "\n".join(
-            [
-                f"# {title}",
-                "",
-                "> This file is generated from the active roadmap source. Do not edit it directly.",
-                "> Source: `docs/roadmap/00-overview.md`.",
-                "",
-                text,
-            ]
-        ).rstrip()
-        + "\n",
+
+def build_roadmap() -> None:
+    source_dir = ROOT / "docs" / "roadmap"
+    sections = [
+        "# HAgent Roadmap",
+        "",
+        "> This file is generated from the complete active V1 roadmap source set. Do not edit it directly.",
+        "> V2/research-only material belongs in `roadmapv2.md` and is intentionally excluded.",
+        "> Source directory: `docs/roadmap`.",
+        "",
+    ]
+
+    for filename in ROADMAP_SOURCES:
+        part = source_dir / filename
+        if not part.exists():
+            raise SystemExit(f"Missing roadmap source: {part}")
+
+        text = part.read_text(encoding="utf-8").strip()
+        if text:
+            sections.append(normalize_heading(text))
+            sections.append("")
+
+    (ROOT / "roadmap.md").write_text(
+        "\n".join(sections).rstrip() + "\n",
         encoding="utf-8",
     )
 
@@ -46,17 +85,16 @@ def build_plan() -> None:
 
     for part in parts:
         text = part.read_text(encoding="utf-8").strip()
-        lines = text.splitlines()
-        if lines and lines[0].startswith("# "):
-            lines[0] = "## " + lines[0][2:]
-            text = "\n".join(lines)
         if text:
-            sections.append(text)
+            sections.append(normalize_heading(text))
             sections.append("")
 
-    (ROOT / "plan.md").write_text("\n".join(sections).rstrip() + "\n", encoding="utf-8")
+    (ROOT / "plan.md").write_text(
+        "\n".join(sections).rstrip() + "\n",
+        encoding="utf-8",
+    )
 
 
 build_plan()
-build_directory(ROOT / "docs" / "roadmap", ROOT / "roadmap.md", "HAgent Roadmap")
+build_roadmap()
 print("Generated plan.md and roadmap.md")

@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Abstractions;
+using HAgent.Models;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.UI.Configuration;
 using HAgent.WinForms.UI.Configuration.About;
@@ -36,10 +37,16 @@ namespace HAgent.WinForms.Forms
         private readonly PolicyPage _policy;
         private readonly LearningReviewPage _learningReview;
 
-        public AISettingsForm(IAiStore store, ISecretStore secrets, IEnumerable<IAiProviderAdapter> adapters, IToolRegistry tools = null)
+        public AISettingsForm(
+            IAiStore store,
+            ISecretStore secrets,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IToolRegistry tools = null,
+            IAiLearningCandidateStore learningCandidates = null,
+            AgentIdentityContext reviewerIdentity = null)
             : base("AI Configuration", "Providers, agents, tools, policy, learning review, permissions, and storage", new Size(1120, 720), new Size(900, 600))
         {
-            _context = new ConfigurationContext(store, secrets, adapters, tools);
+            _context = new ConfigurationContext(store, secrets, adapters, tools, learningCandidates, reviewerIdentity);
             _overview = new OverviewPage(_context);
             _providers = new ProvidersPage(_context);
             _agents = new AgentsPage(_context);
@@ -145,6 +152,7 @@ namespace HAgent.WinForms.Forms
             _providers.RefreshData();
             _agents.RefreshData();
             _tools.RefreshData();
+            await _learningReview.RefreshDataAsync();
             ShowPage("Overview");
         }
 

@@ -135,18 +135,26 @@ namespace HAgent.Storage.File
             using (var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true))
             using (var reader = new StreamReader(stream))
             {
+                var lineNumber = 0;
                 while (true)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var line = await reader.ReadLineAsync().ConfigureAwait(false);
                     if (line == null) break;
+                    lineNumber++;
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     try
                     {
                         var record = JsonSerializer.Deserialize<AiLearningCandidateRecord>(line, _jsonOptions);
-                        if (record != null) { record.Validate(); records.Add(record); }
+                        if (record == null)
+                            throw new InvalidDataException("Learning candidate record is null at line " + lineNumber + ".");
+                        record.Validate();
+                        records.Add(record);
                     }
-                    catch (JsonException) { }
+                    catch (JsonException ex)
+                    {
+                        throw new InvalidDataException("Learning candidate store contains invalid JSON at line " + lineNumber + ".", ex);
+                    }
                 }
             }
             return records;
@@ -164,8 +172,11 @@ namespace HAgent.Storage.File
                     await writer.WriteLineAsync(JsonSerializer.Serialize(record, _jsonOptions)).ConfigureAwait(false);
                 }
             }
-            if (File.Exists(_path)) File.Delete(_path);
-            File.Move(tempPath, _path);
+
+            if (File.Exists(_path))
+                File.Replace(tempPath, _path, null);
+            else
+                File.Move(tempPath, _path);
         }
 
         private static AiLearningCandidateRecord Clone(AiLearningCandidateRecord source)

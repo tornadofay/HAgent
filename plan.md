@@ -10,9 +10,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** Slice 11 in progress — Context, Instruction, Runtime, and Observability Integration
+- **Status:** Slice 12 in progress — Management UI
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Connect governed learned resources to real execution through the existing context/instruction boundaries and capture authoritative runtime observations as bounded learning input.
+- **Scope:** Add production WinForms administration surfaces using the existing configuration shell and provider-neutral learning/resource contracts.
 
 ## Completed current-phase slices
 
@@ -42,26 +42,31 @@ This file is the compact handoff state for work currently in progress. It is not
 - Both Examples verified Memory promotion, new published Knowledge/Skill versions, fresh unified authorization, publication-before-lifecycle transition, provenance evidence, and immutable version behavior.
 - Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
 
-## Current Slice 11 boundary
+0.9575 Slice 11 — Context, Instruction, Runtime, and Observability Integration — **verified by user** 2026-09-11:
+- `HAgent.Example → Cognition → Learning → Learning Execution Integration` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Both Examples verified learned instruction, policy/capability-gated context, bounded snapshots, authoritative runtime observations, non-creation of candidates from observations, and non-authoritative prompt text.
+- Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
 
-Learned resources must enter execution only through the canonical resource/context/instruction contracts already owned by HAgent.
+## Current Slice 12 boundary
 
-- `AiLearningExecutionPreparation` clones learned instruction sources and returns them for `AgentExecutionRequest.InstructionSources`.
-- Learned context retrieval sources are processed through the existing `ContextAssembler`, including capability/policy admission, bounded retrieval, ranking/deduplication, and compaction.
-- `AiLearningExecutionObservationCollector` consumes the authoritative `IExecutionObservationSource` boundary and stores bounded facts through `IAiLearningObservationStore`.
-- The in-memory observation store is bounded, thread-safe, filtered, and detached-copy based.
-- Observation capture does not create candidates, approve promotion, or mutate authoritative resources.
-- Prompt text remains non-authoritative; no second policy or tracing mechanism is introduced.
+The first management-UI increment is the Learning Review surface.
 
-**Architecture:** `docs/architecture/90-learning-execution-integration.md`.
+- `LearningReviewPage` lives under `src/HAgent.WinForms/UI/Configuration/Learning/` and follows the shared header/action-bar/content layout.
+- Candidate listing is limited to durable, non-expired `PendingReview` records and exposes bounded metadata only.
+- Reviewer user identity is explicit; tenant/workspace are optional structured identity fields.
+- Approve and Reject use `AiLearningCandidateReviewService`, which re-evaluates `learning.review` through `IAiPolicyEngine` and persists reviewer/policy evidence through the existing candidate store.
+- UI actions do not publish authoritative Memory, Knowledge, or Skill resources.
+- `ConfigurationContext` exposes the durable File candidate-store adapter used by the current reference WinForms composition.
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
+**Architecture:** `docs/architecture/93-learning-review-management-ui.md`.
 
-**Tests to run:** `tests/HAgent.Tests/LearningExecutionIntegrationTests.cs`; full `HAgent.Tests` at the Slice 11 checkpoint.
+**Example to run:** `HAgent.Example → Configuration → Learning Review` on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** full `HAgent.Tests` regression suite; WinForms configuration UI is primarily verified through the supported Example host.
 
 ## Do not advance
 
-Do not start Slice 12 until learned-resource context/instruction preparation, policy/capability admission, bounded execution context, authoritative runtime observation capture, and both supported Example targets are actually verified.
+Do not advance beyond this management-UI increment until the Learning Review Example succeeds on both supported targets and the full test suite remains green.
 
 ## Current project state
 
@@ -148,15 +153,22 @@ The first management-UI increment adds a production configuration surface for Le
 Current implementation:
 
 - `Learning Review` page under `src/HAgent.WinForms/UI/Configuration/Learning/`;
-- explicit reviewer user, tenant, and workspace identity fields;
+- reviewer identity is host-supplied and displayed read-only;
+- default WinForms reference reviewer is system-admin user ID `1` when no identity is supplied;
+- tenant and workspace are optional identity scopes and are displayed read-only as `Not supplied` when absent;
 - Approve/Reject routed through `AiLearningCandidateReviewService` and the existing unified policy engine;
 - bounded PendingReview candidate list projection;
-- durable candidate-store dependency exposed through `ConfigurationContext`;
-- no authoritative Memory/Knowledge/Skill publication from the UI.
+- host-supplied durable candidate-store dependency, aligned with the Example's configured effective root;
+- no authoritative Memory/Knowledge/Skill publication from the UI;
+- Example now contains explicit Seed and Verify scenarios for a real manual Approve/Reject flow.
 
 Architecture: `docs/architecture/93-learning-review-management-ui.md`.
 
-**Example to run:** `HAgent.Example → Configuration → Learning Review` on .NET Framework 4.8.1 and .NET 9.
+**Manual integration test:**
+
+1. Run `HAgent.Example → Cognition → Learning → Learning Review Seed` on .NET Framework 4.8.1 and .NET 9.
+2. Open `Configuration → Learning Review`, select the printed candidate, and explicitly Approve or Reject it.
+3. Run `HAgent.Example → Cognition → Learning → Learning Review Verify` using the printed Candidate ID. It must observe the persisted terminal status, revision `2`, reviewer identity evidence, and `Allow` policy evidence.
 
 **Verification workflow:** `.github/workflows/verify-phase-0-9575-slice-12.yml`.
 

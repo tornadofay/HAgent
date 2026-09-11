@@ -2078,9 +2078,9 @@ The next ordered milestone is **0.9575 Knowledge, Skills, Memory Governance + Le
 
 ## Status
 
-**In progress — Slice 11 implementation.**
+**In progress — Slice 12 implementation.**
 
-Slices 1–10 are verified. This roadmap is normalized against the current implementation so historical checklist entries that already leaked into the code are not treated as automatically missing work.
+Slices 1–11 are verified. This roadmap is normalized against the current implementation so historical checklist entries that already leaked into the code are not treated as automatically missing work.
 
 ## Goal
 
@@ -2166,14 +2166,15 @@ The authorization-sensitive identity boundary is fail-closed and requires canoni
 ### Partially implemented; integration still outstanding
 
 - Shared reusable Knowledge exists at the resource-contract/governance level, but HAgent-owned persistence, management, relationships, and end-to-end reusable-resource administration remain incomplete.
-- Retrieval is bounded at the contract level, but integration with context budgets and canonical context assembly is now established for governed learned-resource inputs; broader reusable-resource administration remains outstanding.
-- Runtime snapshots capture capability/learning configuration, and Slice 11 now captures bounded execution observations as learning input; complete automatic observation-to-candidate analysis remains outstanding.
+- Retrieval is bounded at the contract level, and Slice 11 integrates governed learned-resource retrieval into the canonical context/instruction pipeline; broader reusable-resource administration remains outstanding.
+- Runtime snapshots capture capability/learning configuration, and Slice 11 captures bounded execution observations as learning input; automatic observation-to-candidate analysis remains outstanding.
 
 ### Genuinely outstanding 0.9575 work
 
 - Promotion audit/provenance/evaluation persistence beyond the structured promotion evidence produced by Slice 10.
 - Broader governed learning-resource management/repository integration where authoritative Knowledge/Skill persistence is host/storage-owned.
-- Learning Review, Knowledge/Wiki, Skill, and Agent Configuration management UI.
+- Knowledge/Wiki and Skill CRUD management UI.
+- Effective Agent Configuration resource inventory/editing UI.
 - Persistence and restart verification for the mature learning/resource layer beyond the candidate store and current in-memory observation reference store.
 
 ## Slice 9 — Candidate persistence, retention, and review — VERIFIED 2026-09-11
@@ -2181,6 +2182,21 @@ The authorization-sensitive identity boundary is fail-closed and requires canoni
 ### Purpose
 
 Make the existing canonical typed learning candidate durable without creating a second candidate lifecycle or authoritative resource model.
+
+### Scope delivered
+
+- provider-neutral durable candidate record;
+- provider-neutral candidate-store boundary;
+- deterministic InMemory and durable File stores;
+- lifecycle status/revision persistence;
+- retention/expiry and purge;
+- typed payload serialization and restoration;
+- persisted Learning Policy and promotion authorization provenance;
+- Learning Review through the existing unified policy boundary;
+- explicit reviewer identity and authorization evidence;
+- optimistic revision-checked review updates;
+- restart/recovery semantics;
+- no authoritative resource mutation at the persistence/review boundary.
 
 ### Verification
 
@@ -2201,7 +2217,7 @@ Convert an approved durable typed candidate into authoritative resource state th
 ### Scope delivered
 
 - one provider-neutral promotion service;
-- explicit `AgentIdentityContext` and re-evaluation of `learning.promote` through the existing unified `IAiPolicyEngine`;
+- explicit `AgentIdentityContext` and fresh `learning.promote` evaluation through the existing unified `IAiPolicyEngine`;
 - durable `Approved` status and expiry checks;
 - typed payload validation/restoration before publication;
 - Memory promotion through the existing `IMemoryStore` contract;
@@ -2218,36 +2234,59 @@ User verified `HAgent.Example → Cognition → Learning → Learning Candidate 
 
 Both Examples reported contract success for Memory, Knowledge, Skill, fresh unified authorization, lifecycle transition after publication, provenance retention, and immutable version behavior.
 
-After the final test-contract correction, full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
+Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
 
 Architecture: `docs/architecture/89-learning-authoritative-promotion.md`.
 
-## Slice 11 — Context, instruction, runtime, and observability integration — CURRENT
+## Slice 11 — Context, instruction, runtime, and observability integration — VERIFIED 2026-09-11
 
 ### Purpose
 
 Connect governed learned resources to real execution without moving authorization into prompts or creating a parallel execution/context/observability architecture.
 
-### Scope
+### Scope delivered
 
 - prepare learned instruction sources through the existing `AgentExecutionRequest.InstructionSources` boundary;
 - prepare learned context retrieval sources through the canonical policy/capability admission, ranking, and bounded context assembly pipeline;
 - preserve execution-owned context snapshots and cloned instruction inputs;
 - consume authoritative `IExecutionObservationSource` facts as bounded learning input without turning observations into candidates automatically;
-- provide a bounded provider-neutral observation store reference implementation;
-- preserve the separation between runtime authority, observability, Learning Policy, candidate lifecycle, and authoritative promotion.
+- provide a bounded provider-neutral observation-store reference implementation;
+- preserve separation between runtime authority, observability, Learning Policy, candidate lifecycle, and authoritative promotion.
 
 ### Verification
 
-**Required Example:** `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
+User verified `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
 
-**Required tests:** focused `tests/HAgent.Tests/LearningExecutionIntegrationTests.cs`; full `HAgent.Tests` at the Slice 11 checkpoint.
+Both Examples verified provider-neutral learned instruction, policy/capability-gated learned context, bounded execution context snapshots, authoritative runtime outcome observation capture, non-creation of candidates from observations, and non-authoritative prompt text.
+
+Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
 
 Architecture: `docs/architecture/90-learning-execution-integration.md`.
 
-## Slice 12 — Management UI
+## Slice 12 — Management UI — IN PROGRESS
 
-Add the production WinForms administration surface using existing HAgent conventions.
+### Purpose
+
+Add the production WinForms administration surface using existing HAgent configuration conventions without moving resource lifecycle or authorization into the UI shell.
+
+### Current increment — Learning Review
+
+- dedicated `LearningReviewPage` under `src/HAgent.WinForms/UI/Configuration/Learning/`;
+- explicit reviewer user, tenant, and workspace identity fields;
+- bounded PendingReview candidate list projection;
+- Approve/Reject routed through `AiLearningCandidateReviewService` and the existing unified policy engine;
+- durable candidate-store dependency exposed through `ConfigurationContext`;
+- no authoritative Memory/Knowledge/Skill publication from the UI;
+- explicit configuration-shell navigation entry in `AISettingsForm`;
+- dedicated Slice 12 verification workflow building WinForms and Example on both supported targets and running the full .NET 9 test suite.
+
+### Verification
+
+**Required Example:** `HAgent.Example → Configuration → Learning Review` on .NET Framework 4.8.1 and .NET 9.
+
+**Required tests:** full `HAgent.Tests` regression suite; WinForms UI behavior is verified through the supported Example host.
+
+Architecture: `docs/architecture/93-learning-review-management-ui.md`.
 
 ## Slice 13 — Phase completion verification
 

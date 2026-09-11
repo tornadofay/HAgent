@@ -80,6 +80,27 @@ The execution-integration boundary is now closed.
 
 Slice 12 establishes the production configuration surface for governed Learning Review using the existing WinForms configuration-shell conventions.
 
+### Learning lifecycle represented by the management surface
+
+```text
+Proposed
+   ↓ lifecycle / policy evaluation
+PendingReview
+   ├──→ Rejected
+   ↓
+Approved
+   ↓ governed authoritative promotion
+Promoted
+```
+
+- `Proposed` means a candidate has been formed but has not necessarily entered human review.
+- `PendingReview` means the lifecycle/policy gate requires the review boundary.
+- `Approved` means the candidate passed review but is not yet authoritative.
+- `Rejected` means it is not accepted for authoritative promotion.
+- `Promoted` means the approved candidate has been converted into its authoritative resource by the separate promotion capability.
+
+Learning mode and policy determine which routes are permitted. The UI does not infer or redefine lifecycle semantics.
+
 ### Slice 12 initial increment — durable review management
 
 - `Learning Review` page under `src/HAgent.WinForms/UI/Configuration/Learning/`;
@@ -107,6 +128,12 @@ The Learning Review page is now a filterable inspection workspace rather than a 
 
 Architecture: `docs/architecture/93-learning-review-management-ui.md` and `docs/architecture/94-learning-review-candidate-details.md`.
 
-The existing Seed → UI review → Verify workflow remains the integration test for the management boundary. The new details/filter workspace should be manually verified on both .NET Framework 4.8.1 and .NET 9. No new persistence contract was introduced.
+The existing Seed → UI review → Verify workflow remains the integration test for the review/persistence boundary. The new details/filter workspace should be manually verified on both .NET Framework 4.8.1 and .NET 9. No new persistence contract was introduced.
+
+### Next management increment — authoritative promotion UI
+
+Authoritative promotion is already implemented as a provider-neutral core operation from Slice 10. The next Slice 12 increment should expose that operation from the selected candidate details workspace for eligible `Approved` candidates.
+
+The UI must remain a management surface only: it should call the existing promotion service, use fresh promotion authorization, preserve version-safe resource creation, refresh persisted candidate state, and never publish Memory/Knowledge/Skill resources directly from WinForms code.
 
 **Verification workflow:** `.github/workflows/verify-phase-0-9575-slice-12.yml`.

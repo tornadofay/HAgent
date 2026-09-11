@@ -1,4 +1,4 @@
-# Phase 0.9576 — Learned Resource Reliability, Adaptation + Consolidation
+# Phase 0.9576 — Learned Resource Reliability, Adaptation + Forgetting
 
 ## Status
 
@@ -8,13 +8,15 @@
 
 Provide the post-promotion reliability layer for learned Skills, Knowledge, and other learned resources.
 
-0.9575 governs how experience becomes a validated candidate and how that candidate is promoted. 0.9576 governs whether the promoted resource remains safe and useful afterward.
+0.9575 governs how experience becomes a validated candidate and how that candidate is promoted. 0.9576 governs whether the promoted resource remains safe, applicable, and useful afterward.
+
+This phase is deliberately practical: it provides lifecycle/reliability controls needed by production V1 without turning HAgent into a research system for large-scale knowledge consolidation or neural continual learning.
 
 ## V1 outcome
 
 A promoted resource is never trusted forever merely because it was once approved.
 
-HAgent can distinguish:
+HAgent distinguishes:
 
 ```text
 Authorization      = may this resource be used?
@@ -44,7 +46,7 @@ These dimensions remain separate.
 - Define post-promotion reliability metadata without replacing resource version identity.
 - Distinguish promotion evidence from operational outcome evidence.
 - Reinforce reliability from validated successful outcomes where policy permits.
-- Weaken/quarantine resources after failed outcomes, contradictions, invalid preconditions, or sustained degradation.
+- Weaken or quarantine resources after failed outcomes, contradictions, invalid preconditions, or sustained degradation.
 - Preserve execution/runtime provenance for reliability evidence.
 - Keep reliability changes policy-controlled and revision-safe.
 
@@ -82,6 +84,8 @@ These dimensions remain separate.
 5. Reliability updates are revision-safe and auditable.
 6. Learned-resource failure never forces an unsafe fallback.
 7. Reliability remains usable without GPU, embeddings, or vector databases.
+8. Reliability operates on already-promoted resource versions; it does not bypass the 0.9575 candidate and promotion boundary.
+9. Replacement and adaptation produce new governed candidates/resources rather than hidden in-place mutation.
 
 ## Explicitly V2 / optional research
 
@@ -93,16 +97,27 @@ The following should not block production V1:
 - statistical consolidation algorithms;
 - neural continual-learning algorithms;
 - theoretical solutions to catastrophic forgetting;
-- universal learned-resource utility models.
+- universal learned-resource utility models;
+- automatic merging of multiple learned resources into a new generalized resource without an explicit governed candidate/promotion step.
 
 These may be added later behind provider-neutral consolidation/evaluation interfaces.
+
+## Ownership boundary
+
+0.9575 owns candidate creation, review, authorization, and authoritative promotion.
+
+0.9576 owns post-promotion applicability, reliability evidence, degradation/quarantine, revalidation, forgetting, and replacement signals.
+
+0.958 owns runtime lifecycle/health; it may consume reliability evidence but does not become the learned-resource evaluator.
+
+0.97 consumes reliable learned behavior during cognition but does not create a second reliability or learning architecture.
 
 ## Dependency chain
 
 ```text
 0.9575 governed learning + promotion
         ↓
-0.9576 learned-resource reliability
+0.9576 learned-resource reliability + adaptation
         ↓
 0.958 lifecycle + health
         ↓
@@ -111,4 +126,4 @@ These may be added later behind provider-neutral consolidation/evaluation interf
 
 ## Exit criterion
 
-HAgent can determine whether promoted learned behavior is applicable and trustworthy, refuse or quarantine stale/contradictory behavior, incorporate validated outcomes into reliability evidence, produce replacement candidates without mutating authoritative versions, and safely forget/archive learned resources without confusing reliability with authorization.
+HAgent can determine whether promoted learned behavior is applicable and trustworthy, refuse or quarantine stale/contradictory behavior, incorporate validated outcomes into reliability evidence, produce replacement candidates without mutating authoritative versions, and safely forget/archive learned resources without confusing reliability with authorization or bypassing governed promotion.

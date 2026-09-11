@@ -115,7 +115,15 @@ namespace HAgent.Tests
             var candidate = CreateMemoryCandidate(0.90m, "Strong", "Complete", "None", "Standard", "Passed");
 
             Assert.Equal(AiLearningCandidateStatus.Proposed, candidate.Status);
-            candidate.Lifecycle.ApplyPolicyDecision(new AiPolicyDecisionForTest(AiPolicyOutcome.RequireApproval));
+            var reviewDecision = new AiPolicyDecision
+            {
+                Outcome = AiPolicyOutcome.RequireApproval,
+                PolicyVersion = "test",
+                RuleId = "test-rule",
+                RuleName = "Test rule",
+                Reason = "Test approval."
+            };
+            candidate.Lifecycle.ApplyPolicyDecision(reviewDecision);
             Assert.Equal(AiLearningCandidateStatus.PendingReview, candidate.Status);
             candidate.Approve();
             Assert.Equal(AiLearningCandidateStatus.Approved, candidate.Status);
@@ -189,11 +197,6 @@ namespace HAgent.Tests
                 SourceRuntimeInstanceId = "runtime-42",
                 SourceAgentProfileId = "agent-profile-42"
             };
-        }
-
-        private sealed class AiPolicyDecisionForTest : AiPolicyDecision
-        {
-            public AiPolicyDecisionForTest(AiPolicyOutcome outcome) : base(outcome, "test", "test", "test") { }
         }
     }
 }

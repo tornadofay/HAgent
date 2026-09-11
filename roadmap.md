@@ -175,7 +175,7 @@ many independent runtime instances
     → isolated state and identity
 ```
 
-This removes the need for a general multi-writer cognitive merge architecture in production V1. Revision/stale-result protection remains mandatory; semantic multi-writer proposal arbitration is deferred to optional research.
+This removes the need for a general multi-writer cognitive merge architecture in production V1. Revision/stale-result protection remains mandatory.
 
 ## 0.96 scope
 
@@ -210,8 +210,6 @@ The Persistent Cognitive Runtime provides:
 - a production management/diagnostic workbench built on runtime state-transition APIs rather than direct persistence mutation.
 
 The three auxiliary roadmap documents `cognitive-workbench.md`, `cognitive-workbench-controls.md`, and `cognitive-workbench-learning.md` are subdocuments of 0.97, not separate roadmap phases.
-
-It is explicitly **not** a claim to implement a complete cognitive theory, human cognition, AGI, consciousness, universal planning, neural continual learning, or distributed cognitive consensus.
 
 ## 0.10 vs 1.0 boundary
 
@@ -796,15 +794,6 @@ Deterministic verification must cover:
 9. Fallback never bypasses authorization or capability requirements.
 10. Independent runtime agents may call the planner concurrently without sharing mutable runtime identity/state.
 
-## Not part of V1
-
-- a universal autonomous routing AI;
-- provider-specific model matrices in Core;
-- a second routing engine in 0.97;
-- distributed rate-limit services;
-- hard-coded vendor behavior;
-- optimization based on opaque model rankings without inspectable decision data.
-
 ## Dependency chain
 
 ```text
@@ -997,21 +986,6 @@ Routine events should not consume an LLM merely because the runtime is active.
 13. All queues, workspaces, deliberation, recursion, and resource growth are bounded.
 14. Model output is evidence/request input, never authorization.
 
-## Explicitly not V1
-
-The following are outside the production V1 target and may become V2/research work:
-
-- general multi-writer cognitive-state conflict graphs;
-- competing proposal merge engines for one runtime agent;
-- universal BDI/SOAR/ACT-R implementation;
-- consciousness/global-workspace claims;
-- human-equivalent cognitive timing;
-- universal planning or AGI;
-- neural continual-learning algorithms and catastrophic-forgetting solutions;
-- automatic universal Skill induction from arbitrary trajectories;
-- distributed cognitive-state consensus;
-- autonomous cluster supervision.
-
 ## Dependency graph
 
 ```text
@@ -1155,15 +1129,6 @@ Verify:
 6. Export/import never exports executable handlers or live runtime state.
 7. HAgent storage never becomes an implicit gateway to a host application's business database.
 8. Configuration changes invalidate or supersede affected snapshots deterministically.
-
-## Not part of V1
-
-- distributed cache infrastructure;
-- event-sourced everything;
-- a cloud configuration service;
-- a secret-vault product;
-- storage-specific domain models;
-- backward-compatibility tables for retired redesign-era fields.
 
 ## Dependency relationship
 
@@ -2276,21 +2241,6 @@ These dimensions remain separate.
 8. Reliability operates on already-promoted resource versions; it does not bypass the 0.9575 candidate and promotion boundary.
 9. Replacement and adaptation produce new governed candidates/resources rather than hidden in-place mutation.
 
-## Explicitly V2 / optional research
-
-The following should not block production V1:
-
-- automatic clustering of large learned-resource populations;
-- symbolic generalization across many Skills;
-- sophisticated similarity graphs;
-- statistical consolidation algorithms;
-- neural continual-learning algorithms;
-- theoretical solutions to catastrophic forgetting;
-- universal learned-resource utility models;
-- automatic merging of multiple learned resources into a new generalized resource without an explicit governed candidate/promotion step.
-
-These may be added later behind provider-neutral consolidation/evaluation interfaces.
-
 ## Ownership boundary
 
 0.9575 owns candidate creation, review, authorization, and authoritative promotion.
@@ -2420,15 +2370,6 @@ Human/host intervention is consumed through the canonical 0.959 intervention bou
 7. Provider/model-specific lifecycle semantics do not belong in Core; provider health evidence is normalized by 0.9592 and consumed by 0.96.
 8. Runtime intervention uses 0.959; this phase does not create a second approval/intervention mechanism.
 
-## Not part of V1
-
-- distributed actor supervision;
-- cluster orchestration;
-- automatic fleet healing;
-- universal heartbeat semantics for every execution;
-- autonomous process management;
-- replacing the host scheduler with an HAgent scheduler.
-
 ## Dependencies
 
 ```text
@@ -2536,14 +2477,6 @@ live runtime objects
 5. Recovery decisions are attributable to evidence and policy.
 6. Do not introduce a second plan model for intervention or cognition.
 7. Keep the phase host-neutral; host side effects remain outside Core.
-
-## Not part of V1
-
-- distributed workflow orchestration;
-- compensating transactions for every arbitrary side effect;
-- universal exactly-once semantics;
-- a second workflow engine;
-- autonomous long-running process supervision.
 
 ## Dependency order
 
@@ -2669,14 +2602,6 @@ The target owner remains responsible for applying the transition.
 6. Host side effects remain host-authoritative.
 7. Intervention state does not replace lifecycle, plan, execution, or learning state.
 
-## Not part of V1
-
-- a general workflow engine;
-- autonomous operator simulation;
-- distributed human approval consensus;
-- arbitrary UI automation;
-- intervention as a replacement for normal host scheduling.
-
 ## Dependency order
 
 ```text
@@ -2781,15 +2706,6 @@ Use deterministic fake providers to verify:
 6. Provider-specific behavior stays behind adapter boundaries.
 7. 0.96 owns execution-target selection; this phase does not create a routing engine.
 8. Provider credentials use the repository's simple encrypted provider-configuration mechanism; no separate secret-vault architecture is introduced.
-
-## Not part of V1
-
-- provider marketplace/plugin distribution;
-- automatic vendor-specific optimization frameworks;
-- universal provider feature parity;
-- hard-coded provider model matrices in Core;
-- a second execution planner;
-- provider-specific business logic in agent profiles.
 
 ## Dependencies
 

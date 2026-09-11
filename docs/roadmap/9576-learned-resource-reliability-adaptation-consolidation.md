@@ -87,21 +87,6 @@ These dimensions remain separate.
 8. Reliability operates on already-promoted resource versions; it does not bypass the 0.9575 candidate and promotion boundary.
 9. Replacement and adaptation produce new governed candidates/resources rather than hidden in-place mutation.
 
-## Explicitly V2 / optional research
-
-The following should not block production V1:
-
-- automatic clustering of large learned-resource populations;
-- symbolic generalization across many Skills;
-- sophisticated similarity graphs;
-- statistical consolidation algorithms;
-- neural continual-learning algorithms;
-- theoretical solutions to catastrophic forgetting;
-- universal learned-resource utility models;
-- automatic merging of multiple learned resources into a new generalized resource without an explicit governed candidate/promotion step.
-
-These may be added later behind provider-neutral consolidation/evaluation interfaces.
-
 ## Ownership boundary
 
 0.9575 owns candidate creation, review, authorization, and authoritative promotion.

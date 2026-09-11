@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using HAgent.Abstractions;
 using HAgent.Models;
+using HAgent.Runtime;
 using HAgent.WinForms.Controls;
 using HAgent.WinForms.UI.Configuration;
 using HAgent.WinForms.UI.Configuration.About;
@@ -43,10 +44,11 @@ namespace HAgent.WinForms.Forms
             IEnumerable<IAiProviderAdapter> adapters,
             IToolRegistry tools = null,
             IAiLearningCandidateStore learningCandidates = null,
-            AgentIdentityContext reviewerIdentity = null)
+            AgentIdentityContext reviewerIdentity = null,
+            AiLearningPromotionService learningPromotion = null)
             : base("AI Configuration", "Providers, agents, tools, policy, learning review, permissions, and storage", new Size(1120, 720), new Size(900, 600))
         {
-            _context = new ConfigurationContext(store, secrets, adapters, tools, learningCandidates, reviewerIdentity);
+            _context = new ConfigurationContext(store, secrets, adapters, tools, learningCandidates, reviewerIdentity, learningPromotion);
             _overview = new OverviewPage(_context);
             _providers = new ProvidersPage(_context);
             _agents = new AgentsPage(_context);

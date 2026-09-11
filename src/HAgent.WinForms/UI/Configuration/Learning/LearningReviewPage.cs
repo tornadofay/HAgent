@@ -12,9 +12,9 @@ namespace HAgent.WinForms.UI.Configuration.Learning
     {
         private readonly ConfigurationContext _context;
         private readonly ListView _list = new ListView();
-        private readonly Label _userId = new Label { AutoSize = true, ForeColor = Text };
-        private readonly Label _tenantId = new Label { AutoSize = true, ForeColor = Text };
-        private readonly Label _workspaceId = new Label { AutoSize = true, ForeColor = Text };
+        private readonly Label _userId = new Label { AutoSize = true, ForeColor = Color.FromArgb(68, 62, 88) };
+        private readonly Label _tenantId = new Label { AutoSize = true, ForeColor = Color.FromArgb(68, 62, 88) };
+        private readonly Label _workspaceId = new Label { AutoSize = true, ForeColor = Color.FromArgb(68, 62, 88) };
         private readonly Label _status = new Label { AutoSize = true, ForeColor = Muted };
 
         public LearningReviewPage(ConfigurationContext context)

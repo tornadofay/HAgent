@@ -83,15 +83,6 @@ Use deterministic fake providers to verify:
 7. 0.96 owns execution-target selection; this phase does not create a routing engine.
 8. Provider credentials use the repository's simple encrypted provider-configuration mechanism; no separate secret-vault architecture is introduced.
 
-## Not part of V1
-
-- provider marketplace/plugin distribution;
-- automatic vendor-specific optimization frameworks;
-- universal provider feature parity;
-- hard-coded provider model matrices in Core;
-- a second execution planner;
-- provider-specific business logic in agent profiles.
-
 ## Dependencies
 
 ```text

@@ -1,11 +1,12 @@
 # HAgent Roadmap
 
-> This file is generated from smaller source documents. Do not edit it directly.
+> This file is generated from the complete active V1 roadmap source set. Do not edit it directly.
+> V2/research-only material belongs in `roadmapv2.md` and is intentionally excluded.
 > Source directory: `docs/roadmap`.
 
 ## HAgent Roadmap
 
-The roadmap is the ordered implementation path toward the HAgent master plan. Stable architectural definitions belong under `docs/architecture/`, and current work belongs under `docs/plan/`.
+The roadmap is the ordered implementation path toward the HAgent master plan. Stable architectural definitions belong under `docs/architecture/`, current implementation state belongs under `docs/plan/`, and this directory defines the ordered delivery sequence.
 
 ## Current position
 
@@ -14,137 +15,226 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.5 — tool foundation complete; hardening remains
 - 0.6 — safety/permission foundation complete; broader authorization remains
 - 0.7 — WinForms UI Context + Data Discovery complete and locally verified
-- 0.8 — Data Access + Authorization + Internal Storage **and first-class resource foundations** — substantially implemented
+- 0.8 — Data Access + Authorization + Internal Storage and first-class resource foundations substantially implemented; remaining repository/backend obligations are consumed by later storage/resource phases
 - 0.9 — Runtime Agent Instances complete and locally verified
-- 0.95 — Generic External Host Integration **complete and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.951 — Identity, Tenancy + User Context — **completed and verified**
-- 0.952 — First-Class Event Subsystem — completed and verified
-- 0.953 — Unified Policy Engine — completed for its verified runtime/persistence/resource/learning-policy foundation
-- 0.954 — Prompt + Instruction Governance — **completed and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.955 — Context Engineering — **completed and verified on .NET Framework 4.8.1 and .NET 9**
-- 0.956 — Observability + Distributed Tracing — **completed and verified through Slice 8 on .NET Framework 4.8.1 and .NET 9**
-- 0.957 — Evaluation + Quality Measurement — **current ordered milestone; Slice 1 implementation checkpoint**
-- 0.9575 — Knowledge, Skills, Memory Governance + Learning — planned mature resource/governance phase
-- 0.9576 — Learned Resource Reliability, Adaptation + Consolidation — planned follow-on reliability/adaptation phase
-- 0.958 — Agent Lifecycle + Health Management — planned architectural foundation
-- 0.9591 — Goal/Plan Persistence + Recovery — **ordered before 0.959**; planned foundation
-- 0.959 — Human-in-the-Loop + Intervention — planned architectural foundation; ahead-of-roadmap execution intervention implementation exists
-- 0.9592 — Provider Ecosystem + Adapter Lifecycle — planned provider-platform foundation
-- 0.96.x — Configuration, Storage + Portability Evolution — cross-cutting foundation for 0.96/0.97
-- 0.96 — Capability-Aware Execution — planned major execution foundation
-- 0.97 — Persistent Cognitive Runtime — planned long-lived cognitive layer
-- 0.10 — Workspaces, Routing + Chat — paused until the generic runtime/capability/cognitive foundations are sufficient
-- 1.0 — Collaboration + Workflows
+- 0.95 — Generic External Host Integration complete and verified on .NET Framework 4.8.1 and .NET 9
+- 0.951 — Identity, Tenancy + User Context completed and verified
+- 0.952 — First-Class Event Subsystem completed and verified
+- 0.953 — Unified Policy Engine completed for its canonical policy boundary; UI/backend hardening is post-phase work
+- 0.954 — Prompt + Instruction Governance completed and verified on .NET Framework 4.8.1 and .NET 9
+- 0.955 — Context Engineering completed and verified on .NET Framework 4.8.1 and .NET 9
+- 0.956 — Observability + Distributed Tracing completed through its verified slices
+- 0.957 — Evaluation + Quality Measurement completed and verified
+- 0.9575 — Knowledge, Skills, Memory Governance + Learning **current**; Slices 1–7 verified, Slice 8 in progress
+- 0.9576 — Learned Resource Reliability + Adaptation **planned follow-on**
+- 0.958 — Agent Lifecycle + Health **planned**
+- 0.9591 — Goal/Plan Persistence + Recovery **planned and ordered before intervention**
+- 0.959 — Human-in-the-Loop + Intervention **planned; execution/learning intervention exists ahead of roadmap**
+- 0.9592 — Provider Ecosystem + Adapter Lifecycle **planned**
+- 0.96.x — Configuration, Storage + Portability **cross-cutting foundation before 0.96**
+- 0.96 — Capability-Aware Execution **planned major execution foundation**
+- 0.97 — Persistent Cognitive Runtime **planned production V1 cognitive layer**
+- 0.10 — Workspaces, Routing + Chat **deferred user-facing product surface after the generic runtime/execution/cognition foundations are sufficient**
+- 1.0 — Collaboration + Workflows **deferred orchestration layer built on 0.10, 0.959, 0.9591, 0.96, and 0.97**
 - Later — extensibility, developer platform, release hardening, and other ecosystem work
 
-## First-class resource architecture
-
-Knowledge, Skills, Memory, and Learning are now treated as a first-class architectural concern from the foundation upward rather than as a late product feature.
-
-The roadmap deliberately separates two layers:
-
-```text
-0.8 Resource Foundations
-    identity / scope / ownership metadata
-    provenance / version / lifecycle metadata
-    Skill definitions and references
-    Knowledge / Wiki resource contracts and retrieval boundaries
-    Memory family/type foundations
-    typed learning-candidate foundations
-    HAgent-owned persistence substrate
-
-0.9575 Mature Resource Governance + Learning
-    policy and authorization
-    capability inheritance and runtime overrides
-    effective execution resource snapshots
-    bounded retrieval / retention governance
-    Knowledge / Skill management
-    Learning modes and learning policy
-    candidate validation / evaluation / approval / promotion
-    resource/version conflict handling
-
-0.9576 Learned Resource Reliability + Adaptation + Consolidation
-    applicability / validity assessment
-    outcome-based trust and confidence revision
-    drift / staleness / contradiction handling
-    safe fallback to reasoning when learned behavior is uncertain
-    revalidation and replacement candidates
-    consolidation / deduplication / conflict handling
-    utility-aware archival and forgetting
-```
-
-This separation is intentional. HAgent establishes canonical resource contracts early enough that Context, Instruction Governance, Runtime, Evaluation, and Persistent Cognition can consume them directly. Mature governance is completed only after the identity, policy, instruction, context, and evaluation boundaries required to govern those resources exist. Phase 0.9576 extends that governance into the post-promotion reliability lifecycle without introducing a parallel resource architecture.
-
-Learning is not treated as a synonym for memory or as a late model feature. It is a controlled lifecycle from experience to typed candidate to validation/policy/approval and finally promotion into an authoritative resource or scoped state, followed by ongoing reliability evaluation where applicable.
-
-The four concepts remain distinct:
-
-```text
-Skills    = reusable executable capabilities/procedures
-Knowledge = reusable retrievable information
-Memory    = scoped experience/state
-Learning  = governed transformation of experience into candidates/promotions
-```
-
-No phase may introduce a parallel resource model merely because the mature governance phase has not yet been completed. Existing resource primitives may be consumed by earlier phases, while access, promotion, and authoritative mutation remain subject to the governance boundaries defined later.
-
-## Foundational sequence
-
-The current ordered foundations are:
+## Ordered V1 dependency chain
 
 ```text
 0.951 Identity / Tenancy / User Context
         ↓
-0.952 Event subsystem
+0.952 Events
         ↓
-0.953 Unified Policy Engine
+0.953 Unified Policy
         ↓
-0.954 Prompt / Instruction Governance — verified
+0.954 Prompt / Instruction Governance
         ↓
-0.955 Context Engineering — verified
+0.955 Context Engineering
         ↓
-0.956 Observability / Tracing — verified
+0.956 Observability / Tracing
         ↓
-0.957 Evaluation / Quality Measurement — current
+0.957 Evaluation / Quality Measurement
         ↓
 0.9575 Knowledge / Skills / Memory Governance + Learning
         ↓
-0.9576 Learned Resource Reliability + Adaptation + Consolidation
+0.9576 Learned Resource Reliability + Adaptation
         ↓
-0.958 Agent Lifecycle / Health
+0.958 Agent Lifecycle + Health
         ↓
-0.9591 Goal / Plan Persistence / Recovery
+0.9591 Goal / Plan Persistence + Recovery
         ↓
-0.959 Human-in-the-Loop / Intervention
+0.959 Human Intervention
         ↓
-0.9592 Provider Ecosystem / Adapter Lifecycle
+0.9592 Provider Ecosystem + Adapters
         ↓
-0.96.x Configuration / Storage / Portability Evolution
+0.96.x Configuration / Storage / Portability
         ↓
 0.96 Capability-Aware Execution
         ↓
 0.97 Persistent Cognitive Runtime
+        ↓
+0.10 Workspaces / Routing / Chat
+        ↓
+1.0 Collaboration / Workflows
 ```
 
-The placement of 0.9591 before 0.959 is deliberate: durable goal/plan revisions, checkpoints, and recovery state provide the persistent authority that later goal/plan-step intervention can govern. Execution-level intervention remains independently valid.
+The ordering is dependency-driven. A feature may be implemented early as an ahead-of-roadmap experiment, but that does not mark its ordered phase complete until the phase's full V1 boundaries and verification requirements are satisfied.
 
-The pre-0.96 foundations define reusable identity, events, policy, resource foundations, instruction trust, context assembly, tracing, evaluation, resource governance, learned-resource reliability, lifecycle, durable goal/plan recovery, human intervention, provider adapter boundaries, and configuration/storage evolution that later execution and cognition layers should consume rather than reinvent.
+## Phase ownership map
 
-## Resource relationship to later cognition
+Each responsibility has one authoritative owner. Later phases consume the contract instead of recreating it.
 
-Phase 0.97 Persistent Cognitive Runtime consumes Memory, Knowledge, and Skills as first-class resources and may consume existing resource contracts before every 0.9575 management surface is complete. It must not create a second memory/knowledge/skill architecture or bypass resource governance.
+| Responsibility | Authoritative phase | Later consumers |
+|---|---|---|
+| Identity, tenancy, user context | 0.951 | all identity-aware phases |
+| Generic events | 0.952 | runtime, cognition, workspace, workflows |
+| Authorization/policy/precedence | 0.953 | instruction, context, learning, intervention, execution, cognition |
+| Instruction authority/provenance | 0.954 | context, execution, cognition |
+| Context retrieval/assembly/bounds | 0.955 | execution, cognition |
+| Tracing/observability | 0.956 | all runtime subsystems |
+| Evaluation/quality evidence | 0.957 | learning, reliability, execution diagnostics, cognition |
+| Skill/Knowledge/Memory governance + learning promotion | 0.9575 | reliability, cognition, workspace |
+| Post-promotion reliability/applicability/forgetting | 0.9576 | lifecycle, cognition |
+| Runtime-agent lifecycle + runtime health | 0.958 | durable recovery, intervention, cognition |
+| Durable goals/plans/checkpoints/recovery | 0.9591 | intervention, cognition, workflows |
+| Human/host intervention boundary | 0.959 | lifecycle, plans, cognition, workflows |
+| Provider adapter/discovery/operational evidence | 0.9592 | 0.96 execution |
+| Configuration/storage/portability | 0.96.x | execution, cognition, workspaces, workflows |
+| Concrete execution-target selection/admission | 0.96 | all inference-capable subsystems |
+| Persistent per-agent cognition | 0.97 | workspace, collaboration, workflows |
+| User-facing workspace/routing/chat | 0.10 | collaboration/workflows |
+| Multi-agent collaboration/workflow orchestration | 1.0 | host applications |
 
-Persistent cognition can generate experiences and learning signals, but learned changes remain subject to typed candidates, provenance, evaluation, policy, authorization, versioning, explicit promotion, and post-promotion reliability governance. The cognitive kernel itself remains independently versioned and must never be silently rewritten by model output or learning.
+The table is an architectural ownership rule, not merely a planning convenience.
 
-## Configuration and storage relationship
+## First-class resource architecture
 
-The configuration/storage evolution phase remains a cross-cutting foundation before 0.96 because capability-aware execution and persistent cognition depend on provider/model/target separation, encrypted provider credentials, global configuration, resource relationships, shared-database behavior, snapshot invalidation, and portable configuration contracts.
+Knowledge, Skills, Memory, and Learning are one coherent resource architecture.
 
-## Roadmap rules
+```text
+0.8 resource foundations
+    identity / ownership / scope
+    provenance / lifecycle / version metadata
+    Skill definitions/references
+    Knowledge/Wiki contracts
+    Memory family/type foundations
+    storage substrate
 
-The roadmap is dependency-driven rather than a permanent product-feature lock. A phase may be reordered when new architectural understanding reveals a genuine dependency change; such changes should update the authoritative roadmap and current-state documents together. Existing ahead-of-roadmap implementation remains implementation evidence, not milestone completion, until its ordered phase and full requirements are verified.
+0.9575 mature resource governance + learning
+    capability inheritance + runtime overrides
+    authorization and resource governance
+    bounded retrieval + retention
+    Learning Mode
+    typed candidates
+    lifecycle / review / promotion
+    version-safe authoritative resource creation
+    context/runtime integration
 
-External consumers use HAgent through public provider-neutral APIs. HAgent does not contain consumer-specific dependencies or domain logic.
+0.9576 post-promotion reliability
+    applicability / validity
+    outcome-based trust evidence
+    stale / contradiction / drift handling
+    revalidation / replacement
+    archival / forgetting
+```
+
+No later phase may create a parallel Memory, Knowledge, Skill, or Learning model merely because an earlier phase has not yet completed its management surface.
+
+## Runtime and execution separation
+
+The roadmap maintains a strict separation:
+
+```text
+Persistent Cognitive Runtime (0.97)
+    decides what the agent should do
+
+Execution Planner (0.96)
+    decides where/how a requested inference should execute
+
+Provider Adapter (0.9592)
+    knows provider-specific transport/discovery details
+
+Execution Engine
+    performs the selected request
+```
+
+The cognitive layer must not become a second provider/model router. The execution planner must not become a cognitive planner.
+
+## Single-owner runtime invariant
+
+Persistent cognition uses one authoritative state owner per runtime agent instance.
+
+```text
+one runtime instance
+    → one authoritative state owner
+    → serialized state mutation
+    → asynchronous work returns results/events
+
+many independent runtime instances
+    → concurrent operation
+    → isolated state and identity
+```
+
+This removes the need for a general multi-writer cognitive merge architecture in production V1. Revision/stale-result protection remains mandatory; semantic multi-writer proposal arbitration is deferred to optional research.
+
+## 0.96 scope
+
+Phase 0.96 is the only concrete execution-selection layer. It handles:
+
+- capabilities and constraints;
+- provider/model/execution-target selection;
+- cost policy;
+- quota/rate limits;
+- concurrency/capacity admission;
+- health/availability of execution targets;
+- latency and bounded waiting;
+- fallback/degradation;
+- target diagnostics.
+
+Provider health evidence originates at 0.9592; 0.96 consumes it. Cognitive strategies emit provider-neutral reasoning requirements and consume 0.96 rather than naming providers/models.
+
+## 0.97 production V1 scope
+
+The Persistent Cognitive Runtime provides:
+
+- authoritative per-agent cognitive state;
+- observations and beliefs;
+- bounded DecisionWorkspace selection;
+- goals and intentions;
+- deterministic/reactive decisions;
+- bounded deliberation and provider-neutral reasoning requirements;
+- plans and recovery integration;
+- governed learning candidates;
+- learned-resource reliability consumption;
+- lifecycle, persistence, cancellation, shutdown, observability, and evaluation;
+- a production management/diagnostic workbench built on runtime state-transition APIs rather than direct persistence mutation.
+
+The three auxiliary roadmap documents `cognitive-workbench.md`, `cognitive-workbench-controls.md`, and `cognitive-workbench-learning.md` are subdocuments of 0.97, not separate roadmap phases.
+
+It is explicitly **not** a claim to implement a complete cognitive theory, human cognition, AGI, consciousness, universal planning, neural continual learning, or distributed cognitive consensus.
+
+## 0.10 vs 1.0 boundary
+
+0.10 is the user-facing workspace/routing/chat product surface. It does not become a general multi-agent workflow engine.
+
+1.0 is the later orchestration layer for bounded multi-agent collaboration and workflows. It consumes 0.10 routing, 0.959 intervention, 0.9591 durable planning/recovery, 0.96 execution selection, and 0.97 persistent cognition. It must not recreate those lower-level authorities.
+
+## Ahead-of-roadmap implementation rule
+
+Existing implementation may appear before its ordered phase. Such work is retained when useful, but it is labeled as ahead-of-roadmap evidence and does not silently reorder the roadmap.
+
+This rule applies especially to current execution intervention, learning-candidate intervention, runtime examples, resource foundations, and other experiments created while earlier foundations were still being completed.
+
+## Roadmap maintenance rules
+
+1. One phase owns each responsibility; later phases consume earlier contracts rather than recreating them.
+2. Every substantial phase has a bounded V1 exit criterion.
+3. Production V1 requirements are separated from V2/research work.
+4. Architectural invariants outrank implementation convenience.
+5. Historical foundation checklists are normalized when later implementation proves the item already exists; genuine missing work is assigned to the phase that consumes it.
+6. If implementation proves a dependency wrong, update this ordered roadmap and the affected phase documents together before continuing.
+7. Auxiliary documents under `docs/roadmap/` must name their parent phase and may not create an independent milestone or authority.
+8. Generated root `roadmap.md` remains a view; authoritative ordering lives in `docs/roadmap/`.
 
 ## Foundations — 0.1 through 0.7
 
@@ -301,16 +391,18 @@ This phase establishes the **resource substrate**. Mature resource governance, c
 
 ## Resource foundation
 
-11. [ ] Establish one provider-neutral resource identity contract that can represent Skills, Knowledge/Wiki resources, Memory families/types, Learning candidates, and future resource types without adding hard-coded resource properties to the agent model.
-12. [ ] Establish explicit resource scope/ownership metadata compatible with the canonical identity model: Global, Tenant, Domain, User, Agent, Runtime, and Execution where applicable.
-13. [ ] Establish resource provenance/source metadata and lifecycle/status/version metadata as shared foundation concepts.
-14. [ ] Define the stable distinction between Skills, Knowledge/Wiki, Memory, and Learning candidates; do not collapse them into one persisted object model.
-15. [ ] Establish stable/versioned Skill definitions and references while keeping executable handlers outside persistence.
-16. [ ] Establish provider-neutral Knowledge/Wiki resource/source contracts and bounded retrieval semantics independent of keyword/vector/index implementation.
-17. [ ] Normalize Memory foundations around working, episodic, semantic, procedural, and future extensible types while keeping memory ownership separate from physical storage.
-18. [ ] Establish typed learning-candidate contracts and provenance fields needed for later governed promotion without making the model authoritative.
-19. [ ] Preserve immutable snapshot compatibility: resource definitions and references must be safe to capture into active execution snapshots without later configuration edits mutating running executions.
-20. [ ] Ensure the resource foundation remains usable without GPU hardware, vector databases, embeddings, or large resident indexes.
+11. [x] Establish one provider-neutral resource identity contract that can represent Skills, Knowledge/Wiki resources, Memory families/types, Learning candidates, and future resource types without adding hard-coded resource properties to the agent model.
+12. [x] Establish explicit resource scope/ownership metadata compatible with the canonical identity model: Global, Tenant, User, Workspace, Agent, Runtime, and Execution where applicable. `Workspace` is the canonical scope; historical `Domain` terminology is obsolete.
+13. [x] Establish resource provenance/source metadata and lifecycle/status/version metadata as shared foundation concepts.
+14. [x] Define the stable distinction between Skills, Knowledge/Wiki, Memory, and Learning candidates; do not collapse them into one persisted object model.
+15. [x] Establish stable/versioned Skill definitions and references while keeping executable handlers outside persistence.
+16. [x] Establish provider-neutral Knowledge/Wiki resource/source contracts and bounded retrieval semantics independent of keyword/vector/index implementation.
+17. [x] Normalize Memory foundations around working, episodic, semantic, procedural, and future extensible types while keeping memory ownership separate from physical storage.
+18. [x] Establish typed learning-candidate contracts and provenance fields needed for later governed promotion without making the model authoritative.
+19. [x] Preserve immutable snapshot compatibility: resource definitions and references must be safe to capture into active execution snapshots without later configuration edits mutating running executions.
+20. [x] Ensure the resource foundation remains usable without GPU hardware, vector databases, embeddings, or large resident indexes.
+
+The resource-foundation obligations above are now historical foundation work. Any remaining gaps in mature persistence, governance, promotion, retention, administration, or management UI are owned by their consuming phases, especially 0.9575, 0.96.x, and 0.97. No later phase may create a parallel resource model to finish an incomplete surface.
 
 ## Deferred historical completion obligations
 
@@ -399,9 +491,9 @@ Make live agents first-class runtime objects separate from reusable agent profil
 6. [x] Expose asynchronous scheduling, cancellation, timeout, correlation, and stale-result protection foundations.
 7. [x] Define explicit active/retired/shutdown lifecycle behavior.
 8. [x] Keep dynamically created agents out of persistent configuration by default.
-9. [x] Add optional runtime-state persistence for recovery, collaboration, or multi-process deployments.
+9. [x] Provide runtime-state persistence/snapshot hooks needed by the current runtime contract without claiming durable cognitive goal/plan state or a second persistence model.
 10. [x] Verify the runtime contract with deterministic Example coverage.
-11. [ ] Complete generic external-host execution boundary hardening in Phase 0.95.
+11. [x] Complete generic external-host execution boundary hardening in Phase 0.95.
 
 ## Runtime rule
 
@@ -423,9 +515,11 @@ First-class resource foundations are established by Phase 0.8. Mature capability
 
 Phase 0.9 establishes the runtime-instance foundation. Phase 0.95 completes the generic execution boundary required for external hosts: arbitrary host input/context, host correlation, structured output contracts, terminal execution semantics, and tool identity propagation. The first-class resource model is already foundational infrastructure, while Phase 0.9575 consumes the runtime guarantees for mature Knowledge, Skills, Memory, Learning, and management governance.
 
+Durable goal, intention, plan, checkpoint, and recovery state is deliberately later work in Phase 0.9591. Persistent cognitive ownership and long-lived cognition are later 0.97 work. The runtime-instance phase must not be treated as having already solved those later persistence problems merely because basic runtime-state snapshots exist.
+
 ## Exit criterion
 
-A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, private-memory, or execution-state collisions. Resource governance and learning may then build on the stable runtime and snapshot boundaries without weakening runtime isolation.
+A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, private-memory, or execution-state collisions. Later resource governance, durable goal/plan recovery, and persistent cognition can then build on the stable runtime and snapshot boundaries without weakening runtime isolation.
 
 ## Phase 0.95 — Generic External Host Integration
 
@@ -511,6 +605,771 @@ HWorld is an external consumer. HAgent does not contain an HWorld dependency, ad
 ## Exit criterion
 
 A host can submit a complete provider-neutral execution request with bounded context, host correlation, and optional structured-output requirements; HAgent can execute that request either directly or through a long-lived runtime instance without losing request semantics or runtime ownership. HAgent resolves the request into a provider-facing request, invokes an adapter, normalizes the response, validates host-owned contracts, preserves execution identity, protects terminal state, and isolates runtime snapshots without coupling to host or provider-specific domain models. A standalone external consumer representing the HAgent production surface demonstrated the public boundary on both supported target frameworks, and runtime-instance execution composes the canonical request through the verified instance/request API.
+
+## Phase 0.96 — Capability-Aware Execution
+
+## Status
+
+**Planned major execution foundation after 0.96.x and before 0.97.**
+
+## Purpose
+
+Select and admit the best currently usable concrete execution target for each request across heterogeneous providers, models, accounts, endpoints, capabilities, quotas, rate limits, concurrency capacity, health, latency, and cost policy.
+
+Phase 0.96 is the **single concrete execution-selection authority** in HAgent.
+
+The cognitive layer may request reasoning requirements, but it must never choose provider/model names directly.
+
+## Core separation
+
+```text
+Agent Profile
+    = what the agent requires and prefers
+
+Provider
+    = provider/service integration
+
+Logical Model
+    = provider-independent identity when reliably known
+
+Execution Target
+    = concrete provider + account/project/endpoint + model/deployment
+
+Capability
+    = what the target can do
+
+Constraint
+    = limits on the requested operation
+
+Operational State
+    = quota / rate / concurrency / health / availability
+
+Cost State
+    = Free / FreeWithinQuota / Paid / Unknown
+
+Execution Planner
+    = selects and admits the best compatible target
+```
+
+## Delivery slices
+
+### Slice 1 — Execution-target model
+
+- Define normalized target identity.
+- Separate Provider, Model, and concrete target.
+- Preserve provider-native identifiers/deployment metadata.
+- Support multiple targets for the same logical model.
+
+### Slice 2 — Capability and constraint evaluation
+
+- Normalize capabilities as `Supported`, `Unsupported`, or `Unknown`.
+- Keep capability separate from permission, health, quota, capacity, and cost.
+- Support request requirements with required/preferred/optional/forbidden semantics.
+- Cover structured output, tool use, reasoning, modalities, streaming, embeddings, and extensible future capabilities.
+- Distinguish native support from emulated/degraded behavior.
+- Never treat unknown capability as supported by default.
+
+### Slice 3 — Discovery evidence integration
+
+- Consume provider adapter discovery from 0.9592.
+- Preserve capability provenance, confidence, observation time, and expiration.
+- Accept provider metadata, documentation evidence, controlled probes, successful execution evidence, response metadata, and explicit host overrides.
+- Keep discovery evidence replaceable and provider-neutral.
+
+### Slice 4 — Cost and policy selection
+
+Support system/agent/runtime policy:
+
+```text
+FreeOnly
+FreePreferred
+NoRestriction
+```
+
+Support Agent selection mode:
+
+```text
+Auto
+Preferred
+Fixed
+```
+
+Rules:
+
+- `FreeOnly` cannot treat `Unknown` cost as free.
+- `FreePreferred` prefers eligible free targets and may use paid fallback only when policy permits it.
+- `Fixed` still enforces capability, authorization, quota, capacity, health, and constraints.
+- Agent preferences never become permanent provider bindings.
+
+### Slice 5 — Rate, quota, and concurrency admission
+
+Use generic resource dimensions rather than provider-specific hard-coded limits.
+
+Minimum dimensions:
+
+```text
+request count
+tokens in
+tokens out
+total tokens
+concurrency
+```
+
+Support arbitrary provider-defined windows and enforcement scopes.
+
+Implement:
+
+- proactive admission;
+- atomic reservations for concurrent requests;
+- bounded waiting;
+- `Wait`, `TryNextCandidate`, `Fail`, or policy-approved degradation;
+- reconciliation after execution;
+- partial/unknown usage accounting;
+- provider 429/quota signals as operational feedback.
+
+A target with quota available may still have no execution capacity.
+
+### Slice 6 — Health, latency, fallback, and long-running execution
+
+- Track availability/health separately from capability.
+- Track latency separately from quota/rate state.
+- Support legitimately long-running inference without false failure.
+- Preserve cancellation, timeout, and stale-result protection while waiting, executing, or falling back.
+- Avoid permanent blacklisting from transient failures.
+- Define explicit fallback/degradation behavior.
+
+### Slice 7 — Execution planning and diagnostics
+
+For each candidate expose a normalized assessment:
+
+```text
+Target identity
+Compatibility
+Capability evidence
+Constraint result
+Permission state
+Quota/rate state
+Capacity state
+Health/availability
+Cost state
+Estimated latency
+Wait-until (optional)
+Degradation option (optional)
+Score/ranking data
+Decision reason
+```
+
+The assessment is diagnostic data and should be consumable by hosts/UI without provider-specific knowledge.
+
+### Slice 8 — Management UI and verification
+
+The management surface must show effective target capability, limits, cost, quota/rate/capacity, availability, and compatibility with the active request.
+
+Deterministic verification must cover:
+
+- same logical model through multiple providers;
+- required/preferred/optional/forbidden capabilities;
+- unknown capability metadata;
+- incompatible manual selection;
+- native vs degraded structured output;
+- proactive rate limiting;
+- token/request windows;
+- atomic concurrent reservations;
+- 429 feedback;
+- long-running requests;
+- cancellation and timeout;
+- stale-result protection;
+- target fallback;
+- Auto/Preferred/Fixed selection;
+- FreeOnly/FreePreferred/NoRestriction behavior.
+
+## Architectural rules
+
+1. 0.96 is the sole concrete execution-selection layer.
+2. 0.97 cognitive strategies never select providers/models directly.
+3. Rate limiting is proactive admission, not only retry logic.
+4. Capability is not permission, health, quota, capacity, or cost.
+5. Unknown information stays unknown.
+6. Provider-specific logic remains in adapters.
+7. Agent profiles express intent and preferences, not transport bindings.
+8. Every execution uses an immutable effective snapshot of relevant configuration.
+9. Fallback never bypasses authorization or capability requirements.
+10. Independent runtime agents may call the planner concurrently without sharing mutable runtime identity/state.
+
+## Not part of V1
+
+- a universal autonomous routing AI;
+- provider-specific model matrices in Core;
+- a second routing engine in 0.97;
+- distributed rate-limit services;
+- hard-coded vendor behavior;
+- optimization based on opaque model rankings without inspectable decision data.
+
+## Dependency chain
+
+```text
+0.9592 provider/adapters
+        ↓
+0.96.x configuration/storage
+        ↓
+0.96 capability-aware execution
+        ↓
+0.97 persistent cognition
+```
+
+## Exit criterion
+
+For every execution request HAgent can deterministically identify compatible targets, enforce capability/policy/cost/quota/capacity/health constraints, reserve required capacity, choose or wait/fallback according to explicit rules, execute through provider-neutral boundaries, and explain the resulting selection or rejection without embedding provider logic into Core or cognition.
+
+## Phase 0.97 — Persistent Cognitive Runtime
+
+## Status
+
+**Planned after 0.96 and before higher-level autonomous-agent features.**
+
+## Purpose
+
+Add an optional long-lived cognitive runtime above ordinary HAgent executions.
+
+A Persistent Cognitive Runtime lets one runtime agent remain active over time: receive observations/events, maintain state, pursue goals, use plans and Skills, remember relevant experience, decide when deterministic behavior is sufficient, request bounded reasoning when necessary, execute through the existing execution engine, and incorporate validated outcomes.
+
+It is a production mechanism layer, not an implementation of BDI, SOAR, ACT-R, Global Workspace Theory, LIDA, ReAct, Reflexion, MemGPT, Voyager, consciousness, or AGI.
+
+## Core production invariant — single authoritative owner
+
+Each runtime agent instance owns its authoritative cognitive state.
+
+```text
+Agent A runtime instance
+    ├── authoritative state owner A
+    ├── event queue A
+    ├── asynchronous work A
+    └── state mutations applied only by owner A
+
+Agent B runtime instance
+    ├── authoritative state owner B
+    ├── event queue B
+    ├── asynchronous work B
+    └── state mutations applied only by owner B
+```
+
+Asynchronous LLM/tool/retrieval work may run concurrently, but it never writes cognitive state directly. It returns a typed result/event to the owning runtime, which validates lifecycle, revision, policy, and applicability before applying the mutation.
+
+Per-agent state mutation is serialized. Independent runtime agents remain concurrently schedulable and must not become a single shared cognitive bottleneck.
+
+This is the authoritative concurrency model for V1.
+
+## Architecture boundary
+
+```text
+Host / Environment
+        ↓
+Events / Observations
+        ↓
+Persistent Cognitive Runtime
+        ├── state ownership
+        ├── decision workspace
+        ├── goals / intentions
+        ├── plans / methods
+        ├── reactive decisions
+        ├── bounded deliberation
+        ├── learning integration
+        └── runtime lifecycle
+        ↓
+Reasoning Requirement
+        ↓
+Phase 0.96 Execution Planner
+        ↓
+Existing Execution Engine
+```
+
+The host remains authoritative over domain truth, host scheduling policy, permissions, external side effects, and business state.
+
+## Delivery slices
+
+### Slice 1 — Single-owner cognitive state and revisions
+
+- Define the authoritative cognitive-state contract owned by one runtime agent.
+- Provide immutable/read-only snapshots for consumers.
+- Define a monotonic cognitive revision.
+- Serialize state mutation per runtime agent.
+- Allow asynchronous work to return events/results to the owner.
+- Reject stale, cancelled, retired, shutdown, or superseded results.
+- Preserve source/cause/correlation metadata.
+- Verify multiple independent runtime agents can mutate concurrently without sharing state.
+
+**Important:** V1 does not require a general multi-writer proposal/merge engine. The owner is the sole state authority.
+
+### Slice 2 — Observations, beliefs, and bounded decision workspace
+
+- Distinguish host observations/events from inferred beliefs.
+- Preserve provenance, confidence/quality, scope, freshness, validity, and revision.
+- Represent ambiguity and insufficient evidence explicitly.
+- Define bounded `DecisionWorkspace` selection for the current decision.
+- Use deterministic relevance signals such as urgency, novelty, goal relevance, uncertainty, risk, freshness, relationship relevance, and policy importance where supplied.
+- Keep workspace selection separate from prompt construction.
+- Prevent event storms and workspace growth from becoming unbounded.
+
+### Slice 3 — Goals, intentions, and reconsideration
+
+- Define durable Goal and Intention usage over the 0.9591 persistence contracts.
+- Keep Goal, Intention, and Plan/Method distinct.
+- Support multiple active goals with deterministic priority/constraint policy.
+- Record why an intention was adopted, retained, revised, suspended, completed, failed, abandoned, or superseded.
+- Define reconsideration triggers such as invalid assumptions, failure, changed constraints, higher-priority goals, resource/policy changes, deadlines, or host intervention.
+- Add anti-thrashing limits such as cooldown, reconsideration budgets, repeated-proposal detection, or no-progress thresholds.
+
+### Slice 4 — Reactive processing and deterministic fast path
+
+The runtime should attempt deterministic processing before model reasoning.
+
+```text
+Event / current state
+        ↓
+Check current plan/operators/Skills
+        ↓
+Check preconditions + policy + resources
+        ↓
+Safe deterministic action?
+    yes → apply
+    no  → reasoning assessment
+```
+
+Deterministic behavior may advance a plan, update working state, emit an event, invoke a governed tool, mark a resource stale, wait/sleep/wake, or create an impasse.
+
+Routine events should not consume an LLM merely because the runtime is active.
+
+### Slice 5 — Deliberation and Reasoning Requirement
+
+- Define provider-neutral reasoning requirements.
+- Support required/preferred capabilities, context needs, structured output, tools, latency tolerance, cost policy, and bounded reasoning depth.
+- Support staged escalation from deterministic processing to bounded reasoning.
+- Allow explicit `NoModelRequired` outcomes.
+- Keep provider/model names out of cognition.
+- Send concrete execution selection only through 0.96.
+- Bound model calls, time, tokens/usage, retrieval, and recursion.
+- Treat incomplete deliberation as a typed outcome rather than false success.
+
+### Slice 6 — Plans, methods, execution, and recovery integration
+
+- Consume durable Goal/Plan/Checkpoint/Recovery contracts from 0.9591.
+- Support plan steps, assumptions, preconditions, expected effects, checkpoints, and explicit outcome states.
+- Continue valid plans without unnecessary re-deliberation.
+- Reconsider when assumptions/resources/policy change.
+- Distinguish `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`.
+- Propagate stale-result and lifecycle protection into plan execution.
+- Use existing execution/runtime intervention boundaries rather than creating a second execution engine.
+
+### Slice 7 — Experience, learning, and learned-resource reliability
+
+- Capture bounded experience records from meaningful completed interactions.
+- Keep Experience distinct from Memory, Knowledge, Skill, Policy, and raw execution logs.
+- Produce procedural learning candidates conservatively from sufficient evidence.
+- Preserve positive/negative evidence, applicability conditions, provenance, expected effects, and source execution/runtime identity.
+- Send candidates through 0.9575 learning governance and promotion.
+- Consume 0.9576 reliability/applicability results after promotion.
+- Never make a single successful trajectory silently authoritative.
+
+### Slice 8 — Lifecycle, persistence, observability, and production verification
+
+- Consume 0.958 lifecycle/health semantics.
+- Consume 0.9591 durable goals/plans/recovery.
+- Support cancellation, suspension, retirement, shutdown, restart recovery, and post-retirement stale-result rejection.
+- Preserve per-agent state ownership during all asynchronous work.
+- Emit structured telemetry for event intake, workspace selection, deterministic actions, deliberation, reasoning requirements, plan progress, execution correlation, learning candidates, interventions, and recovery.
+- Support evaluation of correctness, unnecessary LLM use, latency, cost, failure/recovery, and learning reliability.
+- Verify concurrency with many independent runtime agents, not only one shared state under contention.
+
+## Production V1 invariants
+
+1. One runtime agent instance has one authoritative state owner.
+2. Only the owner applies authoritative state mutations.
+3. Background work returns results/events; it never writes owner state directly.
+4. State mutation for one agent is serialized.
+5. Different agent instances may operate concurrently without sharing mutable runtime state.
+6. No stale asynchronous result may overwrite newer state.
+7. Retirement and shutdown invalidate outstanding cognitive authority.
+8. Request-oriented `ExecuteAsync` remains a first-class public API.
+9. Deterministic processing is preferred when sufficient.
+10. 0.96 is the only concrete provider/model execution-selection layer.
+11. Learned resources are governed by 0.9575/0.9576 rather than a second learning architecture.
+12. Host/domain truth and external side effects remain host-authoritative.
+13. All queues, workspaces, deliberation, recursion, and resource growth are bounded.
+14. Model output is evidence/request input, never authorization.
+
+## Explicitly not V1
+
+The following are outside the production V1 target and may become V2/research work:
+
+- general multi-writer cognitive-state conflict graphs;
+- competing proposal merge engines for one runtime agent;
+- universal BDI/SOAR/ACT-R implementation;
+- consciousness/global-workspace claims;
+- human-equivalent cognitive timing;
+- universal planning or AGI;
+- neural continual-learning algorithms and catastrophic-forgetting solutions;
+- automatic universal Skill induction from arbitrary trajectories;
+- distributed cognitive-state consensus;
+- autonomous cluster supervision.
+
+## Dependency graph
+
+```text
+0.9575 governed resources + learning
+        ↓
+0.9576 learned-resource reliability
+        ↓
+0.958 lifecycle + health
+        ↓
+0.9591 durable goals/plans/recovery
+        ↓
+0.959 intervention
+        ↓
+0.9592 provider/adapters
+        ↓
+0.96.x configuration/storage
+        ↓
+0.96 capability-aware execution
+        ↓
+0.97 persistent cognitive runtime
+```
+
+## Relationship to HWorld and other hosts
+
+HWorld may host many independent runtime agents, for example one agent per NPC. The runtime architecture must support concurrent operation of those independent agents without embedding HWorld concepts into HAgent.
+
+The same runtime also supports ordinary desktop applications, automation, analysis, or other hosts that need a persistent agent.
+
+## Exit criterion
+
+A host can create a long-lived runtime agent that independently owns its cognitive state, receives and processes events, uses deterministic behavior before unnecessary model calls, pursues persistent goals and plans, requests bounded reasoning through 0.96, learns through governed candidates, survives cancellation/restart/lifecycle transitions, and operates concurrently with many other independent runtime agents without shared-state corruption or a shared cognitive bottleneck.
+
+## Phase 0.96.x — Configuration, Storage, and Portability Evolution
+
+## Status
+
+**Cross-cutting foundation required before completion of 0.96 and before 0.97 consumes long-lived configuration.**
+
+## Purpose
+
+Provide one authoritative persistence/configuration model for providers, models, concrete execution targets, Agent selection policy, resources, learning configuration, permissions, and global defaults across the supported File, SQL Server, and MySQL backends.
+
+This phase is infrastructure. It does not perform provider/model routing and does not become a second configuration architecture.
+
+## V1 storage model
+
+```text
+General settings
+Providers
+Logical models (where identity can be established)
+Concrete execution targets
+Capabilities / evidence
+Constraints
+Operational quota/rate/capacity state
+Cost state
+Agents / selection policy
+Skills
+Knowledge / Wiki
+Memory / learning configuration
+Tools
+Permissions / policy
+Resource relationships
+```
+
+The same logical configuration model must exist regardless of storage backend.
+
+## Delivery slices
+
+### Slice 1 — Authoritative configuration model
+
+- Replace obsolete permanent Agent provider/model binding with selection preferences and requirements.
+- Keep Provider, logical Model, and concrete Execution Target distinct.
+- Persist global defaults such as cost policy, default selection mode, fallback policy, learning defaults, and discovery/refresh defaults.
+- Preserve explicit inherit/override semantics.
+- Version configuration records so active runtime snapshots can detect relevant changes.
+
+### Slice 2 — Provider credentials
+
+- Persist provider API keys with provider configuration where applicable.
+- Encrypt credentials at rest in File, SQL Server, and MySQL storage.
+- Redact credentials from logs, diagnostics, tracing, audit records, Examples, and UI diagnostic output.
+- Support credential replacement/removal and configuration refresh.
+- Keep storage-server passwords outside ordinary provider configuration.
+- Do not introduce a separate secret-vault architecture.
+
+### Slice 3 — Resource and relationship persistence
+
+- Persist Skills, Knowledge/Wiki, Memory policy, Learning configuration, Tools, Permissions, and explicit resource relationships.
+- Preserve canonical scope/ownership, version, provenance, lifecycle, and relationship identity.
+- Persist learning candidate state/provenance once the 0.9575 lifecycle requires it.
+- Keep executable handlers and live runtime state out of persistence.
+
+### Slice 4 — Runtime snapshots and invalidation
+
+- Persist revisions/version metadata sufficient for long-lived execution snapshots.
+- Avoid reloading unchanged configuration from persistence on every execution when a valid snapshot exists.
+- Define lightweight refresh/invalidation suitable for File, SQL Server, and MySQL.
+- Ensure revoked/changed configuration cannot remain effective indefinitely.
+- Preserve immutable execution snapshots even when persistence changes during execution.
+
+### Slice 5 — Configuration portability
+
+- Define one versioned export/import package independent of the physical storage backend.
+- Export HAgent-owned configuration, not process-local state.
+- Exclude live runtimes, active executions, synchronization primitives, provider sessions, and executable handlers.
+- Normal export excludes credentials.
+- Optional credential-bearing export contains encrypted credentials protected by the package mechanism.
+- Validate package compatibility and produce deterministic import-conflict results.
+- Preserve IDs and relationships where possible and explicitly remap only when required.
+
+### Slice 6 — Backend parity and multi-process behavior
+
+- Keep File, SQL Server, and MySQL behavior logically aligned.
+- Add ordered schema migrations where required.
+- Support authorized processes sharing database-backed HAgent configuration.
+- Ensure configuration revision/refresh semantics prevent one process from using revoked configuration forever.
+- Keep HAgent storage isolated from host business databases.
+
+### Slice 7 — Verification
+
+Verify:
+
+- backend round-trip parity;
+- encrypted-at-rest credentials and redaction;
+- configuration revision invalidation;
+- shared-database visibility;
+- Auto/Preferred/Fixed selection persistence;
+- cost/fallback policy persistence;
+- resource relationships;
+- export/import with and without credentials;
+- deterministic import conflicts;
+- immutable active execution snapshots after configuration edits.
+
+## Architectural rules
+
+1. There is one authoritative HAgent configuration model.
+2. Persistence is an implementation boundary, not a second domain model.
+3. File, SQL Server, and MySQL are interchangeable storage implementations of the same logical contracts.
+4. Active executions use immutable snapshots rather than mutable database records.
+5. Provider credentials are encrypted at rest and never become diagnostic data.
+6. Export/import never exports executable handlers or live runtime state.
+7. HAgent storage never becomes an implicit gateway to a host application's business database.
+8. Configuration changes invalidate or supersede affected snapshots deterministically.
+
+## Not part of V1
+
+- distributed cache infrastructure;
+- event-sourced everything;
+- a cloud configuration service;
+- a secret-vault product;
+- storage-specific domain models;
+- backward-compatibility tables for retired redesign-era fields.
+
+## Dependency relationship
+
+```text
+0.9592 provider/adapters
+        ↓
+0.96.x configuration + storage
+        ↓
+0.96 execution planning
+        ↓
+0.97 persistent cognition
+```
+
+## Exit criterion
+
+All configuration required by 0.96 and 0.97 can be represented in one authoritative model, persisted consistently by supported backends, refreshed without corrupting active snapshots, shared safely where database deployment is used, and exported/imported without carrying transient execution state.
+
+## Phase 0.10 — Workspaces, Routing + Chat
+
+**Status: PAUSED after the provider-neutral workspace routing and role-policy foundation.**
+
+Phase 0.10 remains intentionally unfinished. The remaining workspace product work is deferred while earlier provider/runtime capability gaps are investigated and corrected.
+
+## Goal
+Provide an optional shared conversation where one authenticated host user and multiple runtime agents can visibly work together while every model request is routed deliberately and the user's workspace state survives application restarts.
+
+## Steps
+
+1. [x] Introduce a workspace abstraction independent of WinForms.
+2. [x] Register users and runtime-agent participants with explicit lifecycle state.
+3. [x] Define one workspace default recipient for unaddressed user messages.
+4. [x] Define direct user-to-agent addressing.
+5. [x] Define addressed agent-to-agent delegation and responses.
+6. [x] Define coordinator/specialist behavior as a role/policy over generic runtime agents. `WORKSPACE ROLES` Example verification complete.
+7. [ ] Allow specialists to represent whole domains, tables, subsystems, or other host responsibilities.
+8. [x] Preserve sender, recipient, correlation, causation, ordering, and routing metadata.
+9. [ ] Execute routed workspace messages through runtime agents and make agent-to-agent work visible in the workspace lobby when enabled.
+10. [ ] Add configurable addressing syntax at the host/UI layer without making prompt text the authoritative routing mechanism.
+11. [ ] Add loop protection and collaboration budgets.
+12. [ ] Add optional persistent workspace state and explicit shared-memory policy.
+13. [ ] Add the WinForms workspace surface and global agent selection.
+14. [ ] Add stable host user identity input, including `UserId` and `IsAdmin`, with database-safe user/workspace partitioning.
+15. [ ] Add create/open/show/hide/close workspace lifecycle APIs where UI close never destroys persisted workspace state.
+16. [ ] Persist user-owned lobby chat, private-agent chat, participant membership/roles, approval state, safe statistics, and selected workspace UX state according to storage policy.
+17. [ ] Add user-facing workspace configuration with a single `Enable Workspace` setting; workspace remains hidden until explicitly opened.
+18. [ ] Add default manager/coordinator agent configuration.
+19. [ ] Add default specialist agent configuration and specialist responsibility metadata.
+20. [ ] Add workspace/private-chat provider and agent selection/override controls without mutating persistent agent profiles.
+21. [ ] Add configurable default approval type/policy and integrate approval requests/resolution into workspace UI and conversation history.
+22. [ ] Add professional modern WinForms UI with lobby chat, participant/agent list, private chats, approval presentation, and explicit open/close/show/hide controls.
+23. [ ] Add Example controls and tests for create, open/show, hide, close UI, agent join/leave, lobby chat, private chat, approval flow, persistence across restart, and user/workspace restoration.
+24. [ ] Verify SQL Server, MySQL, and File workspace persistence and user partitioning.
+
+### Current foundation
+
+The provider-neutral foundation contains `AgentWorkspace`, `WorkspaceParticipant`, `WorkspaceMessage`, `IWorkspaceRouter`, and `WorkspaceRouter`. Participants are either users or runtime agents and have explicit Active/Suspended/Retired state. An active default recipient may be defined for unaddressed user messages. Routing does not invoke providers, mutate agent profiles, or perform host side effects.
+
+`IWorkspaceRolePolicy` and `WorkspaceRolePolicy` allow coordinator/specialist behavior to be expressed as policy over ordinary agent participants. `WorkspaceAgentRoleAssignment` describes `Participant`, `Coordinator`, or `Specialist` role, optional responsibility metadata, user-message eligibility, and allowed delegation target roles. No separate coordinator/specialist agent classes are introduced. The `WORKSPACE ROLES` Example verification confirms the policy works.
+
+The workspace user identity contract must carry a stable `UserId` and an `IsAdmin` flag supplied by the host. The identity is an input to workspace authorization and persistence partitioning; `IsAdmin` does not itself grant tool, memory, data, or host-business permissions.
+
+Phase 0.10 initially provides one default persisted workspace per user. The model should remain extensible to multiple named workspaces later without forcing a second workspace into the first implementation.
+
+## Workspace lifecycle
+
+The workspace UI is hidden until explicitly opened by the host. There is no automatic-show workspace behavior in Phase 0.10.
+
+`Create`/ensure obtains the user's default workspace. `Open`/`Show` makes the UI visible. `Hide` hides it without changing workspace state. `Close` closes the UI without deleting workspace state. Destructive archive/deletion is a separate explicit operation and is not implied by closing the UI.
+
+Application shutdown or computer shutdown must not cause user work to disappear. Reopening the application with the same stable `UserId` restores the persisted workspace state from the selected HAgent storage backend.
+
+## Conversations
+
+The workspace contains a shared Lobby conversation where the user and joined agents can visibly communicate. It also contains distinct Private Chats between the user and selected agents. Private chat content is not automatically exposed to other workspace participants.
+
+Visible messages identify their author and role clearly. System and approval events are first-class workspace-visible events alongside ordinary conversation messages.
+
+## Agent configuration
+
+The host/application administrator can configure default manager/coordinator and specialist agents for the workspace. A specialist has descriptive responsibility metadata that can represent a domain, table, subsystem, process, capability, or other host-owned responsibility without requiring HAgent-specific domain classes.
+
+The workspace UI can let a user switch the active provider/model or selected agent for an allowed conversation or private chat. These are execution/runtime selections and do not silently mutate the stored `AiAgent` profile.
+
+The default approval type/policy is a workspace/host policy default. Approval handling remains subject to HAgent authorization and does not bypass permission checks.
+
+## Routing rules
+
+- Unaddressed user message: send only to the workspace default recipient.
+- Explicitly addressed user message: send to that participant.
+- Agent delegation: send only to the addressed participant unless an explicit role policy allows the sender's role to delegate to the recipient's role.
+- Broadcast: explicit opt-in operation, never the default.
+- Agent-to-agent routed work becomes visible in the Lobby when workspace execution policy permits it.
+
+The authoritative routing decision is represented by workspace messages and routing APIs; human-friendly addressing syntax is a UI/host convenience.
+
+## Persistence
+
+Persisted workspace state is partitioned by host application identity and the stable `UserId`. File storage remains local to the host installation; SQL Server and MySQL must prevent users in the same host application from reading or mutating another user's workspace state unless an explicit host/admin policy permits it.
+
+Persisted workspace state includes workspace metadata, participant membership/roles/lifecycle state, lobby and private-chat history, approval requests/resolution state, safe statistics/activity metadata, selected workspace UX state where appropriate, and explicit workspace/shared-memory records.
+
+Provider secrets, connection strings, live provider tasks, live `CancellationToken` state, runtime synchronization primitives, raw HTTP requests, raw provider payloads, and temporary execution objects are not workspace persistence concerns; the generic runtime phase already establishes those boundaries.
+
+Agent private memory remains private unless explicit shared-memory policy grants workspace visibility.
+
+## Workspace UI
+
+The WinForms workspace is a compact, professional collaboration surface rather than a large dashboard. It contains a Lobby, participant/agent selection, access to private chats, approval presentation, and message composition. It must provide clear authorship and state without exposing implementation details.
+
+The host interacts with the workspace through a public HAgent workspace facade rather than direct manipulation of internal WinForms controls. The facade provides lifecycle and communication operations conceptually equivalent to create, open/show, hide, close, agent join/leave, lobby send, private-chat open/send, and workspace state observation.
+
+## Example verification
+
+The Example application will expose explicit controls for creating, showing/opening, hiding, and closing the workspace UI, plus controlled agent join/leave and communication tests. Verification must confirm that closing the UI and restarting the application preserve the user's lobby/private chats, membership, approvals, selected state, and safe statistics for File, SQL Server, and MySQL storage.
+
+## HWorld boundary
+
+HWorld remains an external consumer. It references HAgent normally and uses public runtime/workspace APIs. HAgent does not add an HWorld-specific dependency, adapter, world type, physics, simulation scheduling, or action authority.
+
+## Exit criterion
+
+A host can identify a user, create/open the user's persisted default workspace, show and close the UI without losing work, join runtime agents, conduct visible lobby and private conversations, configure/select permitted manager/specialist agents and provider/model overrides, present and resolve approvals, and restore the same state after application restart while routing remains bounded and traceable.
+
+## Phase 1.0 — Collaboration + Workflows
+
+## Status
+
+**Deferred until the 0.10 workspace surface and the 0.97 persistent runtime foundations are mature.**
+
+## Goal
+
+Turn basic workspace messaging into reliable multi-agent collaboration and then into bounded task/workflow execution, while reusing the existing runtime, intervention, policy, persistence, execution, and workspace contracts.
+
+## Collaboration steps
+
+1. First-class delegation/handoff operations over the existing workspace routing contracts.
+2. Shared/private workspace context policies using the existing resource, identity, and authorization boundaries.
+3. Parallel specialist work with bounded collaboration budgets and independent runtime-agent ownership.
+4. Human intervention and approval points using the canonical 0.959 intervention contract; do not create a second approval engine.
+5. Explicit runtime/participant lifecycle states by consuming the existing runtime/lifecycle contracts.
+6. Cross-agent memory sharing only through explicit resource scope and policy.
+7. Collaboration history, audit, and traceability through the existing observability/audit boundaries.
+
+## Workflow steps
+
+1. Task/job model and lifecycle over the durable goal/plan/recovery foundations established by 0.9591.
+2. Planning, execution, and verification stages using the 0.97 cognitive planning contracts where cognition is involved.
+3. Multi-step and branching workflows without replacing the persistent cognitive runtime's plan model.
+4. Background execution and scheduling through the existing host-controlled runtime/scheduler boundaries.
+5. Pause/resume and durable checkpoints through 0.9591 recovery contracts.
+6. Event-triggered execution through the 0.952 event subsystem.
+7. Per-step timeout, cancellation, retry, approval, intervention, and budget policies through existing runtime/policy/intervention contracts.
+
+## Ownership boundaries
+
+- **0.10** owns the host-facing workspace/routing/chat product surface.
+- **0.959** owns the provider-neutral intervention boundary.
+- **0.9591** owns durable goal/plan/checkpoint/recovery state.
+- **0.96** owns concrete execution-target selection.
+- **0.97** owns one runtime agent's persistent cognition and plan/goal use.
+- **1.0** owns multi-agent collaboration and generic workflow orchestration built on those contracts.
+
+No 1.0 feature may silently recreate a parallel runtime lifecycle, approval system, execution router, durable plan store, or cognitive-state ownership model.
+
+## Boundary
+
+These are generic orchestration facilities. HAgent does not become the authority for business rules, simulation state, or host-side side effects.
+
+## Exit criterion
+
+A host can coordinate multiple independent agents and long-running work with bounded execution, explicit authority, reusable intervention/policy boundaries, durable state where required, and observable collaboration without duplicating HAgent's lower-level runtime, execution, cognition, or authorization systems.
+
+## Later — Platform, Extensibility + Release
+
+These capabilities follow the core runtime, data, and collaboration milestones. They should not block the primary host-integration path.
+
+## Provider ecosystem
+
+- [ ] Additional provider adapters such as Azure OpenAI, Anthropic, Google/Gemini, Ollama, LM Studio, and custom HTTP providers where justified.
+- [ ] Multimodal and embedding adapters.
+- [ ] Provider capability/contract harness.
+
+## Extensibility
+
+- [ ] Provider, tool, UI-adapter, and storage extension model.
+- [ ] Extension validation and failure isolation.
+- [ ] External secret stores and secret rotation.
+- [ ] Optional MCP/vector integrations where they fit the lightweight architecture.
+
+## Developer platform
+
+- [ ] Optional DI/interoperability integrations.
+- [ ] Simulation/test mode for external consumers such as HWorld.
+- [ ] Diagnostics/trace viewer.
+- [ ] Complete Example coverage for meaningful public APIs.
+- [ ] SDK guidance for provider, tool, UI-context, and host integrations.
+
+## Release hardening
+
+- [ ] Stable public contracts and compatibility policy.
+- [ ] Storage migration/versioning.
+- [ ] NuGet packaging and release process.
+- [ ] Security/provider/tool/memory integration coverage.
+- [ ] Documentation and migration guidance.
+
+`.NET 10` remains a future target after the development environment and compatibility policy are ready.
 
 ## Phase 0.951 — Identity, Tenancy, and User Context
 
@@ -672,7 +1531,9 @@ The subsystem provides generic event infrastructure; it does not become a replac
 
 ## Status
 
-**In progress — policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, canonical policy persistence, policy-gated tool invocation, policy-first host authorization composition, profile/runtime resource capability resolution, and typed learning-promotion policy transitions are implemented.**
+**Completed — the canonical policy boundary is implemented and verified.** Policy contracts, deterministic evaluation, precedence, provenance, cost guard, pre-transport runtime enforcement, effective-policy execution snapshots, canonical policy persistence, policy-gated tool invocation, policy-first host authorization composition, profile/runtime resource capability resolution, and typed learning-promotion policy transitions are established.
+
+Remaining UI refinement and additional backend/live verification are ongoing hardening work and must not reopen or redefine the policy boundary.
 
 ## Goal
 
@@ -692,7 +1553,7 @@ Unify HAgent's growing permission, capability, cost, learning, approval, resourc
 10. [x] Make policy evaluation deterministic where inputs are deterministic and expose an explicit policy version for cache invalidation.
 11. [x] Capture the full effective policy state in the execution snapshot, including the deep-cloned policy version/rules that govern the run.
 12. [x] Prevent prompt content from serving as the policy enforcement mechanism.
-13. [x] Complete deterministic Example verification for the newly added resource capability resolution, persistence, snapshot isolation, and tool gating in addition to the already verified policy/authorization scenarios.
+13. [x] Complete deterministic Example verification for resource capability resolution, persistence, snapshot isolation, tool gating, and learning-policy transitions.
 
 ## Implemented slices
 
@@ -726,22 +1587,18 @@ The current implementation includes:
 - `AiLearningCandidate` guarded `Proposed` / `PendingReview` / `Approved` / `Rejected` / `Promoted` transitions mapped from policy outcomes;
 - deterministic Example verification in `MainForm.PolicyTests.cs`, `MainForm.ResourceCapabilityTests.cs`, and `MainForm.LearningPolicyTests.cs` for policy persistence, runtime enforcement, host authorization, resource capability resolution/persistence/snapshot isolation/tool gating, and learning promotion/review transitions.
 
-Policy persistence, provider/tool/data authorization, and the resource capability boundary were locally verified by the user on 2026-09-08. The learning-promotion implementation and its new Example verification are ready for the next local run and must not be described as passing until that Example test succeeds.
+The policy/resource/learning-policy foundation is complete as a phase boundary. Later phases own the remaining resource lifecycle, candidate persistence/promotion, intervention, execution selection, and cognitive integration.
 
-## Remaining slices
+## Post-phase hardening
 
-1. Verify the learning-promotion policy/candidate transition slice locally and then treat it as complete.
-2. Add bounded human approval/defer workflow integration.
-3. Implement the policy management UI refinement in layers:
-   - make rule editing human-oriented with semantic selectors for scope, agent, tool, resource, provider, operation, and outcome, while retaining advanced raw identifiers only where necessary;
-   - make Effective Decisions a read-only diagnostic surface showing the evaluated context, selected rule, policy version, precedence/provenance, and built-in guard contribution;
-   - make Agent Capabilities a per-agent capability/resource matrix showing persistent profile state, transient runtime override, and deterministic effective state, with the source of the effective value where useful;
-   - source display names and selectable entities from existing HAgent configuration/runtime registries rather than creating duplicate UI-specific registries;
-   - keep unresolved or stale identifiers visible and diagnosable rather than silently rewriting or deleting policy state;
-   - preserve the core policy engine as the single decision/precedence authority. UI behavior must not introduce a second policy evaluator or alternative capability semantics.
-4. Expand deterministic Example verification and backend-specific live verification where configured.
+The following are explicitly post-phase refinements rather than missing policy architecture:
 
-The detailed target behavior for the Policy page and its components is defined in `docs/architecture/09-policy.md` under **Policy configuration UI evolution** and should be treated as the architectural UI contract for subsequent refinements.
+1. Human-oriented policy management UI refinement with semantic selectors for scope, agent, tool, resource, provider, operation, and outcome, while retaining advanced raw identifiers only where necessary.
+2. A read-only Effective Decisions diagnostic surface showing evaluated context, selected rule, policy version, precedence/provenance, and built-in guard contribution.
+3. An Agent Capabilities surface showing persistent profile state, transient runtime override, deterministic effective state, and source of the effective value where useful.
+4. Additional configured-backend/live verification where the deployment has the corresponding environment.
+
+The policy engine remains the single decision/precedence authority. These refinements must not introduce a second evaluator or alternative capability semantics.
 
 ## Architectural rule
 
@@ -750,6 +1607,21 @@ The policy engine decides what HAgent is permitted or configured to do. It does 
 Resource enablement is a separate configuration capability layer. It does not replace provider capability discovery or host authorization. An enabled resource must still pass any applicable policy and authorization boundaries before side effects occur.
 
 Learning promotion uses the same policy boundary rather than a parallel learning authorization evaluator. A typed candidate may move to `Approved` only through an `Allow` policy decision or explicit review after `RequireApproval`/`Defer`. Promotion to authoritative storage is a separate operation and is not performed by policy evaluation itself.
+
+## Dependency boundary
+
+```text
+0.953 Unified Policy
+    ↓ consumed by
+0.954 Instruction Governance
+0.955 Context Engineering
+0.9575 Learning Governance
+0.959 Intervention
+0.96 Execution Selection
+0.97 Persistent Cognition
+```
+
+None of those phases may recreate a policy evaluator merely because they expose a policy-related UI or use a specialized decision boundary.
 
 ## Phase 0.954 — Prompt and Instruction Governance
 
@@ -1103,1855 +1975,886 @@ The next ordered milestone is **0.9575 Knowledge, Skills, Memory Governance + Le
 
 ## Status
 
-**In progress — Slice 7 implementation checkpoint; Slices 1–6 verified.**
+**In progress — Slice 8 implementation.**
+
+Slices 1–7 are verified. This roadmap has been normalized against the current implementation so historical checklist entries that already leaked into the code are no longer treated as automatically missing work.
 
 ## Goal
 
-Complete the mature governance and learning layer for HAgent's first-class Knowledge, Skills, Memory, and Learning resources without introducing a second resource architecture.
+Complete HAgent's production V1 governance and learning boundary for first-class Skills, Knowledge/Wiki, Memory, and Learning resources without introducing a parallel resource architecture.
 
-## Architectural position
-
-HAgent treats these as four distinct first-class capabilities:
+The canonical model remains:
 
 ```text
-Skills    = reusable executable capabilities/procedures
+Skills    = reusable executable capability definitions
 Knowledge = reusable retrievable information
 Memory    = scoped experience/state
 Learning  = governed process that turns experience into typed candidates
-            and, when permitted, promotes them into Memory, Knowledge, or Skills
+            and, when permitted, promotes them into authoritative state
 ```
 
-The earlier resource foundation establishes canonical identity, scope, provenance, versioning, storage, and provider-neutral contracts. This phase establishes mature governance around those resources.
+Model output is never an authority. Learning creates typed candidates before any authoritative promotion.
 
-## Slice 1 — Mature resource capability governance foundation
+## Verified foundation
 
-**Verified — 2026-09-09.**
+### Slice 1 — Resource capability governance — VERIFIED 2026-09-09
 
-The generic admission boundary composes canonical resource ownership, effective capability state, and unified policy authorization.
+Canonical ownership, effective capability state, and unified policy authorization are composed through one reusable governance boundary.
 
-### Verification evidence
+Verification: user reported 146/146 tests and the required Example succeeded on .NET Framework 4.8.1 and .NET 9.
 
-- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Cognition → Resource Governance → Resource Governance`.
-- .NET 9 Example succeeded: same Example.
-- Full .NET 9 `HAgent.Tests`: **146/146 passed, 0 failed, 0 skipped**.
+### Slice 2 — Knowledge/Wiki governed resource contract — VERIFIED 2026-09-09
 
-## Slice 2 — Knowledge/Wiki governed resource contract
+Knowledge/Wiki resources have explicit identity, scope/ownership, provenance, lifecycle/versioning, bounded metadata, relationships, chunks, and provider/index-neutral retrieval.
 
-**Verified — 2026-09-09.**
+Verification: user reported 153/153 tests and the required Example succeeded on .NET Framework 4.8.1 and .NET 9.
 
-The provider-neutral Knowledge/Wiki contract provides managed resource identity, explicit scope/ownership, lifecycle/versioning, provenance/source metadata, bounded tags/categories/metadata, typed relationships, chunk evidence, and provider/index-neutral governed retrieval.
+### Slice 3 — Versioned Skill definitions — VERIFIED 2026-09-09
 
-### Verification evidence
+Reusable versioned Skill definitions/reference semantics, explicit scope/ownership, lifecycle/provenance, bounded contracts, dependencies, constraints, snapshot semantics, governed resolution, and runtime-owned executable handlers are established.
 
-- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Cognition → Knowledge/Wiki → Knowledge/Wiki`.
-- .NET 9 Example succeeded: same Example.
-- Full .NET 9 `HAgent.Tests`: **153/153 passed, 0 failed, 0 skipped**.
+Verification: user reported 158/158 tests and the required Examples succeeded on .NET Framework 4.8.1 and .NET 9.
 
-## Slice 3 — Stable/versioned Skill definition and reference contract
+### Slice 4 — Memory family/type and provenance — VERIFIED 2026-09-09
 
-**Verified — 2026-09-09.**
+The existing MemoryEntry contract now carries canonical family/type, provenance, expiration metadata, clone/validation behavior, and aligned File/SQL Server/MySQL persistence.
 
-The provider-neutral Skill contract provides versioned reusable definitions/references, explicit scope/ownership, lifecycle/provenance, bounded input/output contracts, preconditions, ordered procedure steps, Knowledge/Tool dependencies, constraints, relationships, execution snapshot isolation, and governed resolution. Executable handlers remain runtime-owned and are not persisted in Skill definitions.
+Verification: user reported 167/167 tests and the required Examples succeeded on .NET Framework 4.8.1 and .NET 9.
 
-### Verification evidence
+### Slice 5 — Memory governance and retention — VERIFIED 2026-09-09
 
-- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Cognition → Skills → Skill Definitions`.
-- .NET 9 Example succeeded: same Example.
-- Full `HAgent.Tests`: **158/158 passed, 0 failed, 0 skipped** on .NET 9.
+Memory governance reuses the generic resource capability model, adds deterministic bounded retrieval/expiration filtering, per-family/type retention caps, and the governed memory-store decorator.
 
-Slice 3 is closed.
+Verification: user reported 175/175 tests and the required Examples succeeded on .NET Framework 4.8.1 and .NET 9.
 
-## Slice 4 — Memory family/type and provenance contract
+### Slice 6 — Learning Mode — VERIFIED 2026-09-09
 
-**Verified — 2026-09-09.**
+`AiLearningMode` is provider-neutral and distinct from resource capability policy. Persistent profile state, runtime-only override, and immutable execution-snapshot capture are established.
 
-The normalized Memory contract extends the existing `MemoryEntry` rather than introducing a second memory persistence model.
+Verification: user reported 181/181 tests and the required Examples succeeded on .NET Framework 4.8.1 and .NET 9.
 
-Implemented in this slice:
+### Slice 7 — Learning Policy + Typed Candidates — VERIFIED 2026-09-11
 
-- `AiMemoryFamily`: `Working`, `Episodic`, `Semantic`, `Procedural`, `Custom`.
-- Bounded family `TypeId` namespaces; built-in prefixes are reserved while custom families use application-specific namespaces.
-- `AiMemoryProvenance` with bounded source identity, source execution/runtime IDs, evidence, and confidence.
-- Optional `MemoryEntry.ExpiresAt` metadata and deterministic `IsExpired(...)` evaluation; retention enforcement remains later governance work.
-- Deep-clone and structural validation boundaries on `MemoryEntry` and provenance.
-- In-memory and File stores validate/isolate entries; SQL Server and MySQL preserve the new fields in their existing `HAgentMemoryEntries` tables with schema migration support.
-- Existing episodic/task memory creation maps to the canonical episodic family/type contract.
-- Focused tests: `tests/HAgent.Tests/MemoryFamilyTests.cs`.
-- Public Example: `HAgent.Example → Memory → Memory Families`.
-- Architecture: `docs/architecture/83-memory-contracts.md`.
-- Durable decision: D-011.
-- CI workflow: `.github/workflows/verify-phase-0-9575-slice-4.yml`.
+One provider-neutral Learning Policy contract and typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` payloads now compose the single canonical `AiLearningCandidate` lifecycle.
 
-### Verification evidence
+Verification: user reported 187/187 tests, 0 failed, 0 skipped on .NET 9; the `HAgent.Example → Policy → Learning Policy` Example succeeded on .NET Framework 4.8.1 and .NET 9.
 
-- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Memory → Memory Families`.
-- .NET 9 Example succeeded: same Example.
-- Full .NET 9 `HAgent.Tests`: **167/167 passed, 0 failed, 0 skipped**.
+## Remainder audit: historical checklist normalization
 
-Slice 4 is closed.
+The older 0.9575 checklist mixed genuine missing work with requirements that had already been implemented elsewhere. The following distinctions are now authoritative.
 
-## Slice 5 — Memory governance and retention
+### Already implemented / leaked into the current architecture
 
-**Verified — 2026-09-09.**
+- Canonical resource scopes are `Global`, `Tenant`, `User`, `Workspace`, `Agent`, `Runtime`, and `Execution`. Any historical wording that names `Domain` is obsolete; `Workspace` is the canonical scope.
+- `AiAgent.ResourceCapabilities` already provides persistent profile capability defaults, and `AiResourceCapabilityPolicy` supports both resource-type and exact-resource entries with `Inherit`, `Enabled`, and `Disabled` states.
+- Effective profile/runtime capability resolution already exists and is captured into `AgentExecutionSnapshot.EffectiveResourceCapabilities`.
+- Runtime overrides remain transient and do not write back into profile configuration.
+- Knowledge retrieval requests already impose explicit bounded query, result, character, chunk, metadata, and filter limits.
+- Knowledge and Skill resources already have explicit scope/owner identity and governed resolution; reusable shared resources are represented by authoritative resource identity rather than private copies.
+- Published Knowledge and published Skills are already rejected as typed learning candidate payloads.
+- Runtime identity, correlation, cancellation, timeout, stale-result protection, and independent runtime-instance isolation already exist as runtime foundations.
 
-The slice reuses the generic tri-state resource capability snapshot through `memory`, `memory.family`, and `memory.type`, with deterministic bounded retrieval, expiration filtering, per-family/type retention caps, and the provider-neutral `AiGovernedMemoryStore` decorator over the existing memory store boundary.
+These items remain subject to the final phase verification matrix, but they are not to be reimplemented as duplicate mechanisms.
 
-### Verification evidence
+### Partially implemented; integration still outstanding
 
-- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Memory → Memory Governance`.
-- .NET 9 Example succeeded: same Example.
-- Full .NET 9 `HAgent.Tests`: **175/175 passed, 0 failed, 0 skipped**.
+- Shared reusable Knowledge exists at the resource-contract/governance level, but HAgent-owned persistence, management, relationships, and end-to-end reusable-resource administration remain incomplete.
+- Retrieval is bounded at the contract level, but integration with context budgets and canonical context assembly is still outstanding.
+- Learning policy already carries retention/evaluation/authorization classifications, but candidate retention/expiry persistence and lifecycle audit storage remain outstanding.
+- Typed candidates reject authoritative payloads, but there is not yet a resource-specific promotion service that creates new authoritative versions.
+- Runtime snapshots capture capability/learning configuration, but learning outcomes are not yet captured into a complete runtime-to-learning pipeline.
 
-Slice 5 is closed.
+### Genuinely outstanding 0.9575 work
 
-## Slice 6 — Learning Mode foundation
+- Canonical candidate lifecycle admission/review/promotion gate.
+- Candidate persistence, retention, expiry, rejection/promotion provenance, and durable review state.
+- Authoritative Memory promotion.
+- Knowledge promotion that creates a new authoritative version rather than mutating a published record.
+- Skill promotion that creates a new immutable version rather than mutating a published definition.
+- Promotion audit/provenance/evaluation records.
+- Governed learning-resource integration into the canonical context/instruction pipeline.
+- Runtime capture of execution outcomes/observations as learning input.
+- Resource access/promotion observability through the same policy and audit boundaries as other runtime actions.
+- Learning Review, Knowledge/Wiki, Skill, and Agent Configuration management UI.
+- Persistence and restart verification for the mature learning/resource layer.
 
-**Verified — 2026-09-09.**
+## Slice 8 — Canonical Learning Lifecycle Gate — IN PROGRESS
 
-`AiLearningMode` is a provider-neutral profile setting with four values: `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, and `FullyAutomatic`. It is distinct from resource/capability enablement, supports runtime-only override, and is captured in the immutable execution snapshot. The existing learning-candidate/promotion contracts remain the single candidate model; this slice does not introduce a duplicate candidate architecture.
+### Purpose
 
-### Verification evidence
+Close the missing boundary between typed candidate validation and later authoritative promotion.
 
-- .NET Framework 4.8.1 Example succeeded: `HAgent.Example → Cognition → Learning → Learning Mode`.
-- .NET 9 Example succeeded: same Example.
-- Full .NET 9 `HAgent.Tests`: **181/181 passed, 0 failed, 0 skipped**.
+### Scope
 
-Slice 6 is closed.
+- Deterministic typed-candidate validation.
+- `AiLearningPolicy` evaluation.
+- `AiLearningMode` semantics.
+- Existing `IAiPolicyEngine` promotion authorization for automatic paths.
+- Explicit routing to `Rejected`, `PendingReview`, or `Approved`.
+- Candidate-identity/state checks when applying lifecycle decisions.
+- No model call is required.
+- Approval is not publication.
 
-## Slice 7 — Learning Policy + Typed Candidates
+### Verification
 
-**In progress.**
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Lifecycle` on .NET Framework 4.8.1 and .NET 9.
 
-This slice defines the single provider-neutral Learning Policy contract and typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
-
-### Slice 7 scope
-
-- Define one learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization.
-- Add typed Memory/Knowledge/Skill candidate payload contracts without creating a second candidate lifecycle.
-- Preserve source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence where available.
-- Support deterministic code-derived candidate signals without requiring an LLM.
-- Keep model-assisted extraction/evaluation optional and non-authoritative.
-- Keep candidate creation separate from promotion.
-
-### Slice 7 verification target
-
-- Focused learning-policy and typed-candidate tests.
-- Full `HAgent.Tests` on .NET 9 when the slice is complete.
-- Matching public Example on .NET Framework 4.8.1 and .NET 9.
-
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on **.NET Framework 4.8.1** and **.NET 9**.
-
-**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
-
-## Resource governance
-
-7. [x] Define one generic resource governance model shared by Skills, Knowledge/Wiki, Memory families/types, and future resource types.
-8. [x] Make resource scope explicit and authorization-aware rather than inferred from agent identity alone.
-9. [ ] Support Global, Tenant, Domain, User, Agent, Runtime, and Execution scopes where applicable to the resource type.
-10. [x] Preserve owner/resource identity separately from runtime-instance identity.
-11. [x] Preserve resource provenance, lifecycle/status, version, source, and relationship metadata through retrieval and promotion.
-12. [x] Ensure shared/reusable resources are references to authoritative resources rather than private copies embedded in agents.
-13. [x] Prevent prompt text or model output from granting access to a disabled or unauthorized resource.
-
-## Capability policy and inheritance
-
-14. [ ] Add profile capability defaults for Skills, Knowledge/Wiki, Memory families/types, individual resources, and future resource types.
-15. [x] Add tri-state runtime override: `Inherit`, `Enabled`, `Disabled`.
-16. [x] Resolve system/host policy → agent profile → runtime override into one effective resource capability state.
-17. [x] Capture the effective capability/resource state in every execution snapshot that can observe or invoke those resources.
-18. [x] Enforce capability policy before retrieval, exposure, or invocation.
-19. [x] Ensure runtime-only overrides never mutate the persistent profile.
-20. [x] Surface the source and effective value so operators can distinguish inherited, explicit, overridden, and effective state.
-
-## Knowledge and Wiki
-
-21. [x] Complete the provider-neutral knowledge resource/source contract and managed Wiki model over the earlier resource foundation.
-22. [x] Support identity, title/content, summary, metadata, tags/categories, provenance, lifecycle/status, versioning, relationships, and bounded retrieval metadata.
-23. [x] Keep retrieval independent from physical indexing: keyword, semantic, hybrid, relational, or future implementations remain replaceable.
-24. [ ] Support reusable shared knowledge plus authorized agent/runtime scoped resources.
-25. [x] Prevent model-generated content from silently becoming authoritative knowledge.
-26. [x] Preserve source and promotion provenance when a candidate becomes authoritative knowledge.
-27. [ ] Make knowledge retrieval bounded by policy, resource limits, and context budgets.
-
-## Skills
-
-28. [x] Complete stable/versioned `SkillDefinition` and skill-set/reference semantics over the earlier resource foundation.
-29. [x] Keep executable handlers separate from persisted definitions and never serialize handlers.
-30. [x] Support required knowledge, required tools, input/output contracts, preconditions, procedure steps, constraints, and lifecycle/version metadata.
-31. [x] Allow reusable skills to be referenced by multiple agents without duplicating the definition.
-32. [x] Preserve execution snapshot semantics so in-flight executions continue using their captured skill version/state.
-33. [ ] Support `SkillCandidate` → validation/evaluation → new skill version or explicit rejection.
-34. [x] Ensure skill invocation remains subject to policy and authorization.
-
-## Memory
-
-35. [x] Normalize memory families including working, episodic, semantic, procedural, and future extensible types.
-36. [x] Make memory scope explicit in the existing memory contract and keep family/type separate from ownership and authorization.
-37. [x] Preserve independent runtime-instance private-memory isolation through the existing owner model; deeper runtime-governed isolation remains later work.
-38. [x] Keep storage implementation separate from memory ownership and retrieval policy.
-39. [x] Make memory-type enable/disable state governable at profile and runtime levels.
-40. [x] Support bounded retrieval and retention policies appropriate to each memory family/type.
-41. [x] Preserve provenance and confidence/evidence metadata where available.
-42. [x] Keep Memory usable without GPU hardware, vector databases, embeddings, or large resident indexes.
-
-## Learning modes and candidates
-
-43. [x] Define provider-neutral `LearningMode`: `Disabled`, `SuggestOnly`, `AutomaticWithPolicy`, `FullyAutomatic`.
-44. [x] Keep Learning Mode distinct from resource/capability enablement.
-45. [ ] Define one learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization.
-46. [ ] Support typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts.
-47. [ ] Preserve source execution ID, runtime ID, agent/profile identity, scope, provenance, and evidence/confidence on candidates when available.
-48. [ ] Support deterministic code-derived learning signals without requiring an LLM.
-49. [ ] Allow optional model-assisted extraction/classification while keeping the model non-authoritative.
-50. [ ] Keep candidate creation separate from candidate promotion.
-51. [ ] Preserve published Skill/Knowledge versions when learning produces an improvement; never silently mutate an active version.
-
-## Learning lifecycle
-
-52. [ ] Establish the canonical lifecycle from Experience/Observation to Candidate, Validation/Evaluation, Policy, Approval, Promotion, and new authoritative state.
-53. [ ] Support candidate rejection without modifying the target resource.
-54. [ ] Support candidate expiry/retention according to policy.
-55. [ ] Preserve candidate provenance after rejection or promotion according to retention rules.
-56. [ ] Require explicit authorization for promotion into authoritative Knowledge or published Skills.
-57. [ ] Ensure a model cannot bypass candidate state transitions by emitting apparently authoritative content.
-58. [ ] Make promotion decisions auditable and attributable to policy, operator, or automated governance rules.
-59. [ ] Allow evaluation outcomes to block, approve, or condition promotion.
-
-## Context and instruction integration
-
-60. [ ] Integrate governed Skills, Knowledge, Memory, and externally retrieved content into the canonical context/instruction pipeline.
-61. [ ] Carry resource provenance, trust, scope, and effective capability state into the execution snapshot where exposed.
-62. [ ] Ensure disabled, unauthorized, unavailable, stale, or failed resources remain diagnosable without being exposed as authoritative context.
-63. [ ] Keep prompt/instruction composition separate from authorization and enforcement.
-64. [ ] Ensure lower-trust resource content cannot override higher-authority instructions or policy.
-
-## Management UI
-
-65. [ ] Add Learning Review management with pending candidates, inspection, provenance/evidence, source execution/runtime, target scope, approve, reject, and retention state.
-66. [ ] Add Knowledge/Wiki Manager with New/Edit/Delete, search/filter, relationships, version/status, provenance, and used-by/accessed-by views.
-67. [ ] Add Skill Manager with New/Edit/Delete, version/status, relationships, required dependencies, and used-by views.
-68. [ ] Extend Agent Configuration so selecting an agent shows effective Skills, Knowledge/Wiki, Memory families, and generic future resource types.
-69. [ ] Add profile-level controls for resource/capability enablement.
-70. [ ] Add runtime-instance override controls using `Inherit` / `Enabled` / `Disabled`.
-71. [ ] Show inherited, explicit, overridden, and effective states clearly.
-72. [ ] Show the effective AI selection/cost policy established by Phase 0.96 without duplicating provider/model discovery.
-73. [ ] Expose Learning Mode and make its relationship to Learning Policy explicit.
-74. [ ] Keep known resource types specialized while unknown/future resource types remain visible through generic resource inventory.
-75. [ ] Follow HAgent.WinForms conventions: shared `Header`, `HButton`, `HMessage`, and existing configuration composition boundaries.
-
-## Storage
-
-76. [ ] Complete HAgent-owned persistence for candidates, knowledge-resource relationships, skill versions/relationships, resource capability assignments/overrides, and extensible memory-type policy where still outstanding. This is the consuming completion point for the historical 0.8 Item 8 repository/backend wiring obligation for mature resources.
-77. [x] Keep File, SQL Server, and MySQL behavior aligned through versioned migrations for the normalized MemoryEntry contract; broader mature-resource persistence remains later.
-78. [ ] Keep learning/review metadata secret-safe and bounded.
-79. [x] Preserve resource identity/ownership/scope directly in persistence rather than creating subsystem-specific ownership models.
-
-## Runtime integration
-
-80. [ ] Bind effective resource capability state into runtime execution snapshots.
-81. [ ] Capture execution outcomes and observations as learning input without mutating runtime identity.
-82. [x] Preserve runtime isolation, execution correlation, cancellation, timeout, stale-result protection, and concurrent execution semantics.
-83. [x] Ensure runtime overrides remain transient and cannot write back into persistent profile configuration.
-84. [ ] Make resource access and learning promotion visible through the same observability and policy boundaries as other runtime actions.
-
-## Verification
-
-85. [ ] Add deterministic Example verification for resource scope isolation, inherited/overridden capability state, memory families/types, knowledge retrieval, skill binding, and future resource types.
-86. [ ] Add Example verification for `SuggestOnly` review, approval, rejection, and candidate retention.
-87. [ ] Add tests that candidates cannot bypass authorization or directly mutate published Knowledge/Skills.
-88. [ ] Add tests for resource version/snapshot isolation after profile/resource edits.
-89. [ ] Add tests for promotion conflicts, stale candidates, contradictory evidence, and policy denial.
-90. [ ] Add tests for runtime isolation across two independent runtime instances.
-91. [ ] Add UI verification that Agent Configuration displays effective resource/capability state, Learning Mode, and inherited/overridden configuration correctly.
-92. [ ] Verify all supported framework targets required by HAgent before declaring the phase complete.
+**Tests to run:** `tests/HAgent.Tests/LearningLifecycleTests.cs` during the checkpoint.
+
+### Architecture
+
+See `docs/architecture/87-learning-lifecycle.md`.
+
+## Slice 9 — Candidate persistence, retention, and review
+
+The candidate itself becomes durable without creating a second candidate model.
+
+Scope:
+
+- provider-neutral candidate store boundary;
+- durable lifecycle status/revision;
+- retention/expiry policy;
+- rejected/pending/approved provenance retention according to policy;
+- durable evaluation outcomes;
+- Learning Review read/update workflow;
+- restart/recovery semantics;
+- authorization/audit evidence for review actions.
+
+No authoritative Knowledge/Skill mutation is performed directly by the candidate store.
+
+## Slice 10 — Authoritative promotion and version-safe resource creation
+
+Convert an approved typed candidate into authoritative resource state through one canonical promotion boundary.
+
+Scope:
+
+- Memory promotion using its existing memory ownership/store contracts;
+- Knowledge promotion creates a new authoritative version and never silently edits a published version;
+- Skill promotion creates a new immutable version and preserves the active version;
+- promotion conflicts and stale candidates are rejected deterministically;
+- promotion provenance/source execution/runtime identity is preserved;
+- unified policy authorization is required;
+- promotion is auditable.
+
+## Slice 11 — Context, instruction, runtime, and observability integration
+
+Connect governed learned resources to real execution without moving authorization into prompts.
+
+Scope:
+
+- integrate Skills, Knowledge, Memory, and approved external learning content through the canonical context/instruction pipeline;
+- carry provenance, scope, trust, and effective capability state in execution snapshots where exposed;
+- prevent disabled/unauthorized/stale resources from becoming authoritative context;
+- capture execution outcomes and observations as learning input;
+- expose resource access and promotion through existing observability/audit/policy boundaries.
+
+Context composition and authorization remain separate concerns.
+
+## Slice 12 — Management UI
+
+Add the production WinForms administration surface using existing HAgent conventions.
+
+Scope:
+
+- Learning Review with pending candidates, provenance/evidence, approval, rejection, and retention state;
+- Knowledge/Wiki Manager with CRUD, relationships, version/status, provenance, and usage views;
+- Skill Manager with CRUD, version/status, dependencies, relationships, and usage views;
+- Agent Configuration effective resource/capability state;
+- profile defaults and runtime `Inherit`/`Enabled`/`Disabled` overrides;
+- Learning Mode and Learning Policy visibility;
+- generic inventory for future resource types.
+
+## Slice 13 — Phase completion verification
+
+Close the phase only after the implementation has deterministic evidence for the real boundaries introduced by 0.9575.
+
+Required evidence includes:
+
+- both supported framework targets;
+- lifecycle and review behavior;
+- persistence/restart/recovery;
+- resource version/snapshot isolation;
+- candidate authorization and stale/conflict handling;
+- independent runtime isolation;
+- context integration;
+- management UI behavior;
+- observability/audit coverage;
+- no model-output bypass of authoritative resource boundaries.
+
+Risk-based verification remains mandatory: concurrency, cancellation/lifecycle, persistence/recovery, security/authorization, performance claims, and public API behavior receive tests appropriate to the claim rather than a blanket requirement that every feature use the same test type.
+
+## Phase exit criterion
+
+Knowledge, Skills, Memory, and Learning are first-class production V1 HAgent resources with explicit identity, scope, ownership, provenance, capability policy, runtime overrides, immutable execution snapshots, governed retrieval, typed learning candidates, durable lifecycle, version-safe authoritative promotion, context/runtime integration, management UI, and auditable policy boundaries.
+
+## Phase 0.9576 — Learned Resource Reliability, Adaptation + Forgetting
+
+## Status
+
+**Planned immediately after 0.9575.**
+
+## Purpose
+
+Provide the post-promotion reliability layer for learned Skills, Knowledge, and other learned resources.
+
+0.9575 governs how experience becomes a validated candidate and how that candidate is promoted. 0.9576 governs whether the promoted resource remains safe, applicable, and useful afterward.
+
+This phase is deliberately practical: it provides lifecycle/reliability controls needed by production V1 without turning HAgent into a research system for large-scale knowledge consolidation or neural continual learning.
+
+## V1 outcome
+
+A promoted resource is never trusted forever merely because it was once approved.
+
+HAgent distinguishes:
+
+```text
+Authorization      = may this resource be used?
+Applicability      = does it fit this situation?
+Reliability        = how much evidence supports continued trust?
+Lifecycle          = is it active, stale, quarantined, archived, retired?
+```
+
+These dimensions remain separate.
+
+## Delivery slices
+
+### Slice 1 — Applicability and validity
+
+- Define provider-neutral applicability results:
+  - `Applicable`
+  - `NotApplicable`
+  - `Uncertain`
+  - `Invalidated`
+- Support bounded applicability conditions, preconditions, scope, and evidence references.
+- Evaluate deterministic applicability before requesting model reasoning when sufficient evidence exists.
+- Keep applicability independent from authorization/capability state.
+- Preserve applicability decision/evidence in observability.
+
+### Slice 2 — Reliability evidence and outcome feedback
+
+- Define post-promotion reliability metadata without replacing resource version identity.
+- Distinguish promotion evidence from operational outcome evidence.
+- Reinforce reliability from validated successful outcomes where policy permits.
+- Weaken or quarantine resources after failed outcomes, contradictions, invalid preconditions, or sustained degradation.
+- Preserve execution/runtime provenance for reliability evidence.
+- Keep reliability changes policy-controlled and revision-safe.
+
+### Slice 3 — Staleness, contradiction, and revalidation
+
+- Distinguish age-based staleness, observed degradation, contextual drift, and direct contradiction.
+- Support bounded lifecycle states such as `Active`, `UnderReview`, `Quarantined`, and `Retired` where appropriate.
+- Block automatic use of invalidated or contradictory learned behavior.
+- Re-evaluate degraded/stale resources through existing Evaluation contracts.
+- Produce replacement/revision as new typed candidates rather than mutating published resources in place.
+- Preserve historical versions/provenance required to explain changes.
+
+### Slice 4 — Forgetting and archival
+
+- Define policy-governed utility/retention signals.
+- Archive or retire stale, superseded, contradicted, or persistently low-utility resources.
+- Preserve bounded provenance explaining retirement.
+- Never remove a higher-authority resource merely because a lower-utility duplicate exists.
+- Keep archival recovery possible where policy requires it.
+
+### Slice 5 — Runtime integration and verification
+
+- Expose reliability/applicability outcomes through the same resource/policy boundaries used elsewhere.
+- Ensure execution snapshots capture the resource version/reliability state required for deterministic reproducibility.
+- Reject stale asynchronous reliability updates against newer revisions.
+- Fall back safely to deterministic behavior, another resource, bounded reasoning, or host escalation when learned behavior is uncertain or invalid.
+- Verify supported framework targets and risk-sensitive boundaries.
+
+## V1 safety rules
+
+1. Reliability never grants authorization.
+2. An authorized resource can still be inapplicable or invalidated.
+3. `Uncertain` never means `Applicable`.
+4. Published Skill and Knowledge versions are not silently mutated.
+5. Reliability updates are revision-safe and auditable.
+6. Learned-resource failure never forces an unsafe fallback.
+7. Reliability remains usable without GPU, embeddings, or vector databases.
+8. Reliability operates on already-promoted resource versions; it does not bypass the 0.9575 candidate and promotion boundary.
+9. Replacement and adaptation produce new governed candidates/resources rather than hidden in-place mutation.
+
+## Explicitly V2 / optional research
+
+The following should not block production V1:
+
+- automatic clustering of large learned-resource populations;
+- symbolic generalization across many Skills;
+- sophisticated similarity graphs;
+- statistical consolidation algorithms;
+- neural continual-learning algorithms;
+- theoretical solutions to catastrophic forgetting;
+- universal learned-resource utility models;
+- automatic merging of multiple learned resources into a new generalized resource without an explicit governed candidate/promotion step.
+
+These may be added later behind provider-neutral consolidation/evaluation interfaces.
+
+## Ownership boundary
+
+0.9575 owns candidate creation, review, authorization, and authoritative promotion.
+
+0.9576 owns post-promotion applicability, reliability evidence, degradation/quarantine, revalidation, forgetting, and replacement signals.
+
+0.958 owns runtime lifecycle/health; it may consume reliability evidence but does not become the learned-resource evaluator.
+
+0.97 consumes reliable learned behavior during cognition but does not create a second reliability or learning architecture.
+
+## Dependency chain
+
+```text
+0.9575 governed learning + promotion
+        ↓
+0.9576 learned-resource reliability + adaptation
+        ↓
+0.958 lifecycle + health
+        ↓
+0.97 deterministic learned behavior + deliberation
+```
 
 ## Exit criterion
 
-Knowledge, Skills, Memory, and Learning are first-class HAgent resources with explicit identity, scope, ownership, provenance, policy, capability inheritance, runtime overrides, immutable execution snapshots, and provider-neutral contracts. Hosts can administer reusable Knowledge and Skills, isolate Memory correctly, and run governed learning from experience through typed candidates, evaluation, approval/policy, and safe promotion without allowing model output to become authoritative by itself.
+HAgent can determine whether promoted learned behavior is applicable and trustworthy, refuse or quarantine stale/contradictory behavior, incorporate validated outcomes into reliability evidence, produce replacement candidates without mutating authoritative versions, and safely forget/archive learned resources without confusing reliability with authorization or bypassing governed promotion.
 
 ## Phase 0.958 — Agent Lifecycle and Health Management
 
 ## Status
 
-**Planned architectural foundation before persistent cognitive runtime.**
+**Planned after 0.9576 and before durable goal/plan recovery.**
 
-## Goal
+## Purpose
 
-Make agent/runtime lifecycle and health explicit, observable, recoverable, and controllable for both request-oriented and persistent agents.
+Make the lifecycle and health of a live HAgent runtime explicit and observable without duplicating the runtime-instance identity and execution lifecycle already established by earlier phases.
 
-## Requirements
+The phase does **not** create a new runtime-agent class. It extends the existing runtime-instance foundation with the operational state needed by long-running agents and Persistent Cognitive Runtime.
 
-1. [ ] Define normalized lifecycle states for runtime agents and persistent cognitive agents.
-2. [ ] Distinguish lifecycle state from health state and execution state.
-3. [ ] Support at least active, sleeping/idle, waiting, blocked, deliberating, executing, degraded, failed, retired, recovering, and shutdown semantics where applicable.
-4. [ ] Define health/status reasons and safe transitions rather than exposing only a Boolean healthy flag.
-5. [ ] Prevent retired/shutdown agents from originating new executions.
-6. [ ] Support suspension/resume without deleting durable state.
-7. [ ] Expose lifecycle and health changes through events and tracing.
-8. [ ] Define heartbeat/progress or equivalent signals for long-running persistent runtimes where needed.
-9. [ ] Detect stalled or repeatedly failing progress without confusing slow legitimate inference with failure.
-10. [ ] Support operator-visible diagnostics explaining why an agent is blocked, waiting, degraded, or recovering.
-11. [ ] Add deterministic Example verification for lifecycle transitions, suspension/resume, unhealthy/degraded states, stalled work, and shutdown safety.
+## V1 outcome
 
-## Architectural rule
+HAgent distinguishes:
 
-Lifecycle state answers "what is the agent doing?" Health state answers "is the agent operating normally?" Execution state answers "what is this specific operation doing?" These concerns remain separate.
+```text
+Lifecycle state = whether the runtime may operate
+Health state    = whether the runtime is operating normally
+Execution state = what one specific execution is doing
+```
+
+These concerns remain separate.
+
+### Lifecycle
+
+The existing runtime foundation remains authoritative for `Active`, `Retired`, and `Shutdown`.
+
+0.958 adds only the operational states needed for persistent operation:
+
+```text
+Active
+Suspended
+Recovering
+Retired
+Shutdown
+```
+
+`Suspended` preserves durable state while new work is prevented or host-controlled work is paused. It is not retirement.
+
+### Health
+
+Health is orthogonal:
+
+```text
+Healthy
+Degraded
+Failed
+Unknown
+```
+
+Health is evidence, not authorization. Lifecycle and policy decide whether work may continue, wait, recover, or stop.
+
+## Ownership boundary
+
+0.958 owns **runtime-agent lifecycle and runtime health**.
+
+The provider ecosystem phase 0.9592 owns provider/adapter lifecycle and provider/target operational evidence. The capability-aware execution phase 0.96 consumes that provider/target evidence for execution admission.
+
+0.958 must not turn provider failures, rate limits, or target outages into a second provider health/routing authority. Likewise, 0.9592 must not create a second runtime-agent lifecycle model.
+
+Human/host intervention is consumed through the canonical 0.959 intervention boundary; 0.958 owns the target transition itself.
+
+## Delivery slices
+
+### Slice 1 — Lifecycle state extension
+
+- Extend the existing runtime lifecycle only where long-lived operation requires it.
+- Define valid transitions and terminal behavior.
+- Prevent suspended, retired, recovering, or shutdown runtimes from originating work that policy disallows.
+- Preserve existing revision and stale-result protection.
+
+### Slice 2 — Health state
+
+- Define normalized health status and bounded reason metadata.
+- Record the source of a health determination: runtime observation, provider failure, recovery failure, host signal, or equivalent evidence.
+- Distinguish transient degradation from terminal failure.
+- Do not classify slow but valid inference as failed merely because it is long-running.
+
+### Slice 3 — Progress and recovery signals
+
+- Provide bounded progress/heartbeat metadata where a host needs it.
+- Detect clearly stalled work only when configured evidence supports that conclusion.
+- Support transition into `Recovering` without deleting durable state.
+- Make recovery outcome explicit.
+
+### Slice 4 — Observability and verification
+
+- Emit lifecycle and health transitions through existing event/tracing boundaries.
+- Expose diagnostics explaining why a runtime is active, suspended, recovering, degraded, failed, retired, or shutdown.
+- Verify valid/invalid transitions, suspension/resume, degradation, recovery, stall handling, intervention, and shutdown safety.
+
+## Architectural rules
+
+1. Do not duplicate `AgentRuntimeInstance` identity or execution identity.
+2. Lifecycle state is not health state.
+3. Health is evidence, not authorization.
+4. Recovery never makes obsolete asynchronous work authoritative again.
+5. Suspension and recovery preserve durable state.
+6. Host lifecycle/scheduling policy remains authoritative where the host controls runtime admission.
+7. Provider/model-specific lifecycle semantics do not belong in Core; provider health evidence is normalized by 0.9592 and consumed by 0.96.
+8. Runtime intervention uses 0.959; this phase does not create a second approval/intervention mechanism.
+
+## Not part of V1
+
+- distributed actor supervision;
+- cluster orchestration;
+- automatic fleet healing;
+- universal heartbeat semantics for every execution;
+- autonomous process management;
+- replacing the host scheduler with an HAgent scheduler.
+
+## Dependencies
+
+```text
+0.9575 governed resources + learning
+        ↓
+0.9576 learned-resource reliability
+        ↓
+0.958 lifecycle + health
+        ↓
+0.9591 durable goals/plans/recovery
+```
+
+## Exit criterion
+
+A long-lived HAgent runtime has explicit lifecycle and runtime-health state, safe suspension/recovery semantics, observable progress/failure reasons, and deterministic protection against work becoming authoritative after retirement, shutdown, recovery invalidation, or newer revisions, while provider health remains owned by the adapter/execution layers.
 
 ## Phase 0.9591 — Goal/Plan Persistence and Recovery
 
 ## Status
 
-**Ordered before 0.959 Human-in-the-Loop / Intervention; planned foundation.**
+**Planned after 0.958 and before 0.959 intervention.**
 
-This phase is intentionally moved ahead of 0.959 in the roadmap because durable goals, intentions, plans, plan-step revisions, checkpoints, and recovery state provide the persistent authority that later goal/plan intervention should govern safely.
+## Purpose
 
-## Goal
+Make long-lived agent goals, intentions, plans, checkpoints, and recovery state durable without persisting transient execution machinery.
 
-Make long-lived agent goals, intentions, plans, checkpoints, and recovery state durable without making transient executions or provider sessions part of persistent cognitive state.
+This phase establishes the durable authority that later intervention and Persistent Cognitive Runtime consume.
 
-## Requirements
+## V1 boundary
 
-1. [ ] Define durable Goal, Intention, Plan, PlanStep, checkpoint, and recovery metadata contracts.
-2. [ ] Separate durable cognitive state from live execution tasks, cancellation tokens, provider sessions, HTTP state, and synchronization primitives.
-3. [ ] Define plan revision/version semantics so stale executions cannot overwrite newer goals or plans.
-4. [ ] Support partial plan execution and explicit step states.
-5. [ ] Define checkpoint boundaries and durable progress records.
-6. [ ] Define idempotency semantics for retried plan steps and externally observable actions.
-7. [ ] Distinguish safe retry, unknown outcome, and completed outcome states.
-8. [ ] Support recovery after process restart, crash, timeout, cancellation, or provider failure.
-9. [ ] Reconcile in-flight executions during recovery and invalidate obsolete execution authority.
-10. [ ] Support plan suspension, resumption, replacement, abandonment, and rollback/compensation metadata where applicable.
-11. [ ] Keep host side effects authoritative; HAgent may persist intent and requested action state but must not claim external side effects occurred without evidence.
-12. [ ] Support optional persistence backends through the HAgent storage abstraction.
-13. [ ] Add deterministic Example verification for checkpoints, restart recovery, stale revisions, duplicate/retry handling, unknown outcomes, and plan supersession.
-
-## Architectural outcome
+Persist:
 
 ```text
-Goal / Intention
-      ↓
-     Plan
-      ↓
- checkpoints / revisions
-      ↓
- Execution
-      ↓
- outcome evidence
-      ↓
- durable progress / recovery state
+Goal
+Intention
+Plan
+PlanStep
+Checkpoint
+Recovery record
+Revision metadata
+Outcome evidence
 ```
 
-Durability provides recovery semantics; it does not guarantee exactly-once execution of arbitrary host side effects.
+Do not persist as cognitive state:
+
+```text
+live Tasks
+CancellationToken / synchronization primitives
+HTTP clients
+provider sessions
+active sockets
+in-process delegates
+live runtime objects
+```
+
+## Delivery slices
+
+### Slice 1 — Durable goal/intention contracts
+
+- Define stable IDs, status, priority, constraints, provenance, timestamps, and revision metadata.
+- Keep goal identity separate from intention identity.
+- Record why an intention was adopted, suspended, revised, completed, failed, abandoned, or superseded.
+- Preserve host-supplied goal state without pretending inferred belief is host truth.
+
+### Slice 2 — Durable plans and steps
+
+- Define plan identity/version and ordered or explicitly related steps.
+- Capture preconditions, assumptions, expected effects, dependencies, status, and provenance.
+- Define step states sufficient for partial progress.
+- Record plan revisions without mutating history invisibly.
+
+### Slice 3 — Checkpoints and outcome semantics
+
+- Define explicit checkpoint boundaries.
+- Persist durable progress at safe points.
+- Distinguish `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`.
+- Never convert timeout/provider failure into success without evidence.
+
+### Slice 4 — Retry and idempotency
+
+- Define stable operation/step identity for retry correlation.
+- Distinguish safe retry from unknown external outcome.
+- Record whether an action was requested, observed completed, or remains unknown.
+- Keep external side effects host-authoritative; HAgent cannot claim exactly-once execution of arbitrary host actions.
+
+### Slice 5 — Restart and recovery
+
+- Recover the latest durable goal/plan revision after process restart or crash.
+- Invalidate in-flight authority belonging to the previous process/runtime execution.
+- Reconcile incomplete steps into safe states such as retryable, unknown, blocked, or requiring host review.
+- Preserve enough evidence to explain recovery decisions.
+
+### Slice 6 — Persistence backends and verification
+
+- Reuse the existing HAgent storage abstraction.
+- Keep File, SQL Server, and MySQL behavior aligned where each backend is supported by the current milestone.
+- Verify checkpoint creation, restart recovery, stale revisions, duplicate retries, unknown outcomes, plan supersession, cancellation, and crash-safe recovery.
+
+## Architectural rules
+
+1. Durable state is owned by the runtime agent; storage is only the persistence mechanism.
+2. A newer goal/plan revision invalidates stale asynchronous work.
+3. Recovery never revives obsolete provider/execution authority.
+4. Persistence does not guarantee exactly-once external side effects.
+5. Recovery decisions are attributable to evidence and policy.
+6. Do not introduce a second plan model for intervention or cognition.
+7. Keep the phase host-neutral; host side effects remain outside Core.
+
+## Not part of V1
+
+- distributed workflow orchestration;
+- compensating transactions for every arbitrary side effect;
+- universal exactly-once semantics;
+- a second workflow engine;
+- autonomous long-running process supervision.
+
+## Dependency order
+
+```text
+0.958 lifecycle + health
+        ↓
+0.9591 durable goals/plans/recovery
+        ↓
+0.959 intervention
+        ↓
+0.97 persistent cognition consumes these contracts
+```
+
+## Exit criterion
+
+Goals, intentions, plans, steps, checkpoints, and recovery state survive process restart through the supported storage boundary, stale work cannot overwrite newer durable revisions, unknown external outcomes remain explicit, and recovery produces a safe self-consistent state without claiming unsupported exactly-once guarantees.
 
 ## Phase 0.959 — Human-in-the-Loop and Intervention
 
 ## Status
 
-**Ahead-of-roadmap implementation state — execution intervention slices 1 and 2 and the learning-candidate intervention slice are verified; the phase is not the current milestone.**
+**Planned after 0.9591; some execution and learning-candidate intervention already exists ahead of roadmap.**
 
-The repository intentionally retains intervention implementation that was built before the ordered foundational phases 0.954–0.958 and 0.9591 were completed. That implementation is treated as ahead-of-roadmap work, not as permission to skip the foundations.
+## Purpose
 
-The bounded approval/defer workflow from 0.953 is the starting point for this phase. Phase 0.959 generalizes that boundary into one provider-neutral intervention model rather than creating a parallel approval subsystem.
+Provide one provider-neutral intervention boundary through which an authorized human or host application can inspect and change agent operation without bypassing execution ownership, policy, authorization, capability, budget, lifecycle, or host-side validation.
 
-## Goal
+Existing ahead-of-roadmap execution and learning-candidate intervention code is evidence to consume, not a second subsystem.
 
-Allow authorized humans or host applications to inspect, pause, resume, approve, reject, redirect, or otherwise intervene in agent behavior without bypassing the HAgent execution and policy model.
-
-## Requirements
-
-1. [x] Define a provider-neutral intervention/approval request and lifecycle model.
-2. [ ] Support inspect, approve, reject, pause, resume, cancel, retire, shutdown, redirect, and defer actions where applicable.
-3. [ ] Allow intervention at execution, tool, plan-step, goal, learning-candidate, and consequential-action boundaries. Execution and learning-candidate boundaries are implemented ahead of roadmap; plan-step, goal, and consequential-action coverage remain future work.
-4. [x] Preserve who requested and who approved/rejected an intervention through identity and trace metadata.
-5. [x] Make intervention policy-driven rather than prompt-driven.
-6. [ ] Ensure an intervention cannot bypass permissions, authorization, budgets, capability requirements, or host-side validation at every intervention target.
-7. [x] Define behavior when intervention arrives while work is executing, waiting, completing, or concurrently changing state.
-8. [x] Support operator comments/reasons as bounded metadata without treating them as trusted executable instructions.
-9. [ ] Expose intervention state through management UI and diagnostics.
-10. [x] Add deterministic Example verification for the currently implemented approval, rejection, pause/resume, cancellation, concurrent intervention, stale intervention, and learning-candidate scenarios. Final phase-wide coverage remains pending for all supported target types.
-
-## Verified ahead-of-roadmap slices
-
-### Slice 1 — Execution intervention control
-
-Verified through the public `HAgentClient` intervention API and deterministic local provider adapter:
-
-- execution intervention requests capture target/action/correlation metadata;
-- approved pause requests reach `Completed` only after the execution-control transition is applied;
-- paused executions remain incomplete until explicit resume;
-- approved resume requests restore execution;
-- approved cancellation produces terminal `Cancelled` execution state;
-- late provider responses cannot overwrite a terminal cancelled execution.
-
-### Slice 2 — Concurrency and stale-state hardening
-
-Verified through deterministic local execution scenarios:
-
-- an intervention created before terminal completion becomes `Expired` rather than acting retroactively;
-- target control state/version is captured when the request is created;
-- conflicting concurrent intervention requests serialize so only one transition applies and the stale request expires;
-- duplicate responder resolution cannot apply a second transition;
-- a paused execution remains blocked until an explicit fresh resume intervention is approved.
-
-### Slice 3 — Learning-candidate intervention
-
-Verified in `HAgent.Example` through the public `HAgentClient` intervention API:
-
-- approval moves `PendingReview -> Approved`;
-- rejection moves `PendingReview -> Rejected`;
-- target state and candidate revision are captured at request creation;
-- an approval made stale by candidate rejection resolves as `Expired`;
-- concurrent approve/reject requests produce one applied intervention and one stale request;
-- a proposed candidate can be rejected through the same intervention lifecycle.
-
-This does not make the whole 0.959 phase complete. Plan-step, goal, consequential-action, durable persistence, management UI, and final cross-target verification remain future work after the preceding roadmap phases are completed.
-
-## Implementation sequence
-
-1. Stabilize the Core intervention request/lifecycle contract using the current approval/defer implementation as its foundation.
-2. Integrate intervention application at the execution and tool boundaries without introducing a second execution engine.
-3. Add deterministic concurrency/stale-request handling before durable persistence.
-4. Extend the same contract to plan steps, goals, learning candidates, and consequential actions.
-5. Add durable persistence for intervention state.
-6. Add management UI and diagnostics over the canonical intervention state.
-7. Complete deterministic Example verification for all supported transitions and race-sensitive cases.
-
-The detailed target lifecycle, target model, concurrency rules, persistence boundary, and management UI behavior are defined in `docs/architecture/92-human-intervention.md` and are authoritative for subsequent implementation work.
-
-## Relationship to 0.9591 Goal/Plan Persistence and Recovery
-
-The ordered roadmap places 0.9591 before 0.959. Durable goals, intentions, plans, plan-step revisions, checkpoints, and recovery state provide the persistent authority that later goal/plan intervention can govern safely. Execution-level intervention remains useful independently, so the existing ahead-of-roadmap execution intervention implementation can remain in source while the ordered roadmap catches up.
-
-## Architectural outcome
+## V1 intervention model
 
 ```text
-Agent Runtime
-     ↕
-Intervention Boundary
-     ↕
-Human / Authorized Host
+Host / Operator
+      ↓
+Intervention Request
+      ↓
+Identity + Policy + Target-State Validation
+      ↓
+Owning Runtime / Durable Boundary
+      ↓
+Applied | Rejected | Expired | Superseded
 ```
 
-Intervention controls agent operation; it does not become a second execution engine. Approval or intervention acceptance never by itself grants authorization, bypasses capability/budget checks, or resumes protected work without the owning runtime boundary applying the requested transition.
+Approval is never itself authorization. An approved intervention still has to pass the owning boundary's enforcement rules.
 
-## Verification rule
+## Supported action families
 
-A requirement becomes complete only when the implementation exists, deterministic Example verification passes locally, and the architecture/roadmap documentation reflects the verified behavior. Do not claim local build/test success without actually performing it.
+V1 covers only actions that have a clear owning boundary:
+
+```text
+Inspect
+Approve
+Reject
+Pause
+Resume
+Cancel
+Retire
+Shutdown
+Defer
+Redirect where explicitly supported by the target
+```
+
+Not every action applies to every target.
+
+## Target boundaries
+
+The same intervention model may target:
+
+```text
+Execution
+Tool invocation
+Learning candidate
+Plan step
+Goal / intention
+Consequential host action
+Runtime lifecycle
+```
+
+The target owner remains responsible for applying the transition.
+
+## Delivery slices
+
+### Slice 1 — Canonical intervention contract
+
+- Normalize request identity, target identity, action, reason, requester identity, correlation, expected target revision/state, and expiry.
+- Keep intervention state separate from target state.
+- Define deterministic outcomes such as applied, denied, expired, superseded, invalid, and failed.
+
+### Slice 2 — Execution and learning boundaries
+
+- Consume existing execution intervention behavior.
+- Consume existing learning-candidate intervention behavior.
+- Verify stale intervention requests cannot act on newer target revisions.
+- Verify concurrent intervention requests serialize at the owning target.
+
+### Slice 3 — Durable goal/plan intervention
+
+- Add intervention at plan-step and goal/intention boundaries after 0.9591 durable contracts exist.
+- Preserve durable revision semantics.
+- Pause/resume/reject/redirect only through the owning durable state boundary.
+- Do not mutate a plan by editing an unrelated intervention record.
+
+### Slice 4 — Consequential-action boundary
+
+- Allow host-defined consequential actions to request intervention using a generic HAgent contract.
+- Keep the host authoritative over actual side effects.
+- HAgent records requested/approved state but never fabricates completion evidence.
+
+### Slice 5 — Persistence, UI, diagnostics
+
+- Persist intervention records where the owning target is durable.
+- Add management UI and diagnostics using existing WinForms conventions.
+- Preserve requester/approver identity, reason, correlation, target revision, and outcome.
+- Verify restart behavior and stale intervention expiry.
+
+## Architectural rules
+
+1. There is one intervention model, not separate approval engines.
+2. Intervention never grants authority that policy did not already grant.
+3. Target ownership remains authoritative.
+4. Intervention requests become stale when their target revision/state changes.
+5. A rejected or expired intervention never mutates the target.
+6. Host side effects remain host-authoritative.
+7. Intervention state does not replace lifecycle, plan, execution, or learning state.
+
+## Not part of V1
+
+- a general workflow engine;
+- autonomous operator simulation;
+- distributed human approval consensus;
+- arbitrary UI automation;
+- intervention as a replacement for normal host scheduling.
+
+## Dependency order
+
+```text
+0.958 lifecycle + health
+        ↓
+0.9591 durable goals/plans/recovery
+        ↓
+0.959 intervention
+        ↓
+0.96 execution planning
+```
+
+## Existing ahead-of-roadmap evidence
+
+Execution intervention and learning-candidate intervention already exist and have deterministic Examples/tests. They remain in source while the ordered roadmap catches up. They do not mark the entire 0.959 phase complete.
+
+## Exit criterion
+
+Authorized operators/hosts can safely inspect and intervene at supported execution, learning, plan, goal, lifecycle, and consequential-action boundaries through one policy-governed contract, with durable target revisions, stale-request protection, persistence where appropriate, diagnostics, and no bypass of host authority.
 
 ## Phase 0.9592 — Provider Ecosystem and Adapter Lifecycle
 
 ## Status
 
-**Planned provider-platform foundation before and alongside Phase 0.96.**
+**Planned before 0.96 capability-aware execution.**
 
-## Goal
+## Purpose
 
-Mature the provider adapter boundary so HAgent can support many providers, API variants, models, modalities, discovery mechanisms, and provider API versions without leaking provider-specific behavior into HAgent.Core.
+Provide a clean provider-adapter boundary so HAgent can use multiple providers, API variants, models, and discovery sources without leaking provider-specific behavior into `HAgent.Core` or making provider integration larger than necessary.
 
-## Requirements
+This phase is a provider-platform foundation, not a provider marketplace.
 
-1. [ ] Define a complete provider adapter lifecycle including registration, validation, initialization, refresh, health, disablement, replacement, and retirement.
-2. [ ] Separate transport capability from discovery, usage, quota/rate, health, and other provider-specific data sources.
-3. [ ] Define normalized adapter contracts for model discovery, capability discovery, usage, rate/quota information, health, and supported execution features where available.
-4. [ ] Allow one provider integration to expose multiple models and task families without hard-coded model assumptions in Core.
-5. [ ] Preserve provider-native identifiers, API versions, deployment identifiers, and endpoint metadata alongside normalized identities.
-6. [ ] Support partial provider implementations: a provider may support execution while exposing incomplete discovery or quota telemetry.
-7. [ ] Represent unavailable/unknown provider features explicitly instead of manufacturing defaults.
-8. [ ] Define adapter version/compatibility metadata so provider API changes can be handled deliberately.
-9. [ ] Support provider deprecation/retirement without corrupting persisted agent configuration or historical execution records.
-10. [ ] Keep provider-specific retry, response, streaming, authentication, and error handling inside adapters where appropriate.
-11. [ ] Ensure adapter instances are safe for concurrent use or explicitly scoped when they are not.
-12. [ ] Ensure provider credentials are supplied through the current simple encrypted provider-configuration mechanism; this phase must not introduce a separate secret-vault architecture.
-13. [ ] Add deterministic fake-provider verification for complete discovery, partial discovery, unsupported operations, provider/API version changes, adapter replacement, health changes, and concurrent usage.
-
-## Architectural outcome
+## V1 provider model
 
 ```text
 Provider Configuration
         ↓
 Provider Adapter
  ├── execution
- ├── discovery
- ├── capabilities
- ├── usage/quota
- ├── health
- └── provider-specific metadata
+ ├── model discovery (when available)
+ ├── capability discovery (when available)
+ ├── quota/rate/usage telemetry (when available)
+ ├── health/availability
+ └── provider-native metadata
         ↓
 Normalized HAgent contracts
         ↓
-Execution Planner / Runtime
+0.96 Execution Planner
 ```
 
-HAgent.Core remains provider-neutral; provider-specific knowledge stays behind adapter boundaries.
-
-## Phase 0.96.x — Configuration, Storage, and Portability Evolution
-
-## Status
-
-**Required cross-cutting work for Phase 0.96 capability-aware execution and the later 0.97 persistent cognitive runtime.**
-
-## Goal
-
-Evolve HAgent persistence so the new provider/model selection architecture, capability-aware execution, agent policies, resource relationships, global settings, and configuration portability can be stored consistently across the File, SQL Server, and MySQL backends.
-
-The storage design should remain deliberately simple. HAgent configuration is HAgent-owned data. Provider API keys are persisted with provider configuration and encrypted at rest; there is no separate secret-reference, vault, or centralized secret-provider architecture.
-
-The same database-backed configuration can be consumed by multiple HAgent processes/machines, allowing a network deployment to share providers, models, agents, skills, knowledge, policies, and credentials without configuring each client independently.
-
-## Storage architecture direction
-
-```text
-HAgent Configuration
-├── General/system settings
-├── Providers
-│   ├── connection configuration
-│   └── encrypted API key
-├── Models
-├── Concrete execution targets
-├── Discovery metadata/evidence
-├── Capability state
-├── Constraints
-├── Quota/rate/capacity state
-├── Agents
-│   ├── selection mode
-│   ├── requirements/preferences
-│   └── fallback/cost policy
-├── Skills
-├── Knowledge / Wiki
-├── Memory configuration/policy
-├── Learning configuration
-├── Tools
-├── Permissions
-└── resource relationships
-
-Configuration Portability
-├── versioned export package
-├── import/compatibility validation
-├── explicit conflict handling
-└── optional encrypted credential bundle
-```
-
-## Provider credentials
-
-1. [ ] Replace the current conceptual requirement that provider credentials live only in a separate secret store with direct provider configuration persistence.
-2. [ ] Add an `ApiKey`-style provider credential field to the authoritative provider configuration contract where the provider uses an API key.
-3. [ ] Encrypt provider API keys at rest before writing them to File, SQL Server, or MySQL persistence.
-4. [ ] Keep the encryption mechanism simple, documented, deterministic for the supported deployment model, and independent of provider-specific logic.
-5. [ ] Ensure decrypted credentials are available to provider adapters only when constructing provider execution requests.
-6. [ ] Redact provider credentials from diagnostics, logs, audits, discovery evidence, planner assessments, exceptions, and UI diagnostic output.
-7. [ ] Support credential replacement/removal so revoking a provider credential only requires updating/removing the persisted configuration and refreshing active snapshots.
-8. [ ] Remove the requirement for `SecretReference`-based provider persistence from the new architecture.
-9. [ ] Retire or simplify `ISecretStore` usage as part of implementation; it must not remain an unnecessary parallel source of truth for provider credentials.
-10. [ ] Preserve runtime-only handling of storage-server connection passwords where appropriate; do not place database connection passwords into ordinary provider configuration records.
-
-## Global configuration persistence
-
-11. [ ] Persist the system-wide `General` configuration described by the architecture, including at minimum Cost Policy, default AI selection mode, default fallback policy, default Learning Mode, and discovery/refresh defaults.
-12. [ ] Support explicit inherit/override semantics for settings that may be overridden at Agent or runtime/host scope.
-13. [ ] Persist effective policy inputs without mutating global defaults when an Agent or runtime override is applied.
-14. [ ] Version configuration records so cache/snapshot invalidation can detect changes reliably.
-
-## Provider and model persistence
-
-15. [ ] Redesign the provider persistence model so Provider is independent from Model and concrete Execution Target.
-16. [ ] Remove obsolete permanent Agent `ProviderId`/`ProviderIds` and model-binding storage from the new design rather than preserving legacy fields unnecessarily.
-17. [ ] Persist normalized logical-model records where logical identity can be established.
-18. [ ] Persist provider-native model identifiers separately from logical-model identity.
-19. [ ] Persist concrete execution targets with provider, endpoint/account/project, deployment/model identity, version/revision where available, and routing/deployment identity.
-20. [ ] Persist execution-target commercial state: `Free`, `FreeWithinQuota`, `Paid`, or `Unknown`.
-21. [ ] Persist discovery metadata including verification time, source/provenance, confidence where applicable, and refresh/expiration information.
-22. [ ] Persist capability evidence and normalized tri-state capability state: `Supported`, `Unsupported`, `Unknown`.
-23. [ ] Persist normalized request/target constraints such as context limits, output limits, modality restrictions, schema limitations, and provider-specific values through extensible metadata where needed.
-24. [ ] Persist operational state separately from capability: availability/health, quota, rate, concurrency/capacity, reset information, and observed remaining capacity.
-25. [ ] Distinguish configured/manual overrides from provider-discovered/observed values so refresh does not silently erase administrator intent.
-26. [ ] Permit unknown discovery data without requiring fake defaults. Unknown must remain a valid persisted state.
-27. [ ] Preserve multiple execution targets for the same logical model across different providers/accounts/projects/endpoints.
-
-## Agent policy persistence
-
-28. [ ] Persist Agent AI selection mode: `Auto`, `Preferred`, or `Fixed`.
-29. [ ] Persist preferred provider/model/execution-target settings without treating them as permanent execution bindings.
-30. [ ] Persist fixed execution-target selection when the administrator intentionally chooses Fixed mode.
-31. [ ] Persist capability requirements and preferences, including required/preferred/optional/forbidden semantics.
-32. [ ] Persist fallback/degradation policy.
-33. [ ] Persist Agent cost-policy inheritance/override and effective policy inputs.
-34. [ ] Persist runtime tri-state capability overrides separately from the reusable Agent profile.
-35. [ ] Ensure execution snapshots contain resolved configuration versions so changes after execution start cannot alter active work.
-
-## Resource and relationship persistence
-
-36. [ ] Extend persistence for Skills, Knowledge/Wiki, Memory policy, Learning configuration, Tools, Permissions, and their Agent/runtime relationships.
-37. [ ] Support reusable Skill definitions and versions without embedding executable handlers in persistence.
-38. [ ] Support Knowledge/Wiki resources independently from Skill storage while allowing explicit Agent access relationships.
-39. [ ] Support extensible resource/type identity so future resource categories can be stored and inventoried without hard-coded Agent columns.
-40. [ ] Persist Agent/resource relationships with explicit scope and enabled/disabled state where required.
-41. [ ] Preserve Learning candidate provenance, source execution/runtime identity, target scope, and evidence/confidence.
-
-## Runtime and cache coordination
-
-42. [ ] Add change/version metadata sufficient for long-lived runtime configuration snapshots.
-43. [ ] Support cache invalidation when provider configuration, model/discovery metadata, capabilities, permissions, global settings, or Agent configuration changes.
-44. [ ] Avoid reloading unchanged Agent/provider configuration from persistence on every execution when a valid runtime snapshot exists.
-45. [ ] Ensure database-backed HAgent instances can safely observe shared configuration changes across processes/machines.
-46. [ ] Define a lightweight refresh/invalidation strategy appropriate for File, SQL Server, and MySQL without requiring a distributed cache service.
-47. [ ] Prevent stale configuration snapshots from being used indefinitely after a relevant configuration revision changes.
-
-## Configuration export/import
-
-48. [ ] Define a versioned HAgent configuration package format independent of the physical storage backend.
-49. [ ] Export all HAgent-owned configuration that can be recreated on another deployment, including General settings, Providers, Models, execution targets, Agents, Skills, Knowledge/Wiki, Memory configuration/policy, Learning configuration, Tools, Permissions, capability/resource relationships, and relevant metadata.
-50. [ ] Exclude executable tool handlers, live runtime objects, active executions, synchronization primitives, transient provider sessions, raw HTTP state, and other process-local state from portable configuration.
-51. [ ] Support normal export without provider credentials by default.
-52. [ ] Support explicit credential-bearing export for administrators who choose to move credentials with the configuration.
-53. [ ] Encrypt included API keys inside a credential-bearing export package.
-54. [ ] Protect credential-bearing exports with a basic user-supplied password/encryption mechanism; do not introduce a separate secret-vault architecture.
-55. [ ] Validate package format/version compatibility before import.
-56. [ ] Provide explicit conflict behavior for existing IDs, names, providers, models, skills, knowledge resources, and other imported objects.
-57. [ ] Ensure import restores credentials into the normal encrypted-at-rest provider configuration of the selected storage backend.
-58. [ ] Ensure export/import preserves authoritative IDs and relationships when possible while providing deterministic remapping when conflicts require new IDs.
-59. [ ] Support round-trip export/import verification with the File, SQL Server, and MySQL backends.
-
-## Multi-machine database deployment
-
-60. [ ] Treat SQL Server and MySQL configuration storage as centrally shared HAgent configuration for all authorized HAgent processes connected to that database.
-61. [ ] Ensure provider API keys stored in the shared database are usable by authorized execution processes after decryption.
-62. [ ] Do not require each machine to maintain a separate provider API-key copy when using shared database-backed HAgent configuration.
-63. [ ] Ensure configuration refresh/version checks prevent one machine from continuing to use a revoked or replaced provider credential indefinitely.
-64. [ ] Preserve HAgent database isolation: shared HAgent storage remains an HAgent-owned database and must not become a gateway into the host application's business database.
-
-## File, SQL Server, and MySQL parity
-
-65. [ ] Define one logical configuration/storage contract and maintain equivalent behavior across File, SQL Server, and MySQL implementations.
-66. [ ] Add ordered schema migrations for SQL Server and MySQL covering the redesigned provider/agent/model configuration and new resource/policy records.
-67. [ ] Keep provider-specific SQL differences isolated to storage implementation/migrations; HAgent.Core remains provider-neutral.
-68. [ ] Add File persistence equivalents for the same authoritative configuration concepts so File mode does not become a second architecture.
-69. [ ] Ensure the selected backend can persist the configuration required by Phase 0.96 and Phase 0.97 without depending on a host business database.
-
-## UI implications
-
-70. [ ] Update `Providers` UI to edit connection information and API key while exposing encryption/redaction behavior without exposing implementation details.
-71. [ ] Update `Models` UI to display persisted/discovered model and execution-target metadata, capability evidence, limits, availability, cost state, and verification state.
-72. [ ] Update `Agents` UI to edit the new selection policy instead of obsolete permanent ProviderId/Model fields.
-73. [ ] Add configuration export/import management UI, including package type, credential-inclusion choice, password/protection flow, compatibility validation, conflict preview, and import result summary.
-74. [ ] Make it clear in the UI that credential-bearing export is an explicit action and normal export does not include API keys.
-75. [ ] Keep the user-facing UI organized around General, Providers, Models, Agents, Tools, Permissions, Storage, and related resource-management surfaces rather than exposing storage internals.
-
-## Migration strategy
-
-Because HAgent is still in active build/test and legacy configuration does not require preservation, this evolution should favor direct model replacement over a large backward-compatibility layer.
-
-76. [ ] Remove obsolete Agent provider/model fields from the authoritative model and schema.
-77. [ ] Remove obsolete provider-secret-reference assumptions from the new provider persistence path.
-78. [ ] Add new schema versions/migrations as needed for the redesigned model without introducing compatibility tables solely for retired fields.
-79. [ ] Update File, SQL Server, and MySQL serialization/persistence together so the backends remain behaviorally aligned.
-80. [ ] Update Example verification and management UI against the new storage contracts before marking the architecture transition complete.
-
-## Verification
-
-81. [ ] File, SQL Server, and MySQL can persist and reload the same logical configuration model.
-82. [ ] Two independent HAgent processes using one database observe the same provider, model, agent, skill, knowledge, and General configuration.
-83. [ ] A stored API key is encrypted at rest and is not emitted by diagnostics/audit/logging paths.
-84. [ ] Updating/removing a provider API key is reflected after configuration snapshot refresh/invalidation.
-85. [ ] Same logical model with different provider/account cost, capability, quota, and health state remains represented as distinct execution targets.
-86. [ ] Auto, Preferred, and Fixed Agent selection policies round-trip correctly through persistence.
-87. [ ] General Cost Policy and Learning defaults round-trip correctly and preserve inherit/override semantics.
-88. [ ] Export without credentials contains no API keys.
-89. [ ] Credential-bearing export contains encrypted credentials and requires the export protection mechanism to import them.
-90. [ ] Export/import round-trips providers, models, execution targets, agents, skills, knowledge/wiki, memory policy, learning configuration, tools, permissions, and relationships.
-91. [ ] Import detects incompatible package versions and reports deterministic conflicts rather than silently overwriting unrelated configuration.
-92. [ ] Running executions use immutable snapshots even when another process edits/deletes the underlying configuration.
-
-## Architectural outcome
-
-After this evolution, HAgent storage should conceptually look like:
-
-```text
-                 HAgent Configuration
-                         │
-          ┌──────────────┴──────────────┐
-          │                             │
-      File backend                Database backend
-                                      │
-                               SQL Server / MySQL
-                                      │
-                          shared by authorized HAgent
-                              processes/machines
-
-Provider
-  ├── connection metadata
-  └── encrypted API key
-
-Model
-  ├── logical identity
-  └── provider-native identities
-
-Execution Target
-  ├── provider/account/project/endpoint
-  ├── model/deployment
-  ├── capabilities/evidence
-  ├── constraints
-  ├── quota/rate/capacity
-  ├── health/availability
-  └── cost state
-
-Agent
-  ├── selection policy
-  ├── requirements/preferences
-  ├── fallback
-  ├── cost policy
-  └── resource relationships
-
-Export / Import
-  └── versioned portable representation of the same authoritative configuration
-```
-
-The storage layer remains an implementation boundary. Provider routing, cognitive planning, and execution behavior consume normalized contracts rather than knowing whether the source was a JSON file, SQL Server, or MySQL.
-
-## Phase 0.96 — Capability-Aware Execution
-
-## Status
-
-**Planned next — provider/runtime hardening before resuming Phase 0.10.**
-
-## Goal
-
-Make HAgent safe and useful across heterogeneous providers, accounts, deployments, models, modalities, quotas, rate limits, concurrency limits, and very different inference latencies without binding an agent profile to one provider/model.
-
-Real provider testing exposed that a provider may expose many models with different capabilities and limits, while the same logical model may be available through multiple providers. HAgent must therefore reason about the **actual execution target** for each request rather than treating provider or model names as sufficient capability descriptions.
-
-## Core model
-
-```text
-Agent Profile
-    = what the agent is, what it requires, and what it prefers
-
-Provider
-    = a provider/service integration
-
-Provider Account / Project / Endpoint
-    = an operational execution environment
-
-Model / Logical Model
-    = provider-independent model identity where it can be established
-
-Model Deployment / Execution Target
-    = a concrete provider + account/project/endpoint + model deployment
-
-Capability
-    = what the execution target can do
-
-Constraint
-    = request/model limits such as context, output, image count, or schema size
-
-Quota / Rate Limit
-    = operational consumption limits over windows
-
-Availability / Health
-    = whether the target can accept work now
-
-Cost / Billing Mode
-    = free allocation, free-within-quota, paid, or unknown for the applicable provider/account/target
-
-Execution Planner
-    = selects the best currently compatible execution target
-```
-
-**Architectural terminology rule:** the **Execution Planner** is not the cognitive planner. The Execution Planner answers *where/how should an already-requested inference execute?* The cognitive **Planner** in Phase 0.97 answers *what should the agent do?* These layers must remain independent even when both perform candidate selection and scoring.
-
-## Requirements
-
-1. [ ] Remove permanent provider/model binding from reusable Agent profiles. Replace the obsolete binding with preference/requirement semantics in the new Agent model; do not add compatibility fields solely to preserve the retired design.
-2. [ ] Preserve Agent profiles as first-class configuration containing identity, instructions, tools, memory/knowledge/skills policy, capability requirements, execution preferences, and fallback/degradation policy.
-3. [ ] Represent Provider independently from Model and from concrete execution endpoint/account/project/deployment.
-4. [ ] Introduce provider-independent logical model identity where reliably known, while preserving provider-native model identifiers and deployment identity.
-5. [ ] Allow the same logical model to be exposed by multiple providers, including different endpoints/accounts/projects, without treating those executions as equivalent.
-6. [ ] Define normalized execution-target identity covering provider, endpoint/account/project, model identifier, model version/revision where available, and relevant routing/deployment identity.
-7. [ ] Extend the existing tri-state capability system to exact execution targets: `Supported`, `Unsupported`, `Unknown`.
-8. [ ] Separate capability from operational state, account/project permission, quota, rate limiting, health, and request-specific constraints.
-9. [ ] Model input/output modalities explicitly rather than using one generic vision/image flag. Support extensibility for text, image, audio, video, embeddings, generation, understanding, and future modalities.
-10. [ ] Represent capability evidence, confidence, source, observation time, and expiration/refresh information.
-11. [ ] Support capability evidence from provider metadata, provider documentation supplied through adapters, discovery APIs, controlled probes, successful executions, failures, and response metadata.
-12. [ ] Cache capability knowledge without treating stale or undocumented capability data as authoritative.
-13. [ ] Define request-side capability requirements independently from agent identity. Requirements must support at least required, preferred, optional, and forbidden semantics.
-14. [ ] Support requirements for structured output, strict structured output, tool calling, reasoning, modalities, streaming, embeddings, and future capabilities.
-15. [ ] Distinguish native capability from emulated/degraded behavior. Do not report prompt-based JSON fallback as equivalent to native constrained structured output.
-16. [ ] Make fallback/degradation policy explicit: fail, wait, try another candidate, or use an explicitly permitted degraded mode.
-17. [ ] Validate manually selected provider/model/execution targets against request and agent requirements before sending provider requests.
-18. [ ] Introduce a capability-aware Execution Planner that evaluates candidate execution targets before transport.
-19. [ ] Score/filter candidates by required capabilities, preferred logical model, preferred provider, explicit host/runtime selection, policy, availability, limits, expected latency, and other execution preferences without mutating the Agent profile.
-20. [ ] Keep provider-native transport behind the existing `ProviderExecutionRequest` boundary.
-21. [ ] Introduce normalized generic rate/quota dimensions rather than hard-coding only RPM/RPD/TPM/TPD.
-22. [ ] Support at minimum request count, input tokens, output tokens, total tokens, concurrency, and future dimensions such as audio duration, image count, bytes, spend, or provider-specific units.
-23. [ ] Support arbitrary windows including per-minute, per-day, and provider-specific/custom windows.
-24. [ ] Support limits at the scope actually enforced by a provider, including account, organization, project, endpoint, model/deployment, or other documented scope.
-25. [ ] Distinguish configured limits from observed remaining capacity and provider-reported reset information.
-26. [ ] Parse provider rate-limit and retry metadata where available and reconcile observed state with HAgent's admission state.
-27. [ ] Implement proactive rate/quota admission before provider transport so HAgent does not intentionally discover ordinary limits by sending doomed requests.
-28. [ ] Implement atomic reservation/admission for concurrent executions so two requests cannot both consume the same remaining budget.
-29. [ ] Reconcile reservations with actual provider usage after execution, including partial/unknown usage when provider telemetry is incomplete.
-30. [ ] Support `Wait`, `TryNextCandidate`, `Fail`, and explicitly policy-controlled degraded behavior when capacity is insufficient.
-31. [ ] Support maximum queue/admission wait so a theoretically available future target does not cause unbounded waiting.
-32. [ ] Treat provider `429`, throttling, exhaustion, and quota failures as feedback for the operational state rather than as the only capability discovery mechanism.
-33. [ ] Track request latency and execution duration separately from rate/quota state.
-34. [ ] Model long-running inference targets where a single request may legitimately take minutes without treating slow response as provider failure.
-35. [ ] Ensure caller cancellation, timeout, and late-result protection remain correct while a long-running request is waiting, executing, or being retried/fallback-routed.
-36. [ ] Support explicit concurrency capacity such as one-at-a-time or bounded in-flight requests for providers/models that have limited serving capacity even when daily quota is high or unlimited.
-37. [ ] Distinguish `quota available` from `execution capacity available`. A target may have abundant daily quota but still require serialization or waiting because inference is slow or concurrency-limited.
-38. [ ] Provide target health/availability state and backoff hints without permanently blacklisting a provider because of transient failures.
-39. [ ] Preserve provider neutrality: do not hard-code Groq, Cloudflare, NVIDIA, OpenRouter, or any other provider's model matrix into HAgent.Core.
-40. [ ] Allow providers to supply provider-specific discovery/capability adapters while HAgent.Core consumes only normalized contracts.
-41. [ ] Support arbitrary OpenAI-compatible endpoints whose capabilities may be partially known or completely unknown.
-42. [ ] Handle providers with multiple task families and model catalogs, including text generation, image generation, image-to-text, embeddings, speech, classification, and future task types.
-43. [ ] Preserve independent provider/model capability snapshots for multiple environments even when the logical model name is identical.
-44. [ ] Expose enough planner diagnostics for a host/UI to explain why a candidate was accepted, rejected, delayed, or degraded.
-45. [ ] Add deterministic Example verification for identical logical models exposed through multiple providers, required/preferred/optional capabilities, unknown capabilities, incompatible manual selection, structured-output native vs fallback behavior, proactive rate limiting, daily quota, token windows, atomic concurrent reservations, 429 feedback, long-running requests, cancellation, timeout, stale-result protection, and candidate fallback.
-46. [ ] Update management UI targets so provider/model selection shows effective capabilities, constraints, quota/rate state, availability, and compatibility with the active request rather than only listing model names.
-47. [ ] Ensure the Workspace/provider/model selection planned for Phase 0.10 consumes this capability planner rather than bypassing it.
-48. [ ] Define provider/model discovery as **discovery-first**: users normally configure credentials, endpoint/account/project information, and optional provider-specific connection settings; HAgent discovers model catalogs, capabilities, constraints, operational limits, availability, and other metadata whenever the provider exposes them.
-49. [ ] Support providers that expose complete model catalogs, partial catalogs, no catalog API, or arbitrary OpenAI-compatible endpoints. Discovery failure must degrade to explicit `Unknown` information rather than requiring a large mandatory manual metadata form.
-50. [ ] Define model metadata provenance so each discovered fact can identify whether it came from provider metadata, discovery, documentation, controlled probe, successful execution, response metadata, host-supplied override, or unknown source.
-51. [ ] Model commercial state separately from technical capability. Cost status must support at least `Free`, `FreeWithinQuota`, `Paid`, and `Unknown`, and must be associated with the applicable provider/account/plan/execution target rather than treated as an intrinsic property of a logical model.
-52. [ ] Support a system-wide **Cost Policy** with at least `FreeOnly`, `FreePreferred`, and `NoRestriction` behavior. Cost policy is a selection/admission policy and must not be implemented as a simple model list filter.
-53. [ ] Allow agents and approved runtime/host scopes to inherit or override cost policy without mutating the global default or persistent agent profile unexpectedly.
-54. [ ] Ensure `FreeOnly` considers only targets whose applicable commercial state is known to be free/free-within-policy; `Unknown` cost must not silently qualify as free.
-55. [ ] Define agent AI selection mode with at least `Auto`, `Preferred`, and `Fixed`.
-56. [ ] In `Auto`, HAgent selects a compatible execution target according to capabilities, policy, availability, cost, quota/capacity, latency, and preferences.
-57. [ ] In `Preferred`, HAgent attempts the configured provider/model/deployment preference but may use another compatible target according to the configured fallback policy.
-58. [ ] In `Fixed`, HAgent uses the selected target when permitted and compatible; it must still enforce authorization, required capabilities, constraints, quota/capacity, and health. If unavailable or incompatible, behavior follows an explicit fallback policy and must never silently bypass enforcement.
-59. [ ] Distinguish a specific fixed target from a preference such as highest quality, lowest latency, lowest cost, or balanced. Preference scoring remains planner-owned rather than being encoded as a hard provider/model dependency.
-60. [ ] Add deterministic Example verification for provider discovery success/partial failure, unknown metadata, free-only selection, free-preferred fallback, paid-only targets under restriction, same model with different cost status across providers, Auto/Preferred/Fixed agent selection, fixed-target incompatibility, and explicit fallback behavior.
-
-## Management UI direction
-
-The HAgent.WinForms configuration surface should be organized around user responsibilities rather than internal planner terminology.
-
-Top-level configuration tabs:
-
-```text
-Overview
-General
-Providers
-Models
-Agents
-Tools
-Permissions
-Storage
-Storage Test
-About
-```
-
-### General
-
-`General` contains system-wide defaults and policies that apply across providers and agents unless overridden by a more specific scope.
-
-At minimum it should contain:
-
-```text
-Execution Defaults
-    Cost Policy: FreeOnly / FreePreferred / NoRestriction
-    Default AI Selection: Auto
-    Default Fallback Policy
-    Default timeout/concurrency policies where appropriate
-
-Learning Defaults
-    Default Learning Mode
-
-Discovery
-    Automatically discover models: On/Off
-    Automatically refresh provider metadata: On/Off
-```
-
-Global settings are defaults, not forced values. Agent and approved runtime/host configuration can explicitly inherit or override them according to policy.
-
-### Providers
-
-The normal provider setup experience should be lightweight:
-
-```text
-Provider
-    Name
-    Provider/API type
-    Base URL where applicable
-    Credentials/secrets
-    Account/project information where applicable
-
-[ Test Connection ]
-[ Save ]
-```
-
-A provider should not require the user to manually enter every model, capability, modality, quota, rate limit, or technical restriction when those values can be discovered or observed. Provider-specific advanced/manual overrides may exist for information that cannot be discovered, but these are exception paths.
-
-The provider surface should also expose discovery status, last refresh, connection status, and a way to refresh/retest discovered metadata.
-
-### Models
-
-`Models` is a first-class top-level management surface between Providers and Agents. It displays the HAgent model catalog built from discovered provider information and normalized runtime observations.
-
-The catalog should support at least:
-
-```text
-Model / logical model
-Provider / execution target
-Availability
-Cost status: Free / FreeWithinQuota / Paid / Unknown
-Capabilities
-Constraints/limits
-Quota/rate/capacity state where available
-Last verified / evidence source
-```
-
-The UI should group the same logical model across multiple providers when their identities can be correlated, while keeping each concrete execution target distinct. A model may therefore appear as free at one provider and paid/unknown at another.
-
-When a provider cannot expose complete metadata, the Models surface must show `Unknown` rather than inventing a value and offer appropriate refresh/probe/manual-override actions where supported.
-
-### Agents
-
-Agent Configuration must make agent intent clear without requiring the administrator to understand execution-planner internals.
-
-The Agent Editor should include at least:
-
-```text
-Overview
-General
-AI
-Skills
-Knowledge
-Memory
-Learning
-Advanced
-```
-
-#### AI selection
-
-The AI section should support:
-
-```text
-Selection Mode
-    Auto
-    Preferred
-    Fixed
-
-Provider
-    Auto or selected provider
-
-Model
-    Auto or selected logical/concrete model
-
-Required capabilities
-    capabilities this agent must have
-
-Preferred capabilities/preferences
-    capabilities/quality/latency/cost preferences
-
-Fallback policy
-    explicit behavior when preferred/fixed selection cannot run
-```
-
-`Auto` is the normal default. `Preferred` expresses a strong preference without turning the profile into a permanent transport binding. `Fixed` gives administrators explicit control when they intentionally want one concrete target, such as always using a particular high-end model. Fixed selection never bypasses capability, authorization, quota, capacity, or health enforcement.
-
-The agent UI should describe Fixed as a deliberate override and make the failure/fallback behavior visible rather than silently substituting another model.
-
-#### Effective configuration overview
-
-The selected agent should show an understandable summary of the effective state:
-
-```text
-AI selection
-Skills
-Knowledge
-Memory
-Learning
-Tools
-Cost Policy
-```
-
-Where a value is inherited, the UI should show the source and effective value. For example:
-
-```text
-Cost Policy
-    Global: FreePreferred
-    Agent: Inherit
-    Effective: FreePreferred
-```
-
-This same pattern should be usable for runtime overrides where runtime configuration is exposed.
-
-## Cost policy and free-model behavior
-
-Cost policy is global by default but may be overridden at agent/runtime/host scopes where policy permits.
-
-The intended behavior is:
-
-```text
-Global Cost Policy
-      ↓
-Agent Cost Policy
-      ↓
-Runtime/Host Override
-      ↓
-Execution Planner
-      ↓
-compatible execution targets
-```
-
-`FreeOnly` does not mean "pick any model labeled free." HAgent must still enforce capability requirements, permissions, constraints, quota/capacity, health, and other policy. A free target that cannot perform the requested task is not eligible.
-
-`FreePreferred` prefers free/free-within-policy targets but can use paid targets only when the active higher-level policy explicitly permits paid fallback. `NoRestriction` does not impose a cost filter.
-
-Unknown commercial status is never treated as free implicitly.
-
-## Same model, multiple providers
-
-The same logical model may appear through different providers:
-
-```text
-Logical Model: M
-
-Groq       -> Deployment A -> FreeWithinQuota
-OpenRouter -> Deployment B -> Free
-Local      -> Deployment C -> Unknown
-```
-
-The deployments are separate execution targets because they may differ in capabilities, limits, pricing, routing, permissions, latency, availability, and operational state. HAgent may use the logical model as a preference while selecting among compatible concrete deployments.
-
-## Capability and limitation layers
-
-HAgent must keep these dimensions separate:
-
-```text
-Capability
-    Can it do the operation?
-
-Constraint
-    Can it do this size/shape/version of the operation?
-
-Permission
-    Is this account/project allowed to use it?
-
-Quota / Rate Limit
-    Is there remaining budget in the applicable window?
-
-Concurrency / Capacity
-    Can it accept another request now?
-
-Availability / Health
-    Is the target currently usable?
-
-Cost
-    Is this target free, free-within-policy, paid, or unknown?
-
-Latency
-    How long may the operation reasonably take?
-```
-
-A target may therefore be capable but temporarily unavailable, available but incompatible with a required feature, or free but unusable because the needed capability or quota is unavailable.
-
-## Execution-target assessment
-
-The planner should expose a normalized assessment for every candidate considered:
-
-```text
-ExecutionTargetAssessment
-    Target identity
-    Compatible / incompatible
-    Capability evidence
-    Constraint checks
-    Permission state
-    Quota state
-    Capacity state
-    Health / availability
-    Cost state
-    Estimated latency
-    Wait-until (optional)
-    Degradation available (optional)
-    Score / ranking information
-    Decision reason
-```
-
-This assessment is diagnostic data, not merely logging. It allows hosts and management UI to explain why an execution target was accepted, rejected, delayed, or degraded without knowing provider-specific implementation details.
-
-## Rate limiting and admission
-
-Rate limiting is proactive admission control, not merely retry logic.
-
-The intended flow is:
-
-```text
-Execution Request
-      |
-      v
-Capability requirements
-      |
-      v
-Candidate discovery/filtering
-      |
-      v
-Policy/preferences scoring
-      |
-      v
-Admission / reservation
-      |
-      +---- available -> ProviderExecutionRequest
-      |
-      +---- wait -> bounded queue/wait
-      |
-      +---- unavailable -> next candidate / fail / permitted degradation
-```
-
-The planner and admission layer must remain provider-neutral while provider adapters may contribute provider-specific metadata needed to normalize limits and responses.
-
-## Storage and configuration relationship
-
-Phase 0.96 depends on the storage evolution defined in `docs/roadmap/38-configuration-storage-and-portability.md`.
-
-The capability-aware planner requires persistence for providers, logical models, concrete execution targets, discovery metadata, capability evidence, constraints, operational quota/rate/capacity state, cost state, Agent selection policies, global cost policy, and configuration versioning. The storage model must use the new contracts directly rather than adding legacy compatibility columns for the retired Agent provider/model binding.
-
-Provider credentials are persisted with provider configuration and encrypted at rest. HAgent does not require a separate secret-reference or secret-vault architecture.
-
-Configuration export/import is part of the platform foundation: portable configuration must include the new model/target/policy/resource graph, while executable process state and active executions remain non-portable.
-
-## Phase 0.97 — Persistent Cognitive Runtime
-
-## Status
-
-**Planned after Phase 0.96 and before higher-level autonomous-agent features.**
-
-## Goal
-
-Add a provider-neutral, long-lived cognitive runtime above individual HAgent executions while preserving the existing execution engine as the reusable foundation.
-
-A runtime agent instance identifies and owns the lifecycle of a live agent. The Persistent Cognitive Runtime adds the engineering mechanisms required for that agent to remain active over time: it receives observations/events, maintains versioned cognitive state, selects bounded context, manages goals and intentions, maintains plans, decides when deterministic processing is sufficient, requests probabilistic reasoning when justified, executes through the existing execution engine, and incorporates validated outcomes.
-
-The runtime is generic. It must work for business applications, automation, research systems, simulations, games, and other hosts without embedding domain-specific world models, schedulers, persistence engines, UI frameworks, or side-effect authority.
-
-This phase specifies production mechanisms. It does **not** implement a named cognitive theory. Research foundations remain rationale and evaluation material in `docs/architecture/15-research-foundations.md` and `docs/research/` rather than implementation requirements.
-
-Normative implementation details are defined in `docs/architecture/17-cognitive-algorithms.md`. This roadmap defines delivery slices, dependencies, and acceptance criteria.
-
-## Architectural position
-
-Persistent cognition is an optional layer above request-oriented execution, not a replacement for `ExecuteAsync`.
-
-```text
-HAgent
-│
-├── Execution Engine
-│   ├── provider/model execution
-│   ├── structured output
-│   ├── tools
-│   ├── memory/context integration
-│   ├── retries / timeout / cancellation
-│   └── capability-aware execution planning
-│
-├── Runtime Agent Instance
-│   ├── identity
-│   ├── lifecycle
-│   ├── runtime overrides
-│   ├── revision / stale-result protection
-│   └── private-memory ownership
-│
-└── Persistent Cognitive Runtime
-    ├── authoritative cognitive state
-    ├── observations / events
-    ├── bounded decision workspace
-    ├── goals / intentions / methods
-    ├── plans / operators
-    ├── reactive processing
-    ├── deliberation / reasoning requirements
-    ├── experience / learning integration
-    └── execution requests
-             │
-             ▼
-       Existing Execution Engine
-```
-
-The host remains authoritative over domain truth, authorization, scheduling policy, and side effects.
-
-## Production principles
-
-1. [ ] Preserve request-oriented `ExecuteAsync` as a first-class public API.
-2. [ ] Make persistent cognition optional; ordinary execution semantics must not change.
-3. [ ] Keep cognitive state provider-neutral and independent of any specific model/provider.
-4. [ ] Treat observations as inputs and beliefs as interpreted state; never confuse belief with host-authoritative truth.
-5. [ ] Use immutable snapshots plus explicit proposals and atomic compare-and-apply for cognitive state mutation.
-6. [ ] Detect semantic conflicts, not only revision-number conflicts.
-7. [ ] Keep deterministic processing on the fast path and model execution conditional.
-8. [ ] Bound event intake, workspace size, deliberation, execution, retries, recursion, and storage growth.
-9. [ ] Never let a strategy or model bypass authorization, policy, budget, capability, provenance, or stale-result protection.
-10. [ ] Treat learning as candidate production followed by validation, evaluation, and publication; do not auto-promote raw episodes.
-11. [ ] Reuse Phase 0.96 execution planning rather than creating a second provider/model routing system.
-12. [ ] Preserve provenance, causality, and observability across activation, decision, execution, and learning.
-13. [ ] Make restart, cancellation, retirement, and shutdown explicit lifecycle operations.
-14. [ ] Keep host-specific domain state and external side effects outside the cognitive kernel.
-15. [ ] Implement mechanisms that solve persistent-agent engineering problems; do not implement a cognitive theory merely because the theory has a name.
-
-## Scope boundaries
-
-This phase includes:
-
-- persistent runtime identity and lifecycle integration;
-- authoritative cognitive state and revision-safe mutation;
-- observations, beliefs, goals, intentions, methods, plans, operators, and bounded decision context;
-- event intake and bounded activation;
-- deterministic/reactive processing;
-- deliberation activation and provider-neutral reasoning requirements;
-- impasse handling with bounded isolated substates;
-- execution outcome integration and recovery;
-- experience capture and conservative procedural-learning candidates;
-- integration with Memory, Knowledge, Skills, Policy, and 0.9576 learned-resource reliability contracts;
-- persistence/recovery contracts where the host enables persistence;
-- concurrency, cancellation, shutdown, observability, and evaluation boundaries.
-
-This phase does not include:
-
-- a claim that HAgent implements BDI, SOAR, ACT-R, Global Workspace Theory, LIDA, ReAct, Reflexion, MemGPT, Voyager, or another complete research architecture;
-- consciousness or machine-mind semantics;
-- human psychological timing or universal cognitive-complexity measures;
-- domain-specific world models or simulation rules;
-- a second execution scheduler/router parallel to Phase 0.96;
-- automatic conversion of arbitrary trajectories into trusted skills;
-- a universal solution to continual-learning stability/plasticity.
+Unknown information remains `Unknown`; adapters do not invent capabilities or limits.
 
 ## Delivery slices
 
-### Slice 1 — Cognitive State and Revision Core
+### Slice 1 — Adapter contract and lifecycle
 
-- [ ] Define the authoritative `CognitiveState` contract.
-- [ ] Define immutable state snapshots and explicit state revision numbers.
-- [ ] Define `CognitiveProposal` with proposal identity, operation key, base revision, read set, assumptions, proposed changes, evidence references, producer, trigger, expiry, and budget usage.
-- [ ] Implement atomic compare-and-apply.
-- [ ] Implement semantic conflict detection when two proposals touch overlapping or invalidated assumptions even if their base revisions can otherwise be replayed.
-- [ ] Define deterministic conflict outcomes: apply, reject, retry-from-new-snapshot, or escalate.
-- [ ] Preserve source/cause/correlation metadata for every accepted mutation.
-- [ ] Ensure stale asynchronous executions cannot overwrite newer cognitive state.
+- Define provider adapter identity/version metadata.
+- Support registration/creation, validation, use, refresh, disablement, replacement, and retirement.
+- Keep adapter instances concurrency-safe or explicitly scoped.
+- Keep transport/authentication/retry/provider-specific error handling inside adapters where appropriate.
 
-Acceptance:
+### Slice 2 — Discovery and normalized metadata
 
-- concurrent proposals never produce torn cognitive state;
-- stale proposals are rejected or safely rebased according to explicit rules;
-- each accepted state transition is traceable to its evidence and producer;
-- no model/provider dependency exists in the state core.
+- Support providers with complete, partial, or absent discovery APIs.
+- Normalize models/execution targets without forcing logical-model correlation when it cannot be established reliably.
+- Preserve provider-native model IDs, deployments, endpoints, accounts/projects, API versions, and provenance.
+- Normalize capability evidence, constraints, cost information, and refresh timestamps.
 
-### Slice 2 — Goals, Intentions, and Method Authority
+### Slice 3 — Operational telemetry
 
-- [ ] Define goal identity, status, priority, constraints, provenance, lifecycle, and completion/failure reasons.
-- [ ] Support multiple active goals with deterministic conflict/priority policy.
-- [ ] Define intention as a commitment to pursue a goal, separate from the goal definition.
-- [ ] Define method/plan authority separately from intention authority.
-- [ ] Support intention states such as proposed, active, suspended, reconsidering, completed, failed, abandoned, and superseded.
-- [ ] Define explicit reconsideration triggers: invalidated assumptions, repeated failure, changed constraints, higher-priority work, deadline/risk changes, or newly available evidence.
-- [ ] Add anti-thrashing controls: minimum commitment interval, change budget, cooldown, or equivalent policy.
-- [ ] Record why an intention was created, kept, revised, or abandoned.
+- Normalize provider-reported rate/quota/usage information where available.
+- Normalize health and availability evidence.
+- Support incomplete telemetry without manufacturing defaults.
+- Keep observed operational state separate from technical capability.
 
-Acceptance:
+### Slice 4 — Adapter compatibility and change handling
 
-- a persistent intention can survive while its method changes;
-- method changes never silently replace the higher-level goal;
-- repeated oscillation is bounded and observable.
+- Record adapter/provider API compatibility metadata.
+- Support deliberate adapter replacement without corrupting persisted agent configuration or historical execution records.
+- Mark retired/deprecated targets unavailable without deleting historical identity.
 
-### Slice 3 — Observations, Beliefs, and Dependency Tracking
+### Slice 5 — Verification
 
-- [ ] Define provider-neutral observation/event identity, source, timestamp, correlation/causation, and bounded payload metadata.
-- [ ] Distinguish host observations from inferred beliefs.
-- [ ] Define belief identity, content/reference, provenance, quality/confidence, validity, scope, and revision.
-- [ ] Support belief addition, reinforcement, weakening, contradiction, expiry/staleness, and retraction.
-- [ ] Record the reason for each belief revision.
-- [ ] Track dependencies from beliefs to assumptions, goals, intentions, plans, and workspace entries where required.
-- [ ] Prevent stale/low-authority evidence from silently overriding newer/higher-authority evidence.
-- [ ] Define ambiguity and insufficient-evidence outcomes; do not force a false interpretation.
+Use deterministic fake providers to verify:
 
-Acceptance:
+- complete discovery;
+- partial discovery;
+- unknown metadata;
+- unsupported operations;
+- API/adapter version changes;
+- replacement/retirement;
+- concurrent adapter use;
+- quota/rate/health telemetry.
 
-- observation and belief are audibly distinct in state and telemetry;
-- belief invalidation can identify affected downstream state;
-- contradictory evidence produces an explicit resolution path.
+## Architectural rules
 
-### Slice 4 — Event Intake and Bounded Decision Workspace
+1. Core remains provider-neutral.
+2. A provider describes transport/service integration, not agent behavior.
+3. Model names are not sufficient execution identity; concrete targets remain distinct.
+4. Unknown capability/cost/quota information remains unknown.
+5. Adapter lifecycle does not become runtime-agent lifecycle.
+6. Provider-specific behavior stays behind adapter boundaries.
+7. 0.96 owns execution-target selection; this phase does not create a routing engine.
+8. Provider credentials use the repository's simple encrypted provider-configuration mechanism; no separate secret-vault architecture is introduced.
 
-- [ ] Define bounded event intake with deduplication, expiry, backpressure, and retention rules.
-- [ ] Support event-triggered, explicit, and scheduled wake-up.
-- [ ] Support idle/sleep behavior without continuous model usage.
-- [ ] Define a provider-neutral `DecisionWorkspace` contract for bounded attended state.
-- [ ] Keep workspace selection separate from prompt construction.
-- [ ] Bound workspace by count, size, budget, or policy.
-- [ ] Define deterministic relevance/attention inputs such as urgency, novelty, goal relevance, uncertainty, risk, relationship relevance, and policy-defined importance where supplied.
-- [ ] Produce either a bounded workspace or an explicit no-deliberation-needed outcome.
-- [ ] Keep the name and implementation of the workspace replaceable; the contract is what matters.
+## Not part of V1
 
-Acceptance:
+- provider marketplace/plugin distribution;
+- automatic vendor-specific optimization frameworks;
+- universal provider feature parity;
+- hard-coded provider model matrices in Core;
+- a second execution planner;
+- provider-specific business logic in agent profiles.
 
-- event storms cannot cause unbounded activation work;
-- a persistent agent can sleep while retaining its state;
-- workspace contents and selection reasons are observable.
-
-### Slice 5 — Reactive Processing and Deliberation Activation
-
-- [ ] Define a host-neutral reactive processing boundary.
-- [ ] Allow deterministic actions/state transitions to resolve routine cases.
-- [ ] Define deliberation triggers for novelty, ambiguity, blocked progress, contradiction, elevated risk, goal failure, social interaction, or host request.
-- [ ] Allow a valid current plan to continue without unnecessary deliberation.
-- [ ] Require re-deliberation when plan assumptions or relevant beliefs become invalid.
-- [ ] Keep deliberation activation independent from provider-specific model selection.
-- [ ] Record why deterministic processing was sufficient or why deliberation was activated.
-
-Acceptance:
-
-- routine events can complete without an LLM call;
-- justified complex events activate bounded deliberation;
-- activation reasons are reproducible from structured telemetry.
-
-### Slice 6 — Reasoning Requirement and Phase 0.96 Integration
-
-- [ ] Define provider-neutral `ReasoningRequirement`.
-- [ ] Represent required/preferred reasoning capabilities instead of a single universal complexity score.
-- [ ] Allow requirements for context capacity, structured output, tool use, depth, latency tolerance, cost policy, and supported capability constraints.
-- [ ] Support staged escalation from deterministic processing to lightweight reasoning to deeper deliberation.
-- [ ] Reuse Phase 0.96 capability-aware execution planning for provider/model selection, quota, health, capacity, cost, and routing.
-- [ ] Keep provider/model names out of the cognitive kernel and strategy contracts.
-- [ ] Support an explicit no-model-execution outcome.
-
-Acceptance:
-
-- the cognitive layer emits a provider-neutral requirement;
-- Phase 0.96 remains the sole concrete execution-selection layer;
-- reasoning escalation is bounded and observable.
-
-### Slice 7 — Plans, Operators, Recovery, and Impasses
-
-- [ ] Define plan identity, status, assumptions, preconditions, expected effects, checkpoints, and provenance.
-- [ ] Define operator/action contracts with explicit preconditions/effects where applicable.
-- [ ] Support ordered and partially ordered plans where justified by host requirements.
-- [ ] Model unknown outcomes explicitly; never convert timeout/provider failure into false success.
-- [ ] Define typed impasse states for blocked progress, missing knowledge, contradictory beliefs, unavailable capability, failed action, authorization/policy conflict, and equivalent runtime conditions.
-- [ ] Give an impasse a bounded isolated substate with its own base revision/read set/dependency set and resource budget.
-- [ ] Prevent nested impasses from creating unbounded recursive cognition.
-- [ ] Ensure an impasse substate cannot silently become an alternate authority over the parent runtime.
-- [ ] Define admissible resolution outputs: revised plan, newly established fact, capability request, wait/retry, escalation, abandonment, or equivalent typed result.
-- [ ] Apply resolution back to the parent only through normal proposal/revision semantics.
-
-Acceptance:
-
-- blocked work has explicit, inspectable state;
-- isolated impasse work cannot corrupt the parent state;
-- recursive resolution and resource usage are bounded;
-- successful resolution does not imply universal knowledge or skill formation.
-
-### Slice 8 — Experience, Procedural Learning, and Skill Candidates
-
-- [ ] Define an experience record distinct from a skill, knowledge item, memory, and policy.
-- [ ] Capture relevant state, observation, action, outcome, assumptions, context, and provenance for completed episodes.
-- [ ] Generate procedural-learning candidates only from sufficient evidence.
-- [ ] Require positive and negative evidence where available.
-- [ ] Represent preconditions/applicability context and expected outcomes.
-- [ ] Distinguish correlation from demonstrated causal usefulness; do not overstate certainty.
-- [ ] Support candidate validation, evaluation, rejection, revision, and promotion through existing learning governance/policy.
-- [ ] Keep candidate synthesis conservative under noisy, partial, or contradictory trajectories.
-- [ ] Do not automatically promote a single successful trajectory into a trusted skill.
-
-Acceptance:
-
-- a skill candidate has evidence, applicability, provenance, and validation state;
-- failed examples remain usable as negative evidence where policy permits;
-- raw experiences are never silently promoted to production skills.
-
-### Slice 9 — Learned Resource Reliability and Adaptation
-
-- [ ] Consume Phase 0.9576 learned-resource reliability/adaptation contracts rather than creating a parallel system.
-- [ ] Track usefulness, uncertainty, contradiction, staleness, invalidation, and evidence quality for memory/knowledge/skill resources as supported by 0.9576.
-- [ ] Propagate relevant invalidation to dependent goals, intentions, plans, and workspace selections.
-- [ ] Support replacement, revalidation, conflict handling, and utility-aware archival/forgetting where policy allows.
-- [ ] Keep learning publication reversible/versioned where feasible.
-
-Acceptance:
-
-- cognitive decisions can stop relying on degraded resources;
-- resource changes retain provenance and version lineage;
-- HAgent does not claim to solve neural catastrophic forgetting; stability is managed at the resource/version/policy layer.
-
-### Slice 10 — Concurrency, Lifecycle, Persistence, and Recovery
-
-- [ ] Integrate with existing runtime-instance identity and lifecycle ownership.
-- [ ] Support concurrent observations, deliberations, executions, and state proposals without shared mutable-state races.
-- [ ] Define cancellation and timeout behavior for cognitive work.
-- [ ] Define retirement and shutdown semantics including cancellation of outstanding work and prevention of post-retirement commits.
-- [ ] Define persistence boundaries for cognitive state where a host enables persistence.
-- [ ] Define restart recovery, in-flight work invalidation, and safe resumption from the latest durable revision.
-- [ ] Separate runtime ownership from persistence implementation so HAgent remains host-neutral.
-
-Acceptance:
-
-- retired/shutdown runtimes reject new work according to lifecycle policy;
-- in-flight stale results cannot mutate newer state after restart or retirement;
-- persistence recovery produces a self-consistent cognitive snapshot.
-
-### Slice 11 — Policy, Authorization, Security, and External Boundaries
-
-- [ ] Route cognitive proposals, internal actions, resource use, learning promotion, and external execution through shared policy/authorization boundaries.
-- [ ] Keep host/domain side effects outside the cognitive kernel.
-- [ ] Treat event payloads, retrieved content, learned resources, tool outputs, and model outputs as untrusted input unless validated by policy.
-- [ ] Define provenance and trust metadata for external evidence.
-- [ ] Bound prompt/context/resource amplification caused by untrusted or recursive data.
-- [ ] Preserve the distinction between recommendation/decision and authorized execution.
-
-Acceptance:
-
-- no cognitive strategy or model output can bypass common authorization/policy controls;
-- untrusted content cannot silently become trusted persistent state;
-- external side effects require the host-authorized execution path.
-
-### Slice 12 — Observability, Evaluation, and Strategy Extensibility
-
-- [ ] Emit structured telemetry for event intake, workspace selection, proposal creation, conflict, decision path, reasoning requirement, execution correlation, outcome, impasse, learning candidate, and publication.
-- [ ] Provide stable correlation/causation identifiers across asynchronous work.
-- [ ] Make decisions inspectable without requiring prompt inspection.
-- [ ] Define evaluation hooks for correctness, latency, cost, unnecessary deliberation, conflict rate, recovery rate, and learning reliability.
-- [ ] Define a provider-neutral cognitive-strategy boundary.
-- [ ] Keep strategy replacement/versioning explicit and compatibility-checked.
-- [ ] Treat the first hybrid strategy as an implementation baseline, not architectural truth.
-
-Acceptance:
-
-- runtime behavior can be diagnosed from structured records;
-- strategies can be compared without rewriting the kernel;
-- evaluation can identify both capability gains and regressions.
-
-## Required cross-cutting invariants
-
-The following are phase-wide invariants and must hold across all slices:
-
-1. [ ] No stale asynchronous result may silently overwrite newer authoritative cognitive state.
-2. [ ] No model/provider identity may become part of the provider-neutral cognitive-state contract.
-3. [ ] No host-authoritative domain state may be silently replaced by an inferred belief.
-4. [ ] No unbounded event, recursion, context, or learning queue may be introduced.
-5. [ ] No single episode may become a trusted skill without the configured validation/policy path.
-6. [ ] No strategy may bypass shared authorization, capability, budget, provenance, or lifecycle boundaries.
-7. [ ] No second provider/model execution router may be introduced in 0.97.
-8. [ ] Every externally meaningful cognitive mutation must be attributable to a source, cause, and revision.
-9. [ ] Shutdown and retirement must be authoritative over outstanding asynchronous work.
-10. [ ] Future research ideas may be implemented as strategies or policies without changing the stable kernel merely to adopt their vocabulary.
-
-## Dependency order
+## Dependencies
 
 ```text
-0.96 execution planning
-        │
-        ├── ReasoningRequirement integration
-        │
-        └───────────────┐
-                        ▼
-Cognitive State / Revision Core
-        │
-        ├── Goals / Intentions
-        ├── Observations / Beliefs
-        ├── Decision Workspace / Events
-        │
-        ▼
-Reactive + Deliberative Activation
-        │
-        ▼
-Plans / Operators / Impasses
-        │
-        ├── Execution outcome integration
-        │
-        ▼
-Experience / Skill Candidates
-        │
-        ▼
-0.9576 Learned-resource reliability
-        │
-        ▼
-Persistence / Recovery / Strategy Extensibility / Evaluation
+0.9592 provider/adapters
+        ↓
+0.96.x configuration/storage
+        ↓
+0.96 capability-aware execution
 ```
 
-Do not implement later slices by creating parallel versions of contracts already established by earlier slices.
+The adapter contracts may be implemented incrementally, but 0.96 cannot depend on provider-specific APIs directly.
 
-## Implementation and verification standard
+## Exit criterion
 
-Each slice must have:
+HAgent can register and use multiple provider adapters, preserve provider-native identities and metadata, consume complete or partial discovery/operational information through normalized contracts, represent unknowns honestly, and hand all execution-target selection to Phase 0.96.
 
-- production contracts and implementation;
-- focused unit/contract coverage for normal, conflict, stale, cancellation, failure, and boundary cases;
-- an HAgent Example scenario when the feature is externally demonstrable and no existing example already covers it;
-- .NET Framework 4.8.1 and .NET 9 compatibility where the owning project targets both;
-- deterministic behavior where deterministic behavior is required by the contract;
-- explicit documentation of any intentionally unresolved research question.
+## 0.97 Subdocument — Cognitive Runtime Workbench
 
-Do not treat an LLM-generated response as proof that a cognitive contract works. Runtime invariants must be verified by structured tests and observable state transitions.
+This document is part of **Phase 0.97 — Persistent Cognitive Runtime**, primarily supporting Slice 8 management, diagnostics, observability, and production verification.
 
-## Research boundary
+HAgent.WinForms must add a top-level Cognitions view for active runtime instances. It provides complete inspection of current runtime cognition: beliefs, goals, intentions, plans, attention, working state, memory, knowledge, skills, events, executions, learning, lifecycle, and history.
 
-Research remains valuable for selecting mechanisms, designing experiments, and comparing strategies. Research does not become implementation scope merely because a paper or architecture supplies a name.
+The workbench is a diagnostic/management surface over the authoritative runtime-agent state owner. It must not create a second cognitive-state store, second policy evaluator, second execution planner, or independent persistence model.
 
-Examples:
+All edits flow through public HAgent runtime state-transition/intervention APIs. The UI never writes directly to persistence and must preserve owner/revision/stale-result rules.
 
-- Goal/Intention separation may be useful without implementing full BDI.
-- Explicit operators and impasses may be useful without implementing SOAR.
-- Modular state and procedural utility may inform implementation without reproducing ACT-R.
-- Bounded attended context may be useful without claiming Global Workspace Theory.
-- Reason/action/observation interleaving may be useful without making ReAct the system architecture.
-- Reflection or self-evaluation techniques may be useful only when they satisfy a concrete HAgent contract.
+## 0.97 Subdocument — Cognitive Workbench Controls
 
-The stable question for implementation is:
+This document is part of **Phase 0.97 — Persistent Cognitive Runtime** and supports its management/diagnostic workbench.
 
-> What production problem are we solving, what invariant must hold, what contract exposes it, and how do we verify it?
+Authorized users may inspect and, where policy permits, insert or invalidate beliefs; create, edit, reprioritize, suspend, resume and abandon goals; modify intentions; request plan reconsideration; inject observations/events; request deliberation; and pause, resume, wake, sleep or retire a runtime.
 
-## Definition of done for Phase 0.97
-
-Phase 0.97 is complete only when all of the following are true:
-
-- [ ] A persistent runtime agent can maintain versioned cognitive state across multiple events/executions.
-- [ ] Goals can persist while intentions and methods are revised safely.
-- [ ] Observations and beliefs remain distinct and provenance-aware.
-- [ ] Event intake and decision context are bounded.
-- [ ] Routine decisions can avoid model execution.
-- [ ] Deliberation can request provider-neutral reasoning requirements and reuse Phase 0.96 execution planning.
-- [ ] Plans and impasses have bounded, revision-safe execution semantics.
-- [ ] Execution outcomes can revise beliefs, goals, intentions, and plans without stale-result corruption.
-- [ ] Experience can produce governed skill candidates without automatic unsafe promotion.
-- [ ] Learned-resource reliability from 0.9576 can influence cognitive state/resource selection.
-- [ ] Cancellation, retirement, shutdown, persistence, and restart behavior are explicit and tested where supported.
-- [ ] Shared policy, authorization, provenance, and host side-effect boundaries are enforced.
-- [ ] Structured observability supports diagnosis and evaluation without relying on prompt text.
-- [ ] At least one concrete cognitive strategy exists behind the stable kernel, but the kernel does not depend on that strategy's theoretical vocabulary.
-- [ ] Examples and compatibility coverage are present for newly externally visible behavior.
-
-Phase 0.97 should leave HAgent with a real, inspectable, versioned persistent cognitive runtime—not a collection of research architecture names—and with enough stable boundaries to evaluate future strategies without rebuilding the foundation.
-
-Cognitive Runtime Workbench
-
-Part of Phase 0.97.
-
-HAgent.WinForms must add a top-level Cognitions view for active runtime instances. It provides complete inspection of current runtime cognition: beliefs, goals, intentions, plans, attention, working state, memory, knowledge, skills, events, executions, learning and history.
-
-Cognitive Workbench Controls
-
-Authorized users may insert, edit and invalidate beliefs; create, edit, reprioritize, suspend, resume and abandon goals; modify intentions where policy permits; request plan reconsideration; inject observations/events; request deliberation; and pause, resume, wake, sleep or retire a runtime.
-
-The UI must use HAgent runtime state-transition APIs and never write directly to persistence. Every mutation is atomic, version-aware, authorized and auditable. Record operator identity, timestamp, reason, UI action, previous revision and new revision.
+The UI must use HAgent runtime state-transition APIs and the canonical 0.959 intervention boundary where an action is an intervention. It must never write directly to persistence. Every mutation is atomic, version-aware, authorized and auditable. Record operator identity, timestamp, reason, UI action, previous revision and new revision where the owning contract exposes those fields.
 
 If the runtime revision changed since the UI read it, reject or refresh the mutation rather than silently merging it. Existing execution snapshots remain immutable and stale executions must not overwrite newer cognition.
 
-Cognitive Workbench History and Learning
+The workbench is not a new lifecycle system, plan store, approval engine, policy evaluator, or cognitive-state owner.
+
+## 0.97 Subdocument — Cognitive Workbench History and Learning
+
+This document is part of **Phase 0.97 — Persistent Cognitive Runtime**, supporting its workbench and diagnostics.
 
 Show the complete cognitive timeline: events, belief changes, attention changes, goal and intention changes, plan revisions, impasses, deliberation, executions, outcomes, memory/experience creation, learning decisions, sleep/wake and recovery, including user interventions.
 
-Show learning as Experience -> Memory -> Reflection/Learning -> candidate skill/knowledge/policy -> validation/governance -> published version. Distinguish candidates from authoritative versions so users can see when repeated LLM reasoning becomes reusable deterministic behavior.
-
-Show the active cognitive strategy and version, such as Adaptive Hybrid Cognition (AHC). Future strategies must use the same generic workbench while allowing strategy-specific diagnostics. Historical state is initially read-only; future experimentation may branch from checkpoints without silently replacing live state.
-
-## Phase 0.10 — Workspaces, Routing + Chat
-
-**Status: PAUSED after the provider-neutral workspace routing and role-policy foundation.**
-
-Phase 0.10 remains intentionally unfinished. The remaining workspace product work is deferred while earlier provider/runtime capability gaps are investigated and corrected.
-
-## Goal
-Provide an optional shared conversation where one authenticated host user and multiple runtime agents can visibly work together while every model request is routed deliberately and the user's workspace state survives application restarts.
-
-## Steps
-
-1. [x] Introduce a workspace abstraction independent of WinForms.
-2. [x] Register users and runtime-agent participants with explicit lifecycle state.
-3. [x] Define one workspace default recipient for unaddressed user messages.
-4. [x] Define direct user-to-agent addressing.
-5. [x] Define addressed agent-to-agent delegation and responses.
-6. [x] Define coordinator/specialist behavior as a role/policy over generic runtime agents. `WORKSPACE ROLES` Example verification complete.
-7. [ ] Allow specialists to represent whole domains, tables, subsystems, or other host responsibilities.
-8. [x] Preserve sender, recipient, correlation, causation, ordering, and routing metadata.
-9. [ ] Execute routed workspace messages through runtime agents and make agent-to-agent work visible in the workspace lobby when enabled.
-10. [ ] Add configurable addressing syntax at the host/UI layer without making prompt text the authoritative routing mechanism.
-11. [ ] Add loop protection and collaboration budgets.
-12. [ ] Add optional persistent workspace state and explicit shared-memory policy.
-13. [ ] Add the WinForms workspace surface and global agent selection.
-14. [ ] Add stable host user identity input, including `UserId` and `IsAdmin`, with database-safe user/workspace partitioning.
-15. [ ] Add create/open/show/hide/close workspace lifecycle APIs where UI close never destroys persisted workspace state.
-16. [ ] Persist user-owned lobby chat, private-agent chat, participant membership/roles, approval state, safe statistics, and selected workspace UX state according to storage policy.
-17. [ ] Add user-facing workspace configuration with a single `Enable Workspace` setting; workspace remains hidden until explicitly opened.
-18. [ ] Add default manager/coordinator agent configuration.
-19. [ ] Add default specialist agent configuration and specialist responsibility metadata.
-20. [ ] Add workspace/private-chat provider and agent selection/override controls without mutating persistent agent profiles.
-21. [ ] Add configurable default approval type/policy and integrate approval requests/resolution into workspace UI and conversation history.
-22. [ ] Add professional modern WinForms UI with lobby chat, participant/agent list, private chats, approval presentation, and explicit open/close/show/hide controls.
-23. [ ] Add Example controls and tests for create, open/show, hide, close UI, agent join/leave, lobby chat, private chat, approval flow, persistence across restart, and user/workspace restoration.
-24. [ ] Verify SQL Server, MySQL, and File workspace persistence and user partitioning.
-
-### Current foundation
-
-The provider-neutral foundation contains `AgentWorkspace`, `WorkspaceParticipant`, `WorkspaceMessage`, `IWorkspaceRouter`, and `WorkspaceRouter`. Participants are either users or runtime agents and have explicit Active/Suspended/Retired state. An active default recipient may be defined for unaddressed user messages. Routing does not invoke providers, mutate agent profiles, or perform host side effects.
-
-`IWorkspaceRolePolicy` and `WorkspaceRolePolicy` allow coordinator/specialist behavior to be expressed as policy over ordinary agent participants. `WorkspaceAgentRoleAssignment` describes `Participant`, `Coordinator`, or `Specialist` role, optional responsibility metadata, user-message eligibility, and allowed delegation target roles. No separate coordinator/specialist agent classes are introduced. The `WORKSPACE ROLES` Example verification confirms the policy works.
-
-The workspace user identity contract must carry a stable `UserId` and an `IsAdmin` flag supplied by the host. The identity is an input to workspace authorization and persistence partitioning; `IsAdmin` does not itself grant tool, memory, data, or host-business permissions.
-
-Phase 0.10 initially provides one default persisted workspace per user. The model should remain extensible to multiple named workspaces later without forcing a second workspace into the first implementation.
-
-## Workspace lifecycle
-
-The workspace UI is hidden until explicitly opened by the host. There is no automatic-show workspace behavior in Phase 0.10.
-
-`Create`/ensure obtains the user's default workspace. `Open`/`Show` makes the UI visible. `Hide` hides it without changing workspace state. `Close` closes the UI without deleting workspace state. Destructive archive/deletion is a separate explicit operation and is not implied by closing the UI.
-
-Application shutdown or computer shutdown must not cause user work to disappear. Reopening the application with the same stable `UserId` restores the persisted workspace state from the selected HAgent storage backend.
-
-## Conversations
-
-The workspace contains a shared Lobby conversation where the user and joined agents can visibly communicate. It also contains distinct Private Chats between the user and selected agents. Private chat content is not automatically exposed to other workspace participants.
-
-Visible messages identify their author and role clearly. System and approval events are first-class workspace-visible events alongside ordinary conversation messages.
-
-## Agent configuration
-
-The host/application administrator can configure default manager/coordinator and specialist agents for the workspace. A specialist has descriptive responsibility metadata that can represent a domain, table, subsystem, process, capability, or other host-owned responsibility without requiring HAgent-specific domain classes.
-
-The workspace UI can let a user switch the active provider/model or selected agent for an allowed conversation or private chat. These are execution/runtime selections and do not silently mutate the stored `AiAgent` profile.
-
-The default approval type/policy is a workspace/host policy default. Approval handling remains subject to HAgent authorization and does not bypass permission checks.
-
-## Routing rules
-
-- Unaddressed user message: send only to the workspace default recipient.
-- Explicitly addressed user message: send to that participant.
-- Agent delegation: send only to the addressed participant unless an explicit role policy allows the sender's role to delegate to the recipient's role.
-- Broadcast: explicit opt-in operation, never the default.
-- Agent-to-agent routed work becomes visible in the Lobby when workspace execution policy permits it.
-
-The authoritative routing decision is represented by workspace messages and routing APIs; human-friendly addressing syntax is a UI/host convenience.
-
-## Persistence
-
-Persisted workspace state is partitioned by host application identity and the stable `UserId`. File storage remains local to the host installation; SQL Server and MySQL must prevent users in the same host application from reading or mutating another user's workspace state unless an explicit host/admin policy permits it.
-
-Persisted workspace state includes workspace metadata, participant membership/roles/lifecycle state, lobby and private-chat history, approval requests/resolution state, safe statistics/activity metadata, selected workspace UX state where appropriate, and explicit workspace/shared-memory records.
-
-Provider secrets, connection strings, live provider tasks, live `CancellationToken` state, runtime synchronization primitives, raw HTTP requests, raw provider payloads, and temporary execution objects are not workspace persistence concerns; the generic runtime phase already establishes those boundaries.
-
-Agent private memory remains private unless explicit shared-memory policy grants workspace visibility.
-
-## Workspace UI
-
-The WinForms workspace is a compact, professional collaboration surface rather than a large dashboard. It contains a Lobby, participant/agent selection, access to private chats, approval presentation, and message composition. It must provide clear authorship and state without exposing implementation details.
-
-The host interacts with the workspace through a public HAgent workspace facade rather than direct manipulation of internal WinForms controls. The facade provides lifecycle and communication operations conceptually equivalent to create, open/show, hide, close, agent join/leave, lobby send, private-chat open/send, and workspace state observation.
-
-## Example verification
-
-The Example application will expose explicit controls for creating, showing/opening, hiding, and closing the workspace UI, plus controlled agent join/leave and communication tests. Verification must confirm that closing the UI and restarting the application preserve the user's lobby/private chats, membership, approvals, selected state, and safe statistics for File, SQL Server, and MySQL storage.
-
-## HWorld boundary
-
-HWorld remains an external consumer. It references HAgent normally and uses public runtime/workspace APIs. HAgent does not add an HWorld-specific dependency, adapter, world type, physics, simulation scheduling, or action authority.
-
-## Exit criterion
-
-A host can identify a user, create/open the user's persisted default workspace, show and close the UI without losing work, join runtime agents, conduct visible lobby and private conversations, configure/select permitted manager/specialist agents and provider/model overrides, present and resolve approvals, and restore the same state after application restart while routing remains bounded and traceable.
-
-## Phase 1.0 — Collaboration + Workflows
-
-## Goal
-Turn basic workspace messaging into reliable multi-agent collaboration and then into bounded task/workflow execution.
-
-## Collaboration steps
-
-1. First-class delegation/handoff operations.
-2. Shared/private workspace context policies.
-3. Parallel specialist work with bounded collaboration budgets.
-4. Human intervention and approval points.
-5. Explicit runtime/participant lifecycle states.
-6. Cross-agent memory sharing only through explicit policy.
-7. Collaboration history, audit, and traceability.
-
-## Workflow steps
-
-1. Task/job model and lifecycle.
-2. Planning, execution, and verification stages.
-3. Multi-step and branching workflows.
-4. Background execution and scheduling.
-5. Pause/resume and durable checkpoints.
-6. Event-triggered execution.
-7. Per-step timeout, cancellation, retry, approval, and budget policies.
-
-## Boundary
-
-These are generic orchestration facilities. HAgent does not become the authority for business rules, simulation state, or host-side side effects.
-
-## Exit criterion
-
-A host can coordinate multiple agents and long-running work with bounded execution, explicit authority, resumable state where required, and observable collaboration.
-
-## Later — Platform, Extensibility + Release
-
-These capabilities follow the core runtime, data, and collaboration milestones. They should not block the primary host-integration path.
-
-## Provider ecosystem
-
-- [ ] Additional provider adapters such as Azure OpenAI, Anthropic, Google/Gemini, Ollama, LM Studio, and custom HTTP providers where justified.
-- [ ] Multimodal and embedding adapters.
-- [ ] Provider capability/contract harness.
-
-## Extensibility
-
-- [ ] Provider, tool, UI-adapter, and storage extension model.
-- [ ] Extension validation and failure isolation.
-- [ ] External secret stores and secret rotation.
-- [ ] Optional MCP/vector integrations where they fit the lightweight architecture.
-
-## Developer platform
-
-- [ ] Optional DI/interoperability integrations.
-- [ ] Simulation/test mode for external consumers such as HWorld.
-- [ ] Diagnostics/trace viewer.
-- [ ] Complete Example coverage for meaningful public APIs.
-- [ ] SDK guidance for provider, tool, UI-context, and host integrations.
-
-## Release hardening
-
-- [ ] Stable public contracts and compatibility policy.
-- [ ] Storage migration/versioning.
-- [ ] NuGet packaging and release process.
-- [ ] Security/provider/tool/memory integration coverage.
-- [ ] Documentation and migration guidance.
-
-`.NET 10` remains a future target after the development environment and compatibility policy are ready.
-
-## Phase 0.9576 — Learned Resource Reliability, Adaptation + Consolidation
-
-## Status
-
-**Planned — follows Phase 0.9575.**
-
-## Goal
-
-Provide the post-promotion reliability layer for learned Skills, Knowledge, and other learned resources so that learning remains adaptive, reversible, bounded, and operationally trustworthy after a candidate has been promoted.
-
-Phase 0.9575 governs how experience becomes a validated, policy-authorized learning candidate and how that candidate may be promoted. Phase 0.9576 governs what happens **after promotion**: whether the learned resource remains applicable, how evidence changes its trust, how environmental or contextual drift is detected, and how accumulated learned resources are consolidated or retired.
-
-This phase must not introduce a second resource architecture. It consumes the canonical resource, learning, policy, evaluation, provenance, versioning, retention, and capability contracts established by earlier phases.
-
-## Architectural position
+Show learning as:
 
 ```text
-Experience / Observation
-        ↓
-0.9575 Learning Candidate
-        ↓
-validation / evaluation / policy / approval
-        ↓
-Promotion → authoritative resource version
-        ↓
-0.9576 Post-promotion reliability
-        ├── applicability assessment
-        ├── trust / confidence revision
-        ├── outcome feedback
-        ├── drift / contradiction detection
-        ├── revalidation / revision / retirement
-        └── consolidation / deduplication / forgetting
+Experience
+   ↓
+Memory / bounded evidence
+   ↓
+Reflection / learning input
+   ↓
+Typed candidate
+   ↓
+0.9575 validation / governance / promotion
+   ↓
+Authoritative resource version
+   ↓
+0.9576 reliability / applicability / forgetting
 ```
 
-The promoted resource remains versioned and authoritative only within its current validity and policy boundaries. Learned behavior must never become permanently trusted merely because it was once approved.
+Candidates must remain visibly distinct from authoritative versions. The workbench must not imply that repeated LLM reasoning is automatically a Skill, Knowledge item, Memory record, or Policy change.
 
-## Core principles
+Show the active cognitive strategy and version, such as Adaptive Hybrid Cognition (AHC), when the runtime exposes such metadata. Future strategies must use the same generic workbench while allowing strategy-specific diagnostics.
 
-1. [ ] Treat promoted learned resources as versioned, evidence-backed hypotheses whose continued validity can change over time.
-2. [ ] Keep resource confidence/trust distinct from current applicability to a particular situation.
-3. [ ] Never require an LLM to determine whether a learned resource is applicable when deterministic evidence and policy can establish the answer.
-4. [ ] Allow an applicable learned resource to execute deterministically without requiring model reasoning.
-5. [ ] Allow `Uncertain` or otherwise insufficient applicability to escalate to deliberation/reasoning rather than silently applying the learned behavior.
-6. [ ] Preserve provenance and evaluation evidence across the post-promotion lifecycle.
-7. [ ] Make failures, contradictions, environmental drift, and other outcome evidence capable of weakening trust or invalidating a learned resource.
-8. [ ] Keep reliability updates versioned, auditable, policy-controlled, and concurrency-safe.
-9. [ ] Do not silently mutate a published Skill version or authoritative Knowledge version in place.
-10. [ ] Keep consolidation provider-neutral and implementation-pluggable; clustering, rule merging, symbolic generalization, statistical methods, or other techniques are implementation choices rather than architectural requirements.
-11. [ ] Keep resource growth bounded through consolidation, archival, expiration, and utility-aware forgetting according to policy.
-12. [ ] Preserve compatibility with low-RAM/no-GPU operation and do not require vector databases or embeddings.
-
-## Applicability and validity
-
-13. [ ] Define a provider-neutral applicability/validity contract for learned resources where applicable.
-14. [ ] Support explicit applicability outcomes such as `Applicable`, `NotApplicable`, `Uncertain`, and `Invalidated`.
-15. [ ] Allow a learned resource to define or reference bounded applicability conditions, preconditions, context features, scope, and evidence requirements without embedding host-domain semantics into Core.
-16. [ ] Distinguish resource validity from authorization/capability state. An authorized resource may still be inapplicable or invalidated.
-17. [ ] Support deterministic applicability checks before model execution where sufficient evidence exists.
-18. [ ] Define a safe fallback path for `Uncertain`, unsupported, conflicting, or invalidated learned behavior to existing deliberative/reasoning mechanisms.
-19. [ ] Preserve the applicability decision and its evidence in observability/evaluation metadata where applicable.
-20. [ ] Keep applicability bounded by context/resource budgets and policy.
-
-## Trust, confidence, and outcome feedback
-
-21. [ ] Define provider-neutral post-promotion trust/evidence state without replacing the canonical resource version contract.
-22. [ ] Distinguish at minimum static promotion evidence from subsequent operational outcome evidence.
-23. [ ] Support reinforcement from validated successful outcomes where policy permits.
-24. [ ] Support weakening from failed outcomes, contradictory evidence, invalid preconditions, or other reliability signals.
-25. [ ] Support policy-defined confidence/trust decay or review requirements over time and usage where appropriate.
-26. [ ] Preserve outcome provenance including source execution/runtime identity and relevant evaluation evidence where available.
-27. [ ] Ensure trust changes cannot by themselves grant authorization or bypass capability policy.
-28. [ ] Allow configurable thresholds for automatic continued use, review, revalidation, quarantine, or retirement.
-
-## Drift, staleness, contradiction, and revalidation
-
-29. [ ] Distinguish age-based staleness, contextual/environmental drift, observed performance degradation, and direct contradiction.
-30. [ ] Detect or accept deterministic signals indicating that the current situation differs materially from the learned resource's validated conditions.
-31. [ ] Support explicit stale/under-review/quarantined/retired lifecycle states where appropriate to the resource type.
-32. [ ] Allow contradiction or drift evidence to block automatic application pending revalidation.
-33. [ ] Support re-evaluation of degraded or stale learned resources using the existing Evaluation/Quality Measurement contracts.
-34. [ ] Allow re-learning/revision to produce a new typed candidate rather than mutating the existing authoritative version in place.
-35. [ ] Preserve historical versions and provenance needed to explain why a learned resource was strengthened, weakened, revised, quarantined, or retired.
-36. [ ] Make revalidation triggers and outcomes auditable and observable.
-
-## Consolidation and redundancy control
-
-37. [ ] Define a provider-neutral consolidation boundary for learned resources and candidates.
-38. [ ] Detect substantially overlapping, duplicate, equivalent, or contradictory learned resources without requiring one fixed similarity/indexing technology.
-39. [ ] Support safe merge/generalization proposals as candidates rather than silently replacing authoritative resources.
-40. [ ] Preserve provenance and source history when resources are merged or superseded.
-41. [ ] Define conflict-resolution requirements for overlapping learned resources with different scope, authority, evidence, confidence, or versions.
-42. [ ] Prevent consolidation from crossing authorization, ownership, tenant, or other scope boundaries unless explicitly permitted.
-43. [ ] Support consolidation scheduling independently from request-time inference so routine agent execution does not become blocked by maintenance work.
-44. [ ] Keep consolidation bounded by configurable time, memory, candidate count, and storage budgets.
-
-## Forgetting, archival, and utility
-
-45. [ ] Define policy-governed utility signals for learned resources, such as validated use, outcome quality, recency, redundancy, scope, and maintenance cost where applicable.
-46. [ ] Support archival or retirement of stale, redundant, contradicted, superseded, or persistently low-utility learned resources.
-47. [ ] Preserve enough provenance/retention metadata to explain retirement without requiring indefinite storage of discarded content.
-48. [ ] Ensure forgetting cannot remove a higher-authority resource merely because a lower-utility duplicate exists.
-49. [ ] Keep forgetting reversible where required by policy through retained version/archival metadata.
-
-## Runtime integration
-
-50. [ ] Allow Persistent Cognitive Runtime and other consumers to request applicability/reliability evaluation without implementing a parallel learned-resource system.
-51. [ ] Integrate `Uncertain`/`Invalidated` learned-resource outcomes with the existing deterministic-versus-deliberative escalation model.
-52. [ ] Ensure runtime execution snapshots capture the exact resource version and reliability state required for deterministic reproducibility.
-53. [ ] Ensure post-execution outcome feedback cannot overwrite newer resource/reliability revisions through stale asynchronous work.
-54. [ ] Keep reliability evaluation separate from host side-effect authorization; the host remains authoritative over external effects.
-
-## Evaluation and observability
-
-55. [ ] Extend existing evaluation contracts so learned-resource applicability and operational reliability can be measured deterministically where possible.
-56. [ ] Measure false application, missed application, invalidation, contradiction, successful reuse, and escalation-to-reasoning outcomes where the host can supply suitable evidence.
-57. [ ] Make resource reliability trends inspectable without exposing secrets or unnecessary sensitive payloads.
-58. [ ] Preserve correlation among resource version, learning candidate, execution, runtime, outcome, and revalidation/revision event where applicable.
-59. [ ] Ensure reliability metrics cannot be mistaken for absolute truth; they remain evidence used by policy and evaluation.
-
-## Verification
-
-60. [ ] Add deterministic tests for applicability outcomes and safe fallback behavior.
-61. [ ] Add tests for trust reinforcement, weakening, decay/review thresholds, and invalidation.
-62. [ ] Add tests for stale, contradicted, and drifted resources and creation of replacement candidates.
-63. [ ] Add tests for duplicate/overlapping resource detection and policy-safe consolidation proposals.
-64. [ ] Add tests for scope/ownership boundaries during consolidation and forgetting.
-65. [ ] Add tests for version/snapshot isolation when reliability state changes during active execution.
-66. [ ] Add Example verification for learned-resource applicability, fallback to reasoning, reliability revision, and lifecycle transitions.
-67. [ ] Add Example verification for consolidation/retirement behavior through public HAgent APIs.
-68. [ ] Verify all supported framework targets required by HAgent before declaring the phase complete.
-
-## Relationship to adjacent phases
-
-- **0.9575** defines governed learning intake, candidate validation, evaluation, approval, promotion, and resource governance.
-- **0.9576** defines the continued reliability, adaptation, consolidation, and forgetting lifecycle of already-promoted learned resources.
-- **0.958** consumes reliable resource state as part of agent health/lifecycle management where appropriate.
-- **0.96** provides capability-aware execution and routing primitives that can be used when learned behavior escalates to reasoning.
-- **0.97** consumes this phase so persistent cognition can use deterministic learned behavior without treating old learned rules as permanently correct.
-
-## Exit criterion
-
-Promoted learned resources remain versioned, provenance-preserving, policy-governed, and operationally observable after promotion. HAgent can determine when learned behavior is applicable, avoid applying it when applicability is uncertain or invalid, fall back to reasoning when necessary, revise trust from validated outcomes, detect staleness/drift/contradiction, create replacement candidates without mutating authoritative versions in place, and control long-term resource growth through safe consolidation, archival, and forgetting.
+Historical state is initially read-only. Future experimentation may branch from checkpoints, but a branch must not silently replace the live runtime's authoritative state.

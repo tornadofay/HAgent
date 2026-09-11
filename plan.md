@@ -10,9 +10,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** In progress — Slice 7 implementation checkpoint
+- **Status:** Slice 8 in progress — Canonical Learning Lifecycle Gate
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Define one provider-neutral Learning Policy contract and typed Memory/Knowledge/Skill candidate contracts while reusing the existing canonical learning-candidate lifecycle.
+- **Scope:** Continue the unfinished 0.9575 learning boundary before moving to 0.958. Do not treat unchecked historical checklist items as automatically missing; the remainder is being audited against the current architecture and implementation.
 
 ## Completed current-phase slices
 
@@ -28,28 +28,25 @@ This file is the compact handoff state for work currently in progress. It is not
 
 0.9575 Slice 6 — Learning Mode — **verified by user** 2026-09-09: both required Examples succeeded and full `HAgent.Tests` was 181/181 passed.
 
-## Current Slice 7 — Learning Policy + Typed Candidates
+0.9575 Slice 7 — Learning Policy + Typed Candidates — **verified by user** 2026-09-11: `HAgent.Example → Policy → Learning Policy` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` was 187/187 passed, 0 failed, 0 skipped on .NET 9.
 
-**Objective:** define one provider-neutral learning policy contract and typed Memory/Knowledge/Skill candidate payload contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
+## Current Slice 8 boundary
 
-**Complete within this slice:**
+`AiLearningLifecycleCoordinator` is the canonical gate from a validated typed learning candidate to `Rejected`, `PendingReview`, or `Approved`. It composes Learning Policy, Learning Mode, and existing unified learning-promotion authorization. It does not publish or persist authoritative Memory, Knowledge, or Skills.
 
-- learning policy covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization;
-- typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts;
-- source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence preservation where available;
-- deterministic code-derived learning signals without requiring an LLM;
-- optional model-assisted extraction/evaluation that remains non-authoritative;
-- candidate creation kept separate from candidate promotion.
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Lifecycle` on **.NET Framework 4.8.1** and **.NET 9**.
 
-**Out of scope:** candidate persistence, promotion orchestration, Learning Review UI, Knowledge/Skill management UI, context integration, and the broader 0.9576 roadmap restructuring.
+**Tests to run:** `tests/HAgent.Tests/LearningLifecycleTests.cs` (focused); full `HAgent.Tests` is not required until the slice checkpoint.
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on **.NET Framework 4.8.1** and **.NET 9**.
+## Remainder audit direction
 
-**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+The historical 0.9575 checklist contains both genuine remaining work and items that have already leaked into the implementation under different names or with a newer architecture. The audit must classify each remaining item as implemented, stale/obsolete, partially implemented, or genuinely outstanding before planning 0.958.
+
+Known example: the current canonical resource scope is `Global`, `Tenant`, `User`, `Workspace`, `Agent`, `Runtime`, and `Execution`; the older checklist wording that says `Domain` is stale.
 
 ## Verification status
 
-Slice 7 implementation is in progress and verification is pending. Do not close it until the affected projects build, the focused tests pass, the full .NET 9 suite passes, and the matching Example succeeds on both supported frameworks.
+Slice 8 implementation is in progress. Do not select the next numbered slice until the focused tests and both supported Example targets have been run and the result recorded here.
 
 ## Current project state
 
@@ -131,21 +128,21 @@ Architecture source: `docs/architecture/85-learning-mode.md`.
 Focused tests: `tests/HAgent.Tests/LearningModeTests.cs`.
 Public Example: `HAgent.Example → Cognition → Learning → Learning Mode`.
 
-## Current 0.9575 Slice 7 — Learning Policy + Typed Candidates
+## Slice 7 — Learning Policy + Typed Candidates — VERIFIED
 
-Implementation is in progress and verification is pending.
+Verified by user on 2026-09-11.
 
-The slice will define one provider-neutral learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It will also add typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle.
+- .NET Framework 4.8.1 Example `HAgent.Example → Policy → Learning Policy` succeeded.
+- .NET 9 Example `HAgent.Example → Policy → Learning Policy` succeeded.
+- Full `HAgent.Tests`: **187/187 passed, 0 failed, 0 skipped** on .NET 9.
 
-The slice must preserve source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence where available; support deterministic code-derived learning signals without requiring an LLM; keep model-assisted extraction/evaluation optional and non-authoritative; and keep candidate creation separate from promotion.
+The slice defines one provider-neutral learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It adds typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
 
-Architecture source: the Slice 7 architecture document that will be added with the implementation.
+The Example verified typed learning-promotion requests, candidate type/scope matching, confidence/evidence/provenance policy matching, contradiction handling, policy decision provenance, canonical lifecycle transitions, typed Memory/Knowledge/Skill validation, and rejection of published Knowledge/Skill payloads.
+
+Architecture source: `docs/architecture/86-learning-policy.md`.
 Focused tests: `tests/HAgent.Tests/LearningPolicyTests.cs`.
-Public Example: `HAgent.Example → Cognition → Learning → Learning Policy`.
-
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on .NET Framework 4.8.1 and .NET 9.
-
-**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on .NET 9.
+Public Example: `HAgent.Example → Policy → Learning Policy`.
 
 ## Storage implications
 
@@ -266,6 +263,18 @@ Memory family/type access must reuse the existing `AiResourceCapabilityPolicy` a
 `AiMemoryGovernanceEvaluator` performs capability checks, while `AiGovernedMemoryStore` composes capability and policy enforcement around the existing `IMemoryStore` boundary. The decorator clones writes, applies the maximum retention expiration without extending a shorter explicit expiration, filters expired/unauthorized records during recall, and returns detached records. Physical storage remains the existing File/SQL Server/MySQL/InMemory implementations.
 
 Memory governance is therefore separated into capability authorization, retrieval/retention policy, and storage. Runtime execution snapshot binding and management UI remain later integration slices.
+
+## D-013 — Learning policy and typed candidates compose the existing lifecycle
+
+**Status:** Active
+
+`AiLearningCandidate` remains the single canonical learning lifecycle. `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` are typed payload contracts that compose an existing `AiLearningCandidate`; they do not define parallel status transitions or promotion state.
+
+`AiLearningPolicy` is a deterministic, provider-neutral candidate admission/evaluation contract. Its rules may constrain candidate type/scope, minimum confidence, evidence, provenance, contradiction state, evaluation state, retention class, and the required promotion-authorization classification. An unmatched rule denies the candidate by default.
+
+The learning policy is not a replacement for authorization. External promotion remains behind the existing `IAiPolicyEngine` / `AiLearningPromotionPolicy` boundary. Model-generated content may propose a candidate but cannot make Knowledge or Skills authoritative by itself.
+
+Knowledge and Skill candidate payloads must remain non-authoritative (`Draft`). Candidate payloads are cloned at construction so caller mutation does not alter the captured proposal. Source execution/runtime/profile identity remains on the canonical candidate lifecycle object.
 
 ## HAgent Master Plan
 
@@ -688,26 +697,26 @@ Verified by user on 2026-09-09.
 
 Slice 6 is closed.
 
-### Slice 7 — Learning Policy + Typed Candidates — CURRENT
+### Slice 7 — Learning Policy + Typed Candidates — VERIFIED
 
-**Objective:** define one provider-neutral learning policy contract and typed Memory/Knowledge/Skill candidate payload contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
+Verified by user on 2026-09-11.
 
-**Complete within this slice:**
+- Example: `HAgent.Example → Policy → Learning Policy` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Full `HAgent.Tests`: 187/187 passed, 0 failed, 0 skipped on .NET 9.
 
-- learning policy covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization;
-- typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts;
-- source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence preservation where available;
-- deterministic code-derived learning signals without requiring an LLM;
-- optional model-assisted extraction/evaluation that remains non-authoritative;
-- candidate creation kept separate from candidate promotion.
+The slice defines one provider-neutral Learning Policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It adds typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` payload contracts while reusing the canonical `AiLearningCandidate` lifecycle and promotion boundary.
 
-**Out of scope:** candidate persistence, promotion orchestration, Learning Review UI, Knowledge/Skill management UI, context integration, and the broader 0.9576 roadmap restructuring.
+Slice 7 is closed.
 
-**Completion checkpoint:** affected projects build; focused learning-policy/typed-candidate tests pass; full .NET 9 `HAgent.Tests` passes; matching Example succeeds on .NET Framework 4.8.1 and .NET 9.
+### Slice 8 — Canonical Learning Lifecycle Gate — IN PROGRESS
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on **.NET Framework 4.8.1** and **.NET 9**.
+The slice closes the next unfinished 0.9575 boundary: deterministic candidate admission through Learning Policy, Learning Mode, and the existing unified promotion-authorization policy.
 
-**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on **.NET 9**.
+The lifecycle gate may move a Proposed candidate to `Rejected`, `PendingReview`, or `Approved`. Approval is not publication: authoritative Memory writes, Knowledge version creation, Skill version creation, candidate persistence/retention, audit persistence, review UI, context integration, and runtime learning-input capture remain later 0.9575 work.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Lifecycle` on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** `tests/HAgent.Tests/LearningLifecycleTests.cs` (focused); full `HAgent.Tests` is not required until the slice checkpoint.
 
 ## Run rule
 

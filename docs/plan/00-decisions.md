@@ -109,3 +109,15 @@ Memory family/type access must reuse the existing `AiResourceCapabilityPolicy` a
 `AiMemoryGovernanceEvaluator` performs capability checks, while `AiGovernedMemoryStore` composes capability and policy enforcement around the existing `IMemoryStore` boundary. The decorator clones writes, applies the maximum retention expiration without extending a shorter explicit expiration, filters expired/unauthorized records during recall, and returns detached records. Physical storage remains the existing File/SQL Server/MySQL/InMemory implementations.
 
 Memory governance is therefore separated into capability authorization, retrieval/retention policy, and storage. Runtime execution snapshot binding and management UI remain later integration slices.
+
+## D-013 — Learning policy and typed candidates compose the existing lifecycle
+
+**Status:** Active
+
+`AiLearningCandidate` remains the single canonical learning lifecycle. `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` are typed payload contracts that compose an existing `AiLearningCandidate`; they do not define parallel status transitions or promotion state.
+
+`AiLearningPolicy` is a deterministic, provider-neutral candidate admission/evaluation contract. Its rules may constrain candidate type/scope, minimum confidence, evidence, provenance, contradiction state, evaluation state, retention class, and the required promotion-authorization classification. An unmatched rule denies the candidate by default.
+
+The learning policy is not a replacement for authorization. External promotion remains behind the existing `IAiPolicyEngine` / `AiLearningPromotionPolicy` boundary. Model-generated content may propose a candidate but cannot make Knowledge or Skills authoritative by itself.
+
+Knowledge and Skill candidate payloads must remain non-authoritative (`Draft`). Candidate payloads are cloned at construction so caller mutation does not alter the captured proposal. Source execution/runtime/profile identity remains on the canonical candidate lifecycle object.

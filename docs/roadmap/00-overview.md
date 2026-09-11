@@ -9,12 +9,12 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.5 — tool foundation complete; hardening remains
 - 0.6 — safety/permission foundation complete; broader authorization remains
 - 0.7 — WinForms UI Context + Data Discovery complete and locally verified
-- 0.8 — Data Access + Authorization + Internal Storage and first-class resource foundations substantially implemented
+- 0.8 — Data Access + Authorization + Internal Storage and first-class resource foundations substantially implemented; remaining repository/backend obligations are consumed by later storage/resource phases
 - 0.9 — Runtime Agent Instances complete and locally verified
 - 0.95 — Generic External Host Integration complete and verified on .NET Framework 4.8.1 and .NET 9
 - 0.951 — Identity, Tenancy + User Context completed and verified
 - 0.952 — First-Class Event Subsystem completed and verified
-- 0.953 — Unified Policy Engine foundation completed and verified for current runtime/resource/learning-policy boundaries
+- 0.953 — Unified Policy Engine completed for its canonical policy boundary; UI/backend hardening is post-phase work
 - 0.954 — Prompt + Instruction Governance completed and verified on .NET Framework 4.8.1 and .NET 9
 - 0.955 — Context Engineering completed and verified on .NET Framework 4.8.1 and .NET 9
 - 0.956 — Observability + Distributed Tracing completed through its verified slices
@@ -28,8 +28,8 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.96.x — Configuration, Storage + Portability **cross-cutting foundation before 0.96**
 - 0.96 — Capability-Aware Execution **planned major execution foundation**
 - 0.97 — Persistent Cognitive Runtime **planned production V1 cognitive layer**
-- 0.10 — Workspaces, Routing + Chat **deferred until the generic runtime/execution/cognition foundations are sufficient**
-- 1.0 — Collaboration + Workflows
+- 0.10 — Workspaces, Routing + Chat **deferred user-facing product surface after the generic runtime/execution/cognition foundations are sufficient**
+- 1.0 — Collaboration + Workflows **deferred orchestration layer built on 0.10, 0.959, 0.9591, 0.96, and 0.97**
 - Later — extensibility, developer platform, release hardening, and other ecosystem work
 
 ## Ordered V1 dependency chain
@@ -68,9 +68,38 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 0.97 Persistent Cognitive Runtime
         ↓
 0.10 Workspaces / Routing / Chat
+        ↓
+1.0 Collaboration / Workflows
 ```
 
 The ordering is dependency-driven. A feature may be implemented early as an ahead-of-roadmap experiment, but that does not mark its ordered phase complete until the phase's full V1 boundaries and verification requirements are satisfied.
+
+## Phase ownership map
+
+Each responsibility has one authoritative owner. Later phases consume the contract instead of recreating it.
+
+| Responsibility | Authoritative phase | Later consumers |
+|---|---|---|
+| Identity, tenancy, user context | 0.951 | all identity-aware phases |
+| Generic events | 0.952 | runtime, cognition, workspace, workflows |
+| Authorization/policy/precedence | 0.953 | instruction, context, learning, intervention, execution, cognition |
+| Instruction authority/provenance | 0.954 | context, execution, cognition |
+| Context retrieval/assembly/bounds | 0.955 | execution, cognition |
+| Tracing/observability | 0.956 | all runtime subsystems |
+| Evaluation/quality evidence | 0.957 | learning, reliability, execution diagnostics, cognition |
+| Skill/Knowledge/Memory governance + learning promotion | 0.9575 | reliability, cognition, workspace |
+| Post-promotion reliability/applicability/forgetting | 0.9576 | lifecycle, cognition |
+| Runtime-agent lifecycle + runtime health | 0.958 | durable recovery, intervention, cognition |
+| Durable goals/plans/checkpoints/recovery | 0.9591 | intervention, cognition, workflows |
+| Human/host intervention boundary | 0.959 | lifecycle, plans, cognition, workflows |
+| Provider adapter/discovery/operational evidence | 0.9592 | 0.96 execution |
+| Configuration/storage/portability | 0.96.x | execution, cognition, workspaces, workflows |
+| Concrete execution-target selection/admission | 0.96 | all inference-capable subsystems |
+| Persistent per-agent cognition | 0.97 | workspace, collaboration, workflows |
+| User-facing workspace/routing/chat | 0.10 | collaboration/workflows |
+| Multi-agent collaboration/workflow orchestration | 1.0 | host applications |
+
+The table is an architectural ownership rule, not merely a planning convenience.
 
 ## First-class resource architecture
 
@@ -140,7 +169,7 @@ many independent runtime instances
     → isolated state and identity
 ```
 
-This replaces the need for a general multi-writer cognitive merge architecture in production V1. Revision/stale-result protection remains mandatory; semantic multi-writer proposal arbitration is deferred.
+This removes the need for a general multi-writer cognitive merge architecture in production V1. Revision/stale-result protection remains mandatory; semantic multi-writer proposal arbitration is deferred to optional research.
 
 ## 0.96 scope
 
@@ -151,12 +180,12 @@ Phase 0.96 is the only concrete execution-selection layer. It handles:
 - cost policy;
 - quota/rate limits;
 - concurrency/capacity admission;
-- health/availability;
+- health/availability of execution targets;
 - latency and bounded waiting;
 - fallback/degradation;
 - target diagnostics.
 
-Cognitive strategies emit provider-neutral reasoning requirements and consume 0.96 rather than naming providers/models.
+Provider health evidence originates at 0.9592; 0.96 consumes it. Cognitive strategies emit provider-neutral reasoning requirements and consume 0.96 rather than naming providers/models.
 
 ## 0.97 production V1 scope
 
@@ -171,15 +200,24 @@ The Persistent Cognitive Runtime provides:
 - plans and recovery integration;
 - governed learning candidates;
 - learned-resource reliability consumption;
-- lifecycle, persistence, cancellation, shutdown, observability, and evaluation.
+- lifecycle, persistence, cancellation, shutdown, observability, and evaluation;
+- a production management/diagnostic workbench built on runtime state-transition APIs rather than direct persistence mutation.
+
+The three auxiliary roadmap documents `cognitive-workbench.md`, `cognitive-workbench-controls.md`, and `cognitive-workbench-learning.md` are subdocuments of 0.97, not separate roadmap phases.
 
 It is explicitly **not** a claim to implement a complete cognitive theory, human cognition, AGI, consciousness, universal planning, neural continual learning, or distributed cognitive consensus.
+
+## 0.10 vs 1.0 boundary
+
+0.10 is the user-facing workspace/routing/chat product surface. It does not become a general multi-agent workflow engine.
+
+1.0 is the later orchestration layer for bounded multi-agent collaboration and workflows. It consumes 0.10 routing, 0.959 intervention, 0.9591 durable planning/recovery, 0.96 execution selection, and 0.97 persistent cognition. It must not recreate those lower-level authorities.
 
 ## Ahead-of-roadmap implementation rule
 
 Existing implementation may appear before its ordered phase. Such work is retained when useful, but it is labeled as ahead-of-roadmap evidence and does not silently reorder the roadmap.
 
-This rule applies especially to current execution intervention, learning-candidate intervention, runtime examples, and other experiments created while earlier foundations were still being completed.
+This rule applies especially to current execution intervention, learning-candidate intervention, runtime examples, resource foundations, and other experiments created while earlier foundations were still being completed.
 
 ## Roadmap maintenance rules
 
@@ -187,5 +225,7 @@ This rule applies especially to current execution intervention, learning-candida
 2. Every substantial phase has a bounded V1 exit criterion.
 3. Production V1 requirements are separated from V2/research work.
 4. Architectural invariants outrank implementation convenience.
-5. If implementation proves a dependency wrong, update this ordered roadmap and the affected phase documents together before continuing.
-6. Generated root `roadmap.md` remains a view; authoritative ordering lives in `docs/roadmap/`.
+5. Historical foundation checklists are normalized when later implementation proves the item already exists; genuine missing work is assigned to the phase that consumes it.
+6. If implementation proves a dependency wrong, update this ordered roadmap and the affected phase documents together before continuing.
+7. Auxiliary documents under `docs/roadmap/` must name their parent phase and may not create an independent milestone or authority.
+8. Generated root `roadmap.md` remains a view; authoritative ordering lives in `docs/roadmap/`.

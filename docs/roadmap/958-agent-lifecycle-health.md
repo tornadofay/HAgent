@@ -101,15 +101,6 @@ Human/host intervention is consumed through the canonical 0.959 intervention bou
 7. Provider/model-specific lifecycle semantics do not belong in Core; provider health evidence is normalized by 0.9592 and consumed by 0.96.
 8. Runtime intervention uses 0.959; this phase does not create a second approval/intervention mechanism.
 
-## Not part of V1
-
-- distributed actor supervision;
-- cluster orchestration;
-- automatic fleet healing;
-- universal heartbeat semantics for every execution;
-- autonomous process management;
-- replacing the host scheduler with an HAgent scheduler.
-
 ## Dependencies
 
 ```text

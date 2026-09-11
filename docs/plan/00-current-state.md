@@ -78,21 +78,21 @@ Architecture source: `docs/architecture/85-learning-mode.md`.
 Focused tests: `tests/HAgent.Tests/LearningModeTests.cs`.
 Public Example: `HAgent.Example → Cognition → Learning → Learning Mode`.
 
-## Current 0.9575 Slice 7 — Learning Policy + Typed Candidates
+## Slice 7 — Learning Policy + Typed Candidates — VERIFIED
 
-Implementation is in progress and verification is pending.
+Verified by user on 2026-09-11.
 
-The slice defines one provider-neutral learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It also adds typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle.
+- .NET Framework 4.8.1 Example `HAgent.Example → Policy → Learning Policy` succeeded.
+- .NET 9 Example `HAgent.Example → Policy → Learning Policy` succeeded.
+- Full `HAgent.Tests`: **187/187 passed, 0 failed, 0 skipped** on .NET 9.
 
-The slice preserves source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence where available; supports deterministic code-derived learning signals without requiring an LLM; keeps model-assisted extraction/evaluation optional and non-authoritative; and keeps candidate creation separate from promotion.
+The slice defines one provider-neutral learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It adds typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle and promotion boundary.
+
+The Example verified typed learning-promotion requests, candidate type/scope matching, confidence/evidence/provenance policy matching, contradiction handling, policy decision provenance, canonical lifecycle transitions, typed Memory/Knowledge/Skill validation, and rejection of published Knowledge/Skill payloads.
 
 Architecture source: `docs/architecture/86-learning-policy.md`.
 Focused tests: `tests/HAgent.Tests/LearningPolicyTests.cs`.
-Public Example: `HAgent.Example → Cognition → Learning → Learning Policy`.
-
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on .NET Framework 4.8.1 and .NET 9.
-
-**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on .NET 9.
+Public Example: `HAgent.Example → Policy → Learning Policy`.
 
 ## Storage implications
 

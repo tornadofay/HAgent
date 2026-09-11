@@ -55,11 +55,15 @@ Verified by user on 2026-09-09.
 
 The slice reuses the generic tri-state capability snapshot through `memory`, `memory.family`, and `memory.type`, with deterministic bounded retrieval, expiration filtering, per-family/type retention caps, and the provider-neutral `AiGovernedMemoryStore` decorator.
 
-## Current 0.9575 Slice 6 — Learning Mode foundation
+### Slice 6 — Learning Mode foundation
 
-Implementation is in progress and verification is pending.
+Verified by user on 2026-09-09.
 
-`AiLearningMode` is now a provider-neutral profile setting with four values:
+- .NET Framework 4.8.1 Example `HAgent.Example → Cognition → Learning → Learning Mode` succeeded.
+- .NET 9 Example `HAgent.Example → Cognition → Learning → Learning Mode` succeeded.
+- Full `HAgent.Tests`: **181/181 passed, 0 failed, 0 skipped** on .NET 9.
+
+`AiLearningMode` is a provider-neutral profile setting with four values:
 
 - `Disabled` — no learning candidates;
 - `SuggestOnly` — candidates are produced and require review;
@@ -68,15 +72,27 @@ Implementation is in progress and verification is pending.
 
 `AgentRuntimeOverrides.LearningMode` is nullable runtime-only override state and never mutates the persistent profile. `AgentExecutionSnapshot.LearningMode` captures the effective value for one execution. `AiLearningModePolicy` provides deterministic interpretation and validation helpers.
 
-Learning Mode is intentionally separate from resource/capability enablement. Existing learning-candidate and promotion-policy contracts remain the single candidate model; this slice does not introduce a duplicate candidate architecture.
+Learning Mode is intentionally separate from resource/capability enablement. Existing learning-candidate and promotion-policy contracts remain the single candidate model; this slice did not introduce a duplicate candidate architecture.
 
 Architecture source: `docs/architecture/85-learning-mode.md`.
 Focused tests: `tests/HAgent.Tests/LearningModeTests.cs`.
 Public Example: `HAgent.Example → Cognition → Learning → Learning Mode`.
 
-**Example to run:** `HAgent.Example → Cognition → Learning → Learning Mode` on .NET Framework 4.8.1 and .NET 9.
+## Current 0.9575 Slice 7 — Learning Policy + Typed Candidates
 
-**Tests to run:** `tests/HAgent.Tests/LearningModeTests.cs` (focused), then the full `HAgent.Tests` suite on .NET 9.
+Implementation is in progress and verification is pending.
+
+The slice will define one provider-neutral learning policy contract covering candidate type, scope, confidence/evidence, provenance, contradiction checks, retention, evaluation requirements, and promotion authorization. It will also add typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` contracts while reusing the existing canonical `AiLearningCandidate` lifecycle.
+
+The slice must preserve source execution/runtime/profile identity, proposed scope, provenance, and evidence/confidence where available; support deterministic code-derived learning signals without requiring an LLM; keep model-assisted extraction/evaluation optional and non-authoritative; and keep candidate creation separate from promotion.
+
+Architecture source: the Learning Policy/Ty​ped Candidate slice documentation to be added with the implementation.
+Focused tests: `tests/HAgent.Tests/LearningPolicyTests.cs`.
+Public Example: `HAgent.Example → Cognition → Learning → Learning Policy`.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Policy` on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** `tests/HAgent.Tests/LearningPolicyTests.cs` (focused), then the full `HAgent.Tests` suite on .NET 9.
 
 ## Storage implications
 
@@ -84,4 +100,4 @@ File/in-memory agent persistence uses the canonical `AiAgent` representation. SQ
 
 ### Deferred exclusions
 
-This slice does not implement candidate promotion orchestration, candidate persistence, Learning Review UI, Knowledge/Skill management UI, context integration, or model-assisted learning extraction.
+Slice 7 does not implement candidate persistence, promotion orchestration, Learning Review UI, Knowledge/Skill management UI, context integration, or the broader 0.9576 roadmap restructuring.

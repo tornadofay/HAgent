@@ -2,9 +2,9 @@
 
 ## Status
 
-**In progress — Slice 10 implementation.**
+**In progress — Slice 11 implementation.**
 
-Slices 1–9 are verified. This roadmap is normalized against the current implementation so historical checklist entries that already leaked into the code are not treated as automatically missing work.
+Slices 1–10 are verified. This roadmap is normalized against the current implementation so historical checklist entries that already leaked into the code are not treated as automatically missing work.
 
 ## Goal
 
@@ -90,41 +90,21 @@ The authorization-sensitive identity boundary is fail-closed and requires canoni
 ### Partially implemented; integration still outstanding
 
 - Shared reusable Knowledge exists at the resource-contract/governance level, but HAgent-owned persistence, management, relationships, and end-to-end reusable-resource administration remain incomplete.
-- Retrieval is bounded at the contract level, but integration with context budgets and canonical context assembly is still outstanding.
-- Runtime snapshots capture capability/learning configuration, but learning outcomes are not yet captured into a complete runtime-to-learning pipeline.
+- Retrieval is bounded at the contract level, but integration with context budgets and canonical context assembly is now established for governed learned-resource inputs; broader reusable-resource administration remains outstanding.
+- Runtime snapshots capture capability/learning configuration, and Slice 11 now captures bounded execution observations as learning input; complete automatic observation-to-candidate analysis remains outstanding.
 
 ### Genuinely outstanding 0.9575 work
 
-- Authoritative Memory promotion.
-- Knowledge promotion that creates a new authoritative version rather than mutating a published record.
-- Skill promotion that creates a new immutable version rather than mutating a published definition.
-- Promotion audit/provenance/evaluation records.
-- Governed learning-resource integration into the canonical context/instruction pipeline.
-- Runtime capture of execution outcomes/observations as learning input.
-- Resource access/promotion observability through the same policy and audit boundaries as other runtime actions.
+- Promotion audit/provenance/evaluation persistence beyond the structured promotion evidence produced by Slice 10.
+- Broader governed learning-resource management/repository integration where authoritative Knowledge/Skill persistence is host/storage-owned.
 - Learning Review, Knowledge/Wiki, Skill, and Agent Configuration management UI.
-- Persistence and restart verification for the mature learning/resource layer.
+- Persistence and restart verification for the mature learning/resource layer beyond the candidate store and current in-memory observation reference store.
 
 ## Slice 9 — Candidate persistence, retention, and review — VERIFIED 2026-09-11
 
 ### Purpose
 
 Make the existing canonical typed learning candidate durable without creating a second candidate lifecycle or authoritative resource model.
-
-### Scope delivered
-
-- provider-neutral `AiLearningCandidateRecord` durable envelope;
-- provider-neutral `IAiLearningCandidateStore` boundary;
-- deterministic InMemory and durable File store implementations;
-- durable lifecycle status/revision;
-- retention/expiry policy and purge;
-- typed payload serialization and round-trip restoration;
-- persisted Learning Policy and promotion-authorization provenance;
-- Learning Review through the existing unified policy boundary;
-- explicit reviewer identity and authorization evidence;
-- optimistic revision-checked review updates;
-- restart/recovery semantics;
-- no authoritative Knowledge/Skill mutation or Memory publication by the candidate store/review boundary.
 
 ### Verification
 
@@ -136,35 +116,58 @@ Full `HAgent.Tests`: **200/200 passed, 0 failed, 0 skipped** on .NET 9.
 
 Architecture: `docs/architecture/88-learning-candidate-persistence.md`.
 
-## Slice 10 — Authoritative promotion and version-safe resource creation — IN PROGRESS
+## Slice 10 — Authoritative promotion and version-safe resource creation — VERIFIED 2026-09-11
 
 ### Purpose
 
 Convert an approved durable typed candidate into authoritative resource state through one canonical promotion boundary without creating parallel lifecycle or resource models.
 
-### Scope
+### Scope delivered
 
 - one provider-neutral promotion service;
 - explicit `AgentIdentityContext` and re-evaluation of `learning.promote` through the existing unified `IAiPolicyEngine`;
-- require durable candidate status `Approved` and reject expired, rejected, promoted, or otherwise stale candidates;
-- validate and restore the typed candidate payload before publication;
+- durable `Approved` status and expiry checks;
+- typed payload validation/restoration before publication;
 - Memory promotion through the existing `IMemoryStore` contract;
-- Knowledge promotion through an explicit provider-neutral publication target that creates a new published version and never mutates an existing published version;
-- Skill promotion through an explicit provider-neutral publication target that creates a new immutable published version;
+- Knowledge promotion through an explicit provider-neutral publication target with version conflict protection;
+- Skill promotion through an explicit provider-neutral immutable publication target;
 - deterministic equal/lower version conflict rejection;
 - preservation of candidate/source execution/runtime/profile provenance and authorization evidence;
-- transition the candidate to `Promoted` only after authoritative publication succeeds;
-- structured promotion result and audit evidence suitable for later observability integration.
+- transition to `Promoted` only after authoritative publication succeeds;
+- structured promotion result/audit evidence for later observability integration.
 
 ### Verification
 
-**Required Example:** `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` on .NET Framework 4.8.1 and .NET 9.
+User verified `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` on .NET Framework 4.8.1 and .NET 9.
 
-**Required tests:** focused `tests/HAgent.Tests/LearningCandidatePromotionTests.cs`; full `HAgent.Tests` at the Slice 10 checkpoint.
+Both Examples reported contract success for Memory, Knowledge, Skill, fresh unified authorization, lifecycle transition after publication, provenance retention, and immutable version behavior.
 
-## Slice 11 — Context, instruction, runtime, and observability integration
+After the final test-contract correction, full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
 
-Connect governed learned resources to real execution without moving authorization into prompts.
+Architecture: `docs/architecture/89-learning-authoritative-promotion.md`.
+
+## Slice 11 — Context, instruction, runtime, and observability integration — CURRENT
+
+### Purpose
+
+Connect governed learned resources to real execution without moving authorization into prompts or creating a parallel execution/context/observability architecture.
+
+### Scope
+
+- prepare learned instruction sources through the existing `AgentExecutionRequest.InstructionSources` boundary;
+- prepare learned context retrieval sources through the canonical policy/capability admission, ranking, and bounded context assembly pipeline;
+- preserve execution-owned context snapshots and cloned instruction inputs;
+- consume authoritative `IExecutionObservationSource` facts as bounded learning input without turning observations into candidates automatically;
+- provide a bounded provider-neutral observation store reference implementation;
+- preserve the separation between runtime authority, observability, Learning Policy, candidate lifecycle, and authoritative promotion.
+
+### Verification
+
+**Required Example:** `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
+
+**Required tests:** focused `tests/HAgent.Tests/LearningExecutionIntegrationTests.cs`; full `HAgent.Tests` at the Slice 11 checkpoint.
+
+Architecture: `docs/architecture/90-learning-execution-integration.md`.
 
 ## Slice 12 — Management UI
 

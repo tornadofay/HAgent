@@ -46,3 +46,6 @@ jobs:
 
       - name: Run full test suite (.NET 9)
         run: dotnet test tests/HAgent.Tests/HAgent.Tests.csproj --configuration Release --framework net9.0 --no-restore
+
+      # Connector-created source commits do not consistently retrigger path-filtered runs;
+      # keep this workflow touched when a current implementation needs an explicit check.

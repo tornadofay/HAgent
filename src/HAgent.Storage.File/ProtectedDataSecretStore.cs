@@ -45,8 +45,12 @@ namespace HAgent.Storage.File
 
         private string PathFor(string id)
         {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentException("Invalid secret id.", nameof(id));
+
             foreach (var c in id)
-                if (!char.IsLetterOrDigit(c) && c != '-' && c != '_') throw new ArgumentException("Invalid secret id.", nameof(id));
+                if (!char.IsLetterOrDigit(c) && c != '-' && c != '_' && c != '.')
+                    throw new ArgumentException("Invalid secret id.", nameof(id));
             return System.IO.Path.Combine(_directory, id + ".secret");
         }
     }

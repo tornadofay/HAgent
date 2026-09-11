@@ -56,6 +56,18 @@ namespace HAgent.WinForms
             IEnumerable<IAiProviderAdapter> adapters,
             IToolStore toolStore,
             IAiLearningCandidateStore learningCandidates,
+            AgentIdentityContext reviewerIdentity)
+        {
+            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, learningCandidates, reviewerIdentity, null);
+        }
+
+        public static void ShowMainAISettingsForm(
+            IAiStore store,
+            ISecretStore secrets,
+            IWin32Window owner,
+            IEnumerable<IAiProviderAdapter> adapters,
+            IToolStore toolStore,
+            IAiLearningCandidateStore learningCandidates,
             AgentIdentityContext reviewerIdentity,
             AiLearningPromotionService learningPromotion)
         {

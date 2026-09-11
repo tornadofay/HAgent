@@ -1,143 +1,189 @@
-# Persistent Cognitive Runtime — Core Cognitive Algorithms
+# Persistent Cognitive Runtime — Production Cognitive Algorithms
 
 ## Purpose
 
-This document is the normative algorithm specification for Phase 0.97 Persistent Cognitive Runtime. It fills the gap between the stable runtime architecture in `docs/architecture/16-cognitive-runtime.md` and future implementation.
+This document is the **production implementation specification** for the future Phase 0.97 Persistent Cognitive Runtime.
 
-The document specifies decision procedures, state transitions, authority boundaries, concurrency semantics, bounded deliberation, skill formation, resource adaptation, and verification requirements. It does not define host-domain models, provider-specific behavior, or one universal theory of intelligence.
+It defines concrete software mechanisms. It does not require HAgent to implement or reproduce BDI, SOAR, ACT-R, Global Workspace Theory, LIDA, ReAct, Reflexion, MemGPT, Voyager, theories of consciousness, human cognitive timing, or any other research architecture.
 
-The algorithms are intentionally provider-neutral. A cognitive strategy may implement them differently, but an implementation must preserve the externally observable invariants defined here.
+Those materials remain research rationale in `docs/research/` and `docs/architecture/15-research-foundations.md`. They are not implementation requirements.
 
-## Design position
+The rule is simple:
 
-HAgent should not claim to have solved general cognition, neural continual learning, or universal skill induction. The objective is narrower and engineering-focused:
+> Implement mechanisms that solve real persistent-agent engineering problems. Do not implement a cognitive theory merely because the theory has a name.
 
-- maintain coherent persistent cognitive state;
-- make cognitive commitments durable but revisable;
-- allow methods to change without unnecessarily changing goals;
-- isolate uncertain deliberation from authoritative state;
-- apply proposals transactionally against versioned state;
-- learn reusable procedures without discarding the original experience;
-- adapt learned resources without silently corrupting previously trusted behavior;
-- remain bounded under concurrency, latency, failure, and resource pressure;
-- make the reasons for cognitive transitions inspectable and evaluable.
+HAgent does not claim to solve general cognition, universal skill induction, or neural continual learning. It provides a bounded runtime in which competing decision and learning strategies can be implemented and empirically evaluated.
 
-## Algorithmic invariants
+## Production scope
 
-1. The Cognitive Kernel is the authority for cognitive state ownership, revision, lifecycle, and persistence.
-2. A Cognitive Strategy is a decision mechanism, not an authority boundary.
-3. Model output is always a proposal or evidence unless explicitly transformed by a validated HAgent transition.
-4. Host-authoritative domain state is never replaced by inferred belief state.
-5. Every state-changing proposal identifies the cognitive revision against which it was produced.
-6. A stale proposal never wins by last-writer-wins semantics.
-7. A proposal may be rejected even when it is internally consistent if policy, authorization, resource state, or newer evidence makes it inapplicable.
-8. Persistent goals, intentions, and plans have distinct identities and lifecycle semantics.
-9. Intention persistence does not imply method persistence.
-10. An impasse is a bounded failure of the current cognitive path, not merely "the model was uncertain."
-11. Deliberative substates are isolated proposal workspaces, not alternate authoritative runtimes.
-12. Experience remains available after proceduralization; a derived Skill never becomes the only record of what happened.
-13. Learned resources are versioned and governed; learning does not silently rewrite the Cognitive Kernel.
-14. Deterministic cognition is preferred when sufficient; model execution is justified by an explicit reasoning requirement.
-15. Every unbounded loop in the cognitive layer must have a configured or inherited bound: time, depth, steps, queue work, model calls, tokens, or another applicable resource dimension.
-16. Failure to complete deliberation is a valid outcome. The runtime must have bounded fallback behavior.
+Phase 0.97 is concerned with:
+
+```text
+Persistent cognitive state
+Versioned state transitions
+Goal / intention / method separation
+Observation / belief separation
+Event triage and bounded working context
+Deterministic decision making
+Bounded probabilistic deliberation
+Typed impasses
+Semantic stale-proposal protection
+Plan execution and revision
+Experience capture and governed learning candidates
+Learned-resource applicability and invalidation
+Runtime concurrency and scheduling bounds
+Restart/recovery semantics
+Policy / authorization / host-boundary enforcement
+Structured observability and evaluation
+```
+
+## Architectural boundary
+
+```text
+Host / Environment
+        │
+        ▼
+ Event / Observation
+        │
+        ▼
+Persistent Cognitive Runtime
+        │
+        ├── State
+        ├── Decision / Planning
+        ├── Deliberation
+        ├── Learning
+        └── Revision / Recovery
+        │
+        ▼
+Reasoning Requirement
+        │
+        ▼
+Phase 0.96 Execution Planner
+        │
+        ▼
+Existing HAgent Execution Engine
+```
+
+The cognitive runtime answers **what should happen next**. The execution planner answers **where/how inference should execute**. The host remains authoritative over host state, authorization, scheduling policy, and external side effects.
 
 ---
 
-# 1. Cognitive state model
+# 1. Authoritative cognitive state
 
-## 1.1 Authoritative state
-
-The runtime maintains one authoritative cognitive state at revision `R`:
+The runtime owns one authoritative cognitive state at revision `R`.
 
 ```text
 CognitiveState(R)
 ├── Beliefs
 ├── WorkingState
-├── AttentionFrame
+├── DecisionWorkspace
 ├── Goals
 ├── Intentions
 ├── Plans
 ├── Impasses
 ├── ResourceReferences
 ├── ActivationState
-└── StrategyStateReference
+└── RuntimeRevisionMetadata
 ```
 
-The state is immutable for readers. A state transition creates revision `R+1` after validation and commit.
+Readers receive immutable snapshots. A successful state transition creates `R+1`.
 
-## 1.2 Proposal model
+`DecisionWorkspace` is an engineering term for the bounded information selected for the current decision. It is not a consciousness model.
 
-All asynchronous reasoning, learning, intervention, and external observation interpretation that can change cognitive state must produce a typed proposal before mutation.
+### Invariants
 
-Conceptually:
-
-```text
-CognitiveProposal
-├── ProposalId
-├── BaseRevision
-├── ReadSet
-├── AssumptionSet
-├── ProposedChanges
-├── EvidenceReferences
-├── Producer
-├── Reason / Trigger
-├── CreatedAt
-├── BudgetUsed
-└── Expiration
-```
-
-The `ReadSet` identifies the cognitive entities and resource revisions that materially influenced the proposal. `AssumptionSet` identifies conditions whose validity is required for safe application.
-
-A proposal can contain several change operations, but each operation must identify its target entity and expected revision/version where applicable.
-
-## 1.3 Atomic state transition
-
-The canonical state transition is:
-
-```text
-Read current state R
-      ↓
-Build proposal against R
-      ↓
-Validate authority / policy / assumptions
-      ↓
-Check semantic conflicts against current state
-      ↓
-Apply compatible changes atomically
-      ↓
-Commit R+1
-      ↓
-Publish revision event
-```
-
-If validation fails, the proposal is rejected, expires, or is re-deliberated according to the failure class.
-
-No partial application is allowed for a proposal declared atomic. Implementations may split unrelated work into separate proposals when the strategy explicitly defines that boundary.
+1. Background operations do not mutate authoritative state directly.
+2. State-changing asynchronous work produces a typed proposal or explicit kernel transition.
+3. Every proposal identifies the revision against which it was produced.
+4. A stale proposal cannot overwrite newer state.
+5. Host-authoritative facts are never replaced by inferred cognitive state.
+6. State changes retain provenance and causation.
+7. State, queues, and deliberation work are bounded by configured resource limits.
 
 ---
 
-# 2. Goal, intention, and method authority
+# 2. Proposal, revision, and semantic concurrency
 
-## 2.1 Separate authorities
-
-HAgent must maintain three distinct layers:
+A state-changing proposal contains at least:
 
 ```text
-Goal authority
-    What outcome is desired?
-
-Intention authority
-    Which goals has the runtime committed to pursue?
-
-Method authority
-    Which current plan/operators are being used to pursue an intention?
+ProposalId
+OperationKey
+BaseRevision
+ReadSet
+AssumptionSet
+ProposedChanges
+EvidenceReferences
+Producer
+Trigger/Reason
+CreatedAt
+Expiration
+BudgetUsage
 ```
 
-A method revision must not implicitly revise the goal. An intention may be revised without deleting the underlying goal. A goal may be revised independently of an active plan.
+`ReadSet` identifies the state/resource versions that materially influenced the proposal.
 
-## 2.2 Goal lifecycle
+`AssumptionSet` identifies conditions that must still hold for safe application.
 
-Minimum goal states:
+### Commit procedure
+
+```text
+Read state R
+    ↓
+Build proposal against R
+    ↓
+Validate lifecycle / policy / authorization
+    ↓
+Validate referenced versions and assumptions
+    ↓
+Classify conflicts
+    ↓
+Apply compatible changes atomically
+    ↓
+Commit R+1
+    ↓
+Publish revision/outcome event
+```
+
+Revision number alone is insufficient. A changed revision may be unrelated to the proposal. Therefore conflict detection must consider declared dependencies and assumptions.
+
+Minimum conflict outcomes:
+
+```text
+NoConflict
+RelatedChange
+AssumptionBroken
+TargetChanged
+PolicyChanged
+ResourceChanged
+BeliefConflict
+GoalConflict
+PlanConflict
+UnknownConflict
+```
+
+Unrelated changes may permit application when assumptions remain valid. Related or unknown conflicts require revalidation, rejection, or re-deliberation. There is no generic last-writer-wins merge for cognitive state.
+
+Every state-changing operation must be idempotent by stable proposal/operation identity.
+
+---
+
+# 3. Goals, intentions, and methods
+
+HAgent keeps these as distinct production concepts:
+
+```text
+Goal
+    desired outcome
+
+Intention
+    active commitment to pursue a goal
+
+Plan / Method
+    current approach used by the intention
+```
+
+### Goal lifecycle
 
 ```text
 Proposed → Active → Succeeded
@@ -147,11 +193,7 @@ Proposed → Active → Succeeded
                  └→ Superseded
 ```
 
-A goal may return from `Suspended` to `Active` only through an explicit validated transition.
-
-## 2.3 Intention lifecycle
-
-Minimum intention states:
+### Intention lifecycle
 
 ```text
 Candidate → Adopted → Suspended → Completed
@@ -160,475 +202,283 @@ Candidate → Adopted → Suspended → Completed
                     └→ Superseded
 ```
 
-An intention references a goal identity and records the commitment revision at which it was adopted.
+### Authority rule
 
-## 2.4 Method authority
-
-A plan is the current method attached to an intention. The plan may be replaced, revised, or abandoned while the intention remains active.
-
-The default rule is:
+Changing a plan does not implicitly change the intention or goal.
 
 ```text
-new evidence that invalidates method assumptions
+method assumption invalid
     → reconsider plan first
 
-new evidence that invalidates commitment rationale
+commitment rationale invalid
     → reconsider intention
 
-new evidence that invalidates desired outcome itself
+desired outcome invalid
     → reconsider goal
 ```
 
-The runtime must never infer which level is invalid solely from the fact that a lower level failed. The strategy must explicitly classify the impact.
+The affected level must be explicit in the proposal.
 
-## 2.5 Reconsideration triggers
+### Reconsideration triggers
 
-Reconsideration is mandatory when one or more of the following occur and the applicable policy says the state is affected:
+Typical triggers are:
 
-- a required plan precondition becomes false;
-- a plan action produces an incompatible outcome;
-- a belief supporting a goal/intention becomes contradicted or stale;
-- a higher-priority goal creates a conflict;
-- the environment materially changes relative to plan assumptions;
-- policy, authority, capability, or resource constraints invalidate the current method;
-- repeated failure exceeds the configured retry/reconsideration threshold;
-- a human or host explicitly requests reconsideration.
+- failed plan precondition;
+- incompatible action outcome;
+- invalidated supporting belief;
+- higher-priority goal conflict;
+- material environment change;
+- policy/authorization/capability/resource change;
+- repeated failure beyond configured threshold;
+- explicit host/operator request.
 
-## 2.6 Reconsideration decision procedure
+A new event by itself is not sufficient reason to reconsider an intention.
 
-```text
-Trigger detected
-      ↓
-Identify affected goals / intentions / plans
-      ↓
-Classify impact:
-  MethodInvalid
-  IntentionInvalid
-  GoalInvalid
-  ConstraintChanged
-  EvidenceInsufficient
-  Unknown
-      ↓
-Apply strategy/policy rules
-      ↓
-Select action:
-  continue
-  revise plan
-  revise intention
-  revise goal
-  suspend
-  abandon
-  request deliberation
-  escalate to host
-```
+### Conflict arbitration
 
-The classification is evidence-based and must be explainable. An implementation must not use a hidden scalar score as the only reason for goal reconsideration.
-
-## 2.7 Conflict arbitration between intentions
-
-When active intentions conflict, the runtime must not use insertion order or model preference as the implicit winner.
-
-The arbitration procedure is:
+When intentions conflict:
 
 ```text
 Collect conflicting intentions
-      ↓
-Apply explicit conflict constraints
-      ↓
+        ↓
+Apply explicit constraints
+        ↓
 Compare priority / deadline / consequence / policy
-      ↓
-Check host constraints and resource feasibility
-      ↓
-Select outcome:
-  retain both
-  serialize
-  suspend lower priority
-  revise one method
-  supersede one intention
-  escalate
+        ↓
+Check feasibility and host constraints
+        ↓
+retain both | serialize | suspend | revise | supersede | escalate
 ```
 
-Tie-breaking must be deterministic for equal inputs. An unresolved conflict is an explicit `Impasse` rather than silent arbitrary selection.
+Equal inputs must have deterministic tie-breaking. An unresolved conflict becomes an `Impasse`.
 
-## 2.8 Commitment stability
+### Anti-thrashing
 
-The runtime must resist unnecessary intention thrashing.
+The implementation must support bounded reconsideration using some combination of:
 
-An intention should not be reconsidered solely because a new event exists. Reconsideration requires a trigger that materially affects feasibility, expected outcome, priority, constraints, or supporting evidence.
-
-Implementations should support hysteresis/cooldown policy so an intention does not repeatedly alternate between two methods or goals without meaningful state change.
-
-Minimum safeguards:
-
-- minimum commitment interval where appropriate;
 - maximum reconsiderations per time window;
 - repeated-proposal detection;
 - no-progress threshold;
-- escalation after oscillation is detected.
+- cooldown/commitment interval where appropriate;
+- escalation after oscillation.
 
 ---
 
-# 3. Belief formation, interpretation, and revision
+# 4. Observations and beliefs
 
-## 3.1 Observation is not belief
-
-Incoming events and host observations are evidence. They do not automatically become beliefs.
+An observation is evidence. A belief is HAgent's current bounded interpretation of evidence.
 
 ```text
-Observation
-   ↓
+Observation / Event
+      ↓
 Interpretation
-   ↓
+      ↓
 BeliefCandidate
-   ↓
-Validation / provenance / confidence
-   ↓
-Belief revision proposal
-   ↓
-Cognitive commit
+      ↓
+Validation + provenance + confidence
+      ↓
+Belief transition proposal
+      ↓
+Commit
 ```
 
 Interpretation may be deterministic, model-assisted, or hybrid.
 
-## 3.2 Interpretation contract
+Material ambiguity must be representable as `Ambiguous` or `InsufficientEvidence` rather than fabricated certainty.
 
-An interpretation result should identify:
+A belief should preserve, where applicable:
 
 ```text
-source observation(s)
-interpreted entities/facts
+identity
+content/reference
+source/provenance
 confidence/quality
-alternative interpretations when materially ambiguous
-supporting evidence
-required follow-up information
+observed/created time
+validity/expiry
+scope/owner
+revision
 ```
 
-When ambiguity materially affects a consequential decision, the correct result may be `Ambiguous` rather than a fabricated definite belief.
+Belief updates must record why they changed.
 
-## 3.3 Belief precedence
+### Conflict precedence
 
-Belief conflict resolution must consider at least:
+Conflict handling considers:
 
 ```text
+host authority
 source authority
-observation freshness
-directness of evidence
+directness
+freshness
 confidence/quality
 scope
-recency
-explicit host authority
 ```
 
-Host-authoritative facts outrank inferred beliefs when the host provides authoritative state. Lower-quality or stale inferred beliefs must not silently overwrite stronger current evidence.
+Stronger authoritative evidence must not be silently replaced by weaker inferred state.
 
-## 3.4 Belief dependencies
+### Dependencies
 
-Goals, intentions, plan steps, and learned resources may declare dependencies on belief identities and versions.
+Goals, intentions, plan steps, and learned resources may depend on specific belief versions.
 
-A belief revision can therefore produce:
+When a belief changes:
 
 ```text
-Belief B17 changed
-      ↓
-Dependents discovered
-      ↓
-Plan step P4 affected
-Intention I2 affected
-Skill assumption S9 affected
-      ↓
-Revalidate each dependent
+belief changed
+    ↓
+find declared dependents
+    ↓
+revalidate affected dependents only
 ```
-
-Dependency revalidation must be selective; unrelated state changes must not unnecessarily invalidate all cognition.
 
 ---
 
-# 4. Attention and event triage
+# 5. Event triage and bounded working context
 
-## 4.1 Event triage
-
-Every incoming event first passes through bounded deterministic triage.
+Every incoming event passes through bounded triage before expensive reasoning.
 
 ```text
 Event
   ↓
-Dedup / expiry / scope checks
+deduplication / expiry / scope
   ↓
-Salience assessment
+relevance / salience assessment
   ↓
-Classify:
-  Ignore
-  Retain
-  UpdateState
-  ReactiveAction
-  DeliberationTrigger
-  HostEscalation
+Ignore | Retain | StateUpdate | ReactiveAction | Deliberate | HostEscalation
 ```
 
-An event may be retained without immediately causing cognition.
+The runtime maintains a bounded `DecisionWorkspace` containing only information needed for the current decision.
 
-## 4.2 Salience model
-
-Salience is a multi-signal decision, not a single model-generated number.
-
-Relevant dimensions include:
+Selection may use:
 
 - urgency;
+- goal/intention relevance;
 - novelty;
-- goal relevance;
-- intention relevance;
 - uncertainty;
-- risk/consequence;
-- relationship/social relevance when supplied;
-- policy-defined importance;
+- consequence/risk;
 - freshness;
-- expected information value;
-- estimated processing cost.
+- information value;
+- policy importance;
+- processing cost;
+- resource eligibility.
 
-Each dimension is bounded and explainable. The strategy may choose the weighting or rule set.
+The runtime must not require a universal scalar salience or intelligence score. Strategies may use deterministic rules or bounded multi-signal scoring.
 
-## 4.3 Attention selection
-
-The runtime selects an attended set under a hard budget:
-
-```text
-Candidate events/resources
-      ↓
-Eligibility filtering
-      ↓
-Deterministic score / ranking
-      ↓
-Redundancy reduction
-      ↓
-Budget allocation
-      ↓
-GlobalWorkspaceFrame
-```
-
-Selection must be stable for equal inputs and preserve the provenance of selected items.
+The workspace is not a second memory store.
 
 ---
 
-# 5. Reactive cognition
+# 6. Deterministic decision path
 
-Reactive cognition is the first path evaluated after attention.
-
-## 5.1 Reactive decision procedure
+The first decision path is deterministic whenever sufficient.
 
 ```text
 DecisionContext
       ↓
-Applicable operators / active plan step lookup
+Find applicable operators / current plan step
       ↓
 Check preconditions
       ↓
-Check policy / authorization / resource availability
+Check policy / authorization / resources
       ↓
-Check expected consequence bounds
+Check consequence bounds
       ↓
-If one safe deterministic transition exists:
-      execute transition
-Else:
-      return NoSafeReactiveResolution
+One safe deterministic transition?
+   yes → apply
+   no  → deliberation assessment
 ```
 
-Reactive cognition must not guess when several incompatible actions are plausible and no deterministic policy resolves the conflict.
+A deterministic transition may:
 
-## 5.2 Reactive execution
-
-A reactive transition may:
-
-- advance a plan step;
-- update bounded working state;
+- advance a plan;
+- update working state;
 - emit an observation;
 - invoke a governed tool;
-- create a wait/sleep state;
 - mark a belief stale;
-- create a typed impasse;
+- wait/sleep/wake;
+- create an impasse;
 - request deliberation.
 
----
-
-# 6. Deliberation activation and reasoning escalation
-
-## 6.1 Deliberation trigger
-
-A deliberation request is created only when deterministic cognition cannot safely resolve the current decision or an explicit policy/host trigger requires reasoning.
-
-Minimum triggers:
-
-- novelty above configured coverage;
-- unresolved ambiguity;
-- insufficient evidence;
-- conflicting beliefs;
-- blocked plan/failed precondition;
-- significant goal conflict;
-- high consequence decision;
-- repeated deterministic failure;
-- explicit human/host request.
-
-## 6.2 Progressive reasoning assessment
-
-HAgent must not treat model size as the cognitive complexity metric.
-
-Instead:
-
-```text
-Assess:
-  uncertainty
-  evidence adequacy
-  novelty
-  consequence
-  branching
-  planning horizon
-  context requirement
-  tool requirement
-  structural output requirement
-  latency budget
-  cost policy
-      ↓
-ReasoningRequirement
-```
-
-The result may explicitly be `NoModelRequired`.
-
-## 6.3 Escalation stages
-
-The reference AHC policy should support at least:
-
-```text
-Stage 0: deterministic cognition
-Stage 1: lightweight reasoning
-Stage 2: stronger/deeper reasoning
-Stage 3: bounded multi-pass deliberation
-Stage 4: host escalation / unresolved
-```
-
-Escalation occurs only when the previous stage fails to satisfy the decision requirement or its confidence/evidence threshold.
-
-Every escalation records:
-
-```text
-previous stage
-trigger
-missing capability/evidence
-selected next stage
-budget remaining
-result
-```
-
-## 6.4 Deliberation stopping rules
-
-Deliberation must stop when any of the following occurs:
-
-- an acceptable validated proposal is produced;
-- the reasoning budget expires;
-- the maximum reasoning depth is reached;
-- repeated equivalent proposals are produced;
-- required evidence is unavailable;
-- the current cognitive revision becomes invalid;
-- policy denies further reasoning;
-- cancellation/retirement/shutdown occurs.
-
-An incomplete deliberation must produce a typed outcome such as `Resolved`, `Unresolved`, `Superseded`, `BudgetExceeded`, `Cancelled`, or `Escalated`.
+When several incompatible actions remain possible without a deterministic tie-breaker, the runtime must not guess.
 
 ---
 
-# 7. Semantic concurrency and proposal application
+# 7. Deliberation and reasoning requirements
 
-## 7.1 Why revision number alone is insufficient
+Probabilistic reasoning is activated when deterministic cognition cannot safely resolve the decision or policy/host explicitly requires reasoning.
 
-A revision number detects that something changed but does not tell whether the change matters to the proposal.
-
-Therefore the implementation must use both:
+The strategy produces a provider-neutral `ReasoningRequirement` containing, where applicable:
 
 ```text
-BaseRevision
-+
-ReadSet / AssumptionSet
-+
-entity/resource revision checks
+required/preferred capabilities
+context capacity
+structured-output requirements
+tool-use requirements
+reasoning depth/quality needs
+latency tolerance
+cost/budget constraints
 ```
 
-## 7.2 Conflict classification
+It must not contain provider-specific model identifiers.
 
-When applying a proposal against current state, classify changes as:
+### Assessment signals
+
+Possible signals include:
 
 ```text
-NoConflict
-RelatedChange
-AssumptionBroken
-TargetAlreadyChanged
-PolicyChanged
-ResourceChanged
-GoalConflict
-PlanConflict
-BeliefConflict
-UnknownConflict
+uncertainty
+novelty
+evidence quality
+consequence/risk
+branching/planning horizon
+conflicting beliefs
+tool/context requirements
+latency budget
+cost policy
+resource availability
 ```
 
-Unrelated changes may permit application when all declared assumptions still hold.
+No universal complexity score is required.
 
-Related or assumption-breaking changes require revalidation. Unknown conflicts fail closed.
+### Reference strategy
 
-## 7.3 Compare-and-apply procedure
+Adaptive Hybrid Cognition may be the first implementation strategy because it provides a useful production baseline:
 
 ```text
-Current state C
-Proposal P(base R)
-      ↓
-Check terminal/lifecycle authority
-      ↓
-Check policy/authorization
-      ↓
-Resolve referenced entity versions
-      ↓
-Check ReadSet and AssumptionSet
-      ↓
-Classify conflicts
-      ↓
-NoConflict      → apply
-RelatedChange   → revalidate proposal
-AssumptionBroken→ reject/re-deliberate
-TargetChanged   → reject or merge only if explicitly supported
-UnknownConflict → reject
-      ↓
-Commit revision N+1 if valid
+sufficient deterministic behavior
+        → act
+otherwise
+        → assess reasoning requirement
+        → execute bounded reasoning
+        → validate proposal
+        → commit or retry/escalate
 ```
 
-There is no generic semantic auto-merge for arbitrary cognitive state. A strategy may define safe merge functions for specific entity types.
+AHC is an implementation strategy, not an architectural truth. A later strategy must consume the same kernel and execution boundaries.
 
-## 7.4 Idempotency
+### Deliberation bounds
 
-Every state-changing proposal must have a stable proposal identity and operation key suitable for duplicate detection.
+Every deliberative run must have applicable limits for:
 
-Replaying the same successfully committed proposal must not produce a second logical transition.
+```text
+wall time
+model calls
+tokens/usage
+reasoning depth
+proposal count
+retrieval/working-context size
+```
+
+Stop when a valid proposal is produced, a bound is reached, the base revision becomes invalid, evidence is unavailable, policy denies further work, or cancellation/retirement/shutdown occurs.
+
+Incomplete deliberation is a valid typed outcome such as `Unresolved`, `BudgetExceeded`, `Cancelled`, `Superseded`, or `Escalated`.
 
 ---
 
-# 8. Impasse algorithm
+# 8. Impasses and bounded substates
 
-## 8.1 Impasse definition
+An `Impasse` is a typed state in which the current decision path cannot safely continue.
 
-An `Impasse` is created when the current cognitive path cannot safely continue within its deterministic authority and available evidence.
-
-Minimum fields:
-
-```text
-ImpasseId
-Type
-Severity
-AffectedEntities
-Trigger
-BaseRevision
-EvidenceReferences
-DependencySet
-ResolutionStatus
-ParentImpasseId (optional)
-Budget
-```
-
-Suggested types:
+Useful production types include:
 
 ```text
 MissingOperator
@@ -644,1013 +494,434 @@ StaleProposal
 ResolutionConflict
 ```
 
-## 8.2 Impasse entry
+Minimum data:
 
 ```text
-Current decision cannot safely progress
-      ↓
-Create typed Impasse at revision R
-      ↓
-Freeze the affected decision path
-      ↓
-Choose resolution policy
+ImpasseId
+Type
+Severity
+AffectedEntities
+BaseRevision
+EvidenceReferences
+DependencySet
+ResolutionStatus
+ParentImpasseId (optional)
+Budget
 ```
 
-The runtime may continue unrelated cognition that does not depend on the blocked state.
-
-## 8.3 Resolution strategies
+### Resolution options
 
 An impasse may be resolved by:
 
 ```text
-Deterministic alternate operator
-Additional retrieval
-Wait for information/event
-Plan revision
-Goal/intention arbitration
-Bounded deliberative substate
-Human/host escalation
-Permanent failure / abandonment
-```
-
-The strategy must select the cheapest sufficient resolution before escalating to a model.
-
-## 8.4 Bounded deliberative substate
-
-A deliberative substate is:
-
-```text
-Substate
-├── ParentRuntimeIdentity
-├── ParentRevision
-├── ReadSet
-├── AssumptionSet
-├── LocalWorkingState
-├── Hypotheses
-├── CandidatePlans
-├── CandidateBeliefs
-├── CandidateResolution
-├── Budget
-└── Status
-```
-
-It is not a second authoritative runtime and does not commit directly to global state.
-
-## 8.5 Isolation rules
-
-The substate may read only an immutable snapshot of:
-
-- the parent state at the captured revision;
-- explicitly authorized memory/knowledge/skill resources at their captured versions;
-- the triggering event/evidence;
-- additional evidence retrieved through permitted mechanisms.
-
-It may create local hypotheses and candidate state, but those are not visible as authoritative parent state until a resolution proposal is validated.
-
-## 8.6 Nested impasses
-
-Nested impasses are allowed only to a configured maximum depth.
-
-```text
-Parent Impasse
-  └── child impasse
-      └── child impasse
-          └── depth limit
-```
-
-At depth limit, the child must resolve through a non-recursive fallback: return unresolved, wait, escalate, or fail according to policy.
-
-## 8.7 Impasse resolution commit
-
-The substate produces an `ImpasseResolutionProposal` containing:
-
-```text
-ParentRevision
-ReadSet
-AssumptionSet
-ResolutionType
-ProposedChanges
-Evidence
-ExpectedBenefits
-KnownLimitations
-```
-
-Application uses the normal semantic compare-and-apply procedure. A newer conflicting revision causes revalidation or rejection; it never silently merges stale reasoning.
-
----
-
-# 9. Plan execution, failure, and replanning
-
-## 9.1 Plan step contract
-
-A plan step must expose enough structure for deterministic evaluation:
-
-```text
-StepId
-Revision
-Preconditions
-Action/Operator
-ExpectedEffects
-CompletionCriteria
-FailureConditions
-Dependencies
-CheckpointPolicy
-RetryPolicy
-```
-
-## 9.2 Step execution loop
-
-```text
-Current step
-   ↓
-Check plan/intention/cognitive revision
-   ↓
-Check preconditions
-   ↓
-Check policy/authorization/capability
-   ↓
-Execute operator or request execution
-   ↓
-Validate outcome
-   ↓
-Completed → advance
-Failed → classify failure
-Unknown → reconcile / wait
-Invalidated → replan
-```
-
-## 9.3 Unknown outcome
-
-An externally observable action may have an unknown outcome when timeout/cancellation occurs after dispatch or when the host cannot determine the external result.
-
-`Unknown` must not be converted automatically to `Failed` or `Succeeded`.
-
-The next cognitive action may be:
-
-```text
-query/reconcile
-retry only when idempotent/safe
-wait
-compensate
-escalate
-```
-
-This uses the durable goal/plan recovery architecture from Phase 0.9591.
-
-## 9.4 Replanning threshold
-
-Plan failure does not imply immediate full replanning. The runtime first determines whether:
-
-```text
-retry is safe
-local step replacement is sufficient
-another operator satisfies the same subgoal
-remaining plan is still valid
-```
-
-Full reconsideration occurs when the failure materially changes the feasibility of the current method or its assumptions.
-
----
-
-# 10. Experience retention and episodic memory
-
-## 10.1 Experience record
-
-A significant cognitive episode should be captured as attributable experience, containing bounded references to:
-
-```text
-Situation/context reference
-Relevant observations
-Beliefs used
-Goal/intention/plan revision
-Actions/operators used
-Tool/execution references
-Outcome evidence
-Failures / surprises
-Resource versions used
-Learning signals
-```
-
-Raw payload storage remains subject to existing HAgent retention, privacy, and observability rules.
-
-## 10.2 Experience selection for learning
-
-Not every episode should trigger proceduralization.
-
-Candidate episode selection should prioritize:
-
-- repeated occurrence;
-- success or informative failure;
-- high effort/model cost;
-- deterministic outcome evidence;
-- novelty followed by successful resolution;
-- repeated impasse followed by successful resolution;
-- stable environment/contract conditions;
-- explicit host marking for learning.
-
----
-
-# 11. Episodic experience → SkillCandidate synthesis
-
-This is the first algorithmic specification for proceduralization. It is deliberately conservative.
-
-## 11.1 Fundamental rule
-
-**Do not derive a trusted Skill from one successful trajectory by default.**
-
-A single episode may create a `SkillCandidate`, but publication requires stronger evidence according to learning policy.
-
-## 11.2 Candidate formation pipeline
-
-```text
-Eligible experiences
-      ↓
-Episode normalization
-      ↓
-Pattern detection
-      ↓
-Action-sequence analysis
-      ↓
-Invariant/precondition extraction
-      ↓
-Outcome/effect extraction
-      ↓
-Negative/exception evidence collection
-      ↓
-Candidate skill synthesis
-      ↓
-Offline validation against retained episodes
-      ↓
-Evaluation
-      ↓
-Policy / approval
-      ↓
-Publish new Skill version or reject
-```
-
-## 11.3 Episode normalization
-
-The system converts episodes into provider-neutral procedure traces:
-
-```text
-State predicates / context features
-Action/operator
-Observed result
-Outcome
-```
-
-The representation must preserve ordering and the distinction between:
-
-```text
-required context
-incidental context
-action
-observation
-outcome
-```
-
-The normalization process must not assume that natural-language narration is an executable procedure.
-
-## 11.4 Pattern detection
-
-The initial reference implementation should support deterministic structural matching before model-assisted abstraction.
-
-Suitable first-pass signals include:
-
-- repeated operator sequences;
-- repeated precondition/effect structures;
-- repeated tool-operation patterns;
-- repeated successful subplans;
-- common subsequences across episodes.
-
-Model-assisted generalization may propose additional abstractions, but cannot bypass validation.
-
-## 11.5 Causal caution
-
-HAgent must not claim causal certainty from sequence correlation alone.
-
-For each candidate step, classify evidence as:
-
-```text
-Required
-Likely useful
-Observed but unproven
-Incidental
-Unknown
-```
-
-A step may be removed from a candidate only when retained evidence demonstrates it is unnecessary or policy explicitly permits abstraction risk.
-
-## 11.6 Preconditions
-
-Candidate preconditions are formed from conditions common to successful episodes and absent/violated in relevant failures.
-
-```text
-Positive successful episodes
-        +
-Negative/failed episodes
-        ↓
-Candidate applicability conditions
-```
-
-When negative evidence is unavailable, the candidate must remain conservatively scoped instead of assuming broad applicability.
-
-## 11.7 Generalization levels
-
-The skill synthesizer should support at least:
-
-```text
-Exact replay pattern
-Bounded parameterized procedure
-Conditionally generalized procedure
-```
-
-A candidate must never generalize beyond its evidence boundary merely because the model can produce a more abstract description.
-
-## 11.8 Candidate confidence
-
-Confidence is evidence metadata, not authorization.
-
-A candidate should accumulate evidence over time:
-
-```text
-candidate confidence
-    ↑ with independent successful applications
-    ↓ with failures / contradictions
-    ↓ with environment drift
-```
-
-The promotion policy decides the threshold and evidence requirements.
-
-## 11.9 Partial proceduralization
-
-A candidate may contain deterministic and unresolved portions:
-
-```text
-Step 1 deterministic
-Step 2 deterministic
-Step 3 requires deliberation
-Step 4 deterministic
-```
-
-This is preferred over forcing the whole episode into either a fully deterministic Skill or a fully model-driven procedure.
-
-## 11.10 Negative transfer protection
-
-Before publication, evaluate the candidate against:
-
-- successful episodes;
-- known failures;
-- edge cases;
-- materially different contexts;
-- current policy/capability constraints.
-
-A candidate that improves one case class while damaging another must remain scoped, revised, or rejected.
-
----
-
-# 12. Learned resource applicability and reliability
-
-0.9576 provides the post-promotion reliability foundation. The cognitive runtime must consume it rather than invent a parallel trust system.
-
-## 12.1 Applicability evaluation
-
-Before relying on a learned Skill/Knowledge artifact, the runtime should evaluate:
-
-```text
-scope compatibility
-version validity
-preconditions
-resource dependencies
-freshness
-known contradictions
-historical success
-recent failures
-environment compatibility
-policy/capability availability
-```
-
-Possible result:
-
-```text
-Applicable
-ConditionallyApplicable
-Uncertain
-Invalidated
-Unavailable
-```
-
-## 12.2 Runtime response to uncertainty
-
-The key rule is:
-
-```text
-learned resource uncertain
-        ↓
-fall back to broader evidence/reasoning
-```
-
-Uncertainty must not silently become confidence.
-
-## 12.3 Drift detection
-
-A resource becomes a drift candidate when one or more signals repeatedly change:
-
-- required preconditions;
-- observed environment structure;
-- outcome distribution;
-- relevant knowledge versions;
-- provider/host capabilities;
-- repeated unexpected failures.
-
-Drift is a revalidation trigger, not immediate deletion.
-
----
-
-# 13. Continual learning and contradiction handling
-
-## 13.1 Layered stability
-
-HAgent should preserve different stability levels:
-
-```text
-Cognitive Kernel
-    ↓
-validated Skills / Policies
-    ↓
-curated Knowledge
-    ↓
-Semantic memory
-    ↓
-Episodic experience
-    ↓
-Working state
-```
-
-New evidence should normally create a revision or a competing version rather than destructive overwrite.
-
-## 13.2 Contradiction detection
-
-Contradiction detection should be provider-neutral and composable. Initial deterministic support should compare normalized assertions where a common identity and mutually exclusive value space are known.
-
-A contradiction record should identify:
-
-```text
-resource/assertion A
-resource/assertion B
-shared subject/identity
-conflict relation
-source/provenance
-revision/version
-```
-
-Unknown semantics must remain `Unknown`, not forced into contradiction/non-contradiction.
-
-## 13.3 Conflict resolution
-
-When contradictory resources are both validly scoped:
-
-```text
-Check scope
-Check authority
-Check freshness
-Check provenance quality
-Check corroboration
-Check explicit policy
-      ↓
-choose:
-  A authoritative
-  B authoritative
-  keep both with scope
-  mark uncertain
-  request further evidence
-  escalate
-```
-
-There must be no universal rule that "newer always wins" or "higher confidence always wins" without considering authority and scope.
-
-## 13.4 Dependency invalidation
-
-If Skill A depends on Knowledge K v3 and K becomes invalidated:
-
-```text
-K invalidated
-    ↓
-find dependents
-    ↓
-mark A conditionally applicable / stale
-    ↓
-revalidate before execution
-```
-
-Dependency invalidation is selective and version-aware.
-
-## 13.5 Consolidation
-
-Consolidation should reduce redundancy without discarding provenance:
-
-```text
-similar resources
-      ↓
-merge candidate
-      ↓
-verify compatibility
-      ↓
-publish new version
-      ↓
-retain provenance links to sources
-```
-
-Consolidation must never silently erase conflicting evidence.
-
-## 13.6 Forgetting / archival
-
-Forgetting is policy-controlled archival or removal, not arbitrary deletion.
-
-A utility function may consider:
-
-```text
-recent use
-success contribution
-retrieval frequency
-storage cost
-redundancy
-reliability
-scope
-retention policy
-```
-
-Exact scoring is policy-owned. A low-utility resource should normally become a candidate for archival/expiration before irreversible deletion when retention policy allows.
-
----
-
-# 14. Goal/plan/skill interaction
-
-The runtime must prevent learned procedures from becoming hidden authorities over persistent intentions.
-
-Example:
-
-```text
-Goal G1: Resolve incident
-Intention I1: Resolve incident
-Plan P3: use Skill S4
-```
-
-If S4 becomes uncertain:
-
-```text
-Do not change G1 automatically.
-Do not abandon I1 automatically.
-Invalidate or suspend method P3.
-Create a method-level impasse.
-Try alternate method or deliberate.
-```
-
-Only evidence affecting the goal itself should force goal reconsideration.
-
-This is the core mechanism for persistent intention with live method authority.
-
----
-
-# 15. Cognitive scheduler and concurrency
-
-## 15.1 Single-writer logical state
-
-The reference implementation should use a **single logical commit authority per runtime instance** for authoritative cognitive revision.
-
-This does not mean every operation is single-threaded. Retrieval, model execution, evaluation, and other expensive work may occur concurrently. Only state commits serialize through the cognitive commit boundary.
-
-Conceptually:
-
-```text
-Many concurrent workers
-        ↓
-proposal queue
-        ↓
-Cognitive Commit Authority
-        ↓
-revision R → R+1 → R+2
-```
-
-## 15.2 Concurrent deliberations
-
-Multiple deliberations may run concurrently when they affect independent state. However, they must declare their ReadSet/AssumptionSet and target entities.
-
-A proposal affecting the same goal/intention/plan as another pending proposal must be arbitrated deterministically at commit time.
-
-## 15.3 Priority classes
-
-The scheduler should recognize at least:
-
-```text
-Safety / host-mandated
-Goal-critical
-Time-sensitive
-Normal
-Background learning/consolidation
-```
-
-Scheduling priority does not bypass policy or authorization.
-
-## 15.4 Starvation protection
-
-Background cognition must not starve indefinitely. The scheduler should support bounded fairness or aging, subject to host-controlled limits.
-
-## 15.5 Event storm protection
-
-Under event storms:
-
-```text
-bounded intake queue
-→ dedup/coalesce where policy allows
-→ salience ranking
-→ drop/retain lower-value events explicitly
-→ preserve critical events
-```
-
-Dropped/coalesced event counts remain observable.
-
----
-
-# 16. Failure semantics
-
-The runtime must treat failure as typed state, not generic exception text.
-
-Minimum cognitive failure categories:
-
-```text
-NoApplicableOperator
-EvidenceInsufficient
-AmbiguousInterpretation
-ConflictUnresolved
-DeliberationTimeout
-DeliberationBudgetExceeded
-ProposalStale
-ProposalConflict
-ResourceUnavailable
-ResourceUncertain
-PolicyDenied
-AuthorizationDenied
-HostEscalationRequired
-RepeatedNoProgress
-StrategyUnavailable
-RecoveryConflict
-```
-
-Every failure must have a bounded next action:
-
-```text
-retry
-alternative
-wait
-re-deliberate
-suspend
-escalate
-abandon
-```
-
-The runtime must avoid infinite automatic retry/re-deliberation loops.
-
----
-
-# 17. Time and real-time behavior
-
-The runtime distinguishes:
-
-```text
-Host/environment time
-Cognitive scheduling time
-Deliberation/model time
-External action time
-```
-
-A host may impose a hard response deadline. When that deadline cannot accommodate deliberation, the runtime should prefer:
-
-```text
-existing safe plan/operator
-safe fallback
-wait/defer
+known alternative
+additional retrieval
+waiting
+plan revision
+deliberation
+strategy change
 host escalation
 ```
 
-over unbounded reasoning.
+### Isolated deliberative substate
 
-Long-running deliberation must not block event ingestion or unrelated cognitive activity.
+A substate is a bounded proposal workspace derived from a parent revision. It may hold local hypotheses, candidate plans, retrieved evidence, assumptions, and working state.
+
+It is not a second authoritative runtime.
+
+Its dependency/read set determines whether parent changes are relevant:
+
+```text
+unrelated parent change
+    → may continue
+related parent change
+    → revalidate
+assumption broken
+    → discard/re-deliberate
+unknown conflict
+    → fail closed
+```
+
+Nested substates are allowed only within explicit depth/time/model-call/usage limits.
+
+A successful resolution produces experience/evidence and may produce a `SkillCandidate`. Solving an impasse once never automatically makes a permanent Skill authoritative.
 
 ---
 
-# 18. Security and adversarial input
+# 9. Plans, operators, and recovery
 
-## 18.1 Untrusted observations
+A `Plan` is durable state. A planner/strategy creates or revises it.
 
-Natural-language events, retrieved content, tool output, external messages, and model-generated beliefs are untrusted inputs.
-
-They may provide evidence but cannot grant:
-
-- authorization;
-- capability;
-- policy exceptions;
-- host authority;
-- trusted instruction status.
-
-## 18.2 Proposal validation
-
-Before a proposal changes authoritative cognition:
+A plan should support:
 
 ```text
-schema/contract validation
-→ identity/scope validation
-→ revision/dependency validation
-→ policy
-→ authorization where applicable
-→ semantic consistency checks
-→ commit
+identity/version
+steps
+dependencies
+preconditions
+checkpoints
+completion criteria
+failure conditions
+assumptions
+expected effects
 ```
 
-## 18.3 Prompt injection resistance
+An operator/action may specify:
 
-Instruction governance remains the authoritative instruction boundary. A cognitive proposal cannot elevate untrusted content by changing a trust/authority field merely because a model requested it.
+```text
+identity
+preconditions
+intended effects
+required resources/capabilities
+bounded execution semantics
+provenance
+```
+
+Known safe plan steps should progress without unnecessary model calls.
+
+### Outcome classification
+
+Every externally observable step should distinguish at least:
+
+```text
+Completed
+Failed
+UnknownOutcome
+Cancelled
+Superseded
+```
+
+An unknown external outcome must not be recorded as success.
+
+### Revision and retry
+
+Plan changes record a reason such as new evidence, failed precondition, failed action, belief revision, resource/policy change, higher-priority goal, or explicit reconsideration.
+
+A newer plan revision invalidates stale asynchronous work against the old revision.
 
 ---
 
-# 19. Evaluation algorithms
+# 10. Experience and procedural learning
 
-Layer-2 algorithms must be testable independently of a vendor model.
-
-## 19.1 Intention persistence metrics
-
-Controlled scenarios should measure:
+HAgent keeps these concepts distinct:
 
 ```text
-Goal retention under method failure
-Method-change latency
-Unnecessary goal-reconsideration rate
-Intention oscillation rate
-Conflict-resolution determinism
-Stale-proposal rejection
+Experience = what happened
+Skill      = reusable procedure derived from evidence
+Knowledge  = reusable information
+Policy     = rule governing behavior
 ```
 
-## 19.2 Impasse metrics
+Original experience remains available after proceduralization.
 
-Measure:
+### Candidate synthesis
+
+The first learning implementation should be conservative:
 
 ```text
-Impasse detection precision/recall where a test oracle exists
-Resolution success rate
-Average deliberation cost
-Nested-impasse depth
-Repeated-impasse rate
-Stale-resolution rejection rate
+eligible experiences
+      ↓
+identify repeated structure
+      ↓
+identify candidate preconditions
+      ↓
+identify procedure steps
+      ↓
+identify expected effects
+      ↓
+collect positive evidence
+      ↓
+collect negative/counterexample evidence where available
+      ↓
+create SkillCandidate
 ```
 
-## 19.3 Skill formation metrics
+The synthesis may be deterministic, model-assisted, or hybrid. No single synthesis algorithm is treated as universally correct.
 
-Measure separately:
+### Candidate evidence
+
+A SkillCandidate should retain:
 
 ```text
-Candidate usefulness
-Applicability precision
-Applicability recall
-Success uplift vs baseline
-Negative-transfer rate
-Skill invocation success
-Fallback-to-reasoning rate
-Candidate promotion false-positive rate
+source experiences
+candidate procedure
+candidate preconditions
+expected effects
+applicability evidence
+negative evidence/counterexamples
+provenance
+confidence/evidence summary
+source execution/runtime identity
 ```
 
-A skill that increases one benchmark while increasing failures elsewhere is not considered a successful proceduralization.
+A single accidental success should not normally publish an automatic reusable procedure. The default path favors repeated independent evidence, explicit applicability conditions, regression checks, bounded rollout, and reversible publication.
 
-## 19.4 Continual adaptation metrics
+A candidate may remain episodic knowledge without becoming a Skill.
 
-Measure:
+---
+
+# 11. Learned-resource reliability and adaptation
+
+Published Knowledge and Skills remain subject to the existing 0.9576 reliability/adaptation architecture.
+
+The cognitive runtime consumes its results; it does not create a second learned-resource system.
+
+Relevant states include:
 
 ```text
-contradiction detection rate
-stale-resource detection rate
-revalidation success
-regression after promotion
-resource growth
-retrieval noise
-archival effectiveness
+Applicable
+Uncertain
+Invalidated
+Stale
+Contradictory
 ```
 
-## 19.5 Strategy comparison
+If a Skill depends on a versioned Knowledge item, belief assumption, tool contract, or other resource, that dependency must be represented where applicable.
 
-The same event/goal scenario must be executable through multiple strategies against the same kernel and evaluation harness.
+```text
+resource revision changes
+      ↓
+find dependent learned resources
+      ↓
+revalidate
+      ↓
+retain / downgrade / quarantine / replace / retire
+```
 
-Required comparison dimensions include:
+Contradictory authoritative resources require an explicit contradiction result or configured precedence. Silent deletion is not acceptable.
 
-- task success;
+Resource growth is bounded by retention/consolidation policy. Forgetting means controlled removal from active retrieval or archival, not a claim about human memory.
+
+When a learned resource is uncertain or invalid, the runtime must have a safe fallback such as another resource, deterministic behavior, bounded reasoning, or host escalation.
+
+---
+
+# 12. Concurrency and scheduling
+
+Persistent cognition is asynchronous. Typical concurrent work includes:
+
+```text
+events
+retrieval
+deliberation
+plan execution
+tools
+learning evaluation
+intervention
+recovery
+```
+
+Required invariants:
+
+- event ingestion does not block on LLM execution;
+- cognitive work is bounded per runtime;
+- independent runtimes remain isolated and independently schedulable;
+- stale proposals are rejected or revalidated;
+- cancellation propagates to owned work;
+- retirement/shutdown invalidates new cognitive authority;
+- host scheduling remains host-controlled where required.
+
+A future scheduler may add priority/deadline policies, but cognitive correctness must not depend on one specific scheduling algorithm.
+
+---
+
+# 13. Failure and recovery semantics
+
+Minimum failure classes include:
+
+```text
+InvalidInput
+PolicyDenied
+AuthorizationDenied
+ResourceUnavailable
+DeliberationTimeout
+BudgetExceeded
+Cancelled
+Superseded
+StaleProposal
+Conflict
+ProviderFailure
+ToolFailure
+UnknownOutcome
+RecoveryFailure
+```
+
+No failure path may silently mutate newer authoritative state.
+
+### Restart recovery
+
+```text
+load latest durable cognitive revision
+      ↓
+identify incomplete work
+      ↓
+invalidate obsolete execution authority
+      ↓
+reconcile known outcomes
+      ↓
+resume / retry / mark unknown / re-deliberate
+```
+
+Live provider sessions, cancellation tokens, synchronization primitives, secrets, and transport state are not persistent cognitive state.
+
+---
+
+# 14. Policy, authorization, and adversarial input
+
+Model output, retrieved content, memory, and external observations are untrusted unless a separate authoritative boundary says otherwise.
+
+They cannot directly grant:
+
+```text
+authorization
+resource capability
+policy changes
+host-side permissions
+published Skill authority
+published Knowledge authority
+kernel mutation rights
+```
+
+Consequential changes pass through the existing HAgent policy, authorization, capability, budget, and host-side authority boundaries.
+
+Prompt text is never an enforcement mechanism.
+
+---
+
+# 15. Observability and evaluation
+
+Meaningful cognitive transitions must expose bounded diagnostic facts without requiring raw prompt/response storage.
+
+At minimum observe:
+
+```text
+event triage decision
+workspace selection
+deterministic vs deliberative decision
+reasoning requirement
+escalation path
+impasse creation/resolution
+proposal conflict outcome
+belief revision
+goal/intention/plan revision
+learning candidate lifecycle
+resource invalidation
+recovery outcome
+```
+
+Production evaluation should measure:
+
+- task/goal success;
+- plan completion;
 - unnecessary model-call rate;
-- escalation rate;
-- latency;
-- cost;
+- deliberation rate;
 - recovery success;
-- state consistency;
-- skill reuse;
-- failure recovery quality.
+- stale-proposal rejection;
+- cognitive-state consistency;
+- candidate acceptance/rejection;
+- published-resource regression;
+- latency;
+- cost/resource use;
+- failure/escalation frequency.
+
+Evaluation is evidence and does not directly mutate authoritative state.
 
 ---
 
-# 20. Reference AHC control loop
+# 16. Minimum implementation contracts
 
-The first implementation of Adaptive Hybrid Cognition should follow this control loop:
-
-```text
-while runtime active:
-
-    receive bounded events
-
-    triage / deduplicate / expire
-
-    update observations and working state
-
-    select attention frame
-
-    detect affected goals / intentions / plans
-
-    attempt deterministic reactive resolution
-
-    if safe resolution exists:
-        propose transition
-        validate
-        commit if current
-        continue
-
-    create typed impasse when needed
-
-    assess reasoning requirement
-
-    if NoModelRequired:
-        apply deterministic alternative / wait / escalate
-        continue
-
-    create bounded deliberative substate
-
-    perform progressive reasoning escalation
-
-    produce typed proposal
-
-    compare proposal against current revision and dependencies
-
-    if valid:
-        commit revision
-    else if recoverable conflict:
-        revalidate / re-deliberate within budget
-    else:
-        record unresolved outcome and apply fallback
-
-    record experience/outcome
-
-    trigger governed learning when policy permits
-
-    adapt learned-resource applicability from validated outcomes
-```
-
-This is a reference algorithm, not a requirement that all strategies use the same internal loop.
-
----
-
-# 21. Required public/provider-neutral contracts before implementation
-
-The following contracts should exist before substantial implementation of the corresponding algorithms:
-
-```text
-ICognitiveStrategy
-ICognitiveScheduler
-ICognitiveStateStore
-ICognitiveCommitAuthority
-ICognitiveAttentionPolicy
-IReactiveDecisionPolicy
-IDeliberationPolicy
-IInterpretationPolicy
-IPlanner
-IImpasseResolver
-ICognitiveRevisionEvaluator
-ISkillSynthesizer
-ILearnedResourceApplicabilityEvaluator
-```
-
-Not every interface must be public from day one. The key requirement is that the responsibilities remain separable so strategies do not absorb persistence, authorization, provider routing, or host authority.
-
-Core data contracts should include equivalents of:
+Before a full persistent cognitive runtime is considered complete, the following provider-neutral contracts must exist or have an explicit simpler equivalent:
 
 ```text
 CognitiveState
 CognitiveRevision
 CognitiveProposal
-CognitiveReadDependency
-CognitiveAssumption
+CognitiveTransitionResult
 Belief
-BeliefRevision
 Goal
 Intention
 Plan
-PlanStep
+PlanStep / Operator
 Impasse
-ImpasseResolutionProposal
 DecisionContext
-GlobalWorkspaceFrame
+DecisionWorkspace
 ReasoningRequirement
 Experience
 SkillCandidate
 ResourceApplicabilityAssessment
+ICognitiveStrategy
+ICognitiveScheduler
 ```
 
-Exact names may change during implementation, but the responsibilities must not collapse into one generic mutable agent object.
+The names are not sacred. The externally observable behavior and invariants are.
+
+### Implementation order
+
+```text
+A. state + revision/commit authority
+B. goal / intention / plan state
+C. observation / belief state
+D. semantic proposal/conflict handling
+E. event triage + bounded workspace
+F. deterministic decision path
+G. bounded deliberation + reasoning requirement
+H. impasse + isolated substate
+I. plan execution/revision/recovery
+J. experience + learning candidates
+K. learned-resource applicability/adaptation
+L. cognitive scheduling + recovery hardening
+M. strategy comparison/optimization
+```
+
+Every step must be independently verifiable before being treated as complete.
 
 ---
 
-# 22. Minimal deterministic acceptance scenarios
+# 17. Verification standard
 
-Before introducing live-model dependence, the implementation should pass deterministic scenarios for:
+A cognitive capability is not complete because an interface or architecture document exists.
 
-1. plan failure changes the method but preserves the goal;
-2. supporting belief becomes invalid and forces plan reconsideration;
-3. higher-priority intention suspends a conflicting lower-priority intention;
-4. equal-priority unresolved conflict becomes an explicit impasse;
-5. stale proposal affecting an unrelated entity may still apply when all dependencies remain valid;
-6. stale proposal affecting a changed assumption is rejected;
-7. two concurrent proposals for one plan serialize deterministically;
-8. impasse substate cannot mutate parent state directly;
-9. nested impasse stops at configured depth;
-10. deliberation stops at time/token/depth budget;
-11. late deliberation cannot overwrite a superseding cognitive revision;
-12. unknown external action outcome is not converted to success/failure without evidence;
-13. repeated successful episodes create a SkillCandidate while preserving source experiences;
-14. a candidate containing an unresolved step remains partially proceduralized;
-15. positive-only evidence produces conservative applicability rather than universal generalization;
-16. negative evidence narrows candidate preconditions;
-17. a promoted Skill becomes uncertain after repeated failures and the runtime falls back to reasoning;
-18. a changed Knowledge dependency invalidates a dependent Skill applicability assessment;
-19. contradiction between scoped resources does not automatically delete either resource;
-20. event storms remain bounded without starving critical events;
-21. two independent cognitive runtimes cannot share private cognitive state;
-22. strategy replacement cannot bypass kernel revision or persistence rules;
-23. policy denial prevents a cognitive proposal from becoming authoritative;
-24. host-authoritative observation outranks conflicting inferred belief where the contract says it does;
-25. a runtime restart rebuilds the latest durable revision and invalidates obsolete in-flight work.
+Completion requires:
 
----
+1. implementation;
+2. deterministic contract/unit tests where applicable;
+3. public `HAgent.Example` verification for externally meaningful behavior;
+4. verification on required framework targets;
+5. documented failure and concurrency semantics;
+6. compliance with policy, authorization, snapshot, persistence, and host-boundary invariants.
 
-# 23. Implementation order
-
-The algorithms should be implemented in dependency order rather than all at once:
+Minimum scenarios include:
 
 ```text
-A. Cognitive state + revision + commit authority
-        ↓
-B. Belief / observation / dependency model
-        ↓
-C. Goal / intention / plan / operator state machine
-        ↓
-D. Reactive cognition + attention
-        ↓
-E. Impasse + isolated substates
-        ↓
-F. Deliberation / ReasoningRequirement / AHC
-        ↓
-G. Semantic stale/conflict handling
-        ↓
-H. Plan recovery + reconsideration
-        ↓
-I. Experience capture
-        ↓
-J. Skill candidate synthesis + evaluation
-        ↓
-K. Learned-resource applicability / adaptation
-        ↓
-L. Multi-strategy evaluation and Workbench
+persistent state survives valid restart recovery
+method revision does not silently change goal/intention
+invalidated belief triggers affected revalidation
+concurrent proposals cannot corrupt state
+unrelated state changes do not unnecessarily invalidate proposals
+related dependency changes force revalidation
+routine work proceeds without an LLM
+ambiguous work escalates within bounds
+deliberation timeout produces safe typed outcome
+impasse resolution cannot overwrite newer cognition
+nested impasses stop at configured limits
+failed steps do not become false success
+unknown external outcomes remain unknown
+repeated experience can create candidates without forced publication
+rejected candidates cannot mutate authoritative resources
+learned-resource dependency changes trigger selective revalidation
+uncertain skills fall back safely
+independent runtime instances remain isolated
+retirement/shutdown prevents new authority
+recovery invalidates obsolete execution work
+adversarial content cannot bypass policy
+strategy replacement cannot bypass kernel boundaries
+multiple strategies can be evaluated on the same scenario
 ```
 
-Each slice must be complete within its own architectural scope and must include deterministic tests and a matching `HAgent.Example` scenario under the rules in `AGENTS.md`.
+## Final rule
 
-## Final architectural position
+HAgent is not implementing a theory of mind.
 
-The Persistent Cognitive Runtime is not defined by one magic algorithm. It is defined by a set of explicit contracts and bounded decision procedures:
+HAgent is implementing a **persistent, versioned, bounded decision runtime** that can use deterministic procedures, external resources, and replaceable probabilistic reasoning while preserving state integrity, authorization, recovery, and empirical evaluation.
 
-```text
-Observe
-  ↓
-Interpret
-  ↓
-Attend
-  ↓
-Assess
-  ↓
-React or deliberate
-  ↓
-Propose against revision R
-  ↓
-Check dependencies / policy / authority
-  ↓
-Commit R+1 or reject
-  ↓
-Observe outcome
-  ↓
-Learn conservatively
-  ↓
-Revalidate over time
-```
-
-The architecture deliberately preserves uncertainty. When HAgent cannot establish that a goal, method, belief, or learned resource remains valid, it must represent that uncertainty and choose a bounded fallback rather than manufacture certainty.
+Research may improve the strategies later. The kernel and production invariants remain independent of any particular theory.

@@ -30,7 +30,9 @@ Later Slice 10 authoritative promotion
 
 `IAiLearningCandidateStore` is provider-neutral. It owns durable candidate records, bounded queries, optimistic revision checks, and expiry cleanup. It does not authorize promotion and does not publish resources.
 
-The File backend provides the first durable implementation using an atomic temporary-file replacement pattern. `InMemoryAiLearningCandidateStore` provides deterministic test/runtime infrastructure. SQL Server/MySQL candidate-specific backends remain optional future storage work and must consume the same boundary rather than introduce another candidate model.
+The File backend provides the first durable implementation using an exclusive store gate and temporary-file replacement with `File.Replace` when replacing an existing store file. `InMemoryAiLearningCandidateStore` provides deterministic test/runtime infrastructure. SQL Server/MySQL candidate-specific backends remain optional future storage work and must consume the same boundary rather than introduce another candidate model.
+
+The File backend fails closed on malformed JSON rather than silently skipping damaged records. Storage corruption must be surfaced to the host instead of being converted into apparent missing candidates.
 
 ## Persistence semantics
 
@@ -49,7 +51,7 @@ The typed payload remains non-authoritative. Persistence is storage of a proposa
 
 ## Retention
 
-`AiLearningCandidateRetentionPolicy` maps the candidate's declared retention class to an optional bounded number of days. Expiry is calculated at capture time and is never silently extended by review updates. Stores exclude expired candidates from normal reads and support deterministic purge.
+`AiLearningCandidateRetentionPolicy` maps the candidate's declared retention class to an optional bounded number of days. Expiry is calculated at capture time and is never silently extended by review updates. A zero-day retention rule is valid and makes the record immediately expired at its capture timestamp. Stores exclude expired candidates from normal reads and support deterministic purge.
 
 An unmapped retention class means no store-imposed expiry; the record remains subject to later policy/administrative lifecycle rules.
 

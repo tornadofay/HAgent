@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Models;
 using HAgent.Runtime;
@@ -199,7 +198,6 @@ namespace HAgent.Tests
             };
             rule.Operations.Add("learning.review");
             rule.ResourceTypes.Add("learning-candidate");
-            rule.ResourceIds.Add("*");
             rule.Attributes["candidateType"] = "Skill";
             rule.Attributes["proposedScope"] = "Agent";
             rule.Attributes["currentStatus"] = "PendingReview";

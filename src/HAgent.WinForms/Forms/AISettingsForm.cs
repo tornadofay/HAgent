@@ -14,6 +14,7 @@ using HAgent.WinForms.UI.Configuration.Learning;
 using HAgent.WinForms.UI.Configuration.Overview;
 using HAgent.WinForms.UI.Configuration.Policy;
 using HAgent.WinForms.UI.Configuration.Providers;
+using HAgent.WinForms.UI.Configuration.Resources;
 using HAgent.WinForms.UI.Configuration.Tools;
 using HAgent.WinForms.Helpers;
 using HAgent.WinForms.Helpers.Button;
@@ -37,6 +38,7 @@ namespace HAgent.WinForms.Forms
         private readonly ToolsPage _tools;
         private readonly PolicyPage _policy;
         private readonly LearningReviewPage _learningReview;
+        private readonly AuthoritativeResourceInventoryPage _resources;
 
         public AISettingsForm(
             IAiStore store,
@@ -45,16 +47,18 @@ namespace HAgent.WinForms.Forms
             IToolRegistry tools = null,
             IAiLearningCandidateStore learningCandidates = null,
             AgentIdentityContext reviewerIdentity = null,
-            AiLearningPromotionService learningPromotion = null)
+            AiLearningPromotionService learningPromotion = null,
+            IAiResourceInventory resourceInventory = null)
             : base("AI Configuration", "Providers, agents, tools, policy, learning review, permissions, and storage", new Size(1120, 720), new Size(900, 600))
         {
-            _context = new ConfigurationContext(store, secrets, adapters, tools, learningCandidates, reviewerIdentity, learningPromotion);
+            _context = new ConfigurationContext(store, secrets, adapters, tools, learningCandidates, reviewerIdentity, learningPromotion, resourceInventory);
             _overview = new OverviewPage(_context);
             _providers = new ProvidersPage(_context);
             _agents = new AgentsPage(_context);
             _tools = new ToolsPage(_context);
             _policy = new PolicyPage(_context);
             _learningReview = new LearningReviewPage(_context);
+            _resources = new AuthoritativeResourceInventoryPage(_context);
             BuildShell();
             RegisterPages();
             Shown += async delegate { await ReloadAsync(); };
@@ -87,15 +91,12 @@ namespace HAgent.WinForms.Forms
             RegisterPage("Tools", delegate { return _tools; });
             RegisterPage("Policy", delegate { return _policy; });
             RegisterPage("Learning Review", delegate { return _learningReview; });
+            RegisterPage("Authoritative Resources", delegate { return _resources; });
 
             RegisterAction("Permissions", delegate
             {
-                using (var form = new UiPermissionsForm(AISettings.LoadUiPermissions()))
-                {
-                    form.ShowDialog(this);
-                }
+                using (var form = new UiPermissionsForm(AISettings.LoadUiPermissions())) form.ShowDialog(this);
             });
-
             RegisterAction("Storage", delegate
             {
                 using (var form = new HAgentStorageSettingsForm(AppContext.BaseDirectory, ProcessName(), _context.Secrets))
@@ -104,13 +105,10 @@ namespace HAgent.WinForms.Forms
                     if (form.RuntimeStorageChanged && !IsDisposed) Close();
                 }
             });
-
             RegisterAction("Storage Test", delegate
             {
-                using (var form = new HAgentStorageConnectionTestForm(AppContext.BaseDirectory, _context.Secrets))
-                    form.ShowDialog(this);
+                using (var form = new HAgentStorageConnectionTestForm(AppContext.BaseDirectory, _context.Secrets)) form.ShowDialog(this);
             });
-
             RegisterPage("About", delegate { return new AboutPage(); });
         }
 
@@ -142,8 +140,7 @@ namespace HAgent.WinForms.Forms
             page.Dock = DockStyle.Fill;
             _content.Controls.Add(page);
             Control active;
-            if (_navigationButtons.TryGetValue(name, out active))
-                active.Focus();
+            if (_navigationButtons.TryGetValue(name, out active)) active.Focus();
         }
 
         private async Task ReloadAsync()
@@ -155,6 +152,7 @@ namespace HAgent.WinForms.Forms
             _agents.RefreshData();
             _tools.RefreshData();
             await _learningReview.RefreshDataAsync();
+            await _resources.RefreshDataAsync();
             ShowPage("Overview");
         }
 
@@ -166,17 +164,11 @@ namespace HAgent.WinForms.Forms
 
         private static HButton CreateNavigationButton(string text)
         {
-            var button = new HButton
+            return new HButton
             {
-                Text = text,
-                Width = 166,
-                Height = 42,
-                RoundButton = true,
-                Edge = 10,
-                TextAlign = ContentAlignment.MiddleLeft,
-                TextMargin = 16,
-                Margin = new Padding(0, 0, 0, 6),
-                Cursor = Cursors.Hand,
+                Text = text, Width = 166, Height = 42, RoundButton = true, Edge = 10,
+                TextAlign = ContentAlignment.MiddleLeft, TextMargin = 16,
+                Margin = new Padding(0, 0, 0, 6), Cursor = Cursors.Hand,
                 ButtonLeaveBackGroundColor1 = NavigationBackground,
                 ButtonLeaveBackGroundColor2 = Color.FromArgb(25, 20, 54),
                 ButtonLeaveForeColor = NavigationText,
@@ -191,7 +183,6 @@ namespace HAgent.WinForms.Forms
                 ButtonDownBorderColor = Color.FromArgb(104, 76, 176),
                 Font = new Font("Segoe UI", 9.5f)
             };
-            return button;
         }
     }
 }

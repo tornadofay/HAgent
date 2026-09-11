@@ -69,6 +69,16 @@ The slice defines one provider-neutral Learning Policy contract covering candida
 
 Slice 7 is closed.
 
+### Slice 8 — Canonical Learning Lifecycle Gate — IN PROGRESS
+
+The slice closes the next unfinished 0.9575 boundary: deterministic candidate admission through Learning Policy, Learning Mode, and the existing unified promotion-authorization policy.
+
+The lifecycle gate may move a Proposed candidate to `Rejected`, `PendingReview`, or `Approved`. Approval is not publication: authoritative Memory writes, Knowledge version creation, Skill version creation, candidate persistence/retention, audit persistence, review UI, context integration, and runtime learning-input capture remain later 0.9575 work.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → Learning Lifecycle` on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** `tests/HAgent.Tests/LearningLifecycleTests.cs` (focused); full `HAgent.Tests` is not required until the slice checkpoint.
+
 ## Run rule
 
 Complete the current slice and record its verification before selecting the next slice. Do not combine multiple numbered slices in one run.

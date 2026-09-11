@@ -162,7 +162,7 @@ namespace HAgent.Example
             if (key == "KNOWLEDGE/WIKI") return "Knowledge/Wiki";
             if (key == "SKILL DEFINITIONS" || key == "SKILLS") return "Skills";
             if (key.Contains("LEARNING") || key.Contains("COGNITION")) return "Learning";
-            if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY") return "Runtime Instances";
+            if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY" || key == "RUNTIME SINGLE OWNER") return "Runtime Instances";
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING") return "Intervention";
             if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RUNTIME EXECUTION") return "Execution";
             if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION") return "Planning & Capacity";

@@ -217,6 +217,28 @@ Existing implementation may appear before its ordered phase. Such work is retain
 
 This rule applies especially to current execution intervention, learning-candidate intervention, runtime examples, resource foundations, and other experiments created while earlier foundations were still being completed.
 
+## Cross-phase V1 verification scenarios
+
+Phase exit criteria prove their own bounded contracts. V1 completion also requires a small set of concrete scenarios that exercise the seams between authoritative phases. These are integration scenarios, not replacements for phase-specific verification.
+
+### Scenario 1 — Provider failure and recovery
+
+A persistent cognitive decision in 0.97 produces a provider-neutral `ReasoningRequirement` → 0.96 selects an execution target → the selected provider fails or reaches a governed rate/capacity boundary → 0.96 admits a valid fallback target → execution completes → 0.97 continues the active goal/plan without creating a second provider-selection authority.
+
+### Scenario 2 — Learning and restart recovery
+
+0.97 captures a meaningful experience → 0.9575 admits a typed learning candidate through policy and Learning Mode → governed promotion creates authoritative resource state → the host/runtime restarts → 0.958/0.9591 recovery restores the durable cognitive state → the promoted resource remains authoritative, version-safe, and governed after restart.
+
+### Scenario 3 — Intervention and stale asynchronous result
+
+0.97 starts bounded asynchronous reasoning → 0.959 intervention changes the authoritative target state or lifecycle revision → the old reasoning result arrives → the owning runtime rejects it as stale/superseded → the runtime continues from the current authoritative state without corrupting newer state.
+
+### Scenario 4 — Independent concurrent agents without a shared cognitive bottleneck
+
+At least 10 independent runtime agents receive work concurrently → each agent serializes mutation only within its own state owner → each agent completes its work without waiting behind another agent's owner queue → each agent retains isolated identity, revision, and state → observed concurrency demonstrates that one agent's workload does not collapse all agents behind a shared cognitive queue.
+
+These scenarios must use deterministic/fake infrastructure where possible and must report the concrete phase boundaries exercised. They do not require every execution to pass through every phase; each scenario tests a specific real cross-phase dependency.
+
 ## Roadmap maintenance rules
 
 1. One phase owns each responsibility; later phases consume earlier contracts rather than recreating them.
@@ -227,3 +249,5 @@ This rule applies especially to current execution intervention, learning-candida
 6. If implementation proves a dependency wrong, update this ordered roadmap and the affected phase documents together before continuing.
 7. Auxiliary documents under `docs/roadmap/` must name their parent phase and may not create an independent milestone or authority.
 8. Generated root `roadmap.md` remains a view; authoritative ordering lives in `docs/roadmap/`.
+9. Verification depth must match the risk and nature of the claim. Concurrency, cancellation/lifecycle, persistence/recovery, authorization/security, performance, and public API claims require verification appropriate to those claims rather than a blanket requirement that every feature use the same test type.
+10. A production architecture mechanism that materially affects V1 scope must have a corresponding roadmap item or explicit scope reference; architecture and roadmap must not silently drift apart.

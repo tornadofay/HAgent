@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This increment extends the Slice 12 Learning Review management page from a PendingReview-only list into a filterable inspection workspace. It does not create a second learning lifecycle and does not move authorization into the UI.
+This Slice 12 increment extends the Learning Review management page from a PendingReview-only list into a filterable inspection and governed promotion workspace. It does not create a second learning lifecycle and does not move authorization or publication logic into the UI.
 
 ## Learning candidate lifecycle
 
@@ -49,7 +49,7 @@ candidate formation
    Promoted
 ```
 
-Promotion is already a provider-neutral HAgent capability established in the earlier learning-promotion slice. It validates the candidate's approved state, evaluates fresh promotion authorization, publishes the authoritative resource before changing candidate lifecycle state, and preserves version safety for immutable resource families.
+Promotion is a provider-neutral HAgent capability established in the authoritative-promotion slice. It validates the candidate's approved state, evaluates fresh `learning.promote` authorization, publishes the authoritative resource before changing candidate lifecycle state, and preserves optimistic revision/version safety.
 
 Resource outcome depends on candidate type:
 
@@ -66,7 +66,7 @@ The Learning Review page now uses:
 ```text
 Learning Review
   ├─ host-supplied reviewer identity (read-only)
-  ├─ Approve / Reject / Refresh
+  ├─ Approve / Reject / Promote / Refresh
   ├─ Status filter: All / Proposed / PendingReview / Approved / Rejected / Promoted
   ├─ Candidate type filter: All / Memory / Knowledge / Skill
   └─ workspace
@@ -78,6 +78,8 @@ Learning Review
 ```
 
 Status is a filter, not a separate sub-page. This allows future lifecycle states to be added without duplicating navigation or review logic.
+
+`Approve` and `Reject` are enabled only for `PendingReview`. `Promote` is enabled only for `Approved` candidates and only when the host injects an `AiLearningPromotionService`.
 
 ## Candidate list
 
@@ -113,9 +115,49 @@ The page does not expose provider credentials or create a second copy of the can
 
 ## Review boundary
 
-Approve and Reject remain disabled unless the selected candidate is `PendingReview`. Actions continue through `AiLearningCandidateReviewService`, which re-evaluates the unified `learning.review` policy, records reviewer identity and policy evidence, and persists through the existing optimistic revision boundary.
+Approve and Reject continue through `AiLearningCandidateReviewService`, which re-evaluates the unified `learning.review` policy, records reviewer identity and policy evidence, and persists through the existing optimistic revision boundary.
 
-The details workspace is observational. It does not directly publish Memory, Knowledge, or Skill resources. Authoritative promotion remains the separate governed operation established by the authoritative-promotion slice.
+## Promotion boundary in the UI
+
+The Promote action is intentionally thin. The page calls the host-supplied `AiLearningPromotionService`; it does not construct publication targets or mutate candidate lifecycle state itself.
+
+The service performs the existing authoritative workflow:
+
+1. reopen and validate the candidate;
+2. require `Approved` and non-expired state;
+3. evaluate fresh `learning.promote` authorization using the supplied reviewer identity;
+4. publish Memory, Knowledge, or Skill through the configured provider-neutral promotion target;
+5. only after publication succeeds, transition the candidate to `Promoted` and persist using the expected lifecycle revision.
+
+A successful UI promotion therefore changes the durable candidate revision from `2` to `3` and refreshes the page so the candidate appears under the `Promoted` filter.
+
+If the host does not inject a promotion service, the Promote action remains disabled. This allows minimal hosts to consume Learning Review without accidentally gaining publication side effects.
+
+## Example integration
+
+`HAgent.Example` now injects an `AiLearningPromotionService` into the configuration surface. Its deterministic Skill promotion target is the same provider-neutral target contract used by the core promotion Example; no model or network request is required.
+
+The management workflow is:
+
+```text
+Learning Review Seed
+      ↓
+PendingReview / revision 1
+      ↓
+Configuration → Learning Review
+      ↓
+Approve
+      ↓
+Approved / revision 2
+      ↓
+Promote
+      ↓
+Promoted / revision 3
+      ↓
+Learning Review Verify
+```
+
+The Example seeds the required `learning.review` Approve/Reject rules and `learning.promote` rule for its deterministic Skill candidate. Verify accepts the reviewed revision-2 result or the revision-3 Promoted result.
 
 ## Filtering boundary
 
@@ -125,6 +167,4 @@ Additional query dimensions can be added later at the store/query contract level
 
 ## Future management work
 
-The next natural management increment is authoritative promotion of an approved candidate from the same details workspace. That action must call the existing promotion service rather than mutate candidate state or publish resources directly from the UI.
-
-This slice does not add editing of learned payloads, authoritative Skill/Wiki/Memory CRUD, resource replacement, or publication actions. Those remain separate management slices so inspection does not silently become mutation or publication.
+The next management work remains authoritative Memory/Knowledge/Skill inventory and CRUD surfaces, editing workflows where appropriate, and later reliability/adaptation management. This slice does not add in-place editing of learned payloads or resource replacement.

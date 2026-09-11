@@ -55,25 +55,22 @@ namespace HAgent.Tests
         }
 
         [Fact]
-        public async Task Inventory_DeduplicatesSameResourceVersionAcrossSources()
+        public async Task Inventory_DeduplicatesSameLogicalResourceAndKeepsHighestVersion()
         {
-            var item = Item("skill", "skill-a", 2, "Skill A", true, DateTimeOffset.UtcNow);
-            var duplicate = item.Clone();
-            duplicate.UpdatedUtc = duplicate.UpdatedUtc.AddMinutes(-5);
-            var newer = item.Clone();
-            newer.Version = 3;
-            newer.UpdatedUtc = newer.UpdatedUtc.AddMinutes(-1);
+            var version2 = Item("skill", "skill-a", 2, "Skill A", true, DateTimeOffset.UtcNow.AddMinutes(-5));
+            var duplicate = version2.Clone();
+            var version3 = Item("skill", "skill-a", 3, "Skill A", true, DateTimeOffset.UtcNow.AddMinutes(-1));
 
             var inventory = new AiResourceInventory(new[]
             {
-                new TestSource(item),
-                new TestSource(duplicate, newer)
+                new TestSource(version2, duplicate),
+                new TestSource(version3)
             });
 
             var result = await inventory.ListAsync(new AiResourceInventoryQuery());
 
-            Assert.Equal(2, result.Count);
-            Assert.Equal(3, result[1].Version);
+            Assert.Single(result);
+            Assert.Equal(3, result[0].Version);
         }
 
         [Fact]

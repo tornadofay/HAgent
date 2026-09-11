@@ -219,17 +219,39 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                SplitterDistance = 720,
                 BackColor = Surface,
-                Panel1MinSize = 300,
-                Panel2MinSize = 360,
                 Margin = new Padding(0)
             };
             split.Panel1.Padding = new Padding(0, 0, 6, 0);
             split.Panel2.Padding = new Padding(6, 0, 0, 0);
+            split.SizeChanged += delegate { ApplySplitterLayout(split); };
             split.Panel1.Controls.Add(_list);
             split.Panel2.Controls.Add(CreateDetailsPanel());
+            ApplySplitterLayout(split);
             return split;
+        }
+
+        private static void ApplySplitterLayout(SplitContainer split)
+        {
+            if (split == null || split.Width <= 1) return;
+
+            const int panel1Minimum = 300;
+            const int panel2Minimum = 360;
+            var minimumTotal = panel1Minimum + panel2Minimum;
+
+            if (split.Width < minimumTotal)
+            {
+                split.Panel1MinSize = 0;
+                split.Panel2MinSize = 0;
+                split.SplitterDistance = Math.Max(0, Math.Min(split.Width - split.SplitterWidth, split.Width / 2));
+                return;
+            }
+
+            split.Panel1MinSize = panel1Minimum;
+            split.Panel2MinSize = panel2Minimum;
+            var desired = 720;
+            var maximum = split.Width - panel2Minimum;
+            split.SplitterDistance = Math.Max(panel1Minimum, Math.Min(desired, maximum));
         }
 
         private Control CreateDetailsPanel()
@@ -341,12 +363,13 @@ namespace HAgent.WinForms.UI.Configuration.Learning
         {
             table.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
             table.Controls.Add(new Label { Text = caption, AutoSize = true, ForeColor = Muted, Margin = new Padding(0, 6, 8, 0) }, 0, row);
+            value.Margin = new Padding(0, 6, 0, 0);
             table.Controls.Add(value, 1, row);
         }
 
         private static Label CreateSectionLabel(string text)
         {
-            return new Label { Text = text, Dock = DockStyle.Fill, AutoSize = false, ForeColor = Heading, Font = new Font("Segoe UI", 9.2f, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(0) };
+            return new Label { Text = text, AutoSize = true, Font = new Font("Segoe UI", 9f, FontStyle.Bold), ForeColor = Heading, Margin = new Padding(0, 3, 0, 0) };
         }
 
         private static RichTextBox CreateReadOnlyTextBox()
@@ -355,37 +378,181 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             {
                 Dock = DockStyle.Fill,
                 ReadOnly = true,
-                BorderStyle = BorderStyle.FixedSingle,
                 BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Consolas", 8.7f),
+                DetectUrls = false,
                 Margin = new Padding(0)
             };
         }
 
-        private static void ConfigureFilter(ComboBox box)
+        private static void ConfigureFilter(ComboBox filter)
         {
-            box.Width = 150;
-            box.Height = 28;
-            box.DropDownStyle = ComboBoxStyle.DropDownList;
-            box.FlatStyle = FlatStyle.Standard;
-            box.Margin = new Padding(0, 3, 0, 3);
+            filter.DropDownStyle = ComboBoxStyle.DropDownList;
+            filter.Width = 150;
+            filter.Height = 30;
+            filter.Margin = new Padding(0);
+        }
+
+        private void DisplaySelectedCandidate()
+        {
+            var record = GetSelectedCandidate();
+            if (record == null)
+            {
+                ClearDetails();
+                return;
+            }
+
+            _detailCandidateId.Text = record.CandidateId;
+            _detailStatus.Text = "Status: " + record.Status;
+            _detailType.Text = record.CandidateType.ToString();
+            _detailScope.Text = record.ProposedScope;
+            _detailSourceAgent.Text = record.SourceAgentProfileId;
+            _detailRevision.Text = record.Revision.ToString();
+            _detailConfidence.Text = record.Confidence.HasValue ? record.Confidence.Value.ToString("0.000") : "Not supplied";
+            _detailEvidenceState.Text = record.EvidenceState;
+            _detailProvenanceState.Text = record.ProvenanceState;
+            _detailContradictionState.Text = record.ContradictionState;
+            _detailRetention.Text = record.RetentionClass;
+            _detailEvaluation.Text = record.EvaluationState;
+            _detailCreated.Text = record.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
+            _detailUpdated.Text = record.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
+            _detailExpiry.Text = record.ExpiresAt.HasValue ? record.ExpiresAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz") : "No expiry";
+            _detailPolicy.Text = BuildPolicySummary(record);
+            _detailAuthorization.Text = BuildAuthorizationSummary(record);
+            _detailLastReview.Text = BuildReviewSummary(record);
+            _detailPayload.Text = FormatJson(record.PayloadJson);
+            _detailProvenance.Text = string.IsNullOrWhiteSpace(record.Provenance) ? "Not supplied" : record.Provenance;
+            _detailEvidence.Text = string.IsNullOrWhiteSpace(record.Evidence) ? "Not supplied" : record.Evidence;
+            _detailSource.Text = "Execution ID: " + Safe(record.SourceExecutionId) + Environment.NewLine +
+                                  "Runtime instance ID: " + Safe(record.SourceRuntimeInstanceId) + Environment.NewLine +
+                                  "Agent profile ID: " + Safe(record.SourceAgentProfileId);
+            _detailReviewEvidence.Text = BuildReviewEvidence(record);
+            _approveButton.Enabled = record.Status == AiLearningCandidateStatus.PendingReview;
+            _rejectButton.Enabled = record.Status == AiLearningCandidateStatus.PendingReview;
+        }
+
+        private void ClearDetails()
+        {
+            _detailCandidateId.Text = "No candidate selected";
+            _detailStatus.Text = string.Empty;
+            _detailType.Text = "";
+            _detailScope.Text = "";
+            _detailSourceAgent.Text = "";
+            _detailRevision.Text = "";
+            _detailConfidence.Text = "";
+            _detailEvidenceState.Text = "";
+            _detailProvenanceState.Text = "";
+            _detailContradictionState.Text = "";
+            _detailRetention.Text = "";
+            _detailEvaluation.Text = "";
+            _detailCreated.Text = "";
+            _detailUpdated.Text = "";
+            _detailExpiry.Text = "";
+            _detailPolicy.Text = "";
+            _detailAuthorization.Text = "";
+            _detailLastReview.Text = "";
+            _detailPayload.Clear();
+            _detailProvenance.Clear();
+            _detailEvidence.Clear();
+            _detailSource.Clear();
+            _detailReviewEvidence.Clear();
+            _approveButton.Enabled = false;
+            _rejectButton.Enabled = false;
+        }
+
+        private string GetSelectedCandidateId()
+        {
+            var selected = GetSelectedCandidate();
+            return selected == null ? null : selected.CandidateId;
+        }
+
+        private AiLearningCandidateRecord GetSelectedCandidate()
+        {
+            if (_list.SelectedItems.Count == 0) return null;
+            return _list.SelectedItems[0].Tag as AiLearningCandidateRecord;
+        }
+
+        private void SelectCandidate(string candidateId)
+        {
+            foreach (ListViewItem item in _list.Items)
+            {
+                var record = item.Tag as AiLearningCandidateRecord;
+                if (record == null || !string.Equals(record.CandidateId, candidateId, StringComparison.OrdinalIgnoreCase)) continue;
+                item.Selected = true;
+                item.Focused = true;
+                item.EnsureVisible();
+                return;
+            }
+        }
+
+        private static string BuildPolicySummary(AiLearningCandidateRecord record)
+        {
+            return "Policy ID: " + Safe(record.PolicyId) + Environment.NewLine +
+                   "Policy version: " + record.PolicyVersion + Environment.NewLine +
+                   "Policy rule: " + Safe(record.PolicyRuleId);
+        }
+
+        private static string BuildAuthorizationSummary(AiLearningCandidateRecord record)
+        {
+            return Safe(record.AuthorizationOutcome) +
+                   (string.IsNullOrWhiteSpace(record.AuthorizationReason) ? "" : " — " + record.AuthorizationReason);
+        }
+
+        private static string BuildReviewSummary(AiLearningCandidateRecord record)
+        {
+            if (!record.LastReviewedAt.HasValue) return "Not reviewed";
+            return Safe(record.LastReviewAction) + " by recorded reviewer at " + record.LastReviewedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
+        }
+
+        private static string BuildReviewEvidence(AiLearningCandidateRecord record)
+        {
+            if (!record.LastReviewedAt.HasValue && string.IsNullOrWhiteSpace(record.LastReviewAction))
+                return "No review evidence recorded.";
+
+            return "Action: " + Safe(record.LastReviewAction) + Environment.NewLine +
+                   "Reviewer identity: " + Safe(record.LastReviewerIdentityJson) + Environment.NewLine +
+                   "Review policy version: " + Safe(record.LastReviewPolicyVersion) + Environment.NewLine +
+                   "Review rule: " + Safe(record.LastReviewRuleId) + Environment.NewLine +
+                   "Review outcome: " + Safe(record.LastReviewOutcome) + Environment.NewLine +
+                   "Review reason: " + Safe(record.LastReviewReason) + Environment.NewLine +
+                   "Reviewed at: " + (record.LastReviewedAt.HasValue ? record.LastReviewedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz") : "Not supplied");
+        }
+
+        private static string FormatJson(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return "Not supplied";
+            try
+            {
+                using (var document = JsonDocument.Parse(json))
+                    return JsonSerializer.Serialize(document.RootElement, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch
+            {
+                return json;
+            }
+        }
+
+        private static string Safe(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "Not supplied" : value;
         }
 
         private async Task ReviewAsync(AiLearningCandidateReviewAction action)
         {
-            if (_list.SelectedItems.Count == 0)
+            var record = GetSelectedCandidate();
+            if (record == null)
             {
                 HMessage.ShowInformation(FindForm(), "Select a candidate first.", "Learning Review");
                 return;
             }
-
-            var record = _list.SelectedItems[0].Tag as AiLearningCandidateRecord;
-            if (record == null || _context.LearningCandidates == null) return;
             if (record.Status != AiLearningCandidateStatus.PendingReview)
             {
-                HMessage.ShowInformation(FindForm(), "Only PendingReview candidates can be approved or rejected.", "Learning Review");
+                HMessage.ShowInformation(FindForm(), "Only PendingReview candidates can be reviewed.", "Learning Review");
                 return;
             }
+
+            if (_context.LearningCandidates == null) return;
 
             var identity = _context.ReviewerIdentity;
             var policy = new DefaultAiPolicyEngine(await _context.Store.GetPolicySetAsync());
@@ -408,144 +575,6 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             catch (Exception ex)
             {
                 HMessage.ShowException(FindForm(), "The learning review operation failed.", "Learning Review", ex);
-            }
-        }
-
-        private void DisplaySelectedCandidate()
-        {
-            var record = _list.SelectedItems.Count == 0 ? null : _list.SelectedItems[0].Tag as AiLearningCandidateRecord;
-            if (record == null)
-            {
-                ClearDetails();
-                return;
-            }
-
-            _detailCandidateId.Text = record.CandidateId;
-            _detailStatus.Text = "Status: " + record.Status;
-            _detailType.Text = record.CandidateType.ToString();
-            _detailScope.Text = record.ProposedScope;
-            _detailSourceAgent.Text = EmptyAsNotSupplied(record.SourceAgentProfileId);
-            _detailRevision.Text = record.Revision.ToString();
-            _detailConfidence.Text = record.Confidence.HasValue ? record.Confidence.Value.ToString("0.000") : "Not supplied";
-            _detailEvidenceState.Text = EmptyAsNotSupplied(record.EvidenceState);
-            _detailProvenanceState.Text = EmptyAsNotSupplied(record.ProvenanceState);
-            _detailContradictionState.Text = EmptyAsNotSupplied(record.ContradictionState);
-            _detailRetention.Text = EmptyAsNotSupplied(record.RetentionClass);
-            _detailEvaluation.Text = EmptyAsNotSupplied(record.EvaluationState);
-            _detailCreated.Text = record.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-            _detailUpdated.Text = record.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-            _detailExpiry.Text = record.ExpiresAt.HasValue ? record.ExpiresAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "No expiry";
-            _detailPolicy.Text = BuildPolicySummary(record);
-            _detailAuthorization.Text = EmptyAsNotSupplied(record.AuthorizationOutcome);
-            _detailLastReview.Text = record.LastReviewedAt.HasValue
-                ? (record.LastReviewAction ?? "Review") + " at " + record.LastReviewedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
-                : "No review yet";
-
-            _detailPayload.Text = PrettyJson(record.PayloadJson);
-            _detailProvenance.Text = EmptyAsNotSupplied(record.Provenance);
-            _detailEvidence.Text = EmptyAsNotSupplied(record.Evidence);
-            _detailSource.Text = "Execution: " + EmptyAsNotSupplied(record.SourceExecutionId) + Environment.NewLine +
-                                 "Runtime instance: " + EmptyAsNotSupplied(record.SourceRuntimeInstanceId) + Environment.NewLine +
-                                 "Agent profile: " + EmptyAsNotSupplied(record.SourceAgentProfileId);
-            _detailReviewEvidence.Text = BuildReviewEvidence(record);
-            UpdateReviewButtons(record);
-        }
-
-        private void UpdateReviewButtons(AiLearningCandidateRecord record)
-        {
-            var enabled = record != null && record.Status == AiLearningCandidateStatus.PendingReview;
-            _approveButton.Enabled = enabled;
-            _rejectButton.Enabled = enabled;
-        }
-
-        private void ClearDetails()
-        {
-            _detailCandidateId.Text = "Select a candidate";
-            _detailStatus.Text = "No candidate selected.";
-            _detailType.Text = "";
-            _detailScope.Text = "";
-            _detailSourceAgent.Text = "";
-            _detailRevision.Text = "";
-            _detailConfidence.Text = "";
-            _detailEvidenceState.Text = "";
-            _detailProvenanceState.Text = "";
-            _detailContradictionState.Text = "";
-            _detailRetention.Text = "";
-            _detailEvaluation.Text = "";
-            _detailCreated.Text = "";
-            _detailUpdated.Text = "";
-            _detailExpiry.Text = "";
-            _detailPolicy.Text = "";
-            _detailAuthorization.Text = "";
-            _detailLastReview.Text = "";
-            _detailPayload.Clear();
-            _detailProvenance.Clear();
-            _detailEvidence.Clear();
-            _detailSource.Clear();
-            _detailReviewEvidence.Clear();
-            UpdateReviewButtons(null);
-        }
-
-        private string GetSelectedCandidateId()
-        {
-            if (_list.SelectedItems.Count == 0) return null;
-            var record = _list.SelectedItems[0].Tag as AiLearningCandidateRecord;
-            return record == null ? null : record.CandidateId;
-        }
-
-        private void SelectCandidate(string candidateId)
-        {
-            foreach (ListViewItem item in _list.Items)
-            {
-                var record = item.Tag as AiLearningCandidateRecord;
-                if (record == null || !string.Equals(record.CandidateId, candidateId, StringComparison.OrdinalIgnoreCase)) continue;
-                item.Selected = true;
-                item.Focused = true;
-                item.EnsureVisible();
-                return;
-            }
-        }
-
-        private static string EmptyAsNotSupplied(string value)
-        {
-            return string.IsNullOrWhiteSpace(value) ? "Not supplied" : value;
-        }
-
-        private static string BuildPolicySummary(AiLearningCandidateRecord record)
-        {
-            var version = record.PolicyVersion.ToString();
-            return "Policy: " + EmptyAsNotSupplied(record.PolicyId) + Environment.NewLine +
-                   "Version: " + version + Environment.NewLine +
-                   "Admission rule: " + EmptyAsNotSupplied(record.PolicyRuleId);
-        }
-
-        private static string BuildReviewEvidence(AiLearningCandidateRecord record)
-        {
-            var lines = new List<string>
-            {
-                "Last action: " + EmptyAsNotSupplied(record.LastReviewAction),
-                "Reviewer identity: " + EmptyAsNotSupplied(record.LastReviewerIdentityJson),
-                "Policy version: " + EmptyAsNotSupplied(record.LastReviewPolicyVersion),
-                "Policy rule: " + EmptyAsNotSupplied(record.LastReviewRuleId),
-                "Outcome: " + EmptyAsNotSupplied(record.LastReviewOutcome),
-                "Reason: " + EmptyAsNotSupplied(record.LastReviewReason)
-            };
-            return string.Join(Environment.NewLine, lines.ToArray());
-        }
-
-        private static string PrettyJson(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return "Not supplied";
-            try
-            {
-                using (var document = JsonDocument.Parse(value))
-                {
-                    return JsonSerializer.Serialize(document.RootElement, new JsonSerializerOptions { WriteIndented = true });
-                }
-            }
-            catch (JsonException)
-            {
-                return value;
             }
         }
     }

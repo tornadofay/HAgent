@@ -928,6 +928,20 @@ Deterministic behavior may advance a plan, update working state, emit an event, 
 
 Routine events should not consume an LLM merely because the runtime is active.
 
+### V1 impasse boundary
+
+An `Impasse` is a bounded state in which the runtime cannot safely continue the current deterministic path. V1 keeps impasse handling explicit and shallow rather than introducing a general recursive subproblem architecture.
+
+Supported V1 resolution paths are limited to:
+
+- deterministic recovery or alternate safe action;
+- bounded reasoning/deliberation request;
+- wait for a required condition or event;
+- abandon or supersede the current path;
+- escalate to an authorized host/intervention boundary.
+
+V1 does not require nested impasse substates, recursive subproblem trees, or a separate general cognitive conflict/merge engine. Richer impasse decomposition remains an extension point, not a V1 delivery requirement.
+
 ### Slice 5 — Deliberation and Reasoning Requirement
 
 - Define provider-neutral reasoning requirements.
@@ -985,6 +999,7 @@ Routine events should not consume an LLM merely because the runtime is active.
 12. Host/domain truth and external side effects remain host-authoritative.
 13. All queues, workspaces, deliberation, recursion, and resource growth are bounded.
 14. Model output is evidence/request input, never authorization.
+15. V1 impasse handling remains bounded to explicit recovery, reasoning, waiting, abandon/supersede, or authorized intervention; nested impasse/substate recursion is not required.
 
 ## Dependency graph
 
@@ -1016,7 +1031,7 @@ The same runtime also supports ordinary desktop applications, automation, analys
 
 ## Exit criterion
 
-A host can create a long-lived runtime agent that independently owns its cognitive state, receives and processes events, uses deterministic behavior before unnecessary model calls, pursues persistent goals and plans, requests bounded reasoning through 0.96, learns through governed candidates, survives cancellation/restart/lifecycle transitions, and operates concurrently with many other independent runtime agents without shared-state corruption or a shared cognitive bottleneck.
+A host can create a long-lived runtime agent that independently owns its cognitive state, receives and processes events, uses deterministic behavior before unnecessary model calls, pursues persistent goals and plans, resolves bounded impasses through explicit V1 outcomes, requests bounded reasoning through 0.96, learns through governed candidates, survives cancellation/restart/lifecycle transitions, and operates concurrently with many other independent runtime agents without shared-state corruption or a shared cognitive bottleneck.
 
 ## Phase 0.96.x — Configuration, Storage, and Portability Evolution
 

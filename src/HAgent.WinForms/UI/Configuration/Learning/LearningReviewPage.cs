@@ -46,12 +46,14 @@ namespace HAgent.WinForms.UI.Configuration.Learning
         private readonly RichTextBox _detailSource = CreateReadOnlyTextBox();
         private readonly HButton _approveButton;
         private readonly HButton _rejectButton;
+        private readonly HButton _promoteButton;
 
         public LearningReviewPage(ConfigurationContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _approveButton = CreateActionButton("Approve", 100);
             _rejectButton = CreateActionButton("Reject", 100, true);
+            _promoteButton = CreateActionButton("Promote", 100);
             Build();
             ApplyIdentityDisplay();
             ClearDetails();
@@ -117,7 +119,7 @@ namespace HAgent.WinForms.UI.Configuration.Learning
         private void Build()
         {
             var root = CreateListPageRoot();
-            root.Controls.Add(CreateHeader("Learning Review", "Inspect governed learning candidates, filter durable review state, and review the selected candidate through the existing policy boundary."));
+            root.Controls.Add(CreateHeader("Learning Review", "Inspect governed learning candidates, review selected candidates, and promote approved candidates through the existing policy boundary."));
             root.Controls.Add(CreateActionBar());
             root.Controls.Add(CreateWorkspace());
             Controls.Add(root);
@@ -138,6 +140,7 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             var actions = CreateActionPanel();
             _approveButton.Click += async delegate { await ReviewAsync(AiLearningCandidateReviewAction.Approve); };
             _rejectButton.Click += async delegate { await ReviewAsync(AiLearningCandidateReviewAction.Reject); };
+            _promoteButton.Click += async delegate { await PromoteAsync(); };
             var refresh = CreateActionButton("Refresh", 100);
             refresh.Click += async delegate { await RefreshDataAsync(); };
 
@@ -149,6 +152,7 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             actions.Controls.Add(_workspaceId);
             actions.Controls.Add(_approveButton);
             actions.Controls.Add(_rejectButton);
+            actions.Controls.Add(_promoteButton);
             actions.Controls.Add(refresh);
             actions.Controls.Add(_status);
             outer.Controls.Add(actions);
@@ -430,6 +434,7 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             _detailReviewEvidence.Text = BuildReviewEvidence(record);
             _approveButton.Enabled = record.Status == AiLearningCandidateStatus.PendingReview;
             _rejectButton.Enabled = record.Status == AiLearningCandidateStatus.PendingReview;
+            _promoteButton.Enabled = _context.LearningPromotion != null && record.Status == AiLearningCandidateStatus.Approved;
         }
 
         private void ClearDetails()
@@ -459,6 +464,7 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             _detailReviewEvidence.Clear();
             _approveButton.Enabled = false;
             _rejectButton.Enabled = false;
+            _promoteButton.Enabled = false;
         }
 
         private string GetSelectedCandidateId()
@@ -575,6 +581,41 @@ namespace HAgent.WinForms.UI.Configuration.Learning
             catch (Exception ex)
             {
                 HMessage.ShowException(FindForm(), "The learning review operation failed.", "Learning Review", ex);
+            }
+        }
+
+        private async Task PromoteAsync()
+        {
+            var record = GetSelectedCandidate();
+            if (record == null)
+            {
+                HMessage.ShowInformation(FindForm(), "Select a candidate first.", "Learning Review");
+                return;
+            }
+            if (record.Status != AiLearningCandidateStatus.Approved)
+            {
+                HMessage.ShowInformation(FindForm(), "Only Approved candidates can be promoted.", "Learning Review");
+                return;
+            }
+            if (_context.LearningPromotion == null)
+            {
+                HMessage.ShowInformation(FindForm(), "Authoritative promotion is not configured by the host application.", "Learning Review");
+                return;
+            }
+
+            try
+            {
+                var result = await _context.LearningPromotion.PromoteAsync(record.CandidateId, _context.ReviewerIdentity);
+                _status.Text = "Candidate " + result.CandidateId + " -> Promoted. Authoritative " + result.AuthoritativeResourceType + " " + result.AuthoritativeResourceId + ".";
+                await RefreshDataAsync();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                HMessage.ShowError(FindForm(), ex.Message, "Learning Promotion");
+            }
+            catch (Exception ex)
+            {
+                HMessage.ShowException(FindForm(), "The learning promotion operation failed.", "Learning Promotion", ex);
             }
         }
     }

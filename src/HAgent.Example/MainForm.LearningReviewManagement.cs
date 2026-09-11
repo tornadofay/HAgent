@@ -14,8 +14,10 @@ namespace HAgent.Example
         private const string LearningReviewExampleAgentId = "learning-review-ui-example-agent";
         private const string LearningReviewApproveRuleId = "example-learning-review-ui-approve";
         private const string LearningReviewRejectRuleId = "example-learning-review-ui-reject";
+        private const string LearningReviewInputPlaceholder = "Paste the Candidate ID returned by 'Create review candidate'.";
 
         private string _learningReviewSeedStorePath;
+        private string _learningReviewSeedCandidateId;
 
         private void AddLearningReviewManagementTab()
         {
@@ -34,10 +36,10 @@ namespace HAgent.Example
                 "Verify review result",
                 "Reopens the durable candidate store from a fresh store instance and verifies that the candidate is no longer PendingReview, its lifecycle revision advanced, and review authorization evidence was persisted.",
                 "Enter the Candidate ID printed by the seed example. The verifier must report Approved or Rejected, Revision 2, a persisted reviewer identity, and Allow review authorization evidence.",
-                "Paste the Candidate ID returned by 'Create review candidate'.",
+                LearningReviewInputPlaceholder,
                 VerifyLearningReviewResultAsync,
                 "Restart / persistence boundary",
-                "This is the second half of the UI integration test. It proves that the button click changed durable state rather than merely changing the screen.");
+                "This is the second half of the UI integration test. It proves that the button click changed durable state rather than merely changing the screen. Leaving the example placeholder unchanged now selects the newest candidate seeded by this Example agent profile.");
         }
 
         private async Task SeedLearningReviewCandidateAsync(string unused)
@@ -48,6 +50,7 @@ namespace HAgent.Example
             _learningReviewSeedStorePath = path;
 
             var candidateId = "example-learning-review-" + Guid.NewGuid().ToString("N");
+            _learningReviewSeedCandidateId = candidateId;
             var candidate = CreateLearningReviewExampleCandidate(candidateId);
             var admission = CreatePendingAdmission(candidate);
             var retention = CreateRetentionPolicy();
@@ -76,9 +79,20 @@ namespace HAgent.Example
 
         private async Task VerifyLearningReviewResultAsync(string input)
         {
-            var candidateId = RequireInput(input).Trim();
+            var rawInput = input == null ? string.Empty : input.Trim();
             var options = await LoadStorageOptionsAsync().ConfigureAwait(true);
             var configuredPath = Path.Combine(options.GetEffectiveRootPath(), "learning", "candidates.jsonl");
+            var candidateId = rawInput;
+
+            if (string.IsNullOrWhiteSpace(candidateId) ||
+                string.Equals(candidateId, LearningReviewInputPlaceholder, StringComparison.OrdinalIgnoreCase))
+            {
+                candidateId = await ResolveLatestLearningReviewExampleCandidateIdAsync(configuredPath).ConfigureAwait(true);
+                if (string.IsNullOrWhiteSpace(candidateId))
+                    throw new InvalidOperationException(
+                        "No Learning Review Example candidate was found in the configured durable candidate store. Run 'Learning Review Seed' first, then review the candidate in Configuration → Learning Review.");
+            }
+
             var paths = string.Equals(configuredPath, _learningReviewSeedStorePath, StringComparison.OrdinalIgnoreCase)
                 ? new[] { configuredPath }
                 : new[] { configuredPath, _learningReviewSeedStorePath };
@@ -130,6 +144,25 @@ namespace HAgent.Example
                 "Policy authorization outcome persisted: " + record.LastReviewOutcome + Environment.NewLine +
                 "Candidate store reopened: " + resolvedPath + Environment.NewLine +
                 "Durable Learning Review integration: verified.");
+        }
+
+        private static async Task<string> ResolveLatestLearningReviewExampleCandidateIdAsync(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
+                return null;
+
+            using (var candidates = new FileLearningCandidateStore(path))
+            {
+                var records = await candidates.QueryAsync(new AiLearningCandidateQuery
+                {
+                    CandidateType = AiLearningCandidateType.Skill,
+                    SourceAgentProfileId = LearningReviewExampleAgentId,
+                    IncludeExpired = false,
+                    MaxResults = 1
+                }).ConfigureAwait(true);
+
+                return records == null || records.Count == 0 ? null : records[0].CandidateId;
+            }
         }
 
         private async Task EnsureLearningReviewExamplePolicyAsync(IAiStore store)

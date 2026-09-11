@@ -10,43 +10,41 @@ Phase 0.957 is complete through Slice 6. User verification on 2026-09-09 recorde
 
 Phase 0.9575 consumes the canonical resource, identity, policy, instruction, context, observability, evaluation, and runtime foundations. It must not introduce a parallel resource architecture.
 
-### Slices 1–8 — VERIFIED
+### Slices 1–9 — VERIFIED
 
-Slices 1–6 were verified on 2026-09-09. Slice 7 and Slice 8 were verified by the user on 2026-09-11. Their recorded test counts are 146, 153, 158, 167, 175, 181, 187, and 194 respectively; all required Examples succeeded on both supported frameworks.
+Slices 1–6 were verified on 2026-09-09. Slice 7, Slice 8, and Slice 9 were verified by the user on 2026-09-11. Their recorded test counts are 146, 153, 158, 167, 175, 181, 187, 194, and 200 respectively; all required Examples succeeded on both supported frameworks.
 
-### Slice 9 — Learning Candidate Persistence, Retention + Review — VERIFIED
+### Slice 10 — Authoritative Promotion + Version-Safe Resource Creation — VERIFIED
 
 Verified by user on 2026-09-11.
 
-- `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` succeeded on .NET Framework 4.8.1 and .NET 9.
-- The Example verified provider-neutral durable capture, restart/recovery, PendingReview restoration, authorized review, revision 1 → 2, reviewer/policy evidence, and no authoritative resource publication.
-- Full `HAgent.Tests`: **200/200 passed, 0 failed, 0 skipped** on .NET 9.
+- `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` succeeded on .NET Framework 4.8.1 and .NET 9.
+- Both Examples verified Memory promotion, new Knowledge version, new immutable Skill version, fresh unified promotion authorization, publication-before-lifecycle transition, provenance preservation, and no mutation of existing published versions.
+- Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9 after correcting the test implementation to the current identity/policy contracts.
 
-Slice 9 is closed.
+Slice 10 is closed.
 
-### Slice 10 — Authoritative Promotion + Version-Safe Resource Creation — CURRENT
+### Slice 11 — Context, Instruction, Runtime, and Observability Integration — CURRENT
 
-Promotion is the only path from an approved learning candidate to authoritative resource state.
+Connect governed learned resources to real execution while retaining the existing canonical context, instruction, policy, runtime-observation, and tracing boundaries.
 
 Scope:
 
-- one canonical provider-neutral promotion service;
-- re-evaluate `learning.promote` through the existing unified `IAiPolicyEngine` with explicit `AgentIdentityContext`;
-- require durable candidate status `Approved` and reject expired/rejected/promoted candidates;
-- validate and restore the typed candidate payload before publication;
-- Memory publication through existing `IMemoryStore`;
-- Knowledge publication through an explicit provider-neutral target that creates a new published version and never edits an existing published version;
-- Skill publication through an explicit provider-neutral target that creates a new immutable published version;
-- deterministic stale/equal version conflict rejection;
-- preserve candidate, source execution/runtime/profile, provenance, and authorization evidence;
-- transition the candidate to `Promoted` only after authoritative publication succeeds;
-- return a structured promotion result suitable for later observability/audit integration.
+- `AiLearningExecutionPreparation` validates/clones learned instruction sources for the existing `AgentExecutionRequest.InstructionSources` path;
+- learned context retrieval sources flow through the existing `ContextAssembler`, including capability/policy admission, bounded retrieval, ranking/deduplication, and final compaction;
+- execution receives an isolated `ContextSnapshot`, not a mutable resource object;
+- authoritative runtime observations from `IExecutionObservationSource` become bounded learning-input records through `AiLearningExecutionObservationCollector`;
+- `IAiLearningObservationStore` provides the provider-neutral observation persistence boundary, with a bounded thread-safe in-memory reference implementation;
+- observations remain non-authoritative and do not create candidates or promotion decisions by themselves;
+- no prompt text is an authorization mechanism and no new policy/context/tracing architecture is introduced.
 
 ### Verification
 
-**Required Example:** `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` on .NET Framework 4.8.1 and .NET 9.
+**Required Example:** `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
 
-**Required tests:** focused `LearningCandidatePromotionTests.cs`; full `HAgent.Tests` at the Slice 10 checkpoint.
+**Required tests:** focused `LearningExecutionIntegrationTests.cs`; full `HAgent.Tests` at the Slice 11 checkpoint.
+
+Architecture: `docs/architecture/90-learning-execution-integration.md`.
 
 ## Run rule
 

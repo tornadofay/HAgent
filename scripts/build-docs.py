@@ -12,6 +12,10 @@ ROADMAP_SOURCES = [
     "36-capability-aware-execution.md",
     "37-persistent-cognitive-runtime.md",
     "38-configuration-storage-and-portability.md",
+    # These are subdocuments of 0.97, not separate roadmap phases.
+    "cognitive-workbench.md",
+    "cognitive-workbench-controls.md",
+    "cognitive-workbench-learning.md",
     "40-workspaces-chat.md",
     "50-collaboration-workflows.md",
     "60-platform-and-release.md",
@@ -28,10 +32,6 @@ ROADMAP_SOURCES = [
     "9591-goal-plan-persistence-recovery.md",
     "959-human-intervention.md",
     "9592-provider-ecosystem-adapter-lifecycle.md",
-    # These are subdocuments of 0.97, not separate roadmap phases.
-    "cognitive-workbench.md",
-    "cognitive-workbench-controls.md",
-    "cognitive-workbench-learning.md",
 ]
 
 

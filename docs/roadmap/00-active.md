@@ -57,19 +57,21 @@ Verified by user on 2026-09-11 on both .NET Framework 4.8.1 and .NET 9:
 
 The Learning Review management boundary is closed.
 
-### Next Slice 12 management work — Authoritative Resource Inventory
+### Current Slice 12 management work — Authoritative Resource Inventory
 
-- Establish one provider-neutral authoritative resource inventory boundary.
-- Inventory authoritative Memory using the existing memory-store contract.
-- Inventory authoritative Knowledge/Wiki through provider-neutral resource-source/query contracts.
-- Inventory authoritative Skills through provider-neutral definition-source/query contracts.
-- Expose bounded resource metadata and explicit resource scope.
-- Connect effective agent resource visibility back into management views without duplicating authoritative resource models.
-- Keep specialized known-resource panels possible while preserving generic inventory for future resource types.
-- Add focused WinForms management pages under `src/HAgent.WinForms/UI/Configuration/`.
-- Add matching `HAgent.Tests` contract/boundary verification and a dedicated `HAgent.Example` scenario.
-- Do not implement SQL Server/MySQL storage in this increment.
-- Keep resource reliability/adaptation separate for `0.9576`, where staleness, contradiction, drift, revalidation, quarantine, retirement, archival, forgetting, and replacement are planned.
+Implemented foundation plus first WinForms management surface:
+
+- one provider-neutral `IAiResourceInventory` / `IAiResourceInventorySource` boundary;
+- bounded resource inventory query/projection contracts;
+- deterministic aggregation, filtering, authoritative-only selection, logical-resource normalization, highest-version selection, ordering, and result bounds;
+- focused `ResourceInventoryTests` coverage;
+- canonical Example: `HAgent.Example → Authoritative Resource Inventory`;
+- WinForms page: `Configuration → Authoritative Resources` consuming the same inventory contract;
+- read-only metadata/details with type, scope, search, and authoritative-only filters;
+- no SQL Server/MySQL enumeration implementation;
+- resource-specific CRUD/editor workflows remain subsequent management work.
+
+User verified the canonical inventory Example on both supported targets on 2026-09-11, and full `HAgent.Tests` passed **213/213**. The next manual checkpoint is the WinForms management surface on both targets.
 
 ## Planned order
 
@@ -97,98 +99,3 @@ The Learning Review management boundary is closed.
 - Retry/idempotency records.
 - Restart recovery and stale-revision protection.
 - File, SQL Server, and MySQL verification.
-
-### 0.959 — Human Intervention
-
-- Canonical intervention request/result contract.
-- Execution and learning-candidate intervention integration.
-- Plan-step and goal/intention intervention.
-- Host-defined consequential-action intervention boundary.
-- Persistence, UI, diagnostics, stale-request protection, and verification.
-
-### 0.9592 — Provider Ecosystem + Adapter Lifecycle
-
-- Provider adapter lifecycle contract.
-- Provider/model/execution-target discovery normalization.
-- Capability, quota, rate, usage, and health evidence.
-- Adapter compatibility and replacement handling.
-- Deterministic adapter verification.
-
-### 0.96.x — Configuration, Storage + Portability
-
-- Authoritative configuration model.
-- Encrypted provider credentials at rest.
-- Resource and relationship persistence.
-- Runtime configuration snapshots and invalidation.
-- Versioned export/import.
-- File, SQL Server, MySQL parity and multi-process behavior.
-
-### 0.96 — Capability-Aware Execution
-
-- Concrete execution-target model.
-- Capability and constraint evaluation.
-- Provider discovery evidence integration.
-- Cost and selection policy.
-- Rate, quota, concurrency, and capacity admission.
-- Health, latency, fallback, and long-running execution handling.
-- Execution planning diagnostics.
-- Management UI and verification.
-
-### 0.97 — Persistent Cognitive Runtime
-
-- Single-owner cognitive state and revisions.
-- Observations, beliefs, and bounded DecisionWorkspace.
-- Goals, intentions, and reconsideration.
-- Deterministic/reactive processing before unnecessary model calls.
-- Provider-neutral reasoning requirements and bounded deliberation.
-- Plan execution and recovery integration.
-- Experience capture, governed learning, and learned-resource reliability consumption.
-- Lifecycle, persistence, observability, evaluation, management workbench, and production verification.
-
-### 0.10 — Workspaces, Routing + Chat
-
-- Complete workspace message execution through runtime agents.
-- Workspace addressing and loop protection.
-- Persistent lobby/private chat and participant state.
-- Workspace UI and configuration.
-- Approval presentation/resolution.
-- File, SQL Server, and MySQL persistence verification.
-
-### 1.0 — Collaboration + Workflows
-
-- First-class agent delegation and handoff.
-- Shared/private context policy.
-- Bounded parallel specialist work.
-- Collaboration history, audit, and traceability.
-- Task/workflow model and lifecycle.
-- Multi-step workflow execution.
-- Background execution and scheduling.
-- Durable checkpoints, pause/resume, cancellation, retry, approval, and budget handling.
-
-## Dependency order
-
-```text
-0.9575
-  ↓
-0.9576
-  ↓
-0.958
-  ↓
-0.9591
-  ↓
-0.959
-  ↓
-0.9592
-  ↓
-0.96.x
-  ↓
-0.96
-  ↓
-0.97
-  ↓
-0.10
-  ↓
-1.0
-```
-
-Only current and planned implementation work belongs here. V2 and research candidates are maintained separately in `roadmapv2.md`.

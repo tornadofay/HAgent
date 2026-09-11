@@ -1146,6 +1146,58 @@ Verify:
 
 All configuration required by 0.96 and 0.97 can be represented in one authoritative model, persisted consistently by supported backends, refreshed without corrupting active snapshots, shared safely where database deployment is used, and exported/imported without carrying transient execution state.
 
+## 0.97 Subdocument — Cognitive Runtime Workbench
+
+This document is part of **Phase 0.97 — Persistent Cognitive Runtime**, primarily supporting Slice 8 management, diagnostics, observability, and production verification.
+
+HAgent.WinForms must add a top-level Cognitions view for active runtime instances. It provides complete inspection of current runtime cognition: beliefs, goals, intentions, plans, attention, working state, memory, knowledge, skills, events, executions, learning, lifecycle, and history.
+
+The workbench is a diagnostic/management surface over the authoritative runtime-agent state owner. It must not create a second cognitive-state store, second policy evaluator, second execution planner, or independent persistence model.
+
+All edits flow through public HAgent runtime state-transition/intervention APIs. The UI never writes directly to persistence and must preserve owner/revision/stale-result rules.
+
+## 0.97 Subdocument — Cognitive Workbench Controls
+
+This document is part of **Phase 0.97 — Persistent Cognitive Runtime** and supports its management/diagnostic workbench.
+
+Authorized users may inspect and, where policy permits, insert or invalidate beliefs; create, edit, reprioritize, suspend, resume and abandon goals; modify intentions; request plan reconsideration; inject observations/events; request deliberation; and pause, resume, wake, sleep or retire a runtime.
+
+The UI must use HAgent runtime state-transition APIs and the canonical 0.959 intervention boundary where an action is an intervention. It must never write directly to persistence. Every mutation is atomic, version-aware, authorized and auditable. Record operator identity, timestamp, reason, UI action, previous revision and new revision where the owning contract exposes those fields.
+
+If the runtime revision changed since the UI read it, reject or refresh the mutation rather than silently merging it. Existing execution snapshots remain immutable and stale executions must not overwrite newer cognition.
+
+The workbench is not a new lifecycle system, plan store, approval engine, policy evaluator, or cognitive-state owner.
+
+## 0.97 Subdocument — Cognitive Workbench History and Learning
+
+This document is part of **Phase 0.97 — Persistent Cognitive Runtime**, supporting its workbench and diagnostics.
+
+Show the complete cognitive timeline: events, belief changes, attention changes, goal and intention changes, plan revisions, impasses, deliberation, executions, outcomes, memory/experience creation, learning decisions, sleep/wake and recovery, including user interventions.
+
+Show learning as:
+
+```text
+Experience
+   ↓
+Memory / bounded evidence
+   ↓
+Reflection / learning input
+   ↓
+Typed candidate
+   ↓
+0.9575 validation / governance / promotion
+   ↓
+Authoritative resource version
+   ↓
+0.9576 reliability / applicability / forgetting
+```
+
+Candidates must remain visibly distinct from authoritative versions. The workbench must not imply that repeated LLM reasoning is automatically a Skill, Knowledge item, Memory record, or Policy change.
+
+Show the active cognitive strategy and version, such as Adaptive Hybrid Cognition (AHC), when the runtime exposes such metadata. Future strategies must use the same generic workbench while allowing strategy-specific diagnostics.
+
+Historical state is initially read-only. Future experimentation may branch from checkpoints, but a branch must not silently replace the live runtime's authoritative state.
+
 ## Phase 0.10 — Workspaces, Routing + Chat
 
 **Status: PAUSED after the provider-neutral workspace routing and role-policy foundation.**
@@ -2722,55 +2774,3 @@ The adapter contracts may be implemented incrementally, but 0.96 cannot depend o
 ## Exit criterion
 
 HAgent can register and use multiple provider adapters, preserve provider-native identities and metadata, consume complete or partial discovery/operational information through normalized contracts, represent unknowns honestly, and hand all execution-target selection to Phase 0.96.
-
-## 0.97 Subdocument — Cognitive Runtime Workbench
-
-This document is part of **Phase 0.97 — Persistent Cognitive Runtime**, primarily supporting Slice 8 management, diagnostics, observability, and production verification.
-
-HAgent.WinForms must add a top-level Cognitions view for active runtime instances. It provides complete inspection of current runtime cognition: beliefs, goals, intentions, plans, attention, working state, memory, knowledge, skills, events, executions, learning, lifecycle, and history.
-
-The workbench is a diagnostic/management surface over the authoritative runtime-agent state owner. It must not create a second cognitive-state store, second policy evaluator, second execution planner, or independent persistence model.
-
-All edits flow through public HAgent runtime state-transition/intervention APIs. The UI never writes directly to persistence and must preserve owner/revision/stale-result rules.
-
-## 0.97 Subdocument — Cognitive Workbench Controls
-
-This document is part of **Phase 0.97 — Persistent Cognitive Runtime** and supports its management/diagnostic workbench.
-
-Authorized users may inspect and, where policy permits, insert or invalidate beliefs; create, edit, reprioritize, suspend, resume and abandon goals; modify intentions; request plan reconsideration; inject observations/events; request deliberation; and pause, resume, wake, sleep or retire a runtime.
-
-The UI must use HAgent runtime state-transition APIs and the canonical 0.959 intervention boundary where an action is an intervention. It must never write directly to persistence. Every mutation is atomic, version-aware, authorized and auditable. Record operator identity, timestamp, reason, UI action, previous revision and new revision where the owning contract exposes those fields.
-
-If the runtime revision changed since the UI read it, reject or refresh the mutation rather than silently merging it. Existing execution snapshots remain immutable and stale executions must not overwrite newer cognition.
-
-The workbench is not a new lifecycle system, plan store, approval engine, policy evaluator, or cognitive-state owner.
-
-## 0.97 Subdocument — Cognitive Workbench History and Learning
-
-This document is part of **Phase 0.97 — Persistent Cognitive Runtime**, supporting its workbench and diagnostics.
-
-Show the complete cognitive timeline: events, belief changes, attention changes, goal and intention changes, plan revisions, impasses, deliberation, executions, outcomes, memory/experience creation, learning decisions, sleep/wake and recovery, including user interventions.
-
-Show learning as:
-
-```text
-Experience
-   ↓
-Memory / bounded evidence
-   ↓
-Reflection / learning input
-   ↓
-Typed candidate
-   ↓
-0.9575 validation / governance / promotion
-   ↓
-Authoritative resource version
-   ↓
-0.9576 reliability / applicability / forgetting
-```
-
-Candidates must remain visibly distinct from authoritative versions. The workbench must not imply that repeated LLM reasoning is automatically a Skill, Knowledge item, Memory record, or Policy change.
-
-Show the active cognitive strategy and version, such as Adaptive Hybrid Cognition (AHC), when the runtime exposes such metadata. Future strategies must use the same generic workbench while allowing strategy-specific diagnostics.
-
-Historical state is initially read-only. Future experimentation may branch from checkpoints, but a branch must not silently replace the live runtime's authoritative state.

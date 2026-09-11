@@ -11,6 +11,7 @@ on:
       - 'tests/HAgent.Tests/**'
       - 'docs/architecture/93-learning-review-management-ui.md'
       - 'docs/plan/**'
+      - 'docs/roadmap/9575-resource-governance-learning.md'
       - '.github/workflows/verify-phase-0-9575-slice-12.yml'
   workflow_dispatch:
 

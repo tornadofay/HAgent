@@ -13,9 +13,9 @@ Make live agents first-class runtime objects separate from reusable agent profil
 6. [x] Expose asynchronous scheduling, cancellation, timeout, correlation, and stale-result protection foundations.
 7. [x] Define explicit active/retired/shutdown lifecycle behavior.
 8. [x] Keep dynamically created agents out of persistent configuration by default.
-9. [x] Add optional runtime-state persistence for recovery, collaboration, or multi-process deployments.
+9. [x] Provide runtime-state persistence/snapshot hooks needed by the current runtime contract without claiming durable cognitive goal/plan state or a second persistence model.
 10. [x] Verify the runtime contract with deterministic Example coverage.
-11. [ ] Complete generic external-host execution boundary hardening in Phase 0.95.
+11. [x] Complete generic external-host execution boundary hardening in Phase 0.95.
 
 ## Runtime rule
 
@@ -37,6 +37,8 @@ First-class resource foundations are established by Phase 0.8. Mature capability
 
 Phase 0.9 establishes the runtime-instance foundation. Phase 0.95 completes the generic execution boundary required for external hosts: arbitrary host input/context, host correlation, structured output contracts, terminal execution semantics, and tool identity propagation. The first-class resource model is already foundational infrastructure, while Phase 0.9575 consumes the runtime guarantees for mature Knowledge, Skills, Memory, Learning, and management governance.
 
+Durable goal, intention, plan, checkpoint, and recovery state is deliberately later work in Phase 0.9591. Persistent cognitive ownership and long-lived cognition are later 0.97 work. The runtime-instance phase must not be treated as having already solved those later persistence problems merely because basic runtime-state snapshots exist.
+
 ## Exit criterion
 
-A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, private-memory, or execution-state collisions. Resource governance and learning may then build on the stable runtime and snapshot boundaries without weakening runtime isolation.
+A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, private-memory, or execution-state collisions. Later resource governance, durable goal/plan recovery, and persistent cognition can then build on the stable runtime and snapshot boundaries without weakening runtime isolation.

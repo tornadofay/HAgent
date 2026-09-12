@@ -4,38 +4,49 @@
 
 ### 0.9576 — Learned Resource Reliability + Adaptation
 
-**Current milestone — Slice 1: Applicability and validity.**
+**Current milestone — Slice 2: Reliability evidence and validated outcome feedback.**
 
 The 0.9575 Knowledge, Skills, Memory Governance + Learning phase is closed through its Learning Review and Authoritative Resource Inventory management increments.
 
-0.9576 establishes the governance needed after promotion and before reliability/adaptation changes resource behavior:
+0.9576 establishes the governance needed after promotion and before broader reliability/adaptation changes resource behavior:
 
 - determine whether a learned resource version is applicable to a bounded context;
 - distinguish `Applicable`, `NotApplicable`, `Uncertain`, and `Invalidated`;
 - preserve applicability evidence and evaluation results for observability;
-- never treat applicability as authorization;
-- never silently mutate a published resource version because of applicability evaluation;
-- evaluate deterministic evidence before model reasoning whenever sufficient evidence exists;
-- require governed replacement/new versions rather than unsafe in-place repair.
+- record post-promotion reliability evidence separately from promotion evidence;
+- accept only host-validated operational outcomes as reliability feedback;
+- strengthen or weaken reliability through a policy-controlled, revision-safe boundary;
+- never treat reliability as authorization;
+- never silently mutate a published resource version because of reliability evaluation.
 
-#### Slice 1 — Applicability and validity
+#### Slice 1 — Applicability and validity — VERIFIED
+
+User-verified on 2026-09-12 on .NET Framework 4.8.1 and .NET 9.
+
+**Example:** `HAgent.Example → Learned Resource Applicability`.
+
+**Tests:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs`, followed by the full suite; the user reported **234/234 passed** on .NET 9 after the slice.
+
+#### Slice 2 — Reliability evidence and outcome feedback — CURRENT
 
 Implemented on `master`:
 
-- bounded provider-neutral applicability target/context/condition/evidence contracts;
-- `AiApplicabilityOutcome` with four explicit outcomes;
-- deterministic `IAiApplicabilityEvaluator` implementation;
-- scope-aware applicability independent from capability authorization;
-- missing deterministic evidence produces `Uncertain`, never `Applicable`;
-- explicit invalidation outcome with bounded reason;
-- decision records preserve resource version identity, condition results, evidence references, and evaluation time;
-- focused tests and a dedicated WinForms Example scenario.
+- `AiResourceReliabilityIdentity` keyed by resource type/ID/version/scope;
+- separate promotion and operational evidence collections;
+- `AiValidatedResourceOutcome` requiring explicit host validation metadata;
+- bounded reliability score, outcome counters, review flag, and quarantine recommendation;
+- deterministic outcome deltas for success, failure, invalid precondition, and contradiction;
+- `IAiResourceReliabilityStore` with revision-safe compare-and-swap updates;
+- deterministic `InMemoryAiResourceReliabilityStore` implementation;
+- `AiResourceReliabilityService` with policy-controlled outcome updates;
+- execution/runtime/agent/evaluation provenance preservation;
+- dedicated focused tests and WinForms Example scenario.
 
-**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
+**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused, then the full suite.
+**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused, then the full suite.
 
-Do not advance to Slice 2 until Slice 1 is user-verified on both supported targets.
+Do not advance to Slice 3 until Slice 2 is user-verified on both supported targets.
 
 ## 0.9575 — Knowledge, Skills, Memory Governance + Learning — CLOSED
 
@@ -55,7 +66,6 @@ The final inventory increment was verified on 2026-09-12 on both .NET Framework 
 
 ### 0.9576 remaining slices
 
-- **Slice 2:** reliability evidence and validated outcome feedback.
 - **Slice 3:** staleness, contradiction, drift, and revalidation.
 - **Slice 4:** quarantine, retirement, archival, and forgetting.
 - **Slice 5:** governed runtime integration and end-to-end verification.

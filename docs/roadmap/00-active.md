@@ -69,7 +69,10 @@ Implemented and now extending the inventory foundation into a scalable read/insp
 - focused `ResourceInventoryTests` coverage for filtering, normalization, bounds, and paging;
 - provider-neutral `AiMemoryResourceInventorySource` adapting the existing `IMemoryStore.SearchAsync` contract into the inventory boundary;
 - focused `MemoryResourceInventorySourceTests` coverage for projection, scope/owner/search/lifecycle/updated filtering, cancellation, and unsupported version filtering;
-- canonical Example: `HAgent.Example → Authoritative Resource Inventory` now exercises a real provider-neutral `InMemoryMemoryStore` through the Memory inventory adapter plus deterministic Knowledge/Skill projections;
+- provider-neutral `IAiKnowledgeResourceSource` + bounded `AiKnowledgeEnumerationQuery` read boundary;
+- provider-neutral `AiKnowledgeResourceInventorySource` adapting Knowledge/Wiki resources into the common inventory boundary;
+- focused `KnowledgeResourceInventorySourceTests` coverage for projection, filtering, unsupported resource types, and cancellation;
+- canonical Example: `HAgent.Example → Authoritative Resource Inventory` now exercises a real provider-neutral `InMemoryMemoryStore` through the Memory inventory adapter plus a provider-neutral Example Knowledge source through the Knowledge inventory adapter and a deterministic Skill projection;
 - WinForms page: `Configuration → Authoritative Resources` consuming the same inventory contract;
 - persistent master resource list with selected-resource inspection kept in a separate detail pane;
 - user-resizable SplitContainer starting near a 55/45 list/detail balance;
@@ -80,11 +83,11 @@ Implemented and now extending the inventory foundation into a scalable read/insp
 - readable Content view plus bounded type-specific fields/sections for Memory, Knowledge/Wiki, Skill, and future resource families;
 - focused `ResourceDetailInspectionTests` coverage;
 - Example detail projections wired through the real Configuration composition;
-- no SQL Server/MySQL enumeration implementation for Knowledge/Wiki/Skill whose current contracts do not expose generic authoritative enumeration;
+- Skill enumeration remains deferred because its current contract exposes lookup but not generic authoritative enumeration;
 - resource-specific editing, governed version creation, and lifecycle/CRUD workflows remain subsequent management work;
 - reliability/adaptation remains separate from this read-management increment.
 
-The inventory/UI surface was user-verified through a full **218/218 passed** HAgent.Tests run on .NET 9 and visual review of the WinForms master-detail layout. The new Memory inventory adapter and its Example integration are not yet locally verified by the user.
+The inventory/UI surface was user-verified through a clean **222/222 passed** HAgent.Tests run on .NET 9 after clean rebuild and visual review of the WinForms master-detail layout. The new Knowledge enumeration contract/adapter and Example integration are not yet locally verified by the user.
 
 ## Planned order
 

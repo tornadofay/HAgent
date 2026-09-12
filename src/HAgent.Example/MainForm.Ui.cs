@@ -71,9 +71,10 @@ namespace HAgent.Example
                 var reviewerIdentity = new AgentIdentityContext(userId: AISettings.DefaultSystemAdminUserId);
                 var learningPromotion = new AiLearningPromotionService(learningCandidateStore, new InMemoryMemoryStore(), new ExampleKnowledgePromotionTarget(), new ExampleSkillPromotionTarget(), new DefaultAiPolicyEngine(await store.GetPolicySetAsync().ConfigureAwait(true)));
                 var resourceInventory = CreateExampleResourceInventory();
+                var resourceDetails = CreateExampleResourceDetails();
                 using (learningCandidateStore)
                 {
-                    AISettings.ShowMainAISettingsForm(store, secrets, this, new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() }, toolStore, learningCandidateStore, reviewerIdentity, learningPromotion, resourceInventory);
+                    AISettings.ShowMainAISettingsForm(store, secrets, this, new[] { new HAgent.Providers.OpenAICompatible.OpenAICompatibleProviderAdapter() }, toolStore, learningCandidateStore, reviewerIdentity, learningPromotion, resourceInventory, resourceDetails);
                 }
                 var updatedOptions = await LoadStorageOptionsAsync().ConfigureAwait(true);
                 if (HasRuntimeStorageChanges(runtimeOptions, updatedOptions)) { _globalStatus.Text = "Applying storage settings..."; _globalStatus.ForeColor = Accent; Write("STORAGE CHANGED", "Storage settings were saved. Rebuilding HAgent runtime storage without restarting the application."); await RefreshExampleAgentsAsync().ConfigureAwait(true); return; }

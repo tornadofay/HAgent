@@ -28,8 +28,9 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.96.x — Configuration, Storage + Portability **cross-cutting foundation before 0.96**
 - 0.96 — Capability-Aware Execution **planned major execution foundation**
 - 0.97 — Persistent Cognitive Runtime **planned production V1 cognitive layer**
+- 0.98 — Model Reasoning Engineering **planned bounded reasoning-engineering layer**
 - 0.10 — Workspaces, Routing + Chat **deferred user-facing product surface after the generic runtime/execution/cognition foundations are sufficient**
-- 1.0 — Collaboration + Workflows **deferred orchestration layer built on 0.10, 0.959, 0.9591, 0.96, and 0.97**
+- 1.0 — Collaboration + Workflows **deferred orchestration layer built on 0.10, 0.959, 0.9591, 0.96, 0.97, and 0.98**
 - Later — extensibility, developer platform, release hardening, and other ecosystem work
 
 ## Ordered V1 dependency chain
@@ -67,6 +68,8 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
         ↓
 0.97 Persistent Cognitive Runtime
         ↓
+0.98 Model Reasoning Engineering
+        ↓
 0.10 Workspaces / Routing / Chat
         ↓
 1.0 Collaboration / Workflows
@@ -83,19 +86,20 @@ Each responsibility has one authoritative owner. Later phases consume the contra
 | Identity, tenancy, user context | 0.951 | all identity-aware phases |
 | Generic events | 0.952 | runtime, cognition, workspace, workflows |
 | Authorization/policy/precedence | 0.953 | instruction, context, learning, intervention, execution, cognition |
-| Instruction authority/provenance | 0.954 | context, execution, cognition |
-| Context retrieval/assembly/bounds | 0.955 | execution, cognition |
+| Instruction authority/provenance | 0.954 | context, execution, cognition, reasoning engineering |
+| Context retrieval/assembly/bounds | 0.955 | execution, cognition, reasoning engineering |
 | Tracing/observability | 0.956 | all runtime subsystems |
-| Evaluation/quality evidence | 0.957 | learning, reliability, execution diagnostics, cognition |
-| Skill/Knowledge/Memory governance + learning promotion | 0.9575 | reliability, cognition, workspace |
-| Post-promotion reliability/applicability/forgetting | 0.9576 | lifecycle, cognition |
+| Evaluation/quality evidence | 0.957 | learning, reliability, execution diagnostics, cognition, reasoning engineering |
+| Skill/Knowledge/Memory governance + learning promotion | 0.9575 | reliability, cognition, workspace, reasoning engineering |
+| Post-promotion reliability/applicability/forgetting | 0.9576 | lifecycle, cognition, reasoning engineering |
 | Runtime-agent lifecycle + runtime health | 0.958 | durable recovery, intervention, cognition |
 | Durable goals/plans/checkpoints/recovery | 0.9591 | intervention, cognition, workflows |
-| Human/host intervention boundary | 0.959 | lifecycle, plans, cognition, workflows |
-| Provider adapter/discovery/operational evidence | 0.9592 | 0.96 execution |
+| Human/host intervention boundary | 0.959 | lifecycle, plans, cognition, workflows, reasoning engineering |
+| Provider adapter/discovery/operational evidence | 0.9592 | 0.96 execution, reasoning engineering |
 | Configuration/storage/portability | 0.96.x | execution, cognition, workspaces, workflows |
 | Concrete execution-target selection/admission | 0.96 | all inference-capable subsystems |
-| Persistent per-agent cognition | 0.97 | workspace, collaboration, workflows |
+| Persistent per-agent cognition | 0.97 | reasoning engineering, workspace, collaboration, workflows |
+| Model reasoning responsibility / deterministic-before-inference discipline | 0.98 | 0.10, 1.0, host applications |
 | User-facing workspace/routing/chat | 0.10 | collaboration/workflows |
 | Multi-agent collaboration/workflow orchestration | 1.0 | host applications |
 
@@ -140,10 +144,13 @@ The roadmap maintains a strict separation:
 
 ```text
 Persistent Cognitive Runtime (0.97)
-    decides what the agent should do
+    decides whether/what cognitive progress is required
+
+Model Reasoning Engineering (0.98)
+    defines the bounded reasoning responsibility once probabilistic reasoning is requested
 
 Execution Planner (0.96)
-    decides where/how a requested inference should execute
+    decides where/how the requested inference executes
 
 Provider Adapter (0.9592)
     knows provider-specific transport/discovery details
@@ -152,7 +159,7 @@ Execution Engine
     performs the selected request
 ```
 
-The cognitive layer must not become a second provider/model router. The execution planner must not become a cognitive planner.
+The cognitive layer must not become a second provider/model router. The 0.98 reasoning layer must not become a second cognitive runtime or execution planner.
 
 ## Single-owner runtime invariant
 
@@ -205,11 +212,27 @@ The Persistent Cognitive Runtime provides:
 
 The three auxiliary roadmap documents `cognitive-workbench.md`, `cognitive-workbench-controls.md`, and `cognitive-workbench-learning.md` are subdocuments of 0.97, not separate roadmap phases.
 
+## 0.98 scope
+
+Phase 0.98 is the bounded engineering layer between persistent cognition and provider/model inference. It does not decide whether the agent should reason in the first place; 0.97 owns that decision. It does not select the provider/model; 0.96 owns that decision.
+
+0.98 owns:
+
+- deterministic-before-inference responsibility boundaries;
+- bounded model reasoning responsibilities;
+- decomposition of semantic reasoning work;
+- explicit use of authoritative evidence/context;
+- reasoning-result contracts and uncertainty representation;
+- validation of semantic reasoning results before authoritative use;
+- provider/model-neutral reasoning quality verification.
+
+The canonical shape of a future `ReasoningTask` or equivalent contract is intentionally **not decided by this roadmap entry**.
+
 ## 0.10 vs 1.0 boundary
 
 0.10 is the user-facing workspace/routing/chat product surface. It does not become a general multi-agent workflow engine.
 
-1.0 is the later orchestration layer for bounded multi-agent collaboration and workflows. It consumes 0.10 routing, 0.959 intervention, 0.9591 durable planning/recovery, 0.96 execution selection, and 0.97 persistent cognition. It must not recreate those lower-level authorities.
+1.0 is the later orchestration layer for bounded multi-agent collaboration and workflows. It consumes 0.10 routing, 0.959 intervention, 0.9591 durable planning/recovery, 0.96 execution selection, 0.97 persistent cognition, and 0.98 reasoning engineering. It must not recreate those lower-level authorities.
 
 ## Ahead-of-roadmap implementation rule
 

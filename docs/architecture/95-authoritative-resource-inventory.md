@@ -61,17 +61,29 @@ Storage-specific enumeration adapters are a later storage concern and must imple
 
 ## Management boundary
 
-`Configuration → Authoritative Resources` consumes `IAiResourceInventory` through `ConfigurationContext`. The page is read-only and limited to inventory metadata: type, ID, display name, lifecycle, scope, owner, version, update time, and source. It provides type, scope, search, and authoritative-only filtering and never constructs or publishes authoritative resources.
+`Configuration → Authoritative Resources` consumes `IAiResourceInventory` through `ConfigurationContext`. The page now provides:
 
-The Example host injects the deterministic `CreateExampleResourceInventory()` implementation into the configuration composition so the management page can be exercised without requiring SQL Server/MySQL enumeration. This is Example verification data, not a storage implementation.
+- type, scope, search, and authoritative-only filtering;
+- a deterministic list of current logical resources;
+- aligned inventory metadata for the selected resource;
+- read-only detail inspection through the separate `IAiResourceDetailSource` boundary;
+- a readable Content view plus bounded type-specific fields/sections when the host supplies them.
 
-Future WPF or ASP configuration surfaces should consume the same `IAiResourceInventory` contract and retain the same resource semantics; only their presentation and host composition should differ.
+Inventory remains a read model and does not perform mutation. Detail inspection also never grants edit, publish, delete, archive, or authorization capability.
 
-This slice does not add resource editors or CRUD operations. Those remain subsequent management increments.
+The Example host injects deterministic provider-neutral inventory and detail sources into the configuration composition so the management surface can be exercised without requiring SQL Server/MySQL enumeration. This is Example verification data, not a storage implementation.
+
+Future WPF or ASP configuration surfaces should consume the same inventory and detail contracts and retain the same resource semantics; only presentation and host composition should differ.
+
+Resource-specific editors and lifecycle/CRUD commands remain subsequent management increments. Authoritative resources must not be silently mutated in place; future editing must produce a governed candidate or new immutable version appropriate to the resource family. Reliability/adaptation lifecycle operations remain separate for 0.9576.
+
+The detail-specific architecture is defined in `docs/architecture/96-resource-detail-inspection.md`.
 
 ## Verification
 
-The focused test contract is `HAgent.Tests/ResourceInventoryTests.cs`.
+The focused inventory test contract is `HAgent.Tests/ResourceInventoryTests.cs`.
+
+The focused detail test contract is `HAgent.Tests/ResourceDetailInspectionTests.cs`.
 
 The canonical Example is:
 
@@ -81,4 +93,4 @@ The WinForms management verification path is:
 
 `Configuration → Authoritative Resources`
 
-The Example contract scenario verifies deterministic Memory/Knowledge/Skill projections, authoritative-only filtering, type/search filtering, version normalization, bounded results, and the absence of storage/provider-specific enumeration assumptions. The configuration page verifies consumption of the same provider-neutral inventory boundary and exposes only read-only inventory metadata.
+The Example contract scenario verifies deterministic Memory/Knowledge/Skill projections, authoritative-only filtering, type/search filtering, version normalization, bounded results, and readable detail inspection. The configuration page consumes the same provider-neutral inventory/detail boundaries and exposes read-only management information without storage/provider-specific enumeration assumptions.

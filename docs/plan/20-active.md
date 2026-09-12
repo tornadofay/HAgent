@@ -6,45 +6,43 @@ Only the current implementation milestone belongs here. Completed implementation
 
 Phase 0.957 is complete through Slice 6. User verification on 2026-09-09 recorded 139/139 tests passed and the required evaluation Example succeeded on .NET Framework 4.8.1 and .NET 9.
 
-## 0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT
+## 0.9575 Knowledge, Skills, Memory Governance + Learning — CLOSED
 
-Phase 0.9575 consumes the canonical resource, identity, policy, instruction, context, observability, evaluation, and runtime foundations. It must not introduce a parallel resource architecture.
+Phase 0.9575 is closed through Learning Review and the Authoritative Resource Inventory + Detail Inspection management increment.
 
-### Slices 1–10 — VERIFIED
+- Learning Review was user-verified on both supported targets.
+- Authoritative Resource Inventory was user-verified on 2026-09-12 on .NET Framework 4.8.1 and .NET 9.
+- The inventory Example verified real `InMemoryMemoryStore` projection, provider-neutral Knowledge enumeration, authoritative-only filtering, deterministic ordering/paging, filtering, and readable Memory/Knowledge/Skill details.
+- Skill storage enumeration remains deferred until its existing source contract gains a supported authoritative enumeration boundary.
+- Governed resource editing/version-creation/lifecycle workflows remain later management work.
 
-Slices 1–6 were verified on 2026-09-09. Slice 7, Slice 8, Slice 9, and Slice 10 were verified by the user on 2026-09-11. Their recorded test counts are 146, 153, 158, 167, 175, 181, 187, 194, 200, and 205 respectively; all required Examples succeeded on both supported frameworks.
+## 0.9576 Learned Resource Reliability + Adaptation — CURRENT
 
-### Slice 11 — Context, Instruction, Runtime, and Observability Integration — VERIFIED
+### Slice 1 — Applicability and validity — CURRENT
 
-Verified by user on 2026-09-11.
+This slice establishes the provider-neutral decision boundary that determines whether a promoted resource version is applicable to a bounded context, or whether evidence is insufficient or the resource is invalidated.
 
-- `HAgent.Example → Cognition → Learning → Learning Execution Integration` succeeded on .NET Framework 4.8.1 and .NET 9.
-- Both Examples verified provider-neutral learned instruction, policy/capability-gated learned context, bounded execution context snapshots, authoritative runtime outcome observation capture, non-creation of candidates from observations, and non-authoritative prompt text.
-- Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
+Implemented:
 
-Architecture: `docs/architecture/90-learning-execution-integration.md`.
+- `AiApplicabilityOutcome`: `Applicable`, `NotApplicable`, `Uncertain`, `Invalidated`;
+- `AiApplicabilityTarget` with resource type/ID/version/scope and explicit invalidation state;
+- `AiApplicabilityCondition` with bounded `Exists`, `Equals`, `NotEquals`, and `OneOf` operators;
+- `AiApplicabilityContext` with bounded host-supplied facts and optional scope;
+- `AiApplicabilityEvidenceReference` plus condition-level evidence references;
+- `AiApplicabilityDecision` retaining outcome, version identity, bounded condition results, evidence references, reason, and evaluation timestamp;
+- provider-neutral `IAiApplicabilityEvaluator`;
+- deterministic `AiDeterministicApplicabilityEvaluator` that evaluates available deterministic evidence before any model reasoning;
+- missing deterministic evidence yields `Uncertain` and never proves applicability;
+- applicability remains independent from authorization/capability policy;
+- invalidation is terminal for this evaluator and does not mutate the published resource;
+- focused tests and a dedicated manual Example.
 
-Slice 11 is closed.
+Architecture: `docs/architecture/97-learned-resource-applicability.md`.
 
-### Slice 12 — Management UI — CURRENT
+**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
 
-The management surface is being added under the existing WinForms configuration architecture. `AISettingsForm` remains a composition shell; feature behavior lives under `src/HAgent.WinForms/UI/Configuration/`.
-
-Current increment:
-
-- `Learning Review` configuration page for durable `PendingReview` candidates;
-- explicit reviewer identity fields;
-- Approve/Reject actions routed through `AiLearningCandidateReviewService` and the unified policy engine;
-- bounded candidate metadata projection without copying candidate payload into the list;
-- durable candidate store dependency exposed through `ConfigurationContext`;
-- no authoritative Memory/Knowledge/Skill publication from the UI.
-
-Architecture: `docs/architecture/93-learning-review-management-ui.md`.
-
-**Example to run:** `HAgent.Example → Configuration → Learning Review`.
-
-**Tests to run:** full `HAgent.Tests` remains the phase regression gate; Slice 12 UI verification is primarily the supported WinForms Example on .NET Framework 4.8.1 and .NET 9.
+**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 
 ## Run rule
 
-Complete the current implementation increment and record its verification before moving to the next management-UI increment. Do not combine multiple numbered slices in one run.
+Complete Slice 1 and record user verification before starting 0.9576 Slice 2 reliability evidence. Do not combine numbered 0.9576 slices in one run.

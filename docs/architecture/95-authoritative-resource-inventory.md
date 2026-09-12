@@ -18,7 +18,7 @@ AiResourceInventoryItem
 WinForms / future WPF / future ASP management surfaces
 ```
 
-`IAiResourceInventorySource` owns enumeration for one host/provider/storage boundary. `AiResourceInventory` aggregates sources, validates projections, applies common filters, normalizes one logical resource identity, selects the highest available version, orders results deterministically, and enforces the requested result bound.
+`IAiResourceInventorySource` owns enumeration for one host/provider/storage boundary. `AiResourceInventory` aggregates sources, validates projections, applies common filters, normalizes one logical resource identity, selects the highest available version, orders results deterministically, and enforces bounded paging.
 
 The inventory contract deliberately does not perform create, update, delete, publish, archive, or authorization operations.
 
@@ -46,12 +46,15 @@ Lifecycle status is also represented as a bounded string because resource famili
 
 - resource-type filtering;
 - canonical scope filtering;
-- owner filtering;
+- owner filtering, suitable for agent/owner management views;
 - bounded display-name/resource-ID search;
+- lifecycle-status filtering;
+- exact version filtering;
+- bounded updated-time filtering through UTC lower/upper bounds;
 - authoritative-only filtering;
-- bounded result count.
+- bounded result count with deterministic `SkipResults` paging.
 
-Filtering is performed against inventory metadata, not serialized resource payloads.
+Filtering is performed against inventory metadata, not serialized resource payloads. Paging is applied after source aggregation, logical-resource normalization, deterministic ordering, and metadata filtering so page boundaries remain stable for the same logical inventory snapshot.
 
 ## Storage boundary
 
@@ -61,13 +64,17 @@ Storage-specific enumeration adapters are a later storage concern and must imple
 
 ## Management boundary
 
-`Configuration → Authoritative Resources` consumes `IAiResourceInventory` through `ConfigurationContext`. The page now provides:
+`Configuration → Authoritative Resources` consumes `IAiResourceInventory` through `ConfigurationContext`. The intended management interaction is a persistent master-detail workspace:
 
-- type, scope, search, and authoritative-only filtering;
-- a deterministic list of current logical resources;
-- aligned inventory metadata for the selected resource;
-- read-only detail inspection through the separate `IAiResourceDetailSource` boundary;
-- a readable Content view plus bounded type-specific fields/sections when the host supplies them.
+- a filter/action region for search, resource type, agent/owner, scope, lifecycle, version, updated-time window, authoritative-only selection, bounded page navigation, and refresh/reset;
+- a persistent bounded resource list that remains visible while a resource is being inspected;
+- a user-resizable splitter with the list starting near a 55/45 master/detail balance;
+- a selected-resource detail pane containing tabs such as Overview and Content;
+- read-only detail inspection through the separate `IAiResourceDetailSource` boundary.
+
+The master list is not replaced by the detail tab control. The tabs belong inside the detail pane so long-running hosts with many agents/resources retain continuous discovery and selection context.
+
+The management surface uses bounded pages rather than attempting to render an unbounded resource inventory in one visual list. Current paging is offset-based and deterministic; future hosts can optimize enumeration without changing the management semantics.
 
 Inventory remains a read model and does not perform mutation. Detail inspection also never grants edit, publish, delete, archive, or authorization capability.
 
@@ -93,4 +100,4 @@ The WinForms management verification path is:
 
 `Configuration → Authoritative Resources`
 
-The Example contract scenario verifies deterministic Memory/Knowledge/Skill projections, authoritative-only filtering, type/search filtering, version normalization, bounded results, and readable detail inspection. The configuration page consumes the same provider-neutral inventory/detail boundaries and exposes read-only management information without storage/provider-specific enumeration assumptions.
+The Example contract scenario verifies deterministic Memory/Knowledge/Skill projections, authoritative-only filtering, type/search filtering, lifecycle/version/updated/owner filtering, deterministic paging, version normalization, bounded results, and readable detail inspection. The configuration page consumes the same provider-neutral inventory/detail boundaries and exposes read-only management information without storage/provider-specific enumeration assumptions.

@@ -179,3 +179,50 @@ namespace HAgent.Example
                 BackColor = Color.FromArgb(236, 234, 245), Padding = new Padding(10)
             };
             outputPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            outputPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+            outputPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            outputPanel.Controls.Add(new Label
+            {
+                Text = "Global output", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), ForeColor = Heading, Margin = new Padding(0)
+            }, 0, 0);
+
+            _output.Dock = DockStyle.Fill; _output.Multiline = true; _output.ReadOnly = true;
+            _output.ScrollBars = ScrollBars.Both; _output.Font = new Font("Consolas", 9f);
+            _output.BackColor = Color.White; _output.BorderStyle = BorderStyle.FixedSingle; _output.WordWrap = false;
+            outputPanel.Controls.Add(_output, 0, 1);
+
+            root.Controls.Add(promptPanel, 0, 0); root.Controls.Add(actions, 0, 1);
+            root.Controls.Add(_tabs, 0, 2); root.Controls.Add(outputPanel, 0, 3);
+            BodyPanel.Controls.Add(root);
+        }
+
+        private static Label CreatePromptFieldLabel(string text)
+        {
+            return new Label { Text = text, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Muted, Font = new Font("Segoe UI", 8.4f, FontStyle.Bold), Padding = new Padding(0, 0, 4, 0) };
+        }
+
+        private static TextBox CreateReadOnlyPromptBox(TextBox box)
+        {
+            box.ReadOnly = true; box.Multiline = true; box.ScrollBars = ScrollBars.Vertical; box.Dock = DockStyle.Fill;
+            box.Font = new Font("Segoe UI", 8.3f); box.BackColor = Color.White; box.BorderStyle = BorderStyle.FixedSingle;
+            box.Margin = new Padding(0, 1, 4, 2); return box;
+        }
+
+        private FlowLayoutPanel GetActionsPanel()
+        {
+            var root = BodyPanel.Controls.OfType<TableLayoutPanel>().First();
+            return (FlowLayoutPanel)root.GetControlFromPosition(0, 1);
+        }
+
+        private void ConfigureAgentSelector()
+        {
+            _agentSelector.Width = 240; _agentSelector.Height = 30;
+            _agentSelector.DropDownStyle = ComboBoxStyle.DropDownList; _agentSelector.Font = new Font("Segoe UI", 9.1f);
+            _agentSelector.Margin = new Padding(0, 5, 8, 0);
+            _agentSelector.SelectedIndexChanged += delegate { _ = UpdateSelectedAgentAsync(); };
+            GetActionsPanel().Controls.Add(_agentSelector);
+        }
+    }
+}

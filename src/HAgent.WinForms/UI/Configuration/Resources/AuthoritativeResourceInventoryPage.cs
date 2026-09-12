@@ -331,8 +331,6 @@ namespace HAgent.WinForms.UI.Configuration.Resources
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
                 FixedPanel = FixedPanel.None,
-                Panel1MinSize = 340,
-                Panel2MinSize = 320,
                 BackColor = Surface,
                 SplitterWidth = 6
             };
@@ -340,19 +338,36 @@ namespace HAgent.WinForms.UI.Configuration.Resources
             split.Panel2.Padding = new Padding(6, 0, 0, 0);
             split.Panel1.Controls.Add(_list);
             split.Panel2.Controls.Add(CreateDetails());
-            split.Resize += delegate
-            {
-                var target = (int)(split.ClientSize.Width * 0.55f);
-                if (target < split.Panel1MinSize) target = split.Panel1MinSize;
-                if (target > split.ClientSize.Width - split.Panel2MinSize) target = split.ClientSize.Width - split.Panel2MinSize;
-                if (target > 0 && target < split.ClientSize.Width) split.SplitterDistance = target;
-            };
-            split.Layout += delegate
-            {
-                if (split.SplitterDistance <= split.Panel1MinSize)
-                    split.SplitterDistance = Math.Max(split.Panel1MinSize, (int)(split.ClientSize.Width * 0.55f));
-            };
+            split.Resize += delegate { ApplySplitLayout(split); };
+            split.HandleCreated += delegate { ApplySplitLayout(split); };
             return split;
+        }
+
+        private static void ApplySplitLayout(SplitContainer split)
+        {
+            if (split == null || split.ClientSize.Width <= 0) return;
+
+            split.Panel1MinSize = 0;
+            split.Panel2MinSize = 0;
+
+            var available = split.ClientSize.Width - split.SplitterWidth;
+            if (available <= 1) return;
+
+            var target = (int)(split.ClientSize.Width * 0.55f);
+            if (target < 1) target = 1;
+            if (target >= split.ClientSize.Width) target = split.ClientSize.Width - 1;
+            split.SplitterDistance = target;
+
+            if (split.ClientSize.Width < 680) return;
+
+            split.Panel1MinSize = 340;
+            split.Panel2MinSize = 320;
+            var constrainedTarget = (int)(split.ClientSize.Width * 0.55f);
+            var max = split.ClientSize.Width - split.Panel2MinSize;
+            if (constrainedTarget < split.Panel1MinSize) constrainedTarget = split.Panel1MinSize;
+            if (constrainedTarget > max) constrainedTarget = max;
+            if (constrainedTarget > 0 && constrainedTarget < split.ClientSize.Width)
+                split.SplitterDistance = constrainedTarget;
         }
 
         private Control CreateDetails()

@@ -92,6 +92,30 @@ namespace HAgent.Tests
         }
 
         [Fact]
+        public async Task Evaluator_ReturnsUncertainWhenNotEqualsFactIsMissing()
+        {
+            var target = CreateTarget();
+            target.Preconditions.Add(new AiApplicabilityCondition
+            {
+                Key = "document.type",
+                Operator = AiApplicabilityConditionOperator.NotEquals,
+                ExpectedValue = "credit-note"
+            });
+
+            var result = await new AiDeterministicApplicabilityEvaluator().EvaluateAsync(
+                new AiApplicabilityRequest
+                {
+                    Target = target,
+                    Context = new AiApplicabilityContext { Scope = AgentResourceScope.Agent }
+                }, CancellationToken.None);
+
+            Assert.Equal(AiApplicabilityOutcome.Uncertain, result.Outcome);
+            Assert.Single(result.Conditions);
+            Assert.False(result.Conditions[0].EvidenceAvailable);
+            Assert.False(result.Conditions[0].Satisfied);
+        }
+
+        [Fact]
         public async Task Evaluator_ReturnsInvalidatedBeforePreconditions()
         {
             var target = CreateTarget();

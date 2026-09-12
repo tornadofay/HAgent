@@ -68,7 +68,15 @@ namespace HAgent.Example
                 new AgentIdentityContext(),
                 CancellationToken.None).ConfigureAwait(true);
             RequireExample(failure.ReliabilityScore == 0.55m, "Validated failure weakening failed.");
-            RequireExample(failure.RequiresReview, "Reliability review threshold failed.");
+            RequireExample(!failure.RequiresReview, "Reliability review should remain clear above the configured threshold.");
+
+            var secondFailure = await service.RecordOutcomeAsync(
+                identity,
+                CreateExampleOutcome(AiReliabilityOutcomeKind.Failure, "execution-failure-2"),
+                new AgentIdentityContext(),
+                CancellationToken.None).ConfigureAwait(true);
+            RequireExample(secondFailure.ReliabilityScore == 0.45m, "Second validated failure weakening failed.");
+            RequireExample(secondFailure.RequiresReview, "Reliability review threshold failed.");
 
             var contradiction = await service.RecordOutcomeAsync(
                 identity,
@@ -79,7 +87,7 @@ namespace HAgent.Example
 
             var current = await store.GetAsync(identity, CancellationToken.None).ConfigureAwait(true);
             RequireExample(current.Identity.Version == 3, "Reliability tracking must preserve the resource version identity.");
-            RequireExample(current.PromotionEvidence.Count == 1 && current.OutcomeEvidence.Count == 3, "Promotion and operational evidence separation failed.");
+            RequireExample(current.PromotionEvidence.Count == 1 && current.OutcomeEvidence.Count == 4, "Promotion and operational evidence separation failed.");
             RequireExample(current.OutcomeEvidence[0].SourceExecutionId == "execution-success", "Execution provenance was not preserved.");
             RequireExample(current.OutcomeEvidence[0].SourceRuntimeInstanceId == "runtime-reliability-example", "Runtime provenance was not preserved.");
 

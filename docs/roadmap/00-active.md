@@ -59,15 +59,20 @@ The Learning Review management boundary is closed.
 
 ### Current Slice 12 management work — Authoritative Resource Inventory + Detail Inspection
 
-Implemented and now extending the inventory foundation into a usable read/inspect management surface:
+Implemented and now extending the inventory foundation into a scalable read/inspect management surface:
 
 - one provider-neutral `IAiResourceInventory` / `IAiResourceInventorySource` boundary;
 - bounded resource inventory query/projection contracts;
 - deterministic aggregation, filtering, authoritative-only selection, logical-resource normalization, highest-version selection, ordering, and result bounds;
-- focused `ResourceInventoryTests` coverage;
+- lifecycle/version/updated-time/owner/agent, type, scope, search, and authoritative-only filtering;
+- deterministic offset paging through `SkipResults` + `MaxResults`;
+- focused `ResourceInventoryTests` coverage for filtering, normalization, bounds, and paging;
 - canonical Example: `HAgent.Example → Authoritative Resource Inventory`;
 - WinForms page: `Configuration → Authoritative Resources` consuming the same inventory contract;
-- aligned selected-resource metadata presentation;
+- persistent master resource list with selected-resource inspection kept in a separate detail pane;
+- user-resizable SplitContainer starting near a 55/45 list/detail balance;
+- Overview/Content tabs contained inside the detail pane rather than replacing the resource list;
+- filter/action region for Search, Resource type, Agent/Owner, Scope, Lifecycle, Version, Updated window, Authoritative-only, Apply/Reset/Refresh, and bounded page navigation;
 - provider-neutral `IAiResourceDetailSource` / `AiResourceDetail` read boundary for actual resource content;
 - readable Content view plus bounded type-specific fields/sections for Memory, Knowledge/Wiki, Skill, and future resource families;
 - focused `ResourceDetailInspectionTests` coverage;
@@ -76,7 +81,7 @@ Implemented and now extending the inventory foundation into a usable read/inspec
 - resource-specific editing, governed version creation, and lifecycle/CRUD workflows remain subsequent management work;
 - reliability/adaptation remains separate from this read-management increment.
 
-The inventory foundation was verified by the user on 2026-09-11 on both supported targets, with full `HAgent.Tests` at **213/213**. The current detail-inspection increment is pending local verification.
+The inventory foundation was verified by the user on 2026-09-11 on both supported targets, with full `HAgent.Tests` at **213/213**. The current filter/paging and UI redesign increment is pending local verification.
 
 ## Planned order
 

@@ -16,7 +16,7 @@ namespace HAgent.Example
                 "Authoritative Resource Inventory",
                 "Run provider-neutral resource inventory contract",
                 "Verifies that Memory, Knowledge, and Skill resources can be represented and inspected through bounded provider-neutral contracts without embedding storage or provider details.",
-                "The scenario intentionally uses deterministic in-process sources. SQL Server and MySQL enumeration remain deferred to the storage phase.",
+                "The Memory projection now uses the real provider-neutral IMemoryStore contract. Knowledge and Skill enumeration remain deterministic until their existing contracts expose supported authoritative enumeration.",
                 "Exercises filtering, authoritative-only selection, lifecycle/version/updated filtering, deterministic ordering, duplicate/version handling, bounded paging, and readable resource-detail inspection.",
                 TestResourceInventoryAsync,
                 "Authoritative resource inventory",
@@ -66,12 +66,13 @@ namespace HAgent.Example
                 "AUTHORITATIVE RESOURCE INVENTORY",
                 "Contract test succeeded." + Environment.NewLine +
                 "Unified Memory / Knowledge / Skill inventory projection: verified." + Environment.NewLine +
+                "Real IMemoryStore → inventory source projection: verified." + Environment.NewLine +
                 "Authoritative-only filtering: verified." + Environment.NewLine +
                 "Resource-type and text filtering: verified." + Environment.NewLine +
                 "Lifecycle/version/updated/owner filtering: verified." + Environment.NewLine +
                 "Deterministic ordering and bounded paging: verified." + Environment.NewLine +
                 "Readable resource detail inspection for Memory / Knowledge / Skill: verified." + Environment.NewLine +
-                "Storage/provider-specific enumeration remains outside the inventory contract: verified.");
+                "Knowledge/Skill storage-specific enumeration remains deferred until supported contracts exist: verified.");
         }
 
         private static AiResourceInventoryItem FindResource(IReadOnlyList<AiResourceInventoryItem> items, string resourceId)
@@ -84,12 +85,34 @@ namespace HAgent.Example
         private static IAiResourceInventory CreateExampleResourceInventory()
         {
             var now = DateTimeOffset.UtcNow;
-            var source = new ExampleResourceInventorySource(
-                CreateInventoryItem("memory", "memory-example", null, "Example Memory", "Published", true, now),
+            var memoryStore = new InMemoryMemoryStore();
+            memoryStore.AddAsync(new MemoryEntry
+            {
+                Id = "memory-example",
+                Scope = MemoryScope.Agent,
+                Kind = MemoryKind.Preference,
+                Family = AiMemoryFamily.Semantic,
+                TypeId = "semantic.preference",
+                OwnerId = "example-agent",
+                Content = "Customer Alice prefers Arabic responses when discussing invoices.",
+                Provenance = new AiMemoryProvenance
+                {
+                    Kind = AiMemoryProvenanceKind.HostProvided,
+                    Source = "example"
+                },
+                CreatedAt = now,
+                OccurredAt = now
+            }).GetAwaiter().GetResult();
+
+            var resourceSource = new ExampleResourceInventorySource(
                 CreateInventoryItem("knowledge", "knowledge-example", 2, "Example Knowledge", "Published", true, now.AddMinutes(-1)),
                 CreateInventoryItem("skill", "skill-example", 3, "Example Skill", "Published", true, now.AddMinutes(-2)),
                 CreateInventoryItem("skill", "skill-draft", 1, "Draft Skill", "Draft", false, now));
-            return new AiResourceInventory(new[] { source });
+            return new AiResourceInventory(new IAiResourceInventorySource[]
+            {
+                new AiMemoryResourceInventorySource(memoryStore),
+                resourceSource
+            });
         }
 
         private static IAiResourceDetailSource CreateExampleResourceDetails()
@@ -139,7 +162,7 @@ namespace HAgent.Example
                         detail = new AiResourceDetail
                         {
                             InventoryItem = resource,
-                            Summary = "A deterministic example memory entry retained for resource-management verification.",
+                            Summary = "A real provider-neutral MemoryStore entry retained for resource-management verification.",
                             Content = "Customer Alice prefers Arabic responses when discussing invoices."
                         };
                         detail.Fields.Add(new AiResourceDetailField { Name = "Memory family", Value = "Semantic" });

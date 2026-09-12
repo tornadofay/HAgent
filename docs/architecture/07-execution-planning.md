@@ -4,6 +4,22 @@
 
 HAgent separates **agent intent** from **execution selection**. An agent describes what it needs and what it prefers; the execution planner selects a currently compatible concrete target without permanently binding the reusable agent profile to a provider or model.
 
+## Provider evidence handoff
+
+Phase 0.9592 owns provider-adapter integration and normalized provider evidence. It may supply model/target discovery, capability evidence, cost evidence, health/availability, quota/rate/usage observations, and provider-native metadata. The planner consumes those normalized contracts but never calls provider-specific APIs directly.
+
+```text
+0.9592 Provider Adapter / Evidence
+              ↓
+     normalized target evidence
+              ↓
+0.96 Capability-Aware Execution Planner
+              ↓
+       selected target
+```
+
+Unknown provider evidence remains unknown; the planner must not manufacture support, free status, quota, or health from missing adapter information.
+
 ## Canonical execution target
 
 `AiExecutionTarget` identifies a concrete serving environment using provider, account/project, endpoint, model, logical model, version/revision, and deployment identity. The target also carries normalized capability knowledge, commercial state, and availability.
@@ -80,4 +96,4 @@ The first 0.96 implementation slice establishes:
 4. deterministic candidate diagnostics;
 5. deterministic Example verification across multiple providers exposing the same logical model.
 
-Quota/rate admission, capability discovery, operational capacity, target health feedback, transport integration, and removal of the obsolete agent-level provider/model binding remain subsequent 0.96 slices.
+Quota/rate admission, capability discovery, operational capacity, target health feedback, transport integration, and removal of the obsolete agent-level provider/model binding remain subsequent 0.96 slices, consuming provider evidence supplied by 0.9592 where available.

@@ -115,12 +115,16 @@ Verify:
 ```text
 0.9592 provider/adapters
         ↓
+0.9593 reasoning requirement / boundary foundation
+        ↓
 0.96.x configuration + storage
         ↓
 0.96 execution planning
         ↓
 0.97 persistent cognition
 ```
+
+0.9593 establishes the provider-neutral reasoning contract that 0.96 and 0.97 will consume; 0.96.x remains responsible for persisting and versioning the resulting configuration and execution-related state.
 
 ## Exit criterion
 

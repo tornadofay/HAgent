@@ -55,29 +55,41 @@ The 0.9575 management inventory increment is closed.
 
 ## Current phase — 0.9576 Learned Resource Reliability + Adaptation
 
-### Slice 1 — Applicability and validity — IN PROGRESS
+### Slice 1 — Applicability and validity — VERIFIED
 
-Implemented on `master`:
+User verified `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9 on 2026-09-12. The user subsequently reported the full .NET 9 regression suite at **234/234 passed, 0 failed, 0 skipped**.
 
-- `AiApplicabilityOutcome`: `Applicable`, `NotApplicable`, `Uncertain`, `Invalidated`;
-- bounded provider-neutral preconditions and deterministic condition operators;
-- explicit resource version/scope identity and invalidation state;
-- bounded host-supplied applicability facts and evidence references;
-- `IAiApplicabilityEvaluator` and deterministic `AiDeterministicApplicabilityEvaluator`;
-- missing evidence yields `Uncertain`, never `Applicable`;
-- applicability remains separate from authorization/capability state;
-- applicability decisions retain bounded condition results and evidence references for later observability/audit integration;
-- focused tests and dedicated Example verification host.
+The applicability boundary is closed: deterministic `Applicable`, `NotApplicable`, `Uncertain`, and `Invalidated` outcomes; bounded evidence; scope-aware evaluation; and separation from authorization.
 
 Architecture: `docs/architecture/97-learned-resource-applicability.md`.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused, then the full `HAgent.Tests` suite.
+### Slice 2 — Reliability evidence and outcome feedback — CURRENT
 
-**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
+Implemented on `master`:
+
+- `AiResourceReliabilityIdentity` keyed by resource type, resource ID, published version, and scope;
+- separate promotion evidence and operational outcome evidence;
+- `AiValidatedResourceOutcome` requiring explicit host validation metadata before reliability can change;
+- bounded reliability score and outcome counters;
+- review and quarantine recommendations as evidence-derived state, not lifecycle authorization;
+- provider-neutral `IAiResourceReliabilityStore` with revision-safe compare-and-swap updates;
+- deterministic `InMemoryAiResourceReliabilityStore` reference implementation;
+- policy-controlled `AiResourceReliabilityService` outcome updates;
+- success reinforcement, validated failure weakening, invalid-precondition weakening, and contradiction weakening;
+- execution/runtime/agent-profile/evaluation provenance preservation;
+- reliability metadata is separate from and cannot mutate the published resource version;
+- dedicated focused tests and matching Example verification scenario.
+
+Architecture: `docs/architecture/98-learned-resource-reliability.md`.
+
+**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused, then the full `HAgent.Tests` regression suite.
+
+**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
+
+Verification is pending user execution. Do not advance to Slice 3 until Slice 2 is user-verified on both supported targets.
 
 ## Remaining 0.9576 work
 
-- reliability evidence and validated outcome feedback;
 - staleness, contradiction, drift, and revalidation;
 - quarantine, retirement, archival, and forgetting;
 - governed replacement candidates without in-place mutation;

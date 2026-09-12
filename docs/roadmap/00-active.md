@@ -67,21 +67,24 @@ Implemented and now extending the inventory foundation into a scalable read/insp
 - lifecycle/version/updated-time/owner/agent, type, scope, search, and authoritative-only filtering;
 - deterministic offset paging through `SkipResults` + `MaxResults`;
 - focused `ResourceInventoryTests` coverage for filtering, normalization, bounds, and paging;
-- canonical Example: `HAgent.Example → Authoritative Resource Inventory`;
+- provider-neutral `AiMemoryResourceInventorySource` adapting the existing `IMemoryStore.SearchAsync` contract into the inventory boundary;
+- focused `MemoryResourceInventorySourceTests` coverage for projection, scope/owner/search/lifecycle/updated filtering, cancellation, and unsupported version filtering;
+- canonical Example: `HAgent.Example → Authoritative Resource Inventory` now exercises a real provider-neutral `InMemoryMemoryStore` through the Memory inventory adapter plus deterministic Knowledge/Skill projections;
 - WinForms page: `Configuration → Authoritative Resources` consuming the same inventory contract;
 - persistent master resource list with selected-resource inspection kept in a separate detail pane;
 - user-resizable SplitContainer starting near a 55/45 list/detail balance;
 - Overview/Content tabs contained inside the detail pane rather than replacing the resource list;
 - filter/action region for Search, Resource type, Agent/Owner, Scope, Lifecycle, Version, Updated window, Authoritative-only, Apply/Reset/Refresh, and bounded page navigation;
+- paging controls placed below the list and omitted when the current result set fits within one page;
 - provider-neutral `IAiResourceDetailSource` / `AiResourceDetail` read boundary for actual resource content;
 - readable Content view plus bounded type-specific fields/sections for Memory, Knowledge/Wiki, Skill, and future resource families;
 - focused `ResourceDetailInspectionTests` coverage;
 - Example detail projections wired through the real Configuration composition;
-- no SQL Server/MySQL enumeration implementation;
+- no SQL Server/MySQL enumeration implementation for Knowledge/Wiki/Skill whose current contracts do not expose generic authoritative enumeration;
 - resource-specific editing, governed version creation, and lifecycle/CRUD workflows remain subsequent management work;
 - reliability/adaptation remains separate from this read-management increment.
 
-The inventory foundation was verified by the user on 2026-09-11 on both supported targets, with full `HAgent.Tests` at **213/213**. The current filter/paging and UI redesign increment is pending local verification.
+The inventory/UI surface was user-verified through a full **218/218 passed** HAgent.Tests run on .NET 9 and visual review of the WinForms master-detail layout. The new Memory inventory adapter and its Example integration are not yet locally verified by the user.
 
 ## Planned order
 

@@ -8,8 +8,13 @@ namespace HAgent.Models
         public IList<string> ResourceTypes { get; private set; }
         public AgentResourceScope? Scope { get; set; }
         public string OwnerId { get; set; }
+        public string LifecycleStatus { get; set; }
+        public long? Version { get; set; }
+        public DateTimeOffset? UpdatedAfterUtc { get; set; }
+        public DateTimeOffset? UpdatedBeforeUtc { get; set; }
         public string SearchText { get; set; }
         public bool AuthoritativeOnly { get; set; }
+        public int SkipResults { get; set; }
         public int MaxResults { get; set; }
 
         public AiResourceInventoryQuery()
@@ -24,8 +29,13 @@ namespace HAgent.Models
             {
                 Scope = Scope,
                 OwnerId = OwnerId,
+                LifecycleStatus = LifecycleStatus,
+                Version = Version,
+                UpdatedAfterUtc = UpdatedAfterUtc,
+                UpdatedBeforeUtc = UpdatedBeforeUtc,
                 SearchText = SearchText,
                 AuthoritativeOnly = AuthoritativeOnly,
+                SkipResults = SkipResults,
                 MaxResults = MaxResults
             };
             foreach (var resourceType in ResourceTypes)
@@ -45,8 +55,18 @@ namespace HAgent.Models
 
             if (OwnerId != null && OwnerId.Length > 2048)
                 throw new ArgumentException("Resource inventory OwnerId exceeds its maximum length.");
+            if (LifecycleStatus != null && LifecycleStatus.Length > 128)
+                throw new ArgumentException("Resource inventory LifecycleStatus exceeds its maximum length.");
             if (SearchText != null && SearchText.Length > 512)
                 throw new ArgumentException("Resource inventory SearchText exceeds its maximum length.");
+            if (Version.HasValue && Version.Value <= 0)
+                throw new ArgumentException("Resource inventory Version must be positive when specified.");
+            if (UpdatedAfterUtc.HasValue && UpdatedBeforeUtc.HasValue && UpdatedAfterUtc.Value > UpdatedBeforeUtc.Value)
+                throw new ArgumentException("Resource inventory UpdatedAfterUtc cannot be later than UpdatedBeforeUtc.");
+            if (SkipResults < 0)
+                throw new ArgumentException("Resource inventory SkipResults cannot be negative.");
+            if (SkipResults > 1000000)
+                throw new ArgumentException("Resource inventory SkipResults exceeds its bound.");
             if (MaxResults < 1 || MaxResults > 1000)
                 throw new ArgumentException("Resource inventory MaxResults must be between 1 and 1000.");
         }

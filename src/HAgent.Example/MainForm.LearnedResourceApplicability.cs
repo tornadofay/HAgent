@@ -58,14 +58,14 @@ namespace HAgent.Example
             var evaluator = new AiDeterministicApplicabilityEvaluator();
             var applicable = await evaluator.EvaluateAsync(
                 new AiApplicabilityRequest { Target = target, Context = applicableContext }, CancellationToken.None).ConfigureAwait(true);
-            Require(applicable.Outcome == AiApplicabilityOutcome.Applicable, "Applicable outcome contract failed.");
-            Require(applicable.Conditions.Count == 2 && applicable.Evidence.Count == 1, "Applicability evidence contract failed.");
+            RequireExample(applicable.Outcome == AiApplicabilityOutcome.Applicable, "Applicable outcome contract failed.");
+            RequireExample(applicable.Conditions.Count == 2 && applicable.Evidence.Count == 1, "Applicability evidence contract failed.");
 
             var mismatchContext = applicableContext.Clone();
             mismatchContext.Facts["document.type"] = "quotation";
             var notApplicable = await evaluator.EvaluateAsync(
                 new AiApplicabilityRequest { Target = target, Context = mismatchContext }, CancellationToken.None).ConfigureAwait(true);
-            Require(notApplicable.Outcome == AiApplicabilityOutcome.NotApplicable, "NotApplicable outcome contract failed.");
+            RequireExample(notApplicable.Outcome == AiApplicabilityOutcome.NotApplicable, "NotApplicable outcome contract failed.");
 
             var uncertain = await evaluator.EvaluateAsync(
                 new AiApplicabilityRequest
@@ -73,14 +73,14 @@ namespace HAgent.Example
                     Target = target,
                     Context = new AiApplicabilityContext { Scope = AgentResourceScope.Agent }
                 }, CancellationToken.None).ConfigureAwait(true);
-            Require(uncertain.Outcome == AiApplicabilityOutcome.Uncertain, "Uncertain outcome contract failed.");
+            RequireExample(uncertain.Outcome == AiApplicabilityOutcome.Uncertain, "Uncertain outcome contract failed.");
 
             var invalidatedTarget = target.Clone();
             invalidatedTarget.IsInvalidated = true;
             invalidatedTarget.InvalidationReason = "Contradictory host evidence.";
             var invalidated = await evaluator.EvaluateAsync(
                 new AiApplicabilityRequest { Target = invalidatedTarget, Context = applicableContext }, CancellationToken.None).ConfigureAwait(true);
-            Require(invalidated.Outcome == AiApplicabilityOutcome.Invalidated, "Invalidated outcome contract failed.");
+            RequireExample(invalidated.Outcome == AiApplicabilityOutcome.Invalidated, "Invalidated outcome contract failed.");
 
             var scopeMismatch = await evaluator.EvaluateAsync(
                 new AiApplicabilityRequest
@@ -88,7 +88,7 @@ namespace HAgent.Example
                     Target = target,
                     Context = new AiApplicabilityContext { Scope = AgentResourceScope.User }
                 }, CancellationToken.None).ConfigureAwait(true);
-            Require(scopeMismatch.Outcome == AiApplicabilityOutcome.NotApplicable, "Scope mismatch contract failed.");
+            RequireExample(scopeMismatch.Outcome == AiApplicabilityOutcome.NotApplicable, "Scope mismatch contract failed.");
 
             var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
@@ -102,7 +102,11 @@ namespace HAgent.Example
             {
                 cancelled = true;
             }
-            Require(cancelled, "Applicability cancellation contract failed.");
+            finally
+            {
+                cancellation.Dispose();
+            }
+            RequireExample(cancelled, "Applicability cancellation contract failed.");
 
             Write(
                 "LEARNED RESOURCE APPLICABILITY",
@@ -114,6 +118,11 @@ namespace HAgent.Example
                 "Applicability remains separate from authorization: verified." + Environment.NewLine +
                 "Deterministic evaluation completed without model reasoning: verified." + Environment.NewLine +
                 "Cancellation: verified.");
+        }
+
+        private static void RequireExample(bool condition, string message)
+        {
+            if (!condition) throw new InvalidOperationException(message);
         }
     }
 }

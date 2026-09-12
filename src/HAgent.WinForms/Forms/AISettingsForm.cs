@@ -48,10 +48,11 @@ namespace HAgent.WinForms.Forms
             IAiLearningCandidateStore learningCandidates = null,
             AgentIdentityContext reviewerIdentity = null,
             AiLearningPromotionService learningPromotion = null,
-            IAiResourceInventory resourceInventory = null)
+            IAiResourceInventory resourceInventory = null,
+            IAiResourceDetailSource resourceDetails = null)
             : base("AI Configuration", "Providers, agents, tools, policy, learning review, permissions, and storage", new Size(1120, 720), new Size(900, 600))
         {
-            _context = new ConfigurationContext(store, secrets, adapters, tools, learningCandidates, reviewerIdentity, learningPromotion, resourceInventory);
+            _context = new ConfigurationContext(store, secrets, adapters, tools, learningCandidates, reviewerIdentity, learningPromotion, resourceInventory, resourceDetails);
             _overview = new OverviewPage(_context);
             _providers = new ProvidersPage(_context);
             _agents = new AgentsPage(_context);

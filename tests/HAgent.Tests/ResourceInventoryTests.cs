@@ -17,9 +17,9 @@ namespace HAgent.Tests
             var inventory = new AiResourceInventory(new[]
             {
                 new TestSource(
-                    Item("skill", "skill-a", 2, "Skill A", true, DateTimeOffset.UtcNow),
-                    Item("memory", "memory-a", null, "Memory A", true, DateTimeOffset.UtcNow.AddMinutes(-1)),
-                    Item("knowledge", "knowledge-a", 1, "Knowledge A", true, DateTimeOffset.UtcNow.AddMinutes(-2)))
+                    Item("skill", "skill-a", 2, "Skill A", "Published", true, DateTimeOffset.UtcNow),
+                    Item("memory", "memory-a", null, "Memory A", "Published", true, DateTimeOffset.UtcNow.AddMinutes(-1)),
+                    Item("knowledge", "knowledge-a", 1, "Knowledge A", "Published", true, DateTimeOffset.UtcNow.AddMinutes(-2)))
             });
 
             var result = await inventory.ListAsync(new AiResourceInventoryQuery { AuthoritativeOnly = true });
@@ -31,14 +31,15 @@ namespace HAgent.Tests
         }
 
         [Fact]
-        public async Task Inventory_FiltersByTypeScopeOwnerSearchAndAuthority()
+        public async Task Inventory_FiltersByTypeScopeOwnerSearchLifecycleVersionUpdatedAndAuthority()
         {
+            var now = DateTimeOffset.UtcNow;
             var inventory = new AiResourceInventory(new[]
             {
                 new TestSource(
-                    Item("skill", "skill-a", 1, "Billing Skill", true, DateTimeOffset.UtcNow),
-                    Item("skill", "skill-b", 1, "Draft Billing Skill", false, DateTimeOffset.UtcNow),
-                    Item("knowledge", "knowledge-a", 1, "Billing Knowledge", true, DateTimeOffset.UtcNow))
+                    Item("skill", "skill-a", 3, "Billing Skill", "Published", true, now.AddHours(-1)),
+                    Item("skill", "skill-b", 2, "Billing Skill", "Draft", false, now.AddHours(-2)),
+                    Item("knowledge", "knowledge-a", 3, "Billing Knowledge", "Published", true, now.AddDays(-2)))
             });
 
             var result = await inventory.ListAsync(new AiResourceInventoryQuery
@@ -47,6 +48,10 @@ namespace HAgent.Tests
                 Scope = AgentResourceScope.Agent,
                 OwnerId = "agent-1",
                 SearchText = "billing",
+                LifecycleStatus = "Published",
+                Version = 3,
+                UpdatedAfterUtc = now.AddHours(-2),
+                UpdatedBeforeUtc = now,
                 AuthoritativeOnly = true
             });
 
@@ -55,11 +60,32 @@ namespace HAgent.Tests
         }
 
         [Fact]
+        public async Task Inventory_PagesDeterministicallyWithSkipResults()
+        {
+            var inventory = new AiResourceInventory(new[]
+            {
+                new TestSource(
+                    Item("memory", "memory-1", null, "Memory 1", "Published", true, DateTimeOffset.UtcNow),
+                    Item("memory", "memory-2", null, "Memory 2", "Published", true, DateTimeOffset.UtcNow),
+                    Item("memory", "memory-3", null, "Memory 3", "Published", true, DateTimeOffset.UtcNow))
+            });
+
+            var firstPage = await inventory.ListAsync(new AiResourceInventoryQuery { SkipResults = 0, MaxResults = 2 });
+            var secondPage = await inventory.ListAsync(new AiResourceInventoryQuery { SkipResults = 2, MaxResults = 2 });
+
+            Assert.Equal(2, firstPage.Count);
+            Assert.Equal(1, secondPage.Count);
+            Assert.Equal("memory-1", firstPage[0].ResourceId);
+            Assert.Equal("memory-2", firstPage[1].ResourceId);
+            Assert.Equal("memory-3", secondPage[0].ResourceId);
+        }
+
+        [Fact]
         public async Task Inventory_DeduplicatesSameLogicalResourceAndKeepsHighestVersion()
         {
-            var version2 = Item("skill", "skill-a", 2, "Skill A", true, DateTimeOffset.UtcNow.AddMinutes(-5));
+            var version2 = Item("skill", "skill-a", 2, "Skill A", "Published", true, DateTimeOffset.UtcNow.AddMinutes(-5));
             var duplicate = version2.Clone();
-            var version3 = Item("skill", "skill-a", 3, "Skill A", true, DateTimeOffset.UtcNow.AddMinutes(-1));
+            var version3 = Item("skill", "skill-a", 3, "Skill A", "Published", true, DateTimeOffset.UtcNow.AddMinutes(-1));
 
             var inventory = new AiResourceInventory(new[]
             {
@@ -79,9 +105,9 @@ namespace HAgent.Tests
             var inventory = new AiResourceInventory(new[]
             {
                 new TestSource(
-                    Item("memory", "memory-1", null, "Memory 1", true, DateTimeOffset.UtcNow),
-                    Item("memory", "memory-2", null, "Memory 2", true, DateTimeOffset.UtcNow),
-                    Item("memory", "memory-3", null, "Memory 3", true, DateTimeOffset.UtcNow))
+                    Item("memory", "memory-1", null, "Memory 1", "Published", true, DateTimeOffset.UtcNow),
+                    Item("memory", "memory-2", null, "Memory 2", "Published", true, DateTimeOffset.UtcNow),
+                    Item("memory", "memory-3", null, "Memory 3", "Published", true, DateTimeOffset.UtcNow))
             });
 
             var result = await inventory.ListAsync(new AiResourceInventoryQuery { MaxResults = 2 });
@@ -94,10 +120,17 @@ namespace HAgent.Tests
         {
             var inventory = new AiResourceInventory(new[]
             {
-                new TestSource(Item("skill", "skill-a", 1, "Skill A", true, DateTimeOffset.UtcNow))
+                new TestSource(Item("skill", "skill-a", 1, "Skill A", "Published", true, DateTimeOffset.UtcNow))
             });
 
             await Assert.ThrowsAsync<ArgumentException>(() => inventory.ListAsync(new AiResourceInventoryQuery { MaxResults = 0 }));
+            await Assert.ThrowsAsync<ArgumentException>(() => inventory.ListAsync(new AiResourceInventoryQuery { Version = 0 }));
+            await Assert.ThrowsAsync<ArgumentException>(() => inventory.ListAsync(new AiResourceInventoryQuery
+            {
+                UpdatedAfterUtc = DateTimeOffset.UtcNow,
+                UpdatedBeforeUtc = DateTimeOffset.UtcNow.AddMinutes(-1)
+            }));
+            await Assert.ThrowsAsync<ArgumentException>(() => inventory.ListAsync(new AiResourceInventoryQuery { SkipResults = -1 }));
             await Assert.ThrowsAsync<ArgumentException>(() =>
                 new AiResourceInventory(new[]
                 {
@@ -112,7 +145,7 @@ namespace HAgent.Tests
                 }).ListAsync(new AiResourceInventoryQuery()));
         }
 
-        private static AiResourceInventoryItem Item(string type, string id, long? version, string name, bool authoritative, DateTimeOffset updated)
+        private static AiResourceInventoryItem Item(string type, string id, long? version, string name, string status, bool authoritative, DateTimeOffset updated)
         {
             return new AiResourceInventoryItem
             {
@@ -122,7 +155,7 @@ namespace HAgent.Tests
                 Scope = AgentResourceScope.Agent,
                 OwnerId = "agent-1",
                 DisplayName = name,
-                LifecycleStatus = authoritative ? "Published" : "Draft",
+                LifecycleStatus = status,
                 IsAuthoritative = authoritative,
                 UpdatedUtc = updated,
                 Source = "test"

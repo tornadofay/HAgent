@@ -2211,7 +2211,7 @@ Knowledge, Skills, Memory, and Learning are first-class production V1 resources 
 
 ## Status
 
-**Planned immediately after 0.9575.**
+**In progress — Slice 2: Reliability evidence and outcome feedback.**
 
 ## Purpose
 
@@ -2238,26 +2238,34 @@ These dimensions remain separate.
 
 ## Delivery slices
 
-### Slice 1 — Applicability and validity
+### Slice 1 — Applicability and validity — VERIFIED
 
-- Define provider-neutral applicability results:
-  - `Applicable`
-  - `NotApplicable`
-  - `Uncertain`
-  - `Invalidated`
-- Support bounded applicability conditions, preconditions, scope, and evidence references.
-- Evaluate deterministic applicability before requesting model reasoning when sufficient evidence exists.
-- Keep applicability independent from authorization/capability state.
-- Preserve applicability decision/evidence in observability.
+Verified by the user on 2026-09-12 on .NET Framework 4.8.1 and .NET 9.
 
-### Slice 2 — Reliability evidence and outcome feedback
+- provider-neutral applicability results: `Applicable`, `NotApplicable`, `Uncertain`, `Invalidated`;
+- bounded applicability conditions, preconditions, scope, and evidence references;
+- deterministic evaluation before model reasoning when sufficient evidence exists;
+- applicability independent from authorization/capability state;
+- applicability decisions preserve resource-version identity, condition results, and evidence references;
+- dedicated tests and Example verification.
+
+### Slice 2 — Reliability evidence and outcome feedback — CURRENT
 
 - Define post-promotion reliability metadata without replacing resource version identity.
 - Distinguish promotion evidence from operational outcome evidence.
-- Reinforce reliability from validated successful outcomes where policy permits.
-- Weaken or quarantine resources after failed outcomes, contradictions, invalid preconditions, or sustained degradation.
-- Preserve execution/runtime provenance for reliability evidence.
-- Keep reliability changes policy-controlled and revision-safe.
+- Reinforce reliability from host-validated successful outcomes where policy permits.
+- Weaken reliability after validated failures and invalid preconditions.
+- Mark contradiction evidence with a quarantine recommendation without performing lifecycle mutation in this slice.
+- Preserve execution/runtime/agent provenance and bounded evaluation references.
+- Keep reliability updates policy-controlled and revision-safe.
+
+**Architecture:** `docs/architecture/98-learned-resource-reliability.md`.
+
+**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused first, then the full `HAgent.Tests` suite.
+
+**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
+
+Verification is pending user execution.
 
 ### Slice 3 — Staleness, contradiction, and revalidation
 
@@ -2311,7 +2319,7 @@ These dimensions remain separate.
 ```text
 0.9575 governed learning + promotion
         ↓
-0.9576 learned-resource reliability + adaptation
+0.9576 learned resource reliability + adaptation
         ↓
 0.958 lifecycle + health
         ↓

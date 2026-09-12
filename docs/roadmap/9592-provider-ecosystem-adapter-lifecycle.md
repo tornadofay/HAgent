@@ -2,23 +2,7 @@
 
 ## Status
 
-**Planned after 0.959 Human Intervention and before 0.96 capability-aware execution.**
-
-The ordered roadmap position is:
-
-```text
-0.9591 Goal / Plan Persistence + Recovery
-        ↓
-0.959 Human Intervention
-        ↓
-0.9592 Provider Ecosystem + Adapter Lifecycle
-        ↓
-0.96.x Configuration / Storage / Portability
-        ↓
-0.96 Capability-Aware Execution
-```
-
-This ordering is a delivery dependency for the V1 roadmap. 0.9592 does not need goal/plan persistence or intervention APIs as implementation inputs merely because it follows them in the ordered sequence; it is placed here so the provider boundary is complete before 0.96 consumes it.
+**Planned before 0.96 capability-aware execution.**
 
 ## Purpose
 
@@ -32,11 +16,11 @@ This phase is a provider-platform foundation, not a provider marketplace.
 Provider Configuration
         ↓
 Provider Adapter
- ├── execution transport
- ├── model / target discovery (when available)
- ├── capability evidence (when available)
- ├── quota / rate / usage telemetry (when available)
- ├── health / availability evidence
+ ├── execution
+ ├── model discovery (when available)
+ ├── capability discovery (when available)
+ ├── quota/rate/usage telemetry (when available)
+ ├── health/availability
  └── provider-native metadata
         ↓
 Normalized HAgent contracts
@@ -44,7 +28,7 @@ Normalized HAgent contracts
 0.96 Execution Planner
 ```
 
-Unknown information remains `Unknown`; adapters do not invent capabilities, limits, costs, quotas, health, or compatibility claims.
+Unknown information remains `Unknown`; adapters do not invent capabilities or limits.
 
 ## 2026-09-11 use-case audit
 
@@ -57,7 +41,7 @@ The intended desktop-application and HWorld use cases justify the core of 0.9592
 | Model/target discovery | Required to avoid hard-coding every provider's model catalog and to feed 0.96 target assessment. Partial/no discovery must remain supported. | Keep |
 | Capability discovery/evidence | Required for 0.96 capability-aware selection; unknown capability must remain unknown. | Keep |
 | Provider-native identities/metadata | Required because the same logical model may exist through multiple providers/accounts/deployments. | Keep |
-| Quota/rate/usage telemetry | Directly justified by provider limits, shared capacity, and 429/rate-limit behavior encountered in HWorld-oriented execution. | Keep |
+| Quota/rate/usage telemetry | Directly justified by real provider limits, shared capacity, and 429/rate-limit behavior encountered in HWorld-oriented execution. | Keep |
 | Health/availability evidence | Needed to avoid repeatedly selecting unavailable execution targets. | Keep |
 | Adapter/API compatibility and replacement | Needed for deliberate adapter replacement while preserving historical provider/target identity and configuration semantics. | Keep, bounded |
 | Cost information | Needed by 0.96's FreeOnly/FreePreferred/NoRestriction policy; 0.9592 only supplies evidence, it does not select. | Keep as evidence |
@@ -115,29 +99,25 @@ Use deterministic fake providers to verify:
 1. Core remains provider-neutral.
 2. A provider describes transport/service integration, not agent behavior.
 3. Model names are not sufficient execution identity; concrete targets remain distinct.
-4. Unknown capability/cost/quota/health information remains unknown.
+4. Unknown capability/cost/quota information remains unknown.
 5. Adapter lifecycle does not become runtime-agent lifecycle.
 6. Provider-specific behavior stays behind adapter boundaries.
 7. 0.96 owns execution-target selection; this phase does not create a routing engine.
 8. Provider credentials use the repository's simple encrypted provider-configuration mechanism; no separate secret-vault architecture is introduced.
 9. Provider marketplace, distributed provider-control, and autonomous provider-routing responsibilities remain outside this phase.
-10. 0.9592 publishes normalized provider evidence; it does not silently reinterpret that evidence into execution policy.
-11. Configuration/storage portability remains a cross-cutting concern consumed through existing/future 0.96.x contracts; provider adapters must not create a parallel configuration or persistence subsystem.
 
-## Dependencies and handoff
+## Dependencies
 
 ```text
-Existing provider-neutral runtime/execution contracts
+0.9592 provider/adapters
         ↓
-0.9592 provider adapters / discovery / operational evidence
-        ↓
-0.96.x configuration, storage, and portability foundations
+0.96.x configuration/storage
         ↓
 0.96 capability-aware execution
 ```
 
-The phase is intentionally ordered after 0.9591 and 0.959 in the roadmap, but its direct technical purpose is to complete the provider boundary before 0.96 consumes it. 0.96 must depend on normalized 0.9592 contracts rather than provider-specific APIs.
+The adapter contracts may be implemented incrementally, but 0.96 cannot depend on provider-specific APIs directly.
 
 ## Exit criterion
 
-HAgent can register and use multiple provider adapters, preserve provider-native identities and metadata, consume complete or partial discovery/operational information through normalized contracts, represent unknowns honestly, preserve adapter lifecycle/history, and hand all execution-target selection to Phase 0.96 without creating a parallel routing or configuration authority.
+HAgent can register and use multiple provider adapters, preserve provider-native identities and metadata, consume complete or partial discovery/operational information through normalized contracts, represent unknowns honestly, and hand all execution-target selection to Phase 0.96.

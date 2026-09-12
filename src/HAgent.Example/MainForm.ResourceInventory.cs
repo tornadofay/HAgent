@@ -116,7 +116,7 @@ namespace HAgent.Example
 
             var knowledgeSource = new ExampleKnowledgeResourceSource(
                 CreateKnowledgeResource(AiKnowledgeResourceKind.Knowledge, "knowledge-example", 2, "Retention Policy", "HAgent resource inventory exposes authoritative Knowledge through one provider-neutral management projection.", now.AddMinutes(-1)),
-                CreateKnowledgeResource(AiKnowledgeResourceKind.Knowledge, "knowledge-draft", 1, "Draft Knowledge", "Draft resources remain non-authoritative until governed publication.", now));
+                CreateKnowledgeResource(AiKnowledgeResourceKind.Knowledge, "knowledge-draft", 1, "Draft Knowledge", "Draft resources remain non-authoritative until governed publication.", now, AiKnowledgeLifecycleStatus.Draft));
 
             var skillSource = new ExampleResourceInventorySource(
                 CreateInventoryItem("skill", "skill-example", 3, "Example Skill", "Published", true, now.AddMinutes(-2)),

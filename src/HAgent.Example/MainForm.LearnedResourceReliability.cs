@@ -83,6 +83,27 @@ namespace HAgent.Example
             RequireExample(current.OutcomeEvidence[0].SourceExecutionId == "execution-success", "Execution provenance was not preserved.");
             RequireExample(current.OutcomeEvidence[0].SourceRuntimeInstanceId == "runtime-reliability-example", "Runtime provenance was not preserved.");
 
+            var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            var cancelled = false;
+            try
+            {
+                await service.RecordOutcomeAsync(
+                    identity,
+                    CreateExampleOutcome(AiReliabilityOutcomeKind.Success, "execution-cancelled"),
+                    new AgentIdentityContext(),
+                    cancellation.Token).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                cancelled = true;
+            }
+            finally
+            {
+                cancellation.Dispose();
+            }
+            RequireExample(cancelled, "Reliability cancellation contract failed.");
+
             Write(
                 "LEARNED RESOURCE RELIABILITY",
                 "Contract test succeeded." + Environment.NewLine +
@@ -93,7 +114,7 @@ namespace HAgent.Example
                 "Execution/runtime provenance preservation: verified." + Environment.NewLine +
                 "Published resource version remains unchanged: verified." + Environment.NewLine +
                 "Policy-controlled reliability update boundary: verified." + Environment.NewLine +
-                "Cancellation-capable API: verified.");
+                "Cancellation: verified.");
         }
 
         private static AiValidatedResourceOutcome CreateExampleOutcome(AiReliabilityOutcomeKind kind, string executionId)

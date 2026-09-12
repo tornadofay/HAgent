@@ -25,6 +25,7 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.9591 — Goal/Plan Persistence + Recovery **planned and ordered before intervention**
 - 0.959 — Human-in-the-Loop + Intervention **planned; execution/learning intervention exists ahead of roadmap**
 - 0.9592 — Provider Ecosystem + Adapter Lifecycle **planned**
+- 0.9593 — Reasoning Requirement + Boundary Foundation **planned prerequisite for reasoning-related 0.96/0.97 design**
 - 0.96.x — Configuration, Storage + Portability **cross-cutting foundation before 0.96**
 - 0.96 — Capability-Aware Execution **planned major execution foundation**
 - 0.97 — Persistent Cognitive Runtime **planned production V1 cognitive layer**
@@ -62,6 +63,8 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
         ↓
 0.9592 Provider Ecosystem + Adapters
         ↓
+0.9593 Reasoning Requirement / Boundary Foundation
+        ↓
 0.96.x Configuration / Storage / Portability
         ↓
 0.96 Capability-Aware Execution
@@ -95,11 +98,12 @@ Each responsibility has one authoritative owner. Later phases consume the contra
 | Runtime-agent lifecycle + runtime health | 0.958 | durable recovery, intervention, cognition |
 | Durable goals/plans/checkpoints/recovery | 0.9591 | intervention, cognition, workflows |
 | Human/host intervention boundary | 0.959 | lifecycle, plans, cognition, workflows, reasoning engineering |
-| Provider adapter/discovery/operational evidence | 0.9592 | 0.96 execution, reasoning engineering |
+| Provider adapter/discovery/operational evidence | 0.9592 | 0.9593, 0.96 execution, reasoning engineering |
+| Reasoning requirement / deterministic-before-inference contract | 0.9593 | 0.96, 0.97, 0.98 |
 | Configuration/storage/portability | 0.96.x | execution, cognition, workspaces, workflows |
 | Concrete execution-target selection/admission | 0.96 | all inference-capable subsystems |
 | Persistent per-agent cognition | 0.97 | reasoning engineering, workspace, collaboration, workflows |
-| Model reasoning responsibility / deterministic-before-inference discipline | 0.98 | 0.10, 1.0, host applications |
+| Model reasoning responsibility / deterministic-before-inference engineering | 0.98 | 0.10, 1.0, host applications |
 | User-facing workspace/routing/chat | 0.10 | collaboration/workflows |
 | Multi-agent collaboration/workflow orchestration | 1.0 | host applications |
 
@@ -146,8 +150,11 @@ The roadmap maintains a strict separation:
 Persistent Cognitive Runtime (0.97)
     decides whether/what cognitive progress is required
 
+Reasoning Requirement Boundary (0.9593)
+    defines the provider-neutral reasoning need consumed by execution/cognition
+
 Model Reasoning Engineering (0.98)
-    defines the bounded reasoning responsibility once probabilistic reasoning is requested
+    defines the bounded model-reasoning responsibility once probabilistic reasoning is requested
 
 Execution Planner (0.96)
     decides where/how the requested inference executes
@@ -159,7 +166,7 @@ Execution Engine
     performs the selected request
 ```
 
-The cognitive layer must not become a second provider/model router. The 0.98 reasoning layer must not become a second cognitive runtime or execution planner.
+0.9593 is a contract foundation, not a second cognition or routing layer. The cognitive layer must not become a second provider/model router, and the 0.98 reasoning layer must not become a second cognitive runtime or execution planner.
 
 ## Single-owner runtime invariant
 
@@ -192,7 +199,7 @@ Phase 0.96 is the only concrete execution-selection layer. It handles:
 - fallback/degradation;
 - target diagnostics.
 
-Provider health evidence originates at 0.9592; 0.96 consumes it. Cognitive strategies emit provider-neutral reasoning requirements and consume 0.96 rather than naming providers/models.
+Provider health evidence originates at 0.9592; the provider-neutral reasoning requirement originates at 0.9593; 0.96 consumes both. Cognitive strategies emit provider-neutral reasoning requirements and consume 0.96 rather than naming providers/models.
 
 ## 0.97 production V1 scope
 
@@ -214,7 +221,7 @@ The three auxiliary roadmap documents `cognitive-workbench.md`, `cognitive-workb
 
 ## 0.98 scope
 
-Phase 0.98 is the bounded engineering layer between persistent cognition and provider/model inference. It does not decide whether the agent should reason in the first place; 0.97 owns that decision. It does not select the provider/model; 0.96 owns that decision.
+Phase 0.98 is the bounded engineering layer between persistent cognition and provider/model inference. It does not decide whether the agent should reason in the first place; 0.97 owns that decision. It does not define the basic reasoning requirement; 0.9593 owns that pre-execution contract. It does not select the provider/model; 0.96 owns that decision.
 
 0.98 owns:
 
@@ -226,7 +233,7 @@ Phase 0.98 is the bounded engineering layer between persistent cognition and pro
 - validation of semantic reasoning results before authoritative use;
 - provider/model-neutral reasoning quality verification.
 
-The canonical shape of a future `ReasoningTask` or equivalent contract is intentionally **not decided by this roadmap entry**.
+The canonical concrete shape of the 0.9593 contract (`ReasoningTask`, `ReasoningRequirement`, or equivalent) remains an architectural decision within that phase and must not be duplicated by 0.98.
 
 ## 0.10 vs 1.0 boundary
 
@@ -246,7 +253,7 @@ Phase exit criteria prove their own bounded contracts. V1 completion also requir
 
 ### Scenario 1 — Provider failure and recovery
 
-A persistent cognitive decision in 0.97 produces a provider-neutral `ReasoningRequirement` → 0.96 selects an execution target → the selected provider fails or reaches a governed rate/capacity boundary → 0.96 admits a valid fallback target → execution completes → 0.97 continues the active goal/plan without creating a second provider-selection authority.
+A persistent cognitive decision in 0.97 produces a provider-neutral reasoning requirement defined by 0.9593 → 0.96 selects an execution target → the selected provider fails or reaches a governed rate/capacity boundary → 0.96 admits a valid fallback target → execution completes → 0.97 continues the active goal/plan without creating a second provider-selection authority.
 
 ### Scenario 2 — Learning and restart recovery
 

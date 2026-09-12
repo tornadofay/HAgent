@@ -4,7 +4,7 @@
 
 Phase 0.98 defines the engineering boundary between HAgent's deterministic runtime knowledge and provider/model-based reasoning.
 
-It is intentionally **not** a new cognitive runtime. Persistent cognition remains owned by `docs/architecture/16-cognitive-runtime.md` and its executable algorithm specification. Execution-target selection remains owned by `docs/architecture/07-execution-planning.md`. Instruction authority remains owned by `docs/architecture/11-instruction-governance.md`, and context retrieval/assembly remains owned by `docs/architecture/20-context.md`.
+The provider-neutral pre-execution reasoning contract is established by Phase 0.9593. Persistent cognition remains owned by `docs/architecture/16-cognitive-runtime.md` and its executable algorithm specification. Execution-target selection remains owned by `docs/architecture/07-execution-planning.md`. Instruction authority remains owned by `docs/architecture/11-instruction-governance.md`, and context retrieval/assembly remains owned by `docs/architecture/20-context.md`.
 
 ## Core principle
 
@@ -22,6 +22,8 @@ The complementary rule is:
 Deterministic HAgent state/facts
         ↓
 Authoritative structured evidence/context
+        ↓
+Provider-neutral reasoning requirement (0.9593)
         ↓
 Bounded model reasoning
         ↓
@@ -52,7 +54,7 @@ The proposal remains non-authoritative until it passes the existing relevant HAg
 
 ## Deterministic-before-inferential behavior
 
-When the current cognitive/runtime state and deterministic operators are sufficient, cognition should progress without model invocation. When probabilistic reasoning is genuinely required, the cognitive layer produces its provider-neutral reasoning requirement and the execution planner selects an admitted target.
+When the current cognitive/runtime state and deterministic operators are sufficient, cognition should progress without model invocation. When probabilistic reasoning is genuinely required, the cognitive layer produces the provider-neutral reasoning requirement defined by 0.9593 and the execution planner selects an admitted target.
 
 0.98 does not create a second model-selection path and does not move cognition's deterministic-vs-probabilistic decision into provider adapters.
 
@@ -89,15 +91,18 @@ A model-reported confidence value is evidence produced by the model; it is not a
 - Evaluation + Quality Measurement for correctness and provider/model comparison;
 - Policy and authorization boundaries for enforcement;
 - Capability-Aware Execution for concrete target selection/admission;
-- Persistent Cognitive Runtime for deciding when probabilistic reasoning is needed.
+- Persistent Cognitive Runtime for deciding when probabilistic reasoning is needed;
+- 0.9593 for the provider-neutral reasoning requirement and responsibility boundary.
 
 A new subsystem is justified only when an existing contract cannot express a requirement that belongs to the 0.98 responsibility.
 
-## Contract decision intentionally deferred
+## Contract ownership
 
-This document does not define a concrete `ReasoningTask` model. Whether 0.98 should introduce such a provider-neutral contract, or express the boundary through existing execution/context/instruction contracts, must be decided before the first implementation slice.
+Phase 0.9593 owns the **pre-execution reasoning requirement contract** and decides its canonical shape (`ReasoningTask`, `ReasoningRequirement`, or another equivalent provider-neutral contract).
 
-That decision must preserve the phase ownership boundaries above and must not create a parallel cognitive runtime, context system, prompt system, policy engine, or execution planner.
+Phase 0.98 consumes that contract and owns the additional engineering required to constrain, validate, evaluate, and safely handle model reasoning results.
+
+This separation ensures 0.98 does not recreate the cognitive runtime, execution planner, context system, instruction system, or the basic reasoning-request contract.
 
 ## Non-goals
 

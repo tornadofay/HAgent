@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HAgent.Abstractions;
@@ -15,8 +16,8 @@ namespace HAgent.Example
             AddApiTab(
                 "Authoritative Resource Inventory",
                 "Run provider-neutral resource inventory contract",
-                "Verifies that Memory, Knowledge, and Skill resources can be represented and inspected through bounded provider-neutral contracts without embedding storage or provider details.",
-                "The Memory projection now uses the real provider-neutral IMemoryStore contract. Knowledge and Skill enumeration remain deterministic until their existing contracts expose supported authoritative enumeration.",
+                "Verifies that Memory, Knowledge/Wiki, and Skill resources can be represented and inspected through one bounded provider-neutral management contract without embedding storage or provider details.",
+                "Memory and Knowledge/Wiki now use their provider-neutral resource-source boundaries. Skill enumeration remains deterministic until its existing lookup contract gains a supported authoritative enumeration boundary.",
                 "Exercises filtering, authoritative-only selection, lifecycle/version/updated filtering, deterministic ordering, duplicate/version handling, bounded paging, and readable resource-detail inspection.",
                 TestResourceInventoryAsync,
                 "Authoritative resource inventory",
@@ -32,6 +33,10 @@ namespace HAgent.Example
             var skills = await inventory.ListAsync(new AiResourceInventoryQuery { ResourceTypes = { "skill" }, AuthoritativeOnly = true, SearchText = "example" }).ConfigureAwait(true);
             if (skills.Count != 1 || !string.Equals(skills[0].ResourceId, "skill-example", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Filtered inventory contract failed.");
+
+            var knowledge = await inventory.ListAsync(new AiResourceInventoryQuery { ResourceTypes = { "knowledge" }, AuthoritativeOnly = true, SearchText = "retention" }).ConfigureAwait(true);
+            if (knowledge.Count != 1 || !string.Equals(knowledge[0].ResourceId, "knowledge-example", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Knowledge source projection contract failed.");
 
             var published = await inventory.ListAsync(new AiResourceInventoryQuery
             {
@@ -67,12 +72,13 @@ namespace HAgent.Example
                 "Contract test succeeded." + Environment.NewLine +
                 "Unified Memory / Knowledge / Skill inventory projection: verified." + Environment.NewLine +
                 "Real IMemoryStore → inventory source projection: verified." + Environment.NewLine +
+                "Real provider-neutral Knowledge source → inventory projection: verified." + Environment.NewLine +
                 "Authoritative-only filtering: verified." + Environment.NewLine +
                 "Resource-type and text filtering: verified." + Environment.NewLine +
                 "Lifecycle/version/updated/owner filtering: verified." + Environment.NewLine +
                 "Deterministic ordering and bounded paging: verified." + Environment.NewLine +
                 "Readable resource detail inspection for Memory / Knowledge / Skill: verified." + Environment.NewLine +
-                "Knowledge/Skill storage-specific enumeration remains deferred until supported contracts exist: verified.");
+                "Skill storage-specific enumeration remains deferred until a supported authoritative enumeration contract exists: verified.");
         }
 
         private static AiResourceInventoryItem FindResource(IReadOnlyList<AiResourceInventoryItem> items, string resourceId)
@@ -104,15 +110,52 @@ namespace HAgent.Example
                 OccurredAt = now
             }).GetAwaiter().GetResult();
 
-            var resourceSource = new ExampleResourceInventorySource(
-                CreateInventoryItem("knowledge", "knowledge-example", 2, "Example Knowledge", "Published", true, now.AddMinutes(-1)),
+            var knowledgeSource = new ExampleKnowledgeResourceSource(
+                CreateKnowledgeResource(AiKnowledgeResourceKind.Knowledge, "knowledge-example", 2, "Retention Policy", "HAgent resource inventory exposes authoritative Knowledge through one provider-neutral management projection.", now.AddMinutes(-1)),
+                CreateKnowledgeResource(AiKnowledgeResourceKind.Knowledge, "knowledge-draft", 1, "Draft Knowledge", "Draft resources remain non-authoritative until governed publication.", now));
+
+            var skillSource = new ExampleResourceInventorySource(
                 CreateInventoryItem("skill", "skill-example", 3, "Example Skill", "Published", true, now.AddMinutes(-2)),
                 CreateInventoryItem("skill", "skill-draft", 1, "Draft Skill", "Draft", false, now));
+
             return new AiResourceInventory(new IAiResourceInventorySource[]
             {
                 new AiMemoryResourceInventorySource(memoryStore),
-                resourceSource
+                new AiKnowledgeResourceInventorySource(knowledgeSource),
+                skillSource
             });
+        }
+
+        private static AiKnowledgeResource CreateKnowledgeResource(
+            AiKnowledgeResourceKind kind,
+            string id,
+            long version,
+            string title,
+            string content,
+            DateTimeOffset updatedUtc,
+            AiKnowledgeLifecycleStatus status = AiKnowledgeLifecycleStatus.Published)
+        {
+            return new AiKnowledgeResource
+            {
+                Id = id,
+                Kind = kind,
+                Scope = AgentResourceScope.Agent,
+                OwnerId = "example-agent",
+                Title = title,
+                Summary = title,
+                Content = content,
+                Status = status,
+                Version = version,
+                Source = "example-knowledge-source",
+                Provenance = new AiKnowledgeProvenance
+                {
+                    Kind = AiKnowledgeProvenanceKind.HostProvided,
+                    Source = "example",
+                    SourceId = id
+                },
+                CreatedUtc = updatedUtc.UtcDateTime,
+                UpdatedUtc = updatedUtc.UtcDateTime
+            };
         }
 
         private static IAiResourceDetailSource CreateExampleResourceDetails()
@@ -135,6 +178,43 @@ namespace HAgent.Example
                 UpdatedUtc = updated,
                 Source = "example"
             };
+        }
+
+        private sealed class ExampleKnowledgeResourceSource : IAiKnowledgeResourceSource
+        {
+            private readonly IReadOnlyList<AiKnowledgeResource> _resources;
+
+            public ExampleKnowledgeResourceSource(params AiKnowledgeResource[] resources)
+            {
+                _resources = resources.Select(resource => resource.Clone()).ToList().AsReadOnly();
+            }
+
+            public Task<IReadOnlyList<AiKnowledgeResource>> ListAsync(
+                AiKnowledgeEnumerationQuery query,
+                CancellationToken cancellationToken = default(CancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                query.Validate();
+
+                var result = _resources
+                    .Where(resource =>
+                        (!query.Kind.HasValue || resource.Kind == query.Kind.Value) &&
+                        (!query.Scope.HasValue || resource.Scope == query.Scope.Value) &&
+                        (query.OwnerId == null || string.Equals(resource.OwnerId, query.OwnerId, StringComparison.Ordinal)) &&
+                        (!query.Status.HasValue || resource.Status == query.Status.Value) &&
+                        (!query.Version.HasValue || resource.Version == query.Version.Value) &&
+                        (!query.UpdatedAfterUtc.HasValue || resource.UpdatedUtc >= query.UpdatedAfterUtc.Value) &&
+                        (!query.UpdatedBeforeUtc.HasValue || resource.UpdatedUtc <= query.UpdatedBeforeUtc.Value) &&
+                        (!query.AuthoritativeOnly || resource.IsAuthoritative) &&
+                        (string.IsNullOrWhiteSpace(query.SearchText) ||
+                         ((resource.Id ?? string.Empty) + " " + (resource.Title ?? string.Empty))
+                             .IndexOf(query.SearchText.Trim(), StringComparison.OrdinalIgnoreCase) >= 0))
+                    .Take(query.MaxResults)
+                    .Select(resource => resource.Clone())
+                    .ToList();
+
+                return Task.FromResult<IReadOnlyList<AiKnowledgeResource>>(result.AsReadOnly());
+            }
         }
 
         private sealed class ExampleResourceInventorySource : IAiResourceInventorySource
@@ -174,7 +254,7 @@ namespace HAgent.Example
                         detail = new AiResourceDetail
                         {
                             InventoryItem = resource,
-                            Summary = "A deterministic example knowledge resource with readable content and structured metadata.",
+                            Summary = "A Knowledge resource projected through the provider-neutral enumeration boundary.",
                             Content = "HAgent resource inventory exposes authoritative Knowledge and Wiki resources through one provider-neutral management projection."
                         };
                         detail.Fields.Add(new AiResourceDetailField { Name = "Version", Value = resource.Version.HasValue ? resource.Version.Value.ToString() : "N/A" });

@@ -28,6 +28,11 @@ namespace HAgent.WinForms.UI.Configuration
 
         protected static TableLayoutPanel CreateListPageRoot()
         {
+            return CreateListPageRoot(50);
+        }
+
+        protected static TableLayoutPanel CreateListPageRoot(int actionHeight)
+        {
             var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -38,7 +43,7 @@ namespace HAgent.WinForms.UI.Configuration
             };
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, actionHeight));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             return root;
         }

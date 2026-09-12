@@ -57,9 +57,9 @@ Verified by user on 2026-09-11 on both .NET Framework 4.8.1 and .NET 9:
 
 The Learning Review management boundary is closed.
 
-### Current Slice 12 management work — Authoritative Resource Inventory
+### Current Slice 12 management work — Authoritative Resource Inventory + Detail Inspection
 
-Implemented foundation plus first WinForms management surface:
+Implemented and now extending the inventory foundation into a usable read/inspect management surface:
 
 - one provider-neutral `IAiResourceInventory` / `IAiResourceInventorySource` boundary;
 - bounded resource inventory query/projection contracts;
@@ -67,11 +67,16 @@ Implemented foundation plus first WinForms management surface:
 - focused `ResourceInventoryTests` coverage;
 - canonical Example: `HAgent.Example → Authoritative Resource Inventory`;
 - WinForms page: `Configuration → Authoritative Resources` consuming the same inventory contract;
-- read-only metadata/details with type, scope, search, and authoritative-only filters;
+- aligned selected-resource metadata presentation;
+- provider-neutral `IAiResourceDetailSource` / `AiResourceDetail` read boundary for actual resource content;
+- readable Content view plus bounded type-specific fields/sections for Memory, Knowledge/Wiki, Skill, and future resource families;
+- focused `ResourceDetailInspectionTests` coverage;
+- Example detail projections wired through the real Configuration composition;
 - no SQL Server/MySQL enumeration implementation;
-- resource-specific CRUD/editor workflows remain subsequent management work.
+- resource-specific editing, governed version creation, and lifecycle/CRUD workflows remain subsequent management work;
+- reliability/adaptation remains separate from this read-management increment.
 
-User verified the canonical inventory Example on both supported targets on 2026-09-11, and full `HAgent.Tests` passed **213/213**. The next manual checkpoint is the WinForms management surface on both targets.
+The inventory foundation was verified by the user on 2026-09-11 on both supported targets, with full `HAgent.Tests` at **213/213**. The current detail-inspection increment is pending local verification.
 
 ## Planned order
 

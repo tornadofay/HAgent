@@ -18,31 +18,35 @@ Phase 0.9575 is closed through Learning Review and the Authoritative Resource In
 
 ## 0.9576 Learned Resource Reliability + Adaptation — CURRENT
 
-### Slice 1 — Applicability and validity — CURRENT
+### Slice 2 — Reliability evidence and outcome feedback — CURRENT
 
-This slice establishes the provider-neutral decision boundary that determines whether a promoted resource version is applicable to a bounded context, or whether evidence is insufficient or the resource is invalidated.
+Slice 1 applicability/validity was user-verified on 2026-09-12 on both supported targets and the user subsequently reported 234/234 tests passed on .NET 9.
+
+Slice 2 establishes the post-promotion reliability evidence boundary without creating a second resource architecture.
 
 Implemented:
 
-- `AiApplicabilityOutcome`: `Applicable`, `NotApplicable`, `Uncertain`, `Invalidated`;
-- `AiApplicabilityTarget` with resource type/ID/version/scope and explicit invalidation state;
-- `AiApplicabilityCondition` with bounded `Exists`, `Equals`, `NotEquals`, and `OneOf` operators;
-- `AiApplicabilityContext` with bounded host-supplied facts and optional scope;
-- `AiApplicabilityEvidenceReference` plus condition-level evidence references;
-- `AiApplicabilityDecision` retaining outcome, version identity, bounded condition results, evidence references, reason, and evaluation timestamp;
-- provider-neutral `IAiApplicabilityEvaluator`;
-- deterministic `AiDeterministicApplicabilityEvaluator` that evaluates available deterministic evidence before any model reasoning;
-- missing deterministic evidence yields `Uncertain` and never proves applicability;
-- applicability remains independent from authorization/capability policy;
-- invalidation is terminal for this evaluator and does not mutate the published resource;
-- focused tests and a dedicated manual Example.
+- `AiResourceReliabilityIdentity` captures resource type, resource ID, version, and explicit scope;
+- `AiReliabilityEvidence` separates promotion evidence from later operational outcome evidence;
+- `AiValidatedResourceOutcome` requires explicit host validation metadata before reliability can change;
+- `AiResourceReliabilityRecord` tracks bounded score, outcome counts, review state, quarantine recommendation, and evidence history;
+- `IAiResourceReliabilityStore` provides provider-neutral persistence with compare-and-swap revision updates;
+- `InMemoryAiResourceReliabilityStore` provides deterministic reference storage for tests and Example verification;
+- `AiResourceReliabilityService` applies bounded deterministic outcome feedback and evaluates `IAiPolicyEngine` using the operation `resource.reliability.record-outcome`;
+- success reinforces by `+0.05`, failure weakens by `-0.10`, invalid precondition by `-0.15`, and contradiction by `-0.25`, with score clamped to `[0,1]`;
+- reliability below `0.50` requests review; contradiction or score at/below `0.25` recommends quarantine without changing lifecycle state;
+- execution/runtime/agent-profile/evaluation provenance is preserved in operational evidence;
+- stale revision writes are rejected rather than applied last-write-wins;
+- dedicated focused tests and a matching manual Example were added.
 
-Architecture: `docs/architecture/97-learned-resource-applicability.md`.
+Architecture: `docs/architecture/98-learned-resource-reliability.md`.
 
-**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
+**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+
+Verification is pending user execution. Do not advance to 0.9576 Slice 3 until Slice 2 is verified on both supported targets.
 
 ## Run rule
 
-Complete Slice 1 and record user verification before starting 0.9576 Slice 2 reliability evidence. Do not combine numbered 0.9576 slices in one run.
+Work only on the current numbered 0.9576 slice. Do not combine reliability feedback with staleness, contradiction detection, forgetting, archival, or runtime integration in the same run.

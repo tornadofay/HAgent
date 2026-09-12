@@ -23,6 +23,8 @@ namespace HAgent.WinForms.UI.Configuration.Resources
         private readonly Label _pageStatus = new Label();
         private readonly HAgent.WinForms.Helpers.Button.HButton _previousPage;
         private readonly HAgent.WinForms.Helpers.Button.HButton _nextPage;
+        private readonly TableLayoutPanel _workspace = new TableLayoutPanel();
+        private readonly Panel _pagingBar = new Panel();
         private readonly Label _detailTitle = new Label();
         private readonly Label _detailType = new Label();
         private readonly Label _detailSummary = new Label();
@@ -240,35 +242,41 @@ namespace HAgent.WinForms.UI.Configuration.Resources
             };
             var refresh = CreateActionButton("Refresh", 82);
             refresh.Click += async delegate { await RefreshDataAsync(false); };
-            _previousPage.Margin = new Padding(8, 19, 0, 0);
-            _nextPage.Margin = new Padding(4, 19, 0, 0);
-            _previousPage.Click += async delegate
-            {
-                if (_pageNumber == 0) return;
-                _pageNumber--;
-                await RefreshDataAsync(false);
-            };
-            _nextPage.Click += async delegate
-            {
-                if (!_hasNextPage) return;
-                _pageNumber++;
-                await RefreshDataAsync(false);
-            };
-            _pageStatus.AutoSize = true;
-            _pageStatus.ForeColor = Muted;
-            _pageStatus.Margin = new Padding(8, 30, 0, 0);
-            _status.AutoSize = true;
-            _status.ForeColor = Muted;
-            _status.Margin = new Padding(8, 30, 0, 0);
             filters.Controls.Add(WrapTopAligned(apply));
             filters.Controls.Add(WrapTopAligned(reset));
             filters.Controls.Add(WrapTopAligned(refresh));
-            filters.Controls.Add(_previousPage);
-            filters.Controls.Add(_nextPage);
-            filters.Controls.Add(_pageStatus);
             filters.Controls.Add(_status);
+            _status.AutoSize = true;
+            _status.ForeColor = Muted;
+            _status.Margin = new Padding(8, 30, 0, 0);
             outer.Controls.Add(filters);
             return outer;
+        }
+
+        private Control CreatePagingBar()
+        {
+            _pagingBar.Dock = DockStyle.Fill;
+            _pagingBar.BackColor = Surface;
+
+            var controls = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = Surface,
+                Padding = new Padding(0, 2, 0, 0),
+                Margin = new Padding(0)
+            };
+            _previousPage.Margin = new Padding(0, 0, 4, 0);
+            _nextPage.Margin = new Padding(4, 0, 8, 0);
+            _pageStatus.AutoSize = true;
+            _pageStatus.ForeColor = Muted;
+            _pageStatus.Margin = new Padding(0, 10, 0, 0);
+            controls.Controls.Add(_previousPage);
+            controls.Controls.Add(_nextPage);
+            controls.Controls.Add(_pageStatus);
+            _pagingBar.Controls.Add(controls);
+            return _pagingBar;
         }
 
         private static Panel WrapTopAligned(Control control)
@@ -340,7 +348,19 @@ namespace HAgent.WinForms.UI.Configuration.Resources
             split.Panel2.Controls.Add(CreateDetails());
             split.Resize += delegate { ApplySplitLayout(split); };
             split.HandleCreated += delegate { ApplySplitLayout(split); };
-            return split;
+
+            _workspace.Dock = DockStyle.Fill;
+            _workspace.BackColor = Surface;
+            _workspace.ColumnCount = 1;
+            _workspace.RowCount = 2;
+            _workspace.ColumnStyles.Clear();
+            _workspace.RowStyles.Clear();
+            _workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            _workspace.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            _workspace.RowStyles.Add(new RowStyle(SizeType.Absolute, 0f));
+            _workspace.Controls.Add(split, 0, 0);
+            _workspace.Controls.Add(CreatePagingBar(), 0, 1);
+            return _workspace;
         }
 
         private static void ApplySplitLayout(SplitContainer split)
@@ -572,9 +592,16 @@ namespace HAgent.WinForms.UI.Configuration.Resources
 
         private void UpdatePagingState()
         {
+            var pagingVisible = _pageNumber > 0 || _hasNextPage;
             _previousPage.Enabled = _pageNumber > 0;
             _nextPage.Enabled = _hasNextPage;
             _pageStatus.Text = "Page " + (_pageNumber + 1);
+            _previousPage.Visible = pagingVisible;
+            _nextPage.Visible = pagingVisible;
+            _pageStatus.Visible = pagingVisible;
+            _pagingBar.Visible = pagingVisible;
+            if (_workspace.RowStyles.Count > 1)
+                _workspace.RowStyles[1].Height = pagingVisible ? 36f : 0f;
         }
 
         private void ClearDetails()

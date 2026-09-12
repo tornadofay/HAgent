@@ -5,47 +5,49 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9576 Learned Resource Reliability + Adaptation
-- **Status:** Slice 1 in progress — Applicability and validity
+- **Status:** Slice 2 in progress — Reliability evidence and outcome feedback
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Establish a provider-neutral applicability/validity boundary for learned resource versions before reliability, staleness, forgetting, or runtime adaptation work.
+- **Scope:** Record host-validated post-promotion reliability evidence against exact resource versions, with policy control and revision-safe updates, without mutating the authoritative resource.
 
 ## 0.9575 checkpoint closed
 
-The 0.9575 Knowledge, Skills, Memory Governance + Learning phase is complete through the Learning Review and Authoritative Resource Inventory management increments.
+The 0.9575 Knowledge, Skills, Memory Governance + Learning phase is complete through the Learning Review and Authoritative Resource Inventory + Detail Inspection management increment.
 
-User verification completed on 2026-09-12:
+User verification completed on 2026-09-12, followed by 0.9576 Slice 1 verification and a 234/234 full-suite result reported by the user.
 
-- `HAgent.Example → Authoritative Resource Inventory` succeeded on .NET Framework 4.8.1.
-- `HAgent.Example → Authoritative Resource Inventory` succeeded on .NET 9.
-- The Example verified unified Memory / Knowledge / Skill inventory projection, real `InMemoryMemoryStore` adaptation, provider-neutral Knowledge enumeration, authoritative-only filtering, deterministic ordering/paging, filtering, and readable resource details.
+## 0.9576 Slice 1 checkpoint closed
 
-The remaining 0.9575 work that intentionally stays deferred includes storage-specific Skill enumeration and later governed editing/lifecycle operations. Reliability/adaptation is now the active 0.9576 phase.
+User verified `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9. The reported full .NET 9 regression result was 234/234 passed, 0 failed, 0 skipped.
 
-## Current Slice 1 boundary
+## Current Slice 2 boundary
 
-`0.9576 Slice 1 — Applicability and validity` establishes:
+`0.9576 Slice 2 — Reliability evidence and outcome feedback` establishes:
 
-- `AiApplicabilityOutcome`: `Applicable`, `NotApplicable`, `Uncertain`, `Invalidated`;
-- bounded provider-neutral applicability conditions and preconditions;
-- bounded applicability evidence references and per-condition evidence availability;
-- resource identity including resource type, resource ID, version, and scope;
-- explicit invalidation state without mutating published resource versions;
-- deterministic evaluation through `IAiApplicabilityEvaluator` and `AiDeterministicApplicabilityEvaluator`;
-- scope-aware applicability that remains separate from authorization/capability state;
-- missing required evidence produces `Uncertain`, never `Applicable`;
-- applicability decisions retain bounded condition results and evidence references for later observability/audit integration;
-- no model invocation, embeddings, vector database, or GPU dependency.
+- `AiResourceReliabilityIdentity` keyed by resource type, resource ID, published version, and scope;
+- distinct promotion evidence and operational outcome evidence;
+- `AiValidatedResourceOutcome` requiring explicit host validation before it can change reliability;
+- bounded reliability score and outcome counters;
+- review and quarantine recommendations as evidence-derived state, not lifecycle authorization;
+- provider-neutral `IAiResourceReliabilityStore` with revision-safe updates;
+- deterministic `InMemoryAiResourceReliabilityStore` reference implementation;
+- policy-controlled outcome updates through `IAiPolicyEngine` operation `resource.reliability.record-outcome`;
+- success reinforcement, failure weakening, invalid-precondition weakening, and contradiction weakening;
+- execution/runtime/agent/evaluation provenance preservation;
+- no mutation of the promoted resource version;
+- no model, GPU, embeddings, vector database, or host-domain dependency.
 
 ## Files and verification
 
-- Architecture: `docs/architecture/97-learned-resource-applicability.md`.
-- Tests: `tests/HAgent.Tests/LearnedResourceApplicabilityTests.cs` / `LearnedResourceApplicabilityTests`.
-- Example: `src/HAgent.Example/MainForm.LearnedResourceApplicability.cs` / `Learned Resource Applicability`.
+- Architecture: `docs/architecture/98-learned-resource-reliability.md`.
+- Tests: `tests/HAgent.Tests/LearnedResourceReliabilityTests.cs` / `LearnedResourceReliabilityTests`.
+- Example: `src/HAgent.Example/MainForm.LearnedResourceReliability.cs` / `Learned Resource Reliability`.
 
-**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
+**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+
+Verification is pending user execution.
 
 ## Do not advance
 
-Do not advance to 0.9576 reliability evidence, staleness/contradiction, forgetting/archival, or runtime integration until this Slice 1 Example succeeds on both supported targets and the focused/full tests remain green.
+Do not advance to 0.9576 Slice 3 staleness/drift/revalidation, or later quarantine/forgetting/runtime integration, until this Slice 2 Example succeeds on both supported targets and the focused/full tests remain green.

@@ -79,7 +79,7 @@ namespace HAgent.WinForms.UI.Configuration.Resources
         {
             var outer = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
             var actions = CreateActionPanel();
-            ConfigureFilter(_typeFilter);
+            ConfigureComboBox(_typeFilter);
             _typeFilter.Items.Add("All");
             _typeFilter.Items.Add("memory");
             _typeFilter.Items.Add("knowledge");
@@ -88,7 +88,7 @@ namespace HAgent.WinForms.UI.Configuration.Resources
             _typeFilter.SelectedIndex = 0;
             _typeFilter.SelectedIndexChanged += async delegate { await RefreshDataAsync(); };
 
-            ConfigureFilter(_scopeFilter);
+            ConfigureComboBox(_scopeFilter);
             _scopeFilter.Items.Add("All");
             foreach (var value in Enum.GetValues(typeof(AgentResourceScope))) _scopeFilter.Items.Add(value.ToString());
             _scopeFilter.SelectedIndex = 0;
@@ -124,6 +124,14 @@ namespace HAgent.WinForms.UI.Configuration.Resources
             return outer;
         }
 
+        private static void ConfigureComboBox(ComboBox combo)
+        {
+            combo.Width = 120;
+            combo.Height = 28;
+            combo.DropDownStyle = ComboBoxStyle.DropDownList;
+            combo.Margin = new Padding(0, 5, 0, 0);
+        }
+
         private Control CreateWorkspace()
         {
             ConfigureList(_list);
@@ -148,7 +156,7 @@ namespace HAgent.WinForms.UI.Configuration.Resources
         {
             var panel = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(14) };
             _details.Dock = DockStyle.Fill;
-            _details.ForeColor = Text;
+            _details.ForeColor = Color.FromArgb(68, 62, 88);
             _details.Font = new Font("Segoe UI", 9f);
             _details.TextAlign = ContentAlignment.TopLeft;
             panel.Controls.Add(_details);

@@ -37,9 +37,9 @@ Verified by user on 2026-09-11.
 
 The complete Learning Review management boundary is now closed.
 
-### Current Slice 12 management increment — Authoritative Resource Inventory
+### Current Slice 12 management increment — Authoritative Resource Inventory + Detail Inspection
 
-This increment remains inside 0.9575 and establishes the shared inventory foundation plus the first WinForms management surface.
+This increment remains inside 0.9575 and establishes the shared inventory foundation, the WinForms inventory surface, and provider-neutral read-only detail inspection.
 
 ### Implemented
 
@@ -50,23 +50,27 @@ This increment remains inside 0.9575 and establishes the shared inventory founda
 - extensible string resource types so future resource families do not require central Agent model changes;
 - no SQL Server/MySQL enumeration implementation;
 - focused unit coverage in `HAgent.Tests/ResourceInventoryTests.cs`;
-- dedicated Example scenario `HAgent.Example → Authoritative Resource Inventory`;
-- WinForms `Configuration → Authoritative Resources` page consuming only `IAiResourceInventory`;
-- read-only resource metadata/details and type/scope/search/authoritative filters;
-- Example configuration injection uses the same deterministic provider-neutral inventory source as the canonical inventory Example.
+- focused read-detail coverage in `HAgent.Tests/ResourceDetailInspectionTests.cs`;
+- dedicated Example scenario `HAgent.Example → Authoritative Resource Inventory` now verifies readable Memory, Knowledge, and Skill detail projections;
+- WinForms `Configuration → Authoritative Resources` page consuming the inventory and detail contracts;
+- aligned selected-resource metadata presentation;
+- readable Content view plus type-specific fields/sections supplied by the host detail source;
+- stale asynchronous detail-result protection so an earlier selection cannot overwrite the current selection;
+- Example configuration injection uses deterministic provider-neutral inventory/detail sources;
+- edit/delete/publish/archive/retire operations remain outside the read-only detail boundary.
 
 ### Remaining work
 
-- connect real Memory, Knowledge/Wiki, and Skill authoritative sources where their existing contracts can support enumeration without inventing provider-specific behavior;
+- connect real Memory, Knowledge/Wiki, and Skill authoritative sources where their existing contracts can support inventory and detail enumeration without inventing provider-specific behavior;
 - expose effective agent-resource visibility without duplicating authoritative resource models;
-- extend manual verification through `Configuration → Authoritative Resources` on both supported targets;
-- keep resource-specific CRUD/editor workflows as subsequent management work;
+- extend the management surface with governed resource-specific editing/version-creation workflows;
+- add appropriate governed lifecycle operations rather than unconditional CRUD/delete behavior;
 - keep reliability/adaptation separate for 0.9576.
 
-User verification of the inventory foundation on 2026-09-11: .NET Framework 4.8.1 Example succeeded, .NET 9 Example succeeded, and full `HAgent.Tests` was **213/213 passed, 0 failed, 0 skipped**.
+User verification of the inventory foundation on 2026-09-11: .NET Framework 4.8.1 Example succeeded, .NET 9 Example succeeded, and full `HAgent.Tests` was **213/213 passed, 0 failed, 0 skipped**. The new detail-inspection implementation is not yet locally verified by the user.
 
-Architecture: `docs/architecture/93-learning-review-management-ui.md`, `docs/architecture/94-learning-review-candidate-details.md`, and `docs/architecture/95-authoritative-resource-inventory.md`.
+Architecture: `docs/architecture/93-learning-review-management-ui.md`, `docs/architecture/94-learning-review-candidate-details.md`, `docs/architecture/95-authoritative-resource-inventory.md`, and `docs/architecture/96-resource-detail-inspection.md`.
 
-**Tests to run:** `HAgent.Tests → ResourceInventoryTests.cs` (focused), then the full `HAgent.Tests` suite at the slice checkpoint.
+**Tests to run:** `HAgent.Tests → ResourceDetailInspectionTests.cs` (focused), then the full `HAgent.Tests` suite at the management-slice checkpoint.
 
-**Example to run:** `HAgent.Example → Authoritative Resource Inventory` on .NET Framework 4.8.1 and .NET 9; additionally open `Configuration → Authoritative Resources` on both targets for the WinForms management-surface verification.
+**Example to run:** `HAgent.Example → Authoritative Resource Inventory` on .NET Framework 4.8.1 and .NET 9; then open `Configuration → Authoritative Resources` on both targets, select Memory, Knowledge, and Skill resources, and verify the aligned Overview and readable Content views.

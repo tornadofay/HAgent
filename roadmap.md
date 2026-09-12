@@ -34,8 +34,9 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.96.x — Configuration, Storage + Portability **cross-cutting foundation before 0.96**
 - 0.96 — Capability-Aware Execution **planned major execution foundation**
 - 0.97 — Persistent Cognitive Runtime **planned production V1 cognitive layer**
+- 0.98 — Model Reasoning Engineering **planned bounded reasoning-engineering layer**
 - 0.10 — Workspaces, Routing + Chat **deferred user-facing product surface after the generic runtime/execution/cognition foundations are sufficient**
-- 1.0 — Collaboration + Workflows **deferred orchestration layer built on 0.10, 0.959, 0.9591, 0.96, and 0.97**
+- 1.0 — Collaboration + Workflows **deferred orchestration layer built on 0.10, 0.959, 0.9591, 0.96, 0.97, and 0.98**
 - Later — extensibility, developer platform, release hardening, and other ecosystem work
 
 ## Ordered V1 dependency chain
@@ -73,6 +74,8 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
         ↓
 0.97 Persistent Cognitive Runtime
         ↓
+0.98 Model Reasoning Engineering
+        ↓
 0.10 Workspaces / Routing / Chat
         ↓
 1.0 Collaboration / Workflows
@@ -89,19 +92,20 @@ Each responsibility has one authoritative owner. Later phases consume the contra
 | Identity, tenancy, user context | 0.951 | all identity-aware phases |
 | Generic events | 0.952 | runtime, cognition, workspace, workflows |
 | Authorization/policy/precedence | 0.953 | instruction, context, learning, intervention, execution, cognition |
-| Instruction authority/provenance | 0.954 | context, execution, cognition |
-| Context retrieval/assembly/bounds | 0.955 | execution, cognition |
+| Instruction authority/provenance | 0.954 | context, execution, cognition, reasoning engineering |
+| Context retrieval/assembly/bounds | 0.955 | execution, cognition, reasoning engineering |
 | Tracing/observability | 0.956 | all runtime subsystems |
-| Evaluation/quality evidence | 0.957 | learning, reliability, execution diagnostics, cognition |
-| Skill/Knowledge/Memory governance + learning promotion | 0.9575 | reliability, cognition, workspace |
-| Post-promotion reliability/applicability/forgetting | 0.9576 | lifecycle, cognition |
+| Evaluation/quality evidence | 0.957 | learning, reliability, execution diagnostics, cognition, reasoning engineering |
+| Skill/Knowledge/Memory governance + learning promotion | 0.9575 | reliability, cognition, workspace, reasoning engineering |
+| Post-promotion reliability/applicability/forgetting | 0.9576 | lifecycle, cognition, reasoning engineering |
 | Runtime-agent lifecycle + runtime health | 0.958 | durable recovery, intervention, cognition |
 | Durable goals/plans/checkpoints/recovery | 0.9591 | intervention, cognition, workflows |
-| Human/host intervention boundary | 0.959 | lifecycle, plans, cognition, workflows |
-| Provider adapter/discovery/operational evidence | 0.9592 | 0.96 execution |
+| Human/host intervention boundary | 0.959 | lifecycle, plans, cognition, workflows, reasoning engineering |
+| Provider adapter/discovery/operational evidence | 0.9592 | 0.96 execution, reasoning engineering |
 | Configuration/storage/portability | 0.96.x | execution, cognition, workspaces, workflows |
 | Concrete execution-target selection/admission | 0.96 | all inference-capable subsystems |
-| Persistent per-agent cognition | 0.97 | workspace, collaboration, workflows |
+| Persistent per-agent cognition | 0.97 | reasoning engineering, workspace, collaboration, workflows |
+| Model reasoning responsibility / deterministic-before-inference discipline | 0.98 | 0.10, 1.0, host applications |
 | User-facing workspace/routing/chat | 0.10 | collaboration/workflows |
 | Multi-agent collaboration/workflow orchestration | 1.0 | host applications |
 
@@ -146,10 +150,13 @@ The roadmap maintains a strict separation:
 
 ```text
 Persistent Cognitive Runtime (0.97)
-    decides what the agent should do
+    decides whether/what cognitive progress is required
+
+Model Reasoning Engineering (0.98)
+    defines the bounded reasoning responsibility once probabilistic reasoning is requested
 
 Execution Planner (0.96)
-    decides where/how a requested inference should execute
+    decides where/how the requested inference executes
 
 Provider Adapter (0.9592)
     knows provider-specific transport/discovery details
@@ -158,7 +165,7 @@ Execution Engine
     performs the selected request
 ```
 
-The cognitive layer must not become a second provider/model router. The execution planner must not become a cognitive planner.
+The cognitive layer must not become a second provider/model router. The 0.98 reasoning layer must not become a second cognitive runtime or execution planner.
 
 ## Single-owner runtime invariant
 
@@ -211,11 +218,27 @@ The Persistent Cognitive Runtime provides:
 
 The three auxiliary roadmap documents `cognitive-workbench.md`, `cognitive-workbench-controls.md`, and `cognitive-workbench-learning.md` are subdocuments of 0.97, not separate roadmap phases.
 
+## 0.98 scope
+
+Phase 0.98 is the bounded engineering layer between persistent cognition and provider/model inference. It does not decide whether the agent should reason in the first place; 0.97 owns that decision. It does not select the provider/model; 0.96 owns that decision.
+
+0.98 owns:
+
+- deterministic-before-inference responsibility boundaries;
+- bounded model reasoning responsibilities;
+- decomposition of semantic reasoning work;
+- explicit use of authoritative evidence/context;
+- reasoning-result contracts and uncertainty representation;
+- validation of semantic reasoning results before authoritative use;
+- provider/model-neutral reasoning quality verification.
+
+The canonical shape of a future `ReasoningTask` or equivalent contract is intentionally **not decided by this roadmap entry**.
+
 ## 0.10 vs 1.0 boundary
 
 0.10 is the user-facing workspace/routing/chat product surface. It does not become a general multi-agent workflow engine.
 
-1.0 is the later orchestration layer for bounded multi-agent collaboration and workflows. It consumes 0.10 routing, 0.959 intervention, 0.9591 durable planning/recovery, 0.96 execution selection, and 0.97 persistent cognition. It must not recreate those lower-level authorities.
+1.0 is the later orchestration layer for bounded multi-agent collaboration and workflows. It consumes 0.10 routing, 0.959 intervention, 0.9591 durable planning/recovery, 0.96 execution selection, 0.97 persistent cognition, and 0.98 reasoning engineering. It must not recreate those lower-level authorities.
 
 ## Ahead-of-roadmap implementation rule
 
@@ -1283,6 +1306,135 @@ Candidates must remain visibly distinct from authoritative versions. The workben
 Show the active cognitive strategy and version, such as Adaptive Hybrid Cognition (AHC), when the runtime exposes such metadata. Future strategies must use the same generic workbench while allowing strategy-specific diagnostics.
 
 Historical state is initially read-only. Future experimentation may branch from checkpoints, but a branch must not silently replace the live runtime's authoritative state.
+
+## Phase 0.98 — Model Reasoning Engineering
+
+## Status
+
+**Planned after 0.97 Persistent Cognitive Runtime.**
+
+## Purpose
+
+Define and implement the bounded engineering boundary between HAgent's deterministic runtime knowledge and model-based reasoning.
+
+This phase does **not** create a second cognitive runtime, replace Prompt/Instruction Governance, replace Context Engineering, or replace the 0.96 Execution Planner. It establishes how HAgent requests probabilistic reasoning without asking the model to rediscover facts that HAgent already knows deterministically and without giving model output authority over runtime state or external effects.
+
+The phase is provider-neutral and model-neutral. The model remains a replaceable reasoning component.
+
+## Core principle
+
+> Do not ask the model to infer deterministic facts when HAgent can provide those facts directly, unless inferring them is itself the requested task.
+
+The complementary rule is:
+
+> Permit inference when inference is the declared task, the required evidence is available, and the result remains inside its explicit authority boundary.
+
+## Responsibility boundary
+
+```text
+HAgent knows / derives deterministically
+        ↓
+HAgent supplies authoritative evidence and relevant context
+        ↓
+Model performs only the required interpretation / inference / planning / generation
+        ↓
+HAgent validates the returned contract and evidence relationship
+        ↓
+Policy / authorization / runtime commits decide what may actually happen
+```
+
+The model is not responsible for re-identifying execution/runtime facts, permissions, provenance, authority, or other deterministic facts already available to HAgent.
+
+## Scope
+
+### Slice 1 — Reasoning responsibility and deterministic-before-inference boundary
+
+- Define the provider-neutral semantic distinction between deterministic runtime facts and model-derived reasoning.
+- Establish that source identity, execution identity, runtime state, provenance, permissions, capability state, and other deterministic facts remain HAgent-owned when already available.
+- Ensure cognition may choose deterministic progress/no-model behavior before requesting probabilistic reasoning.
+- Ensure reasoning requests describe the semantic problem that actually requires model judgment rather than bundling unrelated deterministic classification work.
+
+### Slice 2 — Reasoning task decomposition and bounded model responsibility
+
+- Establish bounded reasoning responsibilities for interpretation, inference, planning, and generation.
+- Prevent one model request from silently combining source classification, policy authorization, learning promotion, and other separate authorities merely because the prompt asks for them together.
+- Keep authoritative facts explicit in structured context/contracts rather than depending on prompt rediscovery.
+- Preserve provider/model neutrality while allowing different models to satisfy the same semantic requirement with different capability levels.
+
+### Slice 3 — Reasoning result contract and uncertainty handling
+
+- Define the contract required for a reasoning result to be useful to HAgent.
+- Distinguish valid structured output from semantically acceptable reasoning.
+- Support bounded outcomes such as successful result, insufficient evidence, ambiguity, conflict, and unsupported inference where the task requires them.
+- Treat model-reported confidence as evidence rather than authoritative truth or calibrated probability.
+- Preserve provenance/evidence references needed to evaluate the result.
+
+### Slice 4 — Validation, authority boundary, and verification
+
+- Validate reasoning results before they influence cognitive state, learning candidates, tool requests, or external execution.
+- Keep policy/authorization/approval/budget enforcement outside model output.
+- Reuse existing structured-output, policy, context, observability, and evaluation infrastructure rather than creating parallel validators or metric systems.
+- Add deterministic tests and public-API Examples for representative reasoning responsibilities, including deterministic facts supplied directly and genuinely inferential tasks delegated to a model.
+- Measure semantic correctness, unsupported inference, over-inference, and provider/model variance where the capability is introduced.
+
+## Explicitly out of scope
+
+- A new cognitive architecture or Cognitive Runtime v2.
+- A replacement for Phase 0.954 Prompt + Instruction Governance.
+- A replacement for Phase 0.955 Context Engineering.
+- A replacement for Phase 0.957 Evaluation + Quality Measurement.
+- A replacement for Phase 0.96 Capability-Aware Execution.
+- A new authorization or policy engine.
+- A universal model-orchestration framework.
+- Mandatory multi-model voting, debate, or ensemble reasoning.
+- A requirement that every reasoning task use an LLM.
+- A requirement to expose internal model chain-of-thought as an HAgent architectural contract.
+
+## Ownership boundary
+
+0.97 owns persistent cognition and decides whether the agent needs deterministic progress, bounded probabilistic deliberation, information acquisition, or another cognitive action.
+
+0.98 owns the engineering discipline and contracts for the model-based reasoning portion once such reasoning is requested.
+
+0.96 owns concrete execution-target selection and admission.
+
+0.954 owns instruction authority/provenance and composition.
+
+0.955 owns context retrieval/assembly/bounds.
+
+0.957 owns evaluation evidence and quality measurement.
+
+Policy, authorization, approval, budgets, tools, host state, and external side effects remain governed by their existing authorities.
+
+## Future contract question intentionally left open
+
+The phase does not pre-decide whether the canonical implementation should introduce a `ReasoningTask` type. That design is a separate architectural decision to be resolved before implementation of the first 0.98 slice.
+
+## Dependency chain
+
+```text
+0.954 Prompt / Instruction Governance
+        ↓
+0.955 Context Engineering
+        ↓
+0.957 Evaluation / Quality Measurement
+        ↓
+0.9575 / 0.9576 governed learning + reliability
+        ↓
+0.96 Capability-Aware Execution
+        ↓
+0.97 Persistent Cognitive Runtime
+        ↓
+0.98 Model Reasoning Engineering
+        ↓
+0.10 Workspaces / Routing / Chat
+```
+
+0.98 consumes earlier contracts; it must not recreate them.
+
+## Exit criterion
+
+HAgent has a provider-neutral, testable boundary for model reasoning in which deterministic facts are supplied by HAgent when already known, inference is requested only where it is actually needed, model results remain non-authoritative until validated and governed, uncertainty/unsupported inference can be represented without forcing fabricated answers, and reasoning behavior can be evaluated across providers/models without creating a second cognitive or execution architecture.
 
 ## Phase 0.10 — Workspaces, Routing + Chat
 

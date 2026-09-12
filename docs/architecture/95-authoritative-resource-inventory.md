@@ -62,7 +62,9 @@ Current HAgent contracts do not provide generic enumeration for every resource f
 
 Application-scoped Memory is not invented as a canonical Global resource because `MemoryEntry` requires an OwnerId. Owner-bearing User, Shared, Agent, Session, and Task scopes map to User, Workspace, Agent, Runtime, and Execution inventory scopes respectively.
 
-Knowledge/Wiki and Skill currently expose retrieval/lookup and publication contracts but no generic authoritative enumeration boundary, so their storage-specific inventory adapters remain deferred. SQL Server/MySQL enumeration is not invented merely to populate the management UI.
+Knowledge/Wiki previously exposed retrieval and publication contracts but no bounded authoritative enumeration boundary. The new provider-neutral `IAiKnowledgeResourceSource` + `AiKnowledgeEnumerationQuery` boundary supplies that missing read-only enumeration contract. `AiKnowledgeResourceInventorySource` adapts `AiKnowledgeResource` records into the common inventory projection and re-applies inventory metadata filters after source retrieval. It does not assume SQL Server, MySQL, files, or any other persistence mechanism; each host/storage implementation remains responsible for implementing `IAiKnowledgeResourceSource`.
+
+Skill still exposes single-definition lookup through `IAiSkillDefinitionSource` but no generic authoritative enumeration boundary, so Skill inventory enumeration remains deferred. SQL Server/MySQL enumeration is not invented merely to populate the management UI.
 
 Any future storage-specific enumeration adapter must implement `IAiResourceInventorySource` rather than changing the inventory contract.
 
@@ -82,7 +84,7 @@ The management surface uses bounded pages rather than attempting to render an un
 
 Inventory remains a read model and does not perform mutation. Detail inspection also never grants edit, publish, delete, archive, or authorization capability.
 
-The canonical Example now composes a real provider-neutral `InMemoryMemoryStore` through `AiMemoryResourceInventorySource` for Memory and keeps deterministic provider-neutral projections for Knowledge/Skill. This demonstrates the source boundary without requiring SQL Server/MySQL enumeration, and does not turn the Example into a storage implementation for those deferred resource families.
+The canonical Example now composes a real provider-neutral `InMemoryMemoryStore` through `AiMemoryResourceInventorySource`, a provider-neutral Example implementation of `IAiKnowledgeResourceSource` through `AiKnowledgeResourceInventorySource`, and a deterministic Skill projection. This demonstrates the separate source boundaries without requiring SQL Server/MySQL enumeration, and does not turn the Example into a storage implementation for production hosts.
 
 Future WPF or ASP configuration surfaces should consume the same inventory and detail contracts and retain the same resource semantics; only presentation and host composition should differ.
 
@@ -98,6 +100,8 @@ The focused detail test contract is `HAgent.Tests/ResourceDetailInspectionTests.
 
 The focused Memory-source contract is `HAgent.Tests/MemoryResourceInventorySourceTests.cs`.
 
+The focused Knowledge-source contract is `HAgent.Tests/KnowledgeResourceInventorySourceTests.cs`.
+
 The canonical Example is:
 
 `HAgent.Example → Authoritative Resource Inventory`
@@ -106,4 +110,4 @@ The WinForms management verification path is:
 
 `Configuration → Authoritative Resources`
 
-The Example contract scenario verifies real `IMemoryStore` → inventory projection, deterministic Knowledge/Skill projections, authoritative-only filtering, type/search filtering, lifecycle/version/updated/owner filtering, deterministic paging, version normalization, bounded results, and readable detail inspection. The configuration page consumes the same provider-neutral inventory/detail boundaries and exposes read-only management information without storage/provider-specific enumeration assumptions.
+The Example contract scenario verifies real `IMemoryStore` → inventory projection, provider-neutral Knowledge enumeration → inventory projection, deterministic Skill projection, authoritative-only filtering, type/search filtering, lifecycle/version/updated/owner filtering, deterministic paging, version normalization, bounded results, and readable detail inspection. The configuration page consumes the same provider-neutral inventory/detail boundaries and exposes read-only management information without storage/provider-specific enumeration assumptions.

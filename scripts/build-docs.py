@@ -16,6 +16,7 @@ ROADMAP_SOURCES = [
     "cognitive-workbench.md",
     "cognitive-workbench-controls.md",
     "cognitive-workbench-learning.md",
+    "980-model-reasoning-engineering.md",
     "40-workspaces-chat.md",
     "50-collaboration-workflows.md",
     "60-platform-and-release.md",

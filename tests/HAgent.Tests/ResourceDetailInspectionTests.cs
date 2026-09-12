@@ -38,7 +38,17 @@ namespace HAgent.Tests
 
             Assert.Equal(item.ResourceId, detail.InventoryItem.ResourceId);
             Assert.Equal("Example resource content", detail.Content);
-            Assert.Contains("Content", detail.Sections, section => string.Equals(section.Title, "Content", StringComparison.Ordinal));
+
+            var hasContentSection = false;
+            foreach (var section in detail.Sections)
+            {
+                if (string.Equals(section.Title, "Content", StringComparison.Ordinal))
+                {
+                    hasContentSection = true;
+                    break;
+                }
+            }
+            Assert.True(hasContentSection);
         }
 
         [Fact]

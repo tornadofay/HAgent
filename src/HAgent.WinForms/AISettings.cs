@@ -21,7 +21,7 @@ namespace HAgent.WinForms
             var store = new HAgent.Storage.File.FileAiStore(Path.Combine(basePath, "configuration", "settings.json"));
             var toolStore = new HAgent.Storage.File.FileToolStore(Path.Combine(basePath, "configuration", "tools", "tools.json"));
             var secrets = new HAgent.Storage.File.ProtectedDataSecretStore(Path.Combine(basePath, "secrets"));
-            ShowMainAISettingsForm(store, secrets, owner, null, toolStore, null, null, null, null);
+            ShowMainAISettingsForm(store, secrets, owner, null, toolStore, null, null, null, null, null);
         }
 
         public static UiAutomationPermissions LoadUiPermissions()
@@ -41,26 +41,31 @@ namespace HAgent.WinForms
 
         public static void ShowMainAISettingsForm(IAiStore store, ISecretStore secrets, IWin32Window owner = null, IEnumerable<IAiProviderAdapter> adapters = null, IToolStore toolStore = null)
         {
-            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, null, null, null, null);
+            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, null, null, null, null, null);
         }
 
         public static void ShowMainAISettingsForm(IAiStore store, ISecretStore secrets, IWin32Window owner, IEnumerable<IAiProviderAdapter> adapters, IToolStore toolStore, IAiLearningCandidateStore learningCandidates, AgentIdentityContext reviewerIdentity)
         {
-            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, learningCandidates, reviewerIdentity, null, null);
+            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, learningCandidates, reviewerIdentity, null, null, null);
         }
 
         public static void ShowMainAISettingsForm(IAiStore store, ISecretStore secrets, IWin32Window owner, IEnumerable<IAiProviderAdapter> adapters, IToolStore toolStore, IAiLearningCandidateStore learningCandidates, AgentIdentityContext reviewerIdentity, AiLearningPromotionService learningPromotion)
         {
-            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, learningCandidates, reviewerIdentity, learningPromotion, null);
+            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, learningCandidates, reviewerIdentity, learningPromotion, null, null);
         }
 
         public static void ShowMainAISettingsForm(IAiStore store, ISecretStore secrets, IWin32Window owner, IEnumerable<IAiProviderAdapter> adapters, IToolStore toolStore, IAiLearningCandidateStore learningCandidates, AgentIdentityContext reviewerIdentity, AiLearningPromotionService learningPromotion, IAiResourceInventory resourceInventory)
+        {
+            ShowMainAISettingsForm(store, secrets, owner, adapters, toolStore, learningCandidates, reviewerIdentity, learningPromotion, resourceInventory, null);
+        }
+
+        public static void ShowMainAISettingsForm(IAiStore store, ISecretStore secrets, IWin32Window owner, IEnumerable<IAiProviderAdapter> adapters, IToolStore toolStore, IAiLearningCandidateStore learningCandidates, AgentIdentityContext reviewerIdentity, AiLearningPromotionService learningPromotion, IAiResourceInventory resourceInventory, IAiResourceDetailSource resourceDetails)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (secrets == null) throw new ArgumentNullException(nameof(secrets));
 
             IToolRegistry tools = toolStore == null ? new InMemoryToolRegistry() : new PersistentToolRegistry(toolStore);
-            using (var form = new Forms.AISettingsForm(store, secrets, adapters, tools, learningCandidates, reviewerIdentity, learningPromotion, resourceInventory))
+            using (var form = new Forms.AISettingsForm(store, secrets, adapters, tools, learningCandidates, reviewerIdentity, learningPromotion, resourceInventory, resourceDetails))
                 form.ShowDialog(owner);
         }
 

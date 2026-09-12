@@ -76,6 +76,30 @@ These signals describe the current reasoning requirement; they are not a promise
 
 When probabilistic reasoning is required, the cognition strategy produces a provider-neutral `ReasoningRequirement`. The existing Execution Planner then selects and admits a concrete target. This preserves the separation between cognitive planning and execution planning.
 
+## Relationship to Phase 0.98 — Model Reasoning Engineering
+
+The cognitive runtime decides **whether and why probabilistic reasoning is required**. Phase 0.98 governs the engineering boundary **after that decision**, covering how the required model reasoning responsibility is expressed, constrained, validated, and kept non-authoritative.
+
+0.98 therefore does not move deterministic-vs-probabilistic cognition out of this layer and does not create another model-selection path. It also does not replace instruction governance, context engineering, evaluation, policy, or execution planning.
+
+The boundary is:
+
+```text
+0.97 Persistent Cognitive Runtime
+    → determine cognitive need / reasoning requirement
+
+0.98 Model Reasoning Engineering
+    → define bounded model responsibility and result handling
+
+0.96 Execution Planner
+    → select/admit concrete execution target
+
+Provider Adapter / Model
+    → perform inference
+```
+
+The detailed 0.98 architecture is maintained in [`94-model-reasoning-engineering.md`](94-model-reasoning-engineering.md).
+
 ## Belief revision
 
 Observations and execution outcomes can make previous beliefs stale, uncertain, contradicted, or invalid.
@@ -167,4 +191,5 @@ This evidence validates the core ownership/concurrency assumption used by the Pe
 - No coupling between cognitive strategy and a specific model/provider.
 - Persistent cognitive state remains separate from live transport/session objects and secrets.
 - Cognitive algorithms must remain bounded, deterministic where inputs are deterministic, and explicitly observable at decision boundaries.
+- Phase 0.98 may consume and refine the model-reasoning boundary but must not recreate the persistent cognitive runtime, execution planner, instruction governance, context engine, or policy authority.
 - V1 scope decisions in the roadmap are authoritative for delivery: architecture documents must not silently turn a bounded production mechanism into a larger research architecture.

@@ -58,9 +58,13 @@ Filtering is performed against inventory metadata, not serialized resource paylo
 
 ## Storage boundary
 
-Current HAgent contracts do not provide generic enumeration for every resource family. Memory has store search capabilities, while Knowledge and Skill currently expose retrieval/lookup and publication contracts. This inventory slice therefore establishes the common source boundary without inventing SQL Server/MySQL enumeration behavior or forcing provider-specific storage into Core.
+Current HAgent contracts do not provide generic enumeration for every resource family. Memory already exposes provider-neutral `IMemoryStore.SearchAsync`, so `AiMemoryResourceInventorySource` adapts that existing contract into the common inventory projection without embedding File, SQL Server, or MySQL behavior in Core. The adapter treats the configured MemoryStore as authoritative, maps owner-bearing `MemoryScope` values to the canonical `AgentResourceScope`, derives `Published`/`Expired` lifecycle metadata from memory expiration, and projects `CreatedAt` as the available update timestamp. It remains bounded by the existing Memory search limit of 1000 records per source request.
 
-Storage-specific enumeration adapters are a later storage concern and must implement `IAiResourceInventorySource` rather than changing the inventory contract.
+Application-scoped Memory is not invented as a canonical Global resource because `MemoryEntry` requires an OwnerId. Owner-bearing User, Shared, Agent, Session, and Task scopes map to User, Workspace, Agent, Runtime, and Execution inventory scopes respectively.
+
+Knowledge/Wiki and Skill currently expose retrieval/lookup and publication contracts but no generic authoritative enumeration boundary, so their storage-specific inventory adapters remain deferred. SQL Server/MySQL enumeration is not invented merely to populate the management UI.
+
+Any future storage-specific enumeration adapter must implement `IAiResourceInventorySource` rather than changing the inventory contract.
 
 ## Management boundary
 
@@ -78,7 +82,7 @@ The management surface uses bounded pages rather than attempting to render an un
 
 Inventory remains a read model and does not perform mutation. Detail inspection also never grants edit, publish, delete, archive, or authorization capability.
 
-The Example host injects deterministic provider-neutral inventory and detail sources into the configuration composition so the management surface can be exercised without requiring SQL Server/MySQL enumeration. This is Example verification data, not a storage implementation.
+The canonical Example now composes a real provider-neutral `InMemoryMemoryStore` through `AiMemoryResourceInventorySource` for Memory and keeps deterministic provider-neutral projections for Knowledge/Skill. This demonstrates the source boundary without requiring SQL Server/MySQL enumeration, and does not turn the Example into a storage implementation for those deferred resource families.
 
 Future WPF or ASP configuration surfaces should consume the same inventory and detail contracts and retain the same resource semantics; only presentation and host composition should differ.
 
@@ -92,6 +96,8 @@ The focused inventory test contract is `HAgent.Tests/ResourceInventoryTests.cs`.
 
 The focused detail test contract is `HAgent.Tests/ResourceDetailInspectionTests.cs`.
 
+The focused Memory-source contract is `HAgent.Tests/MemoryResourceInventorySourceTests.cs`.
+
 The canonical Example is:
 
 `HAgent.Example → Authoritative Resource Inventory`
@@ -100,4 +106,4 @@ The WinForms management verification path is:
 
 `Configuration → Authoritative Resources`
 
-The Example contract scenario verifies deterministic Memory/Knowledge/Skill projections, authoritative-only filtering, type/search filtering, lifecycle/version/updated/owner filtering, deterministic paging, version normalization, bounded results, and readable detail inspection. The configuration page consumes the same provider-neutral inventory/detail boundaries and exposes read-only management information without storage/provider-specific enumeration assumptions.
+The Example contract scenario verifies real `IMemoryStore` → inventory projection, deterministic Knowledge/Skill projections, authoritative-only filtering, type/search filtering, lifecycle/version/updated/owner filtering, deterministic paging, version normalization, bounded results, and readable detail inspection. The configuration page consumes the same provider-neutral inventory/detail boundaries and exposes read-only management information without storage/provider-specific enumeration assumptions.

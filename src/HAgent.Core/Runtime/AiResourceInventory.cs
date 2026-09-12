@@ -53,6 +53,7 @@ namespace HAgent.Runtime
                 .OrderBy(x => x.ResourceType, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(x => x.DisplayName ?? x.ResourceId, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(x => x.ResourceId, StringComparer.OrdinalIgnoreCase)
+                .Skip(query.SkipResults)
                 .Take(query.MaxResults)
                 .Select(x => x.Clone())
                 .ToList();
@@ -67,6 +68,14 @@ namespace HAgent.Runtime
             if (query.Scope.HasValue && item.Scope != query.Scope.Value)
                 return false;
             if (!string.IsNullOrWhiteSpace(query.OwnerId) && !string.Equals(item.OwnerId, query.OwnerId, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrWhiteSpace(query.LifecycleStatus) && !string.Equals(item.LifecycleStatus, query.LifecycleStatus, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (query.Version.HasValue && item.Version != query.Version.Value)
+                return false;
+            if (query.UpdatedAfterUtc.HasValue && item.UpdatedUtc < query.UpdatedAfterUtc.Value)
+                return false;
+            if (query.UpdatedBeforeUtc.HasValue && item.UpdatedUtc > query.UpdatedBeforeUtc.Value)
                 return false;
             if (query.AuthoritativeOnly && !item.IsAuthoritative)
                 return false;

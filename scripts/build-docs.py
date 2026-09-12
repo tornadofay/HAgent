@@ -16,7 +16,6 @@ ROADMAP_SOURCES = [
     "cognitive-workbench.md",
     "cognitive-workbench-controls.md",
     "cognitive-workbench-learning.md",
-    "980-model-reasoning-engineering.md",
     "40-workspaces-chat.md",
     "50-collaboration-workflows.md",
     "60-platform-and-release.md",
@@ -33,6 +32,8 @@ ROADMAP_SOURCES = [
     "9591-goal-plan-persistence-recovery.md",
     "959-human-intervention.md",
     "9592-provider-ecosystem-adapter-lifecycle.md",
+    "9593-reasoning-requirement-boundary.md",
+    "980-model-reasoning-engineering.md",
 ]
 
 

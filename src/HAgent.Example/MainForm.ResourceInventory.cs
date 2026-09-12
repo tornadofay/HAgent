@@ -17,7 +17,7 @@ namespace HAgent.Example
                 "Run provider-neutral resource inventory contract",
                 "Verifies that Memory, Knowledge, and Skill resources can be represented and inspected through bounded provider-neutral contracts without embedding storage or provider details.",
                 "The scenario intentionally uses deterministic in-process sources. SQL Server and MySQL enumeration remain deferred to the storage phase.",
-                "Exercises filtering, authoritative-only selection, deterministic ordering, duplicate/version handling, bounded results, and readable resource-detail inspection.",
+                "Exercises filtering, authoritative-only selection, lifecycle/version/updated filtering, deterministic ordering, duplicate/version handling, bounded paging, and readable resource-detail inspection.",
                 TestResourceInventoryAsync,
                 "Authoritative resource inventory",
                 "Inventory describes resources only; resource inspection is read-only and does not edit, publish, delete, or authorize them.");
@@ -33,8 +33,21 @@ namespace HAgent.Example
             if (skills.Count != 1 || !string.Equals(skills[0].ResourceId, "skill-example", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Filtered inventory contract failed.");
 
-            var limited = await inventory.ListAsync(new AiResourceInventoryQuery { MaxResults = 2 }).ConfigureAwait(true);
-            if (limited.Count != 2) throw new InvalidOperationException("Bounded inventory result contract failed.");
+            var published = await inventory.ListAsync(new AiResourceInventoryQuery
+            {
+                LifecycleStatus = "Published",
+                Version = 3,
+                OwnerId = "example-agent",
+                UpdatedAfterUtc = DateTimeOffset.UtcNow.AddDays(-1),
+                AuthoritativeOnly = true
+            }).ConfigureAwait(true);
+            if (published.Count != 1 || !string.Equals(published[0].ResourceId, "skill-example", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Lifecycle/version/updated/owner filter contract failed.");
+
+            var firstPage = await inventory.ListAsync(new AiResourceInventoryQuery { SkipResults = 0, MaxResults = 2 }).ConfigureAwait(true);
+            var secondPage = await inventory.ListAsync(new AiResourceInventoryQuery { SkipResults = 2, MaxResults = 2 }).ConfigureAwait(true);
+            if (firstPage.Count != 2 || secondPage.Count != 2 || string.Equals(firstPage[0].ResourceId, secondPage[0].ResourceId, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Paged inventory result contract failed.");
 
             var details = CreateExampleResourceDetails();
             var memoryDetail = await details.GetAsync(FindResource(all, "memory-example"), CancellationToken.None).ConfigureAwait(true);
@@ -55,7 +68,8 @@ namespace HAgent.Example
                 "Unified Memory / Knowledge / Skill inventory projection: verified." + Environment.NewLine +
                 "Authoritative-only filtering: verified." + Environment.NewLine +
                 "Resource-type and text filtering: verified." + Environment.NewLine +
-                "Deterministic ordering and bounded results: verified." + Environment.NewLine +
+                "Lifecycle/version/updated/owner filtering: verified." + Environment.NewLine +
+                "Deterministic ordering and bounded paging: verified." + Environment.NewLine +
                 "Readable resource detail inspection for Memory / Knowledge / Skill: verified." + Environment.NewLine +
                 "Storage/provider-specific enumeration remains outside the inventory contract: verified.");
         }

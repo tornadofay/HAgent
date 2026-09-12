@@ -2,103 +2,63 @@
 
 ## Current
 
-### 0.9575 — Knowledge, Skills, Memory Governance + Learning
+### 0.9576 — Learned Resource Reliability + Adaptation
 
-**Current milestone — Slice 12 management work continues.**
+**Current milestone — Slice 1: Applicability and validity.**
 
-- Complete the canonical learning lifecycle gate.
-- Persist learning candidates with retention and expiry.
-- Add Learning Review workflow and durable review state.
-- Promote approved Memory candidates into authoritative Memory.
-- Promote Knowledge candidates as new authoritative versions.
-- Promote Skill candidates as new immutable versions.
-- Persist promotion provenance, evaluation, and audit records.
-- Integrate governed learned resources with Context and Instruction.
-- Capture execution outcomes and observations as learning input.
-- Add learning/resource observability.
-- Add Learning Review, Knowledge/Wiki, Skill, and Agent Configuration UI.
-- Verify persistence, restart/recovery, lifecycle, authorization, concurrency, context integration, UI, and audit behavior on both supported targets.
+The 0.9575 Knowledge, Skills, Memory Governance + Learning phase is closed through its Learning Review and Authoritative Resource Inventory management increments.
 
-#### Learning lifecycle
+0.9576 establishes the governance needed after promotion and before reliability/adaptation changes resource behavior:
 
-```text
-Proposed
-   ↓ lifecycle / policy evaluation
-PendingReview
-   ├──→ Rejected
-   ↓
-Approved
-   ↓ governed authoritative promotion
-Promoted
-```
+- determine whether a learned resource version is applicable to a bounded context;
+- distinguish `Applicable`, `NotApplicable`, `Uncertain`, and `Invalidated`;
+- preserve applicability evidence and evaluation results for observability;
+- never treat applicability as authorization;
+- never silently mutate a published resource version because of applicability evaluation;
+- evaluate deterministic evidence before model reasoning whenever sufficient evidence exists;
+- require governed replacement/new versions rather than unsafe in-place repair.
 
-- `Proposed`: candidate formed; review has not necessarily been required yet.
-- `PendingReview`: lifecycle/policy requires the review boundary.
-- `Approved`: accepted through the review boundary, but still a candidate rather than an authoritative resource.
-- `Rejected`: not accepted for authoritative promotion.
-- `Promoted`: approved candidate converted into the authoritative resource through the separate promotion capability.
+#### Slice 1 — Applicability and validity
 
-Learning mode and policy control the permitted paths. Review and promotion are intentionally separate boundaries.
+Implemented on `master`:
 
-### Slice 12 — Management UI — VERIFIED through Learning Review promotion
+- bounded provider-neutral applicability target/context/condition/evidence contracts;
+- `AiApplicabilityOutcome` with four explicit outcomes;
+- deterministic `IAiApplicabilityEvaluator` implementation;
+- scope-aware applicability independent from capability authorization;
+- missing deterministic evidence produces `Uncertain`, never `Applicable`;
+- explicit invalidation outcome with bounded reason;
+- decision records preserve resource version identity, condition results, evidence references, and evaluation time;
+- focused tests and a dedicated WinForms Example scenario.
 
-Verified by user on 2026-09-11 on both .NET Framework 4.8.1 and .NET 9:
+**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
 
-- durable Learning Review list and review actions;
-- host-supplied read-only reviewer identity;
-- candidate-store injection aligned with host storage configuration;
-- filterable candidate workspace by lifecycle status and candidate type;
-- read-only candidate details including payload, provenance/evidence, lifecycle, policy, source execution/runtime, and review evidence;
-- governed Promote action for selected `Approved` candidates through the injected `AiLearningPromotionService`;
-- fresh `learning.promote` authorization remains inside the existing promotion service;
-- successful promotion refreshes the candidate to `Promoted` revision `3`;
-- `Learning Review Seed` → real WinForms configuration flow → Approve → Promote → `Learning Review Verify` succeeded on both targets;
-- fresh candidate-store reopen and persisted reviewer identity/policy evidence were verified on both targets.
+**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused, then the full suite.
 
-The Learning Review management boundary is closed.
+Do not advance to Slice 2 until Slice 1 is user-verified on both supported targets.
 
-### Current Slice 12 management work — Authoritative Resource Inventory + Detail Inspection
+## 0.9575 — Knowledge, Skills, Memory Governance + Learning — CLOSED
 
-Implemented and now extending the inventory foundation into a scalable read/inspect management surface:
+Completed and user-verified through 2026-09-12:
 
-- one provider-neutral `IAiResourceInventory` / `IAiResourceInventorySource` boundary;
-- bounded resource inventory query/projection contracts;
-- deterministic aggregation, filtering, authoritative-only selection, logical-resource normalization, highest-version selection, ordering, and result bounds;
-- lifecycle/version/updated-time/owner/agent, type, scope, search, and authoritative-only filtering;
-- deterministic offset paging through `SkipResults` + `MaxResults`;
-- focused `ResourceInventoryTests` coverage for filtering, normalization, bounds, and paging;
-- provider-neutral `AiMemoryResourceInventorySource` adapting the existing `IMemoryStore.SearchAsync` contract into the inventory boundary;
-- focused `MemoryResourceInventorySourceTests` coverage for projection, scope/owner/search/lifecycle/updated filtering, cancellation, and unsupported version filtering;
-- provider-neutral `IAiKnowledgeResourceSource` + bounded `AiKnowledgeEnumerationQuery` read boundary;
-- provider-neutral `AiKnowledgeResourceInventorySource` adapting Knowledge/Wiki resources into the common inventory boundary;
-- focused `KnowledgeResourceInventorySourceTests` coverage for projection, filtering, unsupported resource types, and cancellation;
-- canonical Example: `HAgent.Example → Authoritative Resource Inventory` now exercises a real provider-neutral `InMemoryMemoryStore` through the Memory inventory adapter plus a provider-neutral Example Knowledge source through the Knowledge inventory adapter and a deterministic Skill projection;
-- WinForms page: `Configuration → Authoritative Resources` consuming the same inventory contract;
-- persistent master resource list with selected-resource inspection kept in a separate detail pane;
-- user-resizable SplitContainer starting near a 55/45 list/detail balance;
-- Overview/Content tabs contained inside the detail pane rather than replacing the resource list;
-- filter/action region for Search, Resource type, Agent/Owner, Scope, Lifecycle, Version, Updated window, Authoritative-only, Apply/Reset/Refresh, and bounded page navigation;
-- paging controls placed below the list and omitted when the current result set fits within one page;
-- provider-neutral `IAiResourceDetailSource` / `AiResourceDetail` read boundary for actual resource content;
-- readable Content view plus bounded type-specific fields/sections for Memory, Knowledge/Wiki, Skill, and future resource families;
-- focused `ResourceDetailInspectionTests` coverage;
-- Example detail projections wired through the real Configuration composition;
-- Skill enumeration remains deferred because its current contract exposes lookup but not generic authoritative enumeration;
-- resource-specific editing, governed version creation, and lifecycle/CRUD workflows remain subsequent management work;
-- reliability/adaptation remains separate from this read-management increment.
+- resource capability governance;
+- Knowledge/Wiki and Skills contracts;
+- Memory families/types, provenance, governance, and retention;
+- Learning Mode, policy, typed candidates, lifecycle, persistence, review, and promotion;
+- learning Context/Instruction/Runtime/Observability integration;
+- Learning Review management UI;
+- Authoritative Resource Inventory + Detail Inspection.
 
-The inventory/UI surface was user-verified through a clean **222/222 passed** HAgent.Tests run on .NET 9 after clean rebuild and visual review of the WinForms master-detail layout. The new Knowledge enumeration contract/adapter and Example integration are not yet locally verified by the user.
+The final inventory increment was verified on 2026-09-12 on both .NET Framework 4.8.1 and .NET 9, including real Memory inventory adaptation, provider-neutral Knowledge enumeration, authoritative-only filtering, deterministic ordering/paging, and readable Memory/Knowledge/Skill resource details.
 
 ## Planned order
 
-### 0.9576 — Learned Resource Reliability + Adaptation
+### 0.9576 remaining slices
 
-- Applicability and validity outcomes.
-- Reliability evidence from validated outcomes.
-- Staleness, contradiction, drift, and revalidation handling.
-- Quarantine, retirement, archival, and forgetting.
-- Replacement candidates without in-place mutation of published resources.
-- Runtime integration and verification.
+- **Slice 2:** reliability evidence and validated outcome feedback.
+- **Slice 3:** staleness, contradiction, drift, and revalidation.
+- **Slice 4:** quarantine, retirement, archival, and forgetting.
+- **Slice 5:** governed runtime integration and end-to-end verification.
 
 ### 0.958 — Agent Lifecycle + Health
 

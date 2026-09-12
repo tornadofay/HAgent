@@ -10,7 +10,7 @@ namespace HAgent.Runtime
 {
     public sealed class AiDeterministicApplicabilityEvaluator : IAiApplicabilityEvaluator
     {
-        public async Task<AiApplicabilityDecision> EvaluateAsync(
+        public Task<AiApplicabilityDecision> EvaluateAsync(
             AiApplicabilityRequest request,
             CancellationToken cancellationToken)
         {
@@ -25,30 +25,18 @@ namespace HAgent.Runtime
             CopyEvidence(target.Evidence, decision.Evidence);
 
             if (target.IsInvalidated)
-            {
-                decision.Outcome = AiApplicabilityOutcome.Invalidated;
-                decision.Reason = string.IsNullOrWhiteSpace(target.InvalidationReason)
-                    ? "The resource has been explicitly invalidated."
-                    : target.InvalidationReason;
-                decision.Validate();
-                return await Task.FromResult(decision).ConfigureAwait(false);
-            }
+                return Task.FromResult(Complete(decision, AiApplicabilityOutcome.Invalidated,
+                    string.IsNullOrWhiteSpace(target.InvalidationReason)
+                        ? "The resource has been explicitly invalidated."
+                        : target.InvalidationReason));
 
             if (context.Scope.HasValue && context.Scope.Value != target.Scope)
-            {
-                decision.Outcome = AiApplicabilityOutcome.NotApplicable;
-                decision.Reason = "The applicability context scope does not match the resource scope.";
-                decision.Validate();
-                return await Task.FromResult(decision).ConfigureAwait(false);
-            }
+                return Task.FromResult(Complete(decision, AiApplicabilityOutcome.NotApplicable,
+                    "The applicability context scope does not match the resource scope."));
 
             if (!context.Scope.HasValue && target.Scope != AgentResourceScope.Global)
-            {
-                decision.Outcome = AiApplicabilityOutcome.Uncertain;
-                decision.Reason = "The resource requires scope-aware applicability evaluation, but the context did not provide a scope.";
-                decision.Validate();
-                return await Task.FromResult(decision).ConfigureAwait(false);
-            }
+                return Task.FromResult(Complete(decision, AiApplicabilityOutcome.Uncertain,
+                    "The resource requires scope-aware applicability evaluation, but the context did not provide a scope."));
 
             var uncertain = false;
             foreach (var condition in target.Preconditions)
@@ -59,23 +47,34 @@ namespace HAgent.Runtime
                 var result = EvaluateCondition(condition, hasFact, observed);
                 decision.Conditions.Add(result);
 
-                if (!hasFact && condition.Operator != AiApplicabilityConditionOperator.NotEquals)
-                    uncertain = true;
-                else if (!result.Satisfied)
+                if (!hasFact)
                 {
-                    decision.Outcome = AiApplicabilityOutcome.NotApplicable;
-                    decision.Reason = "A deterministic applicability precondition was not satisfied.";
-                    decision.Validate();
-                    return await Task.FromResult(decision).ConfigureAwait(false);
+                    uncertain = true;
+                    continue;
                 }
+
+                if (!result.Satisfied)
+                    return Task.FromResult(Complete(decision, AiApplicabilityOutcome.NotApplicable,
+                        "A deterministic applicability precondition was not satisfied."));
             }
 
-            decision.Outcome = uncertain ? AiApplicabilityOutcome.Uncertain : AiApplicabilityOutcome.Applicable;
-            decision.Reason = uncertain
-                ? "Applicability could not be established because required deterministic evidence was missing."
-                : "All bounded deterministic applicability preconditions were satisfied.";
+            return Task.FromResult(Complete(
+                decision,
+                uncertain ? AiApplicabilityOutcome.Uncertain : AiApplicabilityOutcome.Applicable,
+                uncertain
+                    ? "Applicability could not be established because required deterministic evidence was missing."
+                    : "All bounded deterministic applicability preconditions were satisfied."));
+        }
+
+        private static AiApplicabilityDecision Complete(
+            AiApplicabilityDecision decision,
+            AiApplicabilityOutcome outcome,
+            string reason)
+        {
+            decision.Outcome = outcome;
+            decision.Reason = reason;
             decision.Validate();
-            return await Task.FromResult(decision).ConfigureAwait(false);
+            return decision;
         }
 
         private static AiApplicabilityDecision CreateBaseDecision(AiApplicabilityTarget target)
@@ -121,7 +120,7 @@ namespace HAgent.Runtime
                     result.Satisfied = hasFact && string.Equals(observed, condition.ExpectedValue, StringComparison.Ordinal);
                     break;
                 case AiApplicabilityConditionOperator.NotEquals:
-                    result.Satisfied = !hasFact || !string.Equals(observed, condition.ExpectedValue, StringComparison.Ordinal);
+                    result.Satisfied = hasFact && !string.Equals(observed, condition.ExpectedValue, StringComparison.Ordinal);
                     break;
                 case AiApplicabilityConditionOperator.OneOf:
                     result.Satisfied = hasFact && condition.AllowedValues.Contains(observed, StringComparer.Ordinal);

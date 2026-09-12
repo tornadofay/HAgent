@@ -37,17 +37,15 @@ namespace HAgent.Example
             if (limited.Count != 2) throw new InvalidOperationException("Bounded inventory result contract failed.");
 
             var details = CreateExampleResourceDetails();
-            var memoryDetail = await details.GetAsync(all[0], CancellationToken.None).ConfigureAwait(true);
+            var memoryDetail = await details.GetAsync(FindResource(all, "memory-example"), CancellationToken.None).ConfigureAwait(true);
             if (memoryDetail == null || string.IsNullOrWhiteSpace(memoryDetail.Content))
                 throw new InvalidOperationException("Resource detail inspection contract failed for Memory.");
 
-            var knowledge = all[1];
-            var knowledgeDetail = await details.GetAsync(knowledge, CancellationToken.None).ConfigureAwait(true);
+            var knowledgeDetail = await details.GetAsync(FindResource(all, "knowledge-example"), CancellationToken.None).ConfigureAwait(true);
             if (knowledgeDetail == null || knowledgeDetail.Sections.Count == 0 || string.IsNullOrWhiteSpace(knowledgeDetail.Sections[0].Content))
                 throw new InvalidOperationException("Resource detail inspection contract failed for Knowledge.");
 
-            var skill = all[2];
-            var skillDetail = await details.GetAsync(skill, CancellationToken.None).ConfigureAwait(true);
+            var skillDetail = await details.GetAsync(FindResource(all, "skill-example"), CancellationToken.None).ConfigureAwait(true);
             if (skillDetail == null || skillDetail.Sections.Count < 2)
                 throw new InvalidOperationException("Resource detail inspection contract failed for Skill.");
 
@@ -60,6 +58,13 @@ namespace HAgent.Example
                 "Deterministic ordering and bounded results: verified." + Environment.NewLine +
                 "Readable resource detail inspection for Memory / Knowledge / Skill: verified." + Environment.NewLine +
                 "Storage/provider-specific enumeration remains outside the inventory contract: verified.");
+        }
+
+        private static AiResourceInventoryItem FindResource(IReadOnlyList<AiResourceInventoryItem> items, string resourceId)
+        {
+            foreach (var item in items)
+                if (string.Equals(item.ResourceId, resourceId, StringComparison.OrdinalIgnoreCase)) return item;
+            throw new InvalidOperationException("Example resource was not found: " + resourceId);
         }
 
         private static IAiResourceInventory CreateExampleResourceInventory()

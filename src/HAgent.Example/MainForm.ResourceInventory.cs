@@ -28,7 +28,11 @@ namespace HAgent.Example
         {
             var inventory = CreateExampleResourceInventory();
             var all = await inventory.ListAsync(new AiResourceInventoryQuery { AuthoritativeOnly = true }).ConfigureAwait(true);
-            if (all.Count != 3) throw new InvalidOperationException("Authoritative inventory count contract failed.");
+            if (all.Count != 3)
+            {
+                var actual = string.Join(", ", all.Select(x => x.ResourceType + ":" + x.ResourceId));
+                throw new InvalidOperationException("Authoritative inventory count contract failed. Expected 3 resources (memory:memory-example, knowledge:knowledge-example, skill:skill-example); actual=" + all.Count + " [" + actual + "]");
+            }
 
             var skills = await inventory.ListAsync(new AiResourceInventoryQuery { ResourceTypes = { "skill" }, AuthoritativeOnly = true, SearchText = "example" }).ConfigureAwait(true);
             if (skills.Count != 1 || !string.Equals(skills[0].ResourceId, "skill-example", StringComparison.OrdinalIgnoreCase))
@@ -258,34 +262,27 @@ namespace HAgent.Example
                             Content = "HAgent resource inventory exposes authoritative Knowledge and Wiki resources through one provider-neutral management projection."
                         };
                         detail.Fields.Add(new AiResourceDetailField { Name = "Version", Value = resource.Version.HasValue ? resource.Version.Value.ToString() : "N/A" });
-                        detail.Fields.Add(new AiResourceDetailField { Name = "Source", Value = "Example knowledge source" });
-                        detail.Sections.Add(new AiResourceDetailSection { Title = "Tags", Content = "inventory\nknowledge\nmanagement" });
+                        detail.Fields.Add(new AiResourceDetailField { Name = "Lifecycle", Value = resource.LifecycleStatus });
+                        detail.Sections.Add(new AiResourceDetailSection { Title = "Content", Content = detail.Content });
                         break;
 
                     case "skill":
                         detail = new AiResourceDetail
                         {
                             InventoryItem = resource,
-                            Summary = "A deterministic example Skill showing the structure that a future editor can build on.",
-                            Content = "Inspect the selected resource, display its structured definition, and keep authoritative publication separate from editing."
+                            Summary = "A deterministic skill inventory projection retained until the skill storage contract supports authoritative enumeration.",
+                            Content = "Example skill content."
                         };
-                        detail.Fields.Add(new AiResourceDetailField { Name = "Skill name", Value = "Inspect Authoritative Resource" });
                         detail.Fields.Add(new AiResourceDetailField { Name = "Version", Value = resource.Version.HasValue ? resource.Version.Value.ToString() : "N/A" });
-                        detail.Sections.Add(new AiResourceDetailSection { Title = "Inputs", Content = "AiResourceInventoryItem" });
-                        detail.Sections.Add(new AiResourceDetailSection { Title = "Steps", Content = "1. Select resource\n2. Resolve detail source\n3. Validate identity\n4. Render bounded content" });
+                        detail.Fields.Add(new AiResourceDetailField { Name = "Lifecycle", Value = resource.LifecycleStatus });
+                        detail.Sections.Add(new AiResourceDetailSection { Title = "Description", Content = detail.Summary });
+                        detail.Sections.Add(new AiResourceDetailSection { Title = "Content", Content = detail.Content });
                         break;
 
                     default:
-                        detail = new AiResourceDetail
-                        {
-                            InventoryItem = resource,
-                            Summary = "Generic resource detail.",
-                            Content = "No specialized Example representation is registered for this resource type."
-                        };
-                        break;
+                        throw new InvalidOperationException("Unsupported example resource type: " + resource.ResourceType);
                 }
 
-                detail.Validate();
                 return Task.FromResult(detail);
             }
         }

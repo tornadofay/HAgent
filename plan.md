@@ -120,10 +120,13 @@ This increment remains inside 0.9575 and establishes the shared inventory founda
 - deterministic aggregation, filtering, authoritative-only selection, logical-resource deduplication, highest-version selection, ordering, and `SkipResults` + `MaxResults` paging;
 - extensible string resource types so future resource families do not require central Agent model changes;
 - provider-neutral `AiMemoryResourceInventorySource` adapting the existing `IMemoryStore.SearchAsync` contract without adding storage-specific enumeration logic;
-- no SQL Server/MySQL enumeration implementation for Knowledge/Wiki/Skill, whose current contracts do not expose generic authoritative enumeration;
+- provider-neutral `IAiKnowledgeResourceSource` + bounded `AiKnowledgeEnumerationQuery` read boundary;
+- `AiKnowledgeResourceInventorySource` adapting Knowledge/Wiki resources into the common inventory projection without embedding storage-specific enumeration;
+- no Skill storage enumeration implementation because its current contract exposes lookup but not generic authoritative enumeration;
 - focused unit coverage in `HAgent.Tests/ResourceInventoryTests.cs` including filter and paging contracts;
 - focused Memory-source coverage in `HAgent.Tests/MemoryResourceInventorySourceTests.cs`;
-- dedicated Example scenario `HAgent.Example → Authoritative Resource Inventory` now exercises a real provider-neutral `InMemoryMemoryStore` through the Memory inventory adapter plus deterministic Knowledge/Skill projections;
+- focused Knowledge-source coverage in `HAgent.Tests/KnowledgeResourceInventorySourceTests.cs`;
+- dedicated Example scenario `HAgent.Example → Authoritative Resource Inventory` now exercises a real provider-neutral `InMemoryMemoryStore` through the Memory inventory adapter plus a provider-neutral Example Knowledge source through the Knowledge inventory adapter and a deterministic Skill projection;
 - WinForms `Configuration → Authoritative Resources` page consuming the inventory and detail contracts;
 - persistent master resource list that remains visible while inspecting a selected resource;
 - user-resizable SplitContainer starting near a 55/45 list/detail balance rather than a fixed detail width;
@@ -135,18 +138,19 @@ This increment remains inside 0.9575 and establishes the shared inventory founda
 
 ### Remaining work
 
-- connect real Knowledge/Wiki and Skill authoritative sources where their existing contracts can support inventory and detail enumeration without inventing provider-specific behavior;
+- connect real storage-backed Knowledge/Wiki and Skill authoritative sources through resource-specific contracts where host persistence exists, without inventing provider-specific behavior in Core;
+- add a supported Skill authoritative enumeration boundary before adding its inventory adapter;
 - expose effective agent-resource visibility without duplicating authoritative resource models;
 - extend the management surface with governed resource-specific editing/version-creation workflows;
 - add appropriate governed lifecycle operations rather than unconditional CRUD/delete behavior;
 - consider provider-side paging/virtualization optimizations only when a concrete storage source requires them;
 - keep reliability/adaptation separate for 0.9576.
 
-User verification already reported for this management slice: full `HAgent.Tests` **218/218 passed, 0 failed, 0 skipped** on .NET 9, and the WinForms master-detail resource management surface was visually reviewed as correct after the paging-control polish. The new Memory inventory source increment is not yet locally verified by the user.
+User verification already reported for this management slice: full `HAgent.Tests` **222/222 passed, 0 failed, 0 skipped** on .NET 9 after clean rebuild. The earlier xUnit metadata-cache runner anomaly did not recur in that clean run. The new Knowledge enumeration increment is not yet locally verified by the user.
 
 Architecture: `docs/architecture/93-learning-review-management-ui.md`, `docs/architecture/94-learning-review-candidate-details.md`, `docs/architecture/95-authoritative-resource-inventory.md`, and `docs/architecture/96-resource-detail-inspection.md`.
 
-**Tests to run:** `HAgent.Tests → MemoryResourceInventorySourceTests.cs` (focused), then the full `HAgent.Tests` suite at the management-slice checkpoint.
+**Tests to run:** `HAgent.Tests → KnowledgeResourceInventorySourceTests.cs` (focused), then the full `HAgent.Tests` suite at the management-slice checkpoint.
 
 **Example to run:** `HAgent.Example → Authoritative Resource Inventory` on .NET Framework 4.8.1 and .NET 9; then open `Configuration → Authoritative Resources` on both targets, resize the master/detail splitter, exercise the filters and page navigation, and select Memory, Knowledge, and Skill resources to verify the aligned Overview and readable Content views.
 

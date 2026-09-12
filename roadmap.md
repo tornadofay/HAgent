@@ -1307,135 +1307,6 @@ Show the active cognitive strategy and version, such as Adaptive Hybrid Cognitio
 
 Historical state is initially read-only. Future experimentation may branch from checkpoints, but a branch must not silently replace the live runtime's authoritative state.
 
-## Phase 0.98 — Model Reasoning Engineering
-
-## Status
-
-**Planned after 0.97 Persistent Cognitive Runtime.**
-
-## Purpose
-
-Define and implement the bounded engineering boundary between HAgent's deterministic runtime knowledge and model-based reasoning.
-
-This phase does **not** create a second cognitive runtime, replace Prompt/Instruction Governance, replace Context Engineering, or replace the 0.96 Execution Planner. It establishes how HAgent requests probabilistic reasoning without asking the model to rediscover facts that HAgent already knows deterministically and without giving model output authority over runtime state or external effects.
-
-The phase is provider-neutral and model-neutral. The model remains a replaceable reasoning component.
-
-## Core principle
-
-> Do not ask the model to infer deterministic facts when HAgent can provide those facts directly, unless inferring them is itself the requested task.
-
-The complementary rule is:
-
-> Permit inference when inference is the declared task, the required evidence is available, and the result remains inside its explicit authority boundary.
-
-## Responsibility boundary
-
-```text
-HAgent knows / derives deterministically
-        ↓
-HAgent supplies authoritative evidence and relevant context
-        ↓
-Model performs only the required interpretation / inference / planning / generation
-        ↓
-HAgent validates the returned contract and evidence relationship
-        ↓
-Policy / authorization / runtime commits decide what may actually happen
-```
-
-The model is not responsible for re-identifying execution/runtime facts, permissions, provenance, authority, or other deterministic facts already available to HAgent.
-
-## Scope
-
-### Slice 1 — Reasoning responsibility and deterministic-before-inference boundary
-
-- Define the provider-neutral semantic distinction between deterministic runtime facts and model-derived reasoning.
-- Establish that source identity, execution identity, runtime state, provenance, permissions, capability state, and other deterministic facts remain HAgent-owned when already available.
-- Ensure cognition may choose deterministic progress/no-model behavior before requesting probabilistic reasoning.
-- Ensure reasoning requests describe the semantic problem that actually requires model judgment rather than bundling unrelated deterministic classification work.
-
-### Slice 2 — Reasoning task decomposition and bounded model responsibility
-
-- Establish bounded reasoning responsibilities for interpretation, inference, planning, and generation.
-- Prevent one model request from silently combining source classification, policy authorization, learning promotion, and other separate authorities merely because the prompt asks for them together.
-- Keep authoritative facts explicit in structured context/contracts rather than depending on prompt rediscovery.
-- Preserve provider/model neutrality while allowing different models to satisfy the same semantic requirement with different capability levels.
-
-### Slice 3 — Reasoning result contract and uncertainty handling
-
-- Define the contract required for a reasoning result to be useful to HAgent.
-- Distinguish valid structured output from semantically acceptable reasoning.
-- Support bounded outcomes such as successful result, insufficient evidence, ambiguity, conflict, and unsupported inference where the task requires them.
-- Treat model-reported confidence as evidence rather than authoritative truth or calibrated probability.
-- Preserve provenance/evidence references needed to evaluate the result.
-
-### Slice 4 — Validation, authority boundary, and verification
-
-- Validate reasoning results before they influence cognitive state, learning candidates, tool requests, or external execution.
-- Keep policy/authorization/approval/budget enforcement outside model output.
-- Reuse existing structured-output, policy, context, observability, and evaluation infrastructure rather than creating parallel validators or metric systems.
-- Add deterministic tests and public-API Examples for representative reasoning responsibilities, including deterministic facts supplied directly and genuinely inferential tasks delegated to a model.
-- Measure semantic correctness, unsupported inference, over-inference, and provider/model variance where the capability is introduced.
-
-## Explicitly out of scope
-
-- A new cognitive architecture or Cognitive Runtime v2.
-- A replacement for Phase 0.954 Prompt + Instruction Governance.
-- A replacement for Phase 0.955 Context Engineering.
-- A replacement for Phase 0.957 Evaluation + Quality Measurement.
-- A replacement for Phase 0.96 Capability-Aware Execution.
-- A new authorization or policy engine.
-- A universal model-orchestration framework.
-- Mandatory multi-model voting, debate, or ensemble reasoning.
-- A requirement that every reasoning task use an LLM.
-- A requirement to expose internal model chain-of-thought as an HAgent architectural contract.
-
-## Ownership boundary
-
-0.97 owns persistent cognition and decides whether the agent needs deterministic progress, bounded probabilistic deliberation, information acquisition, or another cognitive action.
-
-0.98 owns the engineering discipline and contracts for the model-based reasoning portion once such reasoning is requested.
-
-0.96 owns concrete execution-target selection and admission.
-
-0.954 owns instruction authority/provenance and composition.
-
-0.955 owns context retrieval/assembly/bounds.
-
-0.957 owns evaluation evidence and quality measurement.
-
-Policy, authorization, approval, budgets, tools, host state, and external side effects remain governed by their existing authorities.
-
-## Future contract question intentionally left open
-
-The phase does not pre-decide whether the canonical implementation should introduce a `ReasoningTask` type. That design is a separate architectural decision to be resolved before implementation of the first 0.98 slice.
-
-## Dependency chain
-
-```text
-0.954 Prompt / Instruction Governance
-        ↓
-0.955 Context Engineering
-        ↓
-0.957 Evaluation / Quality Measurement
-        ↓
-0.9575 / 0.9576 governed learning + reliability
-        ↓
-0.96 Capability-Aware Execution
-        ↓
-0.97 Persistent Cognitive Runtime
-        ↓
-0.98 Model Reasoning Engineering
-        ↓
-0.10 Workspaces / Routing / Chat
-```
-
-0.98 consumes earlier contracts; it must not recreate them.
-
-## Exit criterion
-
-HAgent has a provider-neutral, testable boundary for model reasoning in which deterministic facts are supplied by HAgent when already known, inference is requested only where it is actually needed, model results remain non-authoritative until validated and governed, uncertainty/unsupported inference can be represented without forcing fabricated answers, and reasoning behavior can be evaluated across providers/models without creating a second cognitive or execution architecture.
-
 ## Phase 0.10 — Workspaces, Routing + Chat
 
 **Status: PAUSED after the provider-neutral workspace routing and role-policy foundation.**
@@ -3086,3 +2957,322 @@ The phase is intentionally ordered after 0.9591 and 0.959 in the roadmap, but it
 ## Exit criterion
 
 HAgent can register and use multiple provider adapters, preserve provider-native identities and metadata, consume complete or partial discovery/operational information through normalized contracts, represent unknowns honestly, preserve adapter lifecycle/history, and hand all execution-target selection to Phase 0.96 without creating a parallel routing or configuration authority.
+
+## Phase 0.9593 — Reasoning Requirement and Boundary Foundation
+
+## Status
+
+**Planned after 0.9592 and before 0.96.x configuration/storage and 0.96 capability-aware execution.**
+
+## Purpose
+
+Establish the provider-neutral reasoning boundary that later execution and cognition phases can consume without inventing their own reasoning semantics.
+
+This phase is intentionally a **contract and architecture foundation**, not the full model-reasoning implementation of Phase 0.98. It defines what HAgent means by a reasoning requirement, what deterministic information belongs to HAgent, what semantic work may be delegated to a reasoning capability, and how that requirement crosses into execution without naming a provider or model.
+
+The phase exists so 0.96 and 0.97 do not independently invent incompatible reasoning request shapes, while 0.98 can later implement the complete engineering discipline around that contract.
+
+## Core principle
+
+> Do not ask a reasoning provider to infer deterministic facts when HAgent can provide those facts directly, unless inferring them is itself the requested task.
+
+The complementary rule is:
+
+> A reasoning requirement may request inference only when the semantic responsibility is explicit, the required evidence is identified, and the result remains non-authoritative until the existing validation, policy, authorization, and runtime boundaries accept it.
+
+## What this phase defines
+
+### 1. Reasoning responsibility boundary
+
+Separate:
+
+```text
+HAgent-owned deterministic facts
+        ↓
+authoritative evidence/context
+        ↓
+provider-neutral reasoning requirement
+        ↓
+reasoning capability / execution target
+        ↓
+non-authoritative reasoning result
+```
+
+The requirement must not delegate responsibility for identity, permissions, provenance, runtime state, capability state, policy decisions, or other deterministic values already owned by HAgent.
+
+### 2. Reasoning requirement semantics
+
+Define the semantic information needed to describe a reasoning need without binding it to an LLM or provider. The contract should be able to express, as applicable:
+
+- the reasoning responsibility/problem;
+- required evidence and evidence provenance;
+- deterministic facts already established by HAgent;
+- allowed inference or interpretation scope;
+- expected result shape/contract;
+- permitted uncertainty outcomes;
+- validation expectations;
+- authority boundary;
+- relevant execution/capability requirements without selecting a provider.
+
+The canonical type name is deliberately not prescribed by this roadmap item. `ReasoningRequirement`, `ReasoningTask`, or another equivalent contract may be selected by the architectural decision made during the phase.
+
+### 3. Deterministic-before-reasoning rule
+
+Define when a reasoning requirement should not be created because deterministic cognition or an existing HAgent mechanism can complete the work directly.
+
+Representative deterministic cases include:
+
+- identity and execution-state lookup;
+- permission/policy decisions;
+- exact comparisons and arithmetic;
+- known configuration/capability facts;
+- authoritative resource metadata;
+- deterministic operators already available to cognition.
+
+A reasoning mechanism remains appropriate when the requested operation genuinely requires semantic interpretation, ambiguous inference, bounded planning, extraction, classification, or generation.
+
+### 4. Execution boundary
+
+The requirement must remain provider-neutral:
+
+```text
+Cognitive Runtime / host need
+        ↓
+0.9593 reasoning requirement
+        ↓
+0.96 execution planner
+        ↓
+concrete execution target
+        ↓
+provider adapter / model
+```
+
+0.9593 does not select models, perform routing, own provider transport, or replace the execution planner.
+
+### 5. Result and authority boundary
+
+Define the minimum boundary for a returned reasoning result before Phase 0.98 adds richer result validation and evaluation.
+
+The result remains a proposal/evidence-bearing output. It cannot directly:
+
+- grant authorization;
+- bypass policy;
+- publish learning;
+- change persistent configuration;
+- commit authoritative cognitive state;
+- perform external side effects.
+
+## Delivery slices
+
+### Slice 1 — Contract definition
+
+- Define the semantic vocabulary of a reasoning requirement.
+- Define the deterministic-fact versus inferred-result distinction.
+- Define evidence and provenance expectations.
+- Define provider/model neutrality.
+
+### Slice 2 — Integration boundaries
+
+- Map the contract to existing `AgentExecutionRequest`, context, instruction, capability, policy, and execution-planner boundaries.
+- Ensure the reasoning requirement can be consumed by 0.96 without duplicating execution-selection semantics.
+- Ensure 0.97 can emit the requirement when cognition determines probabilistic reasoning is necessary.
+
+### Slice 3 — Deterministic-before-reasoning rules
+
+- Define representative cases that must remain deterministic.
+- Define representative cases that legitimately require probabilistic reasoning.
+- Define explicit fallback to deterministic mechanisms where applicable.
+- Prevent provider adapters from deciding whether cognition needs reasoning.
+
+### Slice 4 — Contract verification
+
+Verify with deterministic/fake infrastructure that:
+
+- deterministic facts remain HAgent-owned;
+- provider-neutral requirements can be expressed without provider names;
+- execution selection remains exclusively owned by 0.96;
+- reasoning results remain non-authoritative;
+- insufficient/ambiguous reasoning needs can be represented without forcing an answer;
+- the same requirement can be mapped to different concrete execution targets without changing its semantic meaning.
+
+## Explicitly out of scope
+
+- Full Phase 0.98 model-reasoning engineering.
+- A required `ReasoningTask` class by name.
+- Model selection or provider routing.
+- Provider adapters or transport implementation.
+- A second cognitive runtime.
+- A new prompt/context/policy framework.
+- Mandatory LLM use.
+- Chain-of-thought exposure.
+- Multi-model voting or ensemble reasoning.
+- Full reasoning quality/evaluation infrastructure beyond contract-level verification.
+
+## Ownership
+
+0.9593 owns the **pre-execution reasoning contract and responsibility boundary**.
+
+0.96 owns concrete execution-target selection and admission.
+
+0.97 owns the cognitive decision of whether/why probabilistic reasoning is needed.
+
+0.98 owns the full engineering discipline for model reasoning, including richer result validation, uncertainty handling, semantic evaluation, and cross-provider/model quality evidence.
+
+0.954 owns instruction authority/provenance.
+
+0.955 owns context retrieval/assembly/bounds.
+
+0.957 owns evaluation/quality evidence.
+
+Policy, authorization, persistence, intervention, and external side-effect authorities remain with their existing phases.
+
+## Dependency chain
+
+```text
+0.9592 Provider Ecosystem / Adapters
+        ↓
+0.9593 Reasoning Requirement / Boundary Foundation
+        ↓
+0.96.x Configuration / Storage / Portability
+        ↓
+0.96 Capability-Aware Execution
+        ↓
+0.97 Persistent Cognitive Runtime
+        ↓
+0.98 Model Reasoning Engineering
+```
+
+0.9593 is therefore a prerequisite for the reasoning-related architectural portions of 0.96 and 0.97, but it does not move the full 0.98 implementation earlier in the roadmap.
+
+## Exit criterion
+
+HAgent has one provider-neutral, documented reasoning-boundary contract that 0.96 can execute and 0.97 can request, deterministic facts remain HAgent-owned, probabilistic reasoning is requested only for genuinely inferential responsibilities, and later Phase 0.98 work can extend the contract without replacing or duplicating the cognitive runtime or execution planner.
+
+## Phase 0.98 — Model Reasoning Engineering
+
+## Status
+
+**Planned after 0.97 Persistent Cognitive Runtime.**
+
+## Purpose
+
+Define and implement the bounded engineering boundary between HAgent's deterministic runtime knowledge and model-based reasoning.
+
+This phase does **not** create a second cognitive runtime, replace Prompt/Instruction Governance, replace Context Engineering, or replace the 0.96 Execution Planner. It establishes how HAgent requests probabilistic reasoning without asking the model to rediscover facts that HAgent already knows deterministically and without giving model output authority over runtime state or external effects.
+
+The phase is provider-neutral and model-neutral. The model remains a replaceable reasoning component.
+
+## Core principle
+
+> Do not ask the model to infer deterministic facts when HAgent can provide those facts directly, unless inferring them is itself the requested task.
+
+The complementary rule is:
+
+> Permit inference when inference is the declared task, the required evidence is available, and the result remains inside its explicit authority boundary.
+
+## Responsibility boundary
+
+```text
+HAgent knows / derives deterministically
+        ↓
+HAgent supplies authoritative evidence and relevant context
+        ↓
+Model performs only the required interpretation / inference / planning / generation
+        ↓
+HAgent validates the returned contract and evidence relationship
+        ↓
+Policy / authorization / runtime commits decide what may actually happen
+```
+
+The model is not responsible for re-identifying execution/runtime facts, permissions, provenance, authority, or other deterministic facts already available to HAgent.
+
+## Scope
+
+### Slice 1 — Reasoning responsibility and deterministic-before-inference boundary
+
+- Define the provider-neutral semantic distinction between deterministic runtime facts and model-derived reasoning.
+- Establish that source identity, execution identity, runtime state, provenance, permissions, capability state, and other deterministic facts remain HAgent-owned when already available.
+- Ensure cognition may choose deterministic progress/no-model behavior before requesting probabilistic reasoning.
+- Ensure reasoning requests describe the semantic problem that actually requires model judgment rather than bundling unrelated deterministic classification work.
+
+### Slice 2 — Reasoning task decomposition and bounded model responsibility
+
+- Establish bounded reasoning responsibilities for interpretation, inference, planning, and generation.
+- Prevent one model request from silently combining source classification, policy authorization, learning promotion, and other separate authorities merely because the prompt asks for them together.
+- Keep authoritative facts explicit in structured context/contracts rather than depending on prompt rediscovery.
+- Preserve provider/model neutrality while allowing different models to satisfy the same semantic requirement with different capability levels.
+
+### Slice 3 — Reasoning result contract and uncertainty handling
+
+- Define the contract required for a reasoning result to be useful to HAgent.
+- Distinguish valid structured output from semantically acceptable reasoning.
+- Support bounded outcomes such as successful result, insufficient evidence, ambiguity, conflict, and unsupported inference where the task requires them.
+- Treat model-reported confidence as evidence rather than authoritative truth or calibrated probability.
+- Preserve provenance/evidence references needed to evaluate the result.
+
+### Slice 4 — Validation, authority boundary, and verification
+
+- Validate reasoning results before they influence cognitive state, learning candidates, tool requests, or external execution.
+- Keep policy/authorization/approval/budget enforcement outside model output.
+- Reuse existing structured-output, policy, context, observability, and evaluation infrastructure rather than creating parallel validators or metric systems.
+- Add deterministic tests and public-API Examples for representative reasoning responsibilities, including deterministic facts supplied directly and genuinely inferential tasks delegated to a model.
+- Measure semantic correctness, unsupported inference, over-inference, and provider/model variance where the capability is introduced.
+
+## Explicitly out of scope
+
+- A new cognitive architecture or Cognitive Runtime v2.
+- A replacement for Phase 0.954 Prompt + Instruction Governance.
+- A replacement for Phase 0.955 Context Engineering.
+- A replacement for Phase 0.957 Evaluation + Quality Measurement.
+- A replacement for Phase 0.96 Capability-Aware Execution.
+- A new authorization or policy engine.
+- A universal model-orchestration framework.
+- Mandatory multi-model voting, debate, or ensemble reasoning.
+- A requirement that every reasoning task use an LLM.
+- A requirement to expose internal model chain-of-thought as an HAgent architectural contract.
+
+## Ownership boundary
+
+0.97 owns persistent cognition and decides whether the agent needs deterministic progress, bounded probabilistic deliberation, information acquisition, or another cognitive action.
+
+0.98 owns the engineering discipline and contracts for the model-based reasoning portion once such reasoning is requested.
+
+0.96 owns concrete execution-target selection and admission.
+
+0.954 owns instruction authority/provenance and composition.
+
+0.955 owns context retrieval/assembly/bounds.
+
+0.957 owns evaluation evidence and quality measurement.
+
+Policy, authorization, approval, budgets, tools, host state, and external side effects remain governed by their existing authorities.
+
+## Future contract question intentionally left open
+
+The phase does not pre-decide whether the canonical implementation should introduce a `ReasoningTask` type. That design is a separate architectural decision to be resolved before implementation of the first 0.98 slice.
+
+## Dependency chain
+
+```text
+0.954 Prompt / Instruction Governance
+        ↓
+0.955 Context Engineering
+        ↓
+0.957 Evaluation / Quality Measurement
+        ↓
+0.9575 / 0.9576 governed learning + reliability
+        ↓
+0.96 Capability-Aware Execution
+        ↓
+0.97 Persistent Cognitive Runtime
+        ↓
+0.98 Model Reasoning Engineering
+        ↓
+0.10 Workspaces / Routing / Chat
+```
+
+0.98 consumes earlier contracts; it must not recreate them.
+
+## Exit criterion
+
+HAgent has a provider-neutral, testable boundary for model reasoning in which deterministic facts are supplied by HAgent when already known, inference is requested only where it is actually needed, model results remain non-authoritative until validated and governed, uncertainty/unsupported inference can be represented without forcing fabricated answers, and reasoning behavior can be evaluated across providers/models without creating a second cognitive or execution architecture.

@@ -9,64 +9,51 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current task
 
-- **Phase:** 0.9575 Knowledge, Skills, Memory Governance + Learning
-- **Status:** Slice 12 in progress — Management UI
+- **Phase:** 0.9576 Learned Resource Reliability + Adaptation
+- **Status:** Slice 1 in progress — Applicability and validity
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Add production WinForms administration surfaces using the existing configuration shell and provider-neutral learning/resource contracts.
+- **Scope:** Establish a provider-neutral applicability/validity boundary for learned resource versions before reliability, staleness, forgetting, or runtime adaptation work.
 
-## Completed current-phase slices
+## 0.9575 checkpoint closed
 
-0.9575 Slice 1 — Resource capability governance — **verified** 2026-09-09: user reported 146/146 tests and both required Examples succeeded.
+The 0.9575 Knowledge, Skills, Memory Governance + Learning phase is complete through the Learning Review and Authoritative Resource Inventory management increments.
 
-0.9575 Slice 2 — Knowledge/Wiki — **verified** 2026-09-09: user reported 153/153 tests and both required Examples succeeded.
+User verification completed on 2026-09-12:
 
-0.9575 Slice 3 — Skills — **verified by user** 2026-09-09: both required Examples succeeded and full `HAgent.Tests` was 158/158 passed.
+- `HAgent.Example → Authoritative Resource Inventory` succeeded on .NET Framework 4.8.1.
+- `HAgent.Example → Authoritative Resource Inventory` succeeded on .NET 9.
+- The Example verified unified Memory / Knowledge / Skill inventory projection, real `InMemoryMemoryStore` adaptation, provider-neutral Knowledge enumeration, authoritative-only filtering, deterministic ordering/paging, filtering, and readable resource details.
 
-0.9575 Slice 4 — Memory family/type and provenance — **verified by user** 2026-09-09: both required Examples succeeded and full `HAgent.Tests` was 167/167 passed.
+The remaining 0.9575 work that intentionally stays deferred includes storage-specific Skill enumeration and later governed editing/lifecycle operations. Reliability/adaptation is now the active 0.9576 phase.
 
-0.9575 Slice 5 — Memory governance and retention — **verified by user** 2026-09-09: both required Examples succeeded and full `HAgent.Tests` was 175/175 passed.
+## Current Slice 1 boundary
 
-0.9575 Slice 6 — Learning Mode — **verified by user** 2026-09-09: both required Examples succeeded and full `HAgent.Tests` was 181/181 passed.
+`0.9576 Slice 1 — Applicability and validity` establishes:
 
-0.9575 Slice 7 — Learning Policy + Typed Candidates — **verified by user** 2026-09-11: `HAgent.Example → Policy → Learning Policy` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` was 187/187 passed, 0 failed, 0 skipped on .NET 9.
+- `AiApplicabilityOutcome`: `Applicable`, `NotApplicable`, `Uncertain`, `Invalidated`;
+- bounded provider-neutral applicability conditions and preconditions;
+- bounded applicability evidence references and per-condition evidence availability;
+- resource identity including resource type, resource ID, version, and scope;
+- explicit invalidation state without mutating published resource versions;
+- deterministic evaluation through `IAiApplicabilityEvaluator` and `AiDeterministicApplicabilityEvaluator`;
+- scope-aware applicability that remains separate from authorization/capability state;
+- missing required evidence produces `Uncertain`, never `Applicable`;
+- applicability decisions retain bounded condition results and evidence references for later observability/audit integration;
+- no model invocation, embeddings, vector database, or GPU dependency.
 
-0.9575 Slice 8 — Canonical Learning Lifecycle Gate — **verified by user** 2026-09-11: `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` was **194/194 passed, 0 failed, 0 skipped** on .NET 9.
+## Files and verification
 
-0.9575 Slice 9 — Learning Candidate Persistence, Retention + Review — **verified by user** 2026-09-11:
-- `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` succeeded on .NET Framework 4.8.1 and .NET 9.
-- Both Examples verified durable recovery, PendingReview revision restoration, authorized review, revision 1 → 2, reviewer/policy evidence, and absence of authoritative publication.
-- Full `HAgent.Tests`: **200/200 passed, 0 failed, 0 skipped** on .NET 9.
+- Architecture: `docs/architecture/97-learned-resource-applicability.md`.
+- Tests: `tests/HAgent.Tests/LearnedResourceApplicabilityTests.cs` / `LearnedResourceApplicabilityTests`.
+- Example: `src/HAgent.Example/MainForm.LearnedResourceApplicability.cs` / `Learned Resource Applicability`.
 
-0.9575 Slice 10 — Authoritative Promotion + Version-Safe Resource Creation — **verified by user** 2026-09-11:
-- `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` succeeded on .NET Framework 4.8.1 and .NET 9.
-- Both Examples verified Memory promotion, new published Knowledge/Skill versions, fresh unified authorization, publication-before-lifecycle transition, provenance evidence, and immutable version behavior.
-- Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
+**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
 
-0.9575 Slice 11 — Context, Instruction, Runtime, and Observability Integration — **verified by user** 2026-09-11:
-- `HAgent.Example → Cognition → Learning → Learning Execution Integration` succeeded on .NET Framework 4.8.1 and .NET 9.
-- Both Examples verified learned instruction, policy/capability-gated context, bounded snapshots, authoritative runtime observations, non-creation of candidates from observations, and non-authoritative prompt text.
-- Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
-
-## Current Slice 12 boundary
-
-The first management-UI increment is the Learning Review surface.
-
-- `LearningReviewPage` lives under `src/HAgent.WinForms/UI/Configuration/Learning/` and follows the shared header/action-bar/content layout.
-- Candidate listing is limited to durable, non-expired `PendingReview` records and exposes bounded metadata only.
-- Reviewer user identity is explicit; tenant/workspace are optional structured identity fields.
-- Approve and Reject use `AiLearningCandidateReviewService`, which re-evaluates `learning.review` through `IAiPolicyEngine` and persists reviewer/policy evidence through the existing candidate store.
-- UI actions do not publish authoritative Memory, Knowledge, or Skill resources.
-- `ConfigurationContext` exposes the durable File candidate-store adapter used by the current reference WinForms composition.
-
-**Architecture:** `docs/architecture/93-learning-review-management-ui.md`.
-
-**Example to run:** `HAgent.Example → Configuration → Learning Review` on .NET Framework 4.8.1 and .NET 9.
-
-**Tests to run:** full `HAgent.Tests` regression suite; WinForms configuration UI is primarily verified through the supported Example host.
+**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 
 ## Do not advance
 
-Do not advance beyond this management-UI increment until the Learning Review Example succeeds on both supported targets and the full test suite remains green.
+Do not advance to 0.9576 reliability evidence, staleness/contradiction, forgetting/archival, or runtime integration until this Slice 1 Example succeeds on both supported targets and the focused/full tests remain green.
 
 The durable candidate boundary is now closed. It remains separate from authoritative resource publication.
 
@@ -107,52 +94,51 @@ Verified by user on 2026-09-11.
 
 The complete Learning Review management boundary is now closed.
 
-### Current Slice 12 management increment — Authoritative Resource Inventory + Detail Inspection
+### 0.9575 Resource Inventory + Detail Inspection — VERIFIED
 
-This increment remains inside 0.9575 and establishes the shared inventory foundation, a scalable master-detail WinForms inventory surface, and provider-neutral read-only detail inspection.
+Verified by user on 2026-09-12 on both .NET Framework 4.8.1 and .NET 9:
 
-### Implemented
+- `HAgent.Example → Authoritative Resource Inventory` succeeded on both targets.
+- Unified Memory / Knowledge / Skill inventory projection succeeded.
+- Real `InMemoryMemoryStore` → Memory inventory source projection succeeded.
+- Provider-neutral Knowledge source → inventory projection succeeded.
+- Authoritative-only, resource-type, text, lifecycle, version, updated-time, owner, deterministic ordering, and bounded paging behavior succeeded.
+- Readable Memory / Knowledge / Skill detail inspection succeeded.
+- Skill storage-specific enumeration remains deferred because its current contract exposes lookup but not generic authoritative enumeration.
 
-- `IAiResourceInventorySource` for host/provider/storage-specific enumeration;
-- `IAiResourceInventory` for the shared management-facing read boundary;
-- bounded `AiResourceInventoryQuery` and `AiResourceInventoryItem` contracts;
-- lifecycle, exact-version, updated-time, owner/agent, scope, type, search, and authoritative-only query filters;
-- deterministic aggregation, filtering, authoritative-only selection, logical-resource deduplication, highest-version selection, ordering, and `SkipResults` + `MaxResults` paging;
-- extensible string resource types so future resource families do not require central Agent model changes;
-- provider-neutral `AiMemoryResourceInventorySource` adapting the existing `IMemoryStore.SearchAsync` contract without adding storage-specific enumeration logic;
-- provider-neutral `IAiKnowledgeResourceSource` + bounded `AiKnowledgeEnumerationQuery` read boundary;
-- `AiKnowledgeResourceInventorySource` adapting Knowledge/Wiki resources into the common inventory projection without embedding storage-specific enumeration;
-- no Skill storage enumeration implementation because its current contract exposes lookup but not generic authoritative enumeration;
-- focused unit coverage in `HAgent.Tests/ResourceInventoryTests.cs` including filter and paging contracts;
-- focused Memory-source coverage in `HAgent.Tests/MemoryResourceInventorySourceTests.cs`;
-- focused Knowledge-source coverage in `HAgent.Tests/KnowledgeResourceInventorySourceTests.cs`;
-- dedicated Example scenario `HAgent.Example → Authoritative Resource Inventory` now exercises a real provider-neutral `InMemoryMemoryStore` through the Memory inventory adapter plus a provider-neutral Example Knowledge source through the Knowledge inventory adapter and a deterministic Skill projection;
-- WinForms `Configuration → Authoritative Resources` page consuming the inventory and detail contracts;
-- persistent master resource list that remains visible while inspecting a selected resource;
-- user-resizable SplitContainer starting near a 55/45 list/detail balance rather than a fixed detail width;
-- filter/action region for Search, Resource type, Agent/Owner, Scope, Lifecycle, Version, Updated window, Authoritative-only, Apply/Reset/Refresh, and bounded page navigation;
-- paging controls placed beneath the master list and omitted when the result set fits on one page;
-- Overview and Content tabs confined to the selected-resource detail pane rather than replacing the master list;
-- stale asynchronous detail-result protection so an earlier selection cannot overwrite the current selection;
-- edit/delete/publish/archive/retire operations remain outside the read-only detail boundary.
+Architecture: `docs/architecture/95-authoritative-resource-inventory.md`, `docs/architecture/96-resource-detail-inspection.md`.
 
-### Remaining work
+The 0.9575 management inventory increment is closed.
 
-- connect real storage-backed Knowledge/Wiki and Skill authoritative sources through resource-specific contracts where host persistence exists, without inventing provider-specific behavior in Core;
-- add a supported Skill authoritative enumeration boundary before adding its inventory adapter;
-- expose effective agent-resource visibility without duplicating authoritative resource models;
-- extend the management surface with governed resource-specific editing/version-creation workflows;
-- add appropriate governed lifecycle operations rather than unconditional CRUD/delete behavior;
-- consider provider-side paging/virtualization optimizations only when a concrete storage source requires them;
-- keep reliability/adaptation separate for 0.9576.
+## Current phase — 0.9576 Learned Resource Reliability + Adaptation
 
-User verification already reported for this management slice: full `HAgent.Tests` **222/222 passed, 0 failed, 0 skipped** on .NET 9 after clean rebuild. The earlier xUnit metadata-cache runner anomaly did not recur in that clean run. The new Knowledge enumeration increment is not yet locally verified by the user.
+### Slice 1 — Applicability and validity — IN PROGRESS
 
-Architecture: `docs/architecture/93-learning-review-management-ui.md`, `docs/architecture/94-learning-review-candidate-details.md`, `docs/architecture/95-authoritative-resource-inventory.md`, and `docs/architecture/96-resource-detail-inspection.md`.
+Implemented on `master`:
 
-**Tests to run:** `HAgent.Tests → KnowledgeResourceInventorySourceTests.cs` (focused), then the full `HAgent.Tests` suite at the management-slice checkpoint.
+- `AiApplicabilityOutcome`: `Applicable`, `NotApplicable`, `Uncertain`, `Invalidated`;
+- bounded provider-neutral preconditions and deterministic condition operators;
+- explicit resource version/scope identity and invalidation state;
+- bounded host-supplied applicability facts and evidence references;
+- `IAiApplicabilityEvaluator` and deterministic `AiDeterministicApplicabilityEvaluator`;
+- missing evidence yields `Uncertain`, never `Applicable`;
+- applicability remains separate from authorization/capability state;
+- applicability decisions retain bounded condition results and evidence references for later observability/audit integration;
+- focused tests and dedicated Example verification host.
 
-**Example to run:** `HAgent.Example → Authoritative Resource Inventory` on .NET Framework 4.8.1 and .NET 9; then open `Configuration → Authoritative Resources` on both targets, resize the master/detail splitter, exercise the filters and page navigation, and select Memory, Knowledge, and Skill resources to verify the aligned Overview and readable Content views.
+Architecture: `docs/architecture/97-learned-resource-applicability.md`.
+
+**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused, then the full `HAgent.Tests` suite.
+
+**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
+
+## Remaining 0.9576 work
+
+- reliability evidence and validated outcome feedback;
+- staleness, contradiction, drift, and revalidation;
+- quarantine, retirement, archival, and forgetting;
+- governed replacement candidates without in-place mutation;
+- runtime integration and end-to-end verification.
 
 ## Architectural Decisions
 
@@ -657,45 +643,43 @@ Only the current implementation milestone belongs here. Completed implementation
 
 Phase 0.957 is complete through Slice 6. User verification on 2026-09-09 recorded 139/139 tests passed and the required evaluation Example succeeded on .NET Framework 4.8.1 and .NET 9.
 
-## 0.9575 Knowledge, Skills, Memory Governance + Learning — CURRENT
+## 0.9575 Knowledge, Skills, Memory Governance + Learning — CLOSED
 
-Phase 0.9575 consumes the canonical resource, identity, policy, instruction, context, observability, evaluation, and runtime foundations. It must not introduce a parallel resource architecture.
+Phase 0.9575 is closed through Learning Review and the Authoritative Resource Inventory + Detail Inspection management increment.
 
-### Slices 1–10 — VERIFIED
+- Learning Review was user-verified on both supported targets.
+- Authoritative Resource Inventory was user-verified on 2026-09-12 on .NET Framework 4.8.1 and .NET 9.
+- The inventory Example verified real `InMemoryMemoryStore` projection, provider-neutral Knowledge enumeration, authoritative-only filtering, deterministic ordering/paging, filtering, and readable Memory/Knowledge/Skill details.
+- Skill storage enumeration remains deferred until its existing source contract gains a supported authoritative enumeration boundary.
+- Governed resource editing/version-creation/lifecycle workflows remain later management work.
 
-Slices 1–6 were verified on 2026-09-09. Slice 7, Slice 8, Slice 9, and Slice 10 were verified by the user on 2026-09-11. Their recorded test counts are 146, 153, 158, 167, 175, 181, 187, 194, 200, and 205 respectively; all required Examples succeeded on both supported frameworks.
+## 0.9576 Learned Resource Reliability + Adaptation — CURRENT
 
-### Slice 11 — Context, Instruction, Runtime, and Observability Integration — VERIFIED
+### Slice 1 — Applicability and validity — CURRENT
 
-Verified by user on 2026-09-11.
+This slice establishes the provider-neutral decision boundary that determines whether a promoted resource version is applicable to a bounded context, or whether evidence is insufficient or the resource is invalidated.
 
-- `HAgent.Example → Cognition → Learning → Learning Execution Integration` succeeded on .NET Framework 4.8.1 and .NET 9.
-- Both Examples verified provider-neutral learned instruction, policy/capability-gated learned context, bounded execution context snapshots, authoritative runtime outcome observation capture, non-creation of candidates from observations, and non-authoritative prompt text.
-- Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
+Implemented:
 
-Architecture: `docs/architecture/90-learning-execution-integration.md`.
+- `AiApplicabilityOutcome`: `Applicable`, `NotApplicable`, `Uncertain`, `Invalidated`;
+- `AiApplicabilityTarget` with resource type/ID/version/scope and explicit invalidation state;
+- `AiApplicabilityCondition` with bounded `Exists`, `Equals`, `NotEquals`, and `OneOf` operators;
+- `AiApplicabilityContext` with bounded host-supplied facts and optional scope;
+- `AiApplicabilityEvidenceReference` plus condition-level evidence references;
+- `AiApplicabilityDecision` retaining outcome, version identity, bounded condition results, evidence references, reason, and evaluation timestamp;
+- provider-neutral `IAiApplicabilityEvaluator`;
+- deterministic `AiDeterministicApplicabilityEvaluator` that evaluates available deterministic evidence before any model reasoning;
+- missing deterministic evidence yields `Uncertain` and never proves applicability;
+- applicability remains independent from authorization/capability policy;
+- invalidation is terminal for this evaluator and does not mutate the published resource;
+- focused tests and a dedicated manual Example.
 
-Slice 11 is closed.
+Architecture: `docs/architecture/97-learned-resource-applicability.md`.
 
-### Slice 12 — Management UI — CURRENT
+**Example to run:** `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9.
 
-The management surface is being added under the existing WinForms configuration architecture. `AISettingsForm` remains a composition shell; feature behavior lives under `src/HAgent.WinForms/UI/Configuration/`.
-
-Current increment:
-
-- `Learning Review` configuration page for durable `PendingReview` candidates;
-- explicit reviewer identity fields;
-- Approve/Reject actions routed through `AiLearningCandidateReviewService` and the unified policy engine;
-- bounded candidate metadata projection without copying candidate payload into the list;
-- durable candidate store dependency exposed through `ConfigurationContext`;
-- no authoritative Memory/Knowledge/Skill publication from the UI.
-
-Architecture: `docs/architecture/93-learning-review-management-ui.md`.
-
-**Example to run:** `HAgent.Example → Configuration → Learning Review`.
-
-**Tests to run:** full `HAgent.Tests` remains the phase regression gate; Slice 12 UI verification is primarily the supported WinForms Example on .NET Framework 4.8.1 and .NET 9.
+**Tests to run:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 
 ## Run rule
 
-Complete the current implementation increment and record its verification before moving to the next management-UI increment. Do not combine multiple numbered slices in one run.
+Complete Slice 1 and record user verification before starting 0.9576 Slice 2 reliability evidence. Do not combine numbered 0.9576 slices in one run.

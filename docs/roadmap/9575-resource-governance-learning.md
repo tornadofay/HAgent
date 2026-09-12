@@ -2,9 +2,9 @@
 
 ## Status
 
-**In progress — Slice 12 implementation.**
+**CLOSED — Slice 13 phase completion verification — 2026-09-12.**
 
-Slices 1–11 are verified. This roadmap is normalized against the current implementation so historical checklist entries that already leaked into the code are not treated as automatically missing work.
+Slices 1–13 are verified. Phase 0.9576 is now the current implementation phase.
 
 ## Goal
 
@@ -20,202 +20,79 @@ Learning  = governed process that turns experience into typed candidates
             and, when permitted, promotes them into authoritative state
 ```
 
-Model output is never an authority. Learning creates typed candidates before any authoritative promotion.
+Model output is never an authority. Learning creates typed candidates before authoritative promotion.
 
-## Verified foundation
+## Verified slices
 
 ### Slice 1 — Resource capability governance — VERIFIED 2026-09-09
+Canonical ownership, effective capability state, and unified policy authorization.
 
-Canonical ownership, effective capability state, and unified policy authorization are composed through one reusable governance boundary.
-
-Verification: user reported 146/146 tests and the required Example succeeded on .NET Framework 4.8.1 and .NET 9.
+Verification: 146/146 tests and required Examples on .NET Framework 4.8.1 and .NET 9.
 
 ### Slice 2 — Knowledge/Wiki governed resource contract — VERIFIED 2026-09-09
+Explicit identity, scope/ownership, provenance, lifecycle/versioning, bounded metadata, relationships, chunks, and provider/index-neutral retrieval.
 
-Knowledge/Wiki resources have explicit identity, scope/ownership, provenance, lifecycle/versioning, bounded metadata, relationships, chunks, and provider/index-neutral retrieval.
-
-Verification: user reported 153/153 tests and the required Example succeeded on .NET Framework 4.8.1 and .NET 9.
+Verification: 153/153 tests and required Examples on both supported targets.
 
 ### Slice 3 — Versioned Skill definitions — VERIFIED 2026-09-09
+Reusable versioned Skill definitions, explicit scope/ownership, lifecycle/provenance, dependencies, constraints, snapshot semantics, governed resolution, and runtime-owned handlers.
 
-Reusable versioned Skill definitions/reference semantics, explicit scope/ownership, lifecycle/provenance, bounded contracts, dependencies, constraints, snapshot semantics, governed resolution, and runtime-owned executable handlers are established.
-
-Verification: user reported 158/158 tests, 0 failed, 0 skipped and the required Examples succeeded on .NET Framework 4.8.1 and .NET 9.
+Verification: 158/158 tests and required Examples on both supported targets.
 
 ### Slice 4 — Memory family/type and provenance — VERIFIED 2026-09-09
+Canonical family/type, provenance, expiration metadata, cloning/validation, and aligned persistence contracts.
 
-The existing MemoryEntry contract now carries canonical family/type, provenance, expiration metadata, clone/validation behavior, and aligned File/SQL Server/MySQL persistence.
-
-Verification: user reported 167/167 tests, 0 failed, 0 skipped and the required Examples succeeded on .NET Framework 4.8.1 and .NET 9.
+Verification: 167/167 tests and required Examples on both supported targets.
 
 ### Slice 5 — Memory governance and retention — VERIFIED 2026-09-09
+Generic resource capability governance, deterministic bounded retrieval/expiration filtering, retention caps, and governed memory-store decoration.
 
-Memory governance reuses the generic resource capability model, adds deterministic bounded retrieval/expiration filtering, per-family/type retention caps, and the governed memory-store decorator.
-
-Verification: user reported 175/175 tests, 0 failed, 0 skipped and the required Examples succeeded on .NET Framework 4.8.1 and .NET 9.
+Verification: 175/175 tests and required Examples on both supported targets.
 
 ### Slice 6 — Learning Mode — VERIFIED 2026-09-09
+Provider-neutral Learning Mode, persistent profile state, runtime override, and immutable execution-snapshot capture.
 
-`AiLearningMode` is provider-neutral and distinct from resource capability policy. Persistent profile state, runtime-only override, and immutable execution-snapshot capture are established.
-
-Verification: user reported 181/181 tests, 0 failed, 0 skipped and the required Examples succeeded on .NET Framework 4.8.1 and .NET 9.
+Verification: 181/181 tests and required Examples on both supported targets.
 
 ### Slice 7 — Learning Policy + Typed Candidates — VERIFIED 2026-09-11
+One canonical Learning Policy and typed Memory/Knowledge/Skill learning candidates.
 
-One provider-neutral Learning Policy contract and typed `MemoryCandidate`, `KnowledgeCandidate`, and `SkillCandidate` payloads now compose the single canonical `AiLearningCandidate` lifecycle.
-
-Verification: user reported 187/187 tests, 0 failed, 0 skipped on .NET 9; the `HAgent.Example → Policy → Learning Policy` Example succeeded on .NET Framework 4.8.1 and .NET 9.
+Verification: 187/187 tests; Learning Policy Example succeeded on both supported targets.
 
 ### Slice 8 — Canonical Learning Lifecycle Gate — VERIFIED 2026-09-11
+Canonical admission gate combining candidate validation, Learning Policy, Learning Mode, and promotion authorization.
 
-`AiLearningLifecycleCoordinator` is the canonical admission gate between validated typed candidates and later authoritative promotion. It composes typed-candidate validation, Learning Policy, Learning Mode, and unified learning-promotion authorization; it does not publish or persist authoritative resources.
+Verification: 194/194 tests; Learning Lifecycle Example succeeded on both supported targets.
 
-Verification: user reported `HAgent.Example → Cognition → Learning → Learning Lifecycle` succeeded on .NET Framework 4.8.1 and .NET 9; full `HAgent.Tests` recorded **194/194 passed, 0 failed, 0 skipped** on .NET 9.
+### Slice 9 — Candidate persistence, retention, and review — VERIFIED 2026-09-11
+Durable typed candidate records, File/InMemory stores, revision-safe review, retention/expiry, restart recovery, reviewer identity, policy evidence, and no authoritative publication at the review boundary.
 
-The authorization-sensitive identity boundary is fail-closed and requires canonical `AgentIdentityContext`.
+Verification: 200/200 tests; Learning Candidate Persistence Example succeeded on both supported targets.
 
-## Remainder audit: historical checklist normalization
+### Slice 10 — Authoritative promotion and version-safe resource creation — VERIFIED 2026-09-11
+Canonical promotion service for Memory, Knowledge, and Skill, fresh authorization, publication-before-lifecycle transition, version conflict protection, provenance, and immutable published versions.
 
-### Already implemented / leaked into the current architecture
+Verification: 205/205 tests; Learning Candidate Promotion Example succeeded on both supported targets.
 
-- Canonical resource scopes are `Global`, `Tenant`, `User`, `Workspace`, `Agent`, `Runtime`, and `Execution`. Any historical wording that names `Domain` is obsolete; `Workspace` is the canonical scope.
-- `AiAgent.ResourceCapabilities` already provides persistent profile capability defaults, and `AiResourceCapabilityPolicy` supports both resource-type and exact-resource entries with `Inherit`, `Enabled`, and `Disabled` states.
-- Effective profile/runtime capability resolution already exists and is captured into `AgentExecutionSnapshot.EffectiveResourceCapabilities`.
-- Runtime overrides remain transient and do not write back into profile configuration.
-- Knowledge retrieval requests already impose explicit bounded query, result, character, chunk, metadata, and filter limits.
-- Knowledge and Skill resources already have explicit scope/owner identity and governed resolution; reusable shared resources are represented by authoritative resource identity rather than private copies.
-- Published Knowledge and published Skills are already rejected as typed learning candidate payloads.
-- Runtime identity, correlation, cancellation, timeout, stale-result protection, and independent runtime-instance isolation already exist as runtime foundations.
+### Slice 11 — Context, instruction, runtime, and observability integration — VERIFIED 2026-09-11
+Governed learned instruction/context, bounded execution snapshots, authoritative runtime observations, and separation between observations, candidates, authorization, and prompt text.
 
-### Partially implemented; integration still outstanding
+Verification: 208/208 tests; Learning Execution Integration Example succeeded on both supported targets.
 
-- Shared reusable Knowledge exists at the resource-contract/governance level, but HAgent-owned persistence, management, relationships, and end-to-end reusable-resource administration remain incomplete.
-- Retrieval is bounded at the contract level, and Slice 11 integrates governed learned-resource retrieval into the canonical context/instruction pipeline; broader reusable-resource administration remains outstanding.
-- Runtime snapshots capture capability/learning configuration, and Slice 11 captures bounded execution observations as learning input; automatic observation-to-candidate analysis remains outstanding.
+### Slice 12 — Management UI — VERIFIED 2026-09-12
+Learning Review management workflow plus Authoritative Resource Inventory + Detail Inspection. The inventory increment used a real `InMemoryMemoryStore`, a provider-neutral Knowledge enumeration source, and a deterministic Skill projection; it provided bounded filters, deterministic ordering/paging, and readable Memory/Knowledge/Skill details. Skill generic storage enumeration remains intentionally deferred because its current contract is lookup-only.
 
-### Genuinely outstanding 0.9575 work
+Verification: `HAgent.Example → Authoritative Resource Inventory` succeeded on .NET Framework 4.8.1 and .NET 9. The management increment was regression-checked with the full test suite; the subsequent repository-wide result was 234/234 passed after the first 0.9576 slice.
 
-- Promotion audit/provenance/evaluation persistence beyond the structured promotion evidence produced by Slice 10.
-- Broader governed learning-resource management/repository integration where authoritative Knowledge/Skill persistence is host/storage-owned.
-- Knowledge/Wiki and Skill CRUD management UI.
-- Effective Agent Configuration resource inventory/editing UI.
-- Persistence and restart verification for the mature learning/resource layer beyond the candidate store and current in-memory observation reference store.
+### Slice 13 — Phase completion verification — VERIFIED 2026-09-12
+Final phase verification confirmed evidence across the required 0.9575 boundaries: both supported targets for required Examples, candidate persistence/recovery, governed Memory/Knowledge/Skill promotion, immutable resource-version behavior, execution/runtime isolation and stale-result protection, context/instruction integration, runtime observations and policy/audit evidence, Learning Review management UI, and the final Authoritative Resource Inventory + Detail Inspection increment.
 
-## Slice 9 — Candidate persistence, retention, and review — VERIFIED 2026-09-11
+The 234/234 full `HAgent.Tests` result is green after the first 0.9576 implementation slice and provides the current regression gate over the completed 0.9575 implementation.
 
-### Purpose
+## Phase exit decision
 
-Make the existing canonical typed learning candidate durable without creating a second candidate lifecycle or authoritative resource model.
-
-### Scope delivered
-
-- provider-neutral durable candidate record;
-- provider-neutral candidate-store boundary;
-- deterministic InMemory and durable File stores;
-- lifecycle status/revision persistence;
-- retention/expiry and purge;
-- typed payload serialization and restoration;
-- persisted Learning Policy and promotion authorization provenance;
-- Learning Review through the existing unified policy boundary;
-- explicit reviewer identity and authorization evidence;
-- optimistic revision-checked review updates;
-- restart/recovery semantics;
-- no authoritative resource mutation at the persistence/review boundary.
-
-### Verification
-
-User verified `HAgent.Example → Cognition → Learning → Learning Candidate Persistence` on .NET Framework 4.8.1 and .NET 9.
-
-Both Examples reported contract success, typed durable capture, restart persistence, PendingReview restoration, authorized review to Approved, revision 1 → 2, reviewer/policy evidence, and no authoritative resource publication.
-
-Full `HAgent.Tests`: **200/200 passed, 0 failed, 0 skipped** on .NET 9.
-
-Architecture: `docs/architecture/88-learning-candidate-persistence.md`.
-
-## Slice 10 — Authoritative promotion and version-safe resource creation — VERIFIED 2026-09-11
-
-### Purpose
-
-Convert an approved durable typed candidate into authoritative resource state through one canonical promotion boundary without creating parallel lifecycle or resource models.
-
-### Scope delivered
-
-- one provider-neutral promotion service;
-- explicit `AgentIdentityContext` and fresh `learning.promote` evaluation through the existing unified `IAiPolicyEngine`;
-- durable `Approved` status and expiry checks;
-- typed payload validation/restoration before publication;
-- Memory promotion through the existing `IMemoryStore` contract;
-- Knowledge promotion through an explicit provider-neutral publication target with version conflict protection;
-- Skill promotion through an explicit provider-neutral immutable publication target;
-- deterministic equal/lower version conflict rejection;
-- preservation of candidate/source execution/runtime/profile provenance and authorization evidence;
-- transition to `Promoted` only after authoritative publication succeeds;
-- structured promotion result/audit evidence for later observability integration.
-
-### Verification
-
-User verified `HAgent.Example → Cognition → Learning → Learning Candidate Promotion` on .NET Framework 4.8.1 and .NET 9.
-
-Both Examples reported contract success for Memory, Knowledge, Skill, fresh unified authorization, lifecycle transition after publication, provenance retention, and immutable version behavior.
-
-Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
-
-Architecture: `docs/architecture/89-learning-authoritative-promotion.md`.
-
-## Slice 11 — Context, instruction, runtime, and observability integration — VERIFIED 2026-09-11
-
-### Purpose
-
-Connect governed learned resources to real execution without moving authorization into prompts or creating a parallel execution/context/observability architecture.
-
-### Scope delivered
-
-- prepare learned instruction sources through the existing `AgentExecutionRequest.InstructionSources` boundary;
-- prepare learned context retrieval sources through the canonical policy/capability admission, ranking, and bounded context assembly pipeline;
-- preserve execution-owned context snapshots and cloned instruction inputs;
-- consume authoritative `IExecutionObservationSource` facts as bounded learning input without turning observations into candidates automatically;
-- provide a bounded provider-neutral observation-store reference implementation;
-- preserve separation between runtime authority, observability, Learning Policy, candidate lifecycle, and authoritative promotion.
-
-### Verification
-
-User verified `HAgent.Example → Cognition → Learning → Learning Execution Integration` on .NET Framework 4.8.1 and .NET 9.
-
-Both Examples verified provider-neutral learned instruction, policy/capability-gated learned context, bounded execution context snapshots, authoritative runtime outcome observation capture, non-creation of candidates from observations, and non-authoritative prompt text.
-
-Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
-
-Architecture: `docs/architecture/90-learning-execution-integration.md`.
-
-## Slice 12 — Management UI — IN PROGRESS
-
-### Purpose
-
-Add the production WinForms administration surface using existing HAgent configuration conventions without moving resource lifecycle or authorization into the UI shell.
-
-### Current increment — Learning Review
-
-- dedicated `LearningReviewPage` under `src/HAgent.WinForms/UI/Configuration/Learning/`;
-- explicit reviewer user, tenant, and workspace identity fields;
-- bounded PendingReview candidate list projection;
-- Approve/Reject routed through `AiLearningCandidateReviewService` and the existing unified policy engine;
-- durable candidate-store dependency exposed through `ConfigurationContext`;
-- no authoritative Memory/Knowledge/Skill publication from the UI;
-- explicit configuration-shell navigation entry in `AISettingsForm`;
-- dedicated Slice 12 verification workflow building WinForms and Example on both supported targets and running the full .NET 9 test suite.
-
-### Verification
-
-**Required Example:** `HAgent.Example → Configuration → Learning Review` on .NET Framework 4.8.1 and .NET 9.
-
-**Required tests:** full `HAgent.Tests` regression suite; WinForms UI behavior is verified through the supported Example host.
-
-Architecture: `docs/architecture/93-learning-review-management-ui.md`.
-
-## Slice 13 — Phase completion verification
-
-Close the phase only after deterministic evidence exists for the real boundaries introduced by 0.9575, including both framework targets, promotion, persistence/recovery, resource version/snapshot isolation, authorization, runtime isolation, context integration, management UI, observability/audit coverage, and no model-output bypass of authoritative resource boundaries.
+**0.9575 is CLOSED.** Post-promotion reliability, adaptation, staleness, contradiction, quarantine, forgetting, replacement, and runtime reliability integration are owned by **0.9576** and are not backfilled into 0.9575.
 
 ## Phase exit criterion
 
-Knowledge, Skills, Memory, and Learning are first-class production V1 HAgent resources with explicit identity, scope, ownership, provenance, capability policy, runtime overrides, immutable execution snapshots, governed retrieval, typed learning candidates, durable lifecycle, version-safe authoritative promotion, context/runtime integration, management UI, and auditable policy boundaries.
+Knowledge, Skills, Memory, and Learning are first-class production V1 resources with explicit identity, scope, ownership, provenance, capability policy, runtime overrides, immutable execution snapshots, governed retrieval, typed learning candidates, durable lifecycle, version-safe authoritative promotion, context/runtime integration, management UI, and auditable policy boundaries.

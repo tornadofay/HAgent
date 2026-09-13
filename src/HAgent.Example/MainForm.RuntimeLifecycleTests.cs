@@ -23,6 +23,8 @@ namespace HAgent.Example
                 "Lifecycle states and revision authority",
                 "Uses only local adapters and the file runtime-state store; no external provider is contacted.");
             AddRuntimeHealthTab();
+            AddRuntimeProgressRecoveryTab();
+            AddRuntimeObservabilityTab();
         }
 
         private async Task TestRuntimeLifecycleAsync(string message)
@@ -121,10 +123,7 @@ namespace HAgent.Example
                     if (restoredRecord == null ||
                         restoredRecord.State != AgentRuntimeInstanceState.Retired ||
                         restoredRecord.LifecycleRevision != instance.CurrentLifecycleRevision)
-                    {
                         throw new InvalidOperationException("Persisted runtime state did not preserve lifecycle state and revision.");
-                    }
-
                     var restored = AgentRuntimeInstance.Restore(profile, restoredRecord);
                     if (restored.State != instance.State || restored.CurrentLifecycleRevision != instance.CurrentLifecycleRevision)
                         throw new InvalidOperationException("Restored runtime did not preserve lifecycle state and revision.");
@@ -142,17 +141,9 @@ namespace HAgent.Example
             shutdownInstance.Shutdown();
 
             var cancelled = false;
-            try
-            {
-                await shutdownTask.ConfigureAwait(true);
-            }
-            catch (OperationCanceledException)
-            {
-                cancelled = true;
-            }
-
-            if (!cancelled)
-                throw new InvalidOperationException("Shutdown did not cancel the outstanding execution.");
+            try { await shutdownTask.ConfigureAwait(true); }
+            catch (OperationCanceledException) { cancelled = true; }
+            if (!cancelled) throw new InvalidOperationException("Shutdown did not cancel the outstanding execution.");
             if (shutdownInstance.State != AgentRuntimeInstanceState.Shutdown)
                 throw new InvalidOperationException("Shutdown did not enter Shutdown state.");
             await ExpectRejectedAsync(client, shutdownInstance, "after-shutdown", options).ConfigureAwait(true);
@@ -172,83 +163,30 @@ namespace HAgent.Example
         private static async Task ExpectRejectedAsync(HAgentClient client, AgentRuntimeInstance instance, string message, AgentExecutionOptions options)
         {
             var rejected = false;
-            try
-            {
-                await client.ExecuteAsync(instance, message, options, CancellationToken.None).ConfigureAwait(true);
-            }
-            catch (InvalidOperationException)
-            {
-                rejected = true;
-            }
-
-            if (!rejected)
-                throw new InvalidOperationException("Runtime lifecycle state did not reject new execution: " + instance.State);
+            try { await client.ExecuteAsync(instance, message, options, CancellationToken.None).ConfigureAwait(true); }
+            catch (InvalidOperationException) { rejected = true; }
+            if (!rejected) throw new InvalidOperationException("Runtime lifecycle state did not reject new execution: " + instance.State);
         }
-
-        //private sealed class NullSecretStore : ISecretStore
-        //{
-        //    public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
-        //    {
-        //        return Task.FromResult(string.Empty);
-        //    }
-
-        //    public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
-        //    {
-        //        return Task.CompletedTask;
-        //    }
-
-        //    public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
-        //    {
-        //        return Task.CompletedTask;
-        //    }
-        //}
 
         private sealed class RuntimeLifecycleTestAdapter : IAiProviderAdapter
         {
             public TaskCompletionSource<bool> Started { get; private set; }
             private TaskCompletionSource<bool> _release;
-
-            public RuntimeLifecycleTestAdapter()
-            {
-                Reset();
-            }
-
+            public RuntimeLifecycleTestAdapter() { Reset(); }
             public string Kind { get { return "RuntimeLifecycleTest"; } }
             public string DisplayName { get { return "Runtime Lifecycle Test Adapter"; } }
-
-            public bool CanHandle(AiProvider provider)
+            public bool CanHandle(AiProvider provider) { return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase); }
+            public async Task<AIResponse> SendAsync(ProviderExecutionRequest request, CancellationToken cancellationToken)
             {
-                return provider != null && string.Equals(provider.Kind, Kind, StringComparison.OrdinalIgnoreCase);
-            }
-
-            public async Task<AIResponse> SendAsync(
-                ProviderExecutionRequest request,
-                CancellationToken cancellationToken)
-            {
-                if (request == null)
-                    throw new ArgumentNullException(nameof(request));
-
+                if (request == null) throw new ArgumentNullException(nameof(request));
                 Started.TrySetResult(true);
                 var cancellationTask = Task.Delay(Timeout.Infinite, cancellationToken);
                 await Task.WhenAny(_release.Task, cancellationTask).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
-                return new AIResponse
-                {
-                    Text = "RUNTIME-LIFECYCLE-OK",
-                    ProviderId = request.Provider == null ? string.Empty : request.Provider.Id
-                };
+                return new AIResponse { Text = "RUNTIME-LIFECYCLE-OK", ProviderId = request.Provider == null ? string.Empty : request.Provider.Id };
             }
-
-            public void Release()
-            {
-                _release.TrySetResult(true);
-            }
-
-            public void Reset()
-            {
-                Started = new TaskCompletionSource<bool>();
-                _release = new TaskCompletionSource<bool>();
-            }
+            public void Release() { _release.TrySetResult(true); }
+            public void Reset() { Started = new TaskCompletionSource<bool>(); _release = new TaskCompletionSource<bool>(); }
         }
     }
 }

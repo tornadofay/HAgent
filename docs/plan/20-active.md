@@ -38,15 +38,26 @@ The durable contract keeps operation identity stable across retry attempts, requ
 
 ### Slice 5 — Restart and recovery — CURRENT / IMPLEMENTING
 
-Define safe recovery semantics across process restart or crash before persistence backend implementation.
+Implemented the provider-neutral restart/recovery contract boundary without introducing persistence backend behavior.
 
-Initial boundary:
-- Recover the latest durable goal/plan revision without reviving obsolete execution/provider authority.
-- Invalidate work owned by the previous process/runtime execution.
-- Reconcile incomplete steps into safe states such as retryable, unknown, blocked, or requiring host review.
-- Preserve evidence explaining the recovery decision.
-- Keep recovery deterministic and host-neutral; backend persistence remains Slice 6.
+Implementation:
+- `src/HAgent.Core/Models/AiPlanRecoveryContracts.cs`
+- `tests/HAgent.Tests/PlanRecoveryContractsTests.cs`
+- Example: `HAgent.Example -> Cognition -> Goals & Plans -> RESTART & RECOVERY`
 
-### Implementation checkpoint
+Required semantics:
+- Preserve the latest durable plan ID and revision; recovery does not silently create a new plan revision.
+- Require a new runtime instance identity and an advanced execution revision before a recovery record is accepted.
+- Mark previous runtime/execution authority invalidated.
+- Keep terminal steps terminal; interrupted non-terminal work can be retryable under current policy.
+- Requested and `UnknownOutcome` external operations require host review/reconciliation rather than automatic retry.
+- Preserve operation linkage and evidence needed to explain each step decision.
+- Keep persistence backends and external side effects out of this slice; those remain Slice 6 responsibilities.
 
-Slice 5 should add focused tests and a matching Example before any persistence backend work begins. Do not start Slice 6 until the Slice 5 Example and regression results are recorded.
+### Verification checkpoint
+
+**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> RESTART & RECOVERY` on .NET Framework 4.8.1 and .NET 9 Windows.
+
+**Tests to run:** `tests/HAgent.Tests/PlanRecoveryContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+
+**Run rule:** Do not begin Slice 6 until Slice 5 Example verification and regression results are recorded.

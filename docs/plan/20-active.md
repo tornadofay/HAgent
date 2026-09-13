@@ -28,26 +28,25 @@ The contracts provide explicit checkpoint identity, plan/step linkage, plan revi
 
 **Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **294/294 passed, 0 failed, 0 skipped**.
 
-### Slice 4 — Retry and idempotency — CURRENT / IMPLEMENTING
+### Slice 4 — Retry and idempotency — VERIFIED / CLOSED
 
-Define the durable contract boundary for retry correlation before persistence backends or restart recovery are introduced.
+Implemented in `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.cs` with focused tests in `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs` and matching Example `HAgent.Example -> Cognition -> Goals & Plans -> RETRY & IDEMPOTENCY`.
 
-Implementation:
-- `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.cs`
-- `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs`
-- Example: `HAgent.Example -> Cognition -> Goals & Plans -> RETRY & IDEMPOTENCY`
+The durable contract keeps operation identity stable across retry attempts, requires explicit host confirmation before retrying a failed operation, requires reconciliation for requested and unknown outcomes, and prevents completed, cancelled, and superseded operations from being retried. HAgent does not claim exactly-once execution for arbitrary host side effects.
 
-Required semantics:
-- Operation identity remains stable across retry attempts and is linked to plan, step, and plan revision.
-- A failed operation is retryable only when the host establishes retry safety.
-- Requested and `UnknownOutcome` operations require reconciliation before retry.
-- Completed, cancelled, and superseded operations are not retryable.
-- HAgent does not claim exactly-once execution for arbitrary host side effects.
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **300/300 passed, 0 failed, 0 skipped**.
 
-### Verification checkpoint
+### Slice 5 — Restart and recovery — CURRENT / IMPLEMENTING
 
-**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> RETRY & IDEMPOTENCY` on .NET Framework 4.8.1 and .NET 9 Windows.
+Define safe recovery semantics across process restart or crash before persistence backend implementation.
 
-**Tests to run:** `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+Initial boundary:
+- Recover the latest durable goal/plan revision without reviving obsolete execution/provider authority.
+- Invalidate work owned by the previous process/runtime execution.
+- Reconcile incomplete steps into safe states such as retryable, unknown, blocked, or requiring host review.
+- Preserve evidence explaining the recovery decision.
+- Keep recovery deterministic and host-neutral; backend persistence remains Slice 6.
 
-**Run rule:** Do not begin Slice 5 until Slice 4 Example verification and regression results are recorded.
+### Implementation checkpoint
+
+Slice 5 should add focused tests and a matching Example before any persistence backend work begins. Do not start Slice 6 until the Slice 5 Example and regression results are recorded.

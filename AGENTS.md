@@ -147,51 +147,52 @@ HAgent is currently in **redesign/rebuild mode**. Architectural correctness and 
 112. **Example name must never be omitted:** the final run report MUST contain a plainly labeled `Example to run:` line containing the exact UI path/title (for example, `HAgent.Example → Diagnostics → Evaluation → Deterministic Evaluation`) and the supported target(s). This is mandatory even when local verification is pending.
 113. **Test name must also be explicit:** the final run report MUST contain a plainly labeled `Tests to run:` line naming the focused test class/file and whether the full suite is required by the active slice.
 114. **User-running instructions are part of the checkpoint:** when verification is pending, the active-work document MUST preserve the exact Example UI path/title and exact focused test class/file so the next person can execute the checkpoint without rediscovering the intended scenario.
+115. **Learning Example registration path:** new Learning verification tabs must be added through the existing feature-specific `AddLearning…Tab` registration methods in `MainForm` (and the corresponding focused partial file), then classified by `MainForm.ExampleOrganization`. Do not introduce a second generic Learning registration path or bypass the feature-specific registration path by registering Learning scenarios directly from unrelated tab-building code. `AddApiTab(...)` remains a page-construction helper, not the Learning registration mechanism.
 
 ## Documentation and source-of-truth rules
 
-115. `README.md` is the public introduction and quick start.
-116. `docs/architecture/` is the authoritative stable architecture description.
-117. `docs/plan/` is implementation state: master direction, current state, active work, and durable project decisions.
-118. `docs/roadmap/` is the ordered implementation path, including completed foundation history and future phases.
-119. `docs/storage.md` contains storage-specific details.
-120. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them except to synchronize a generated view when automation has not yet run.
-121. When implementation changes architecture or milestone state, update the authoritative source document in the same change when practical.
-122. Do not duplicate architectural decisions across source documents when a referenced authoritative document can own the decision.
-123. During redesign/rebuild mode, document the target architecture rather than compatibility with obsolete mechanisms.
-124. Before changing a subsystem, identify and read its authoritative architecture document. Treat `AGENTS.md` as global constraints and the subsystem document as the detailed authority.
+116. `README.md` is the public introduction and quick start.
+117. `docs/architecture/` is the authoritative stable architecture description.
+118. `docs/plan/` is implementation state: master direction, current state, active work, and durable project decisions.
+119. `docs/roadmap/` is the ordered implementation path, including completed foundation history and future phases.
+120. `docs/storage.md` contains storage-specific details.
+121. Root `plan.md` and `roadmap.md` are generated; do not hand-edit them except to synchronize a generated view when automation has not yet run.
+122. When implementation changes architecture or milestone state, update the authoritative source document in the same change when practical.
+123. Do not duplicate architectural decisions across source documents when a referenced authoritative document can own the decision.
+124. During redesign/rebuild mode, document the target architecture rather than compatibility with obsolete mechanisms.
+125. Before changing a subsystem, identify and read its authoritative architecture document. Treat `AGENTS.md` as global constraints and the subsystem document as the detailed authority.
 
 ## Complete-architecture implementation standard
 
-125. Substantial features must be implemented against the **complete intended architecture that can reasonably be derived before coding**, not against a deliberately simplified or temporary version intended to be redesigned later.
-126. Before implementing substantial work, inspect the existing architecture and implementation, identify dependencies and invariants, and reason through known lifecycle, persistence, concurrency, failure, security, performance, compatibility, and extension requirements.
-127. Do not knowingly defer foundational requirements merely to make implementation easier or faster to demonstrate when those requirements are already part of the intended design.
-128. Testing is primarily for verification, defect discovery, regression detection, and genuinely unforeseen interactions. Do not use testing as a substitute for architectural analysis that should have happened before coding.
-129. When testing reveals a requirement or interaction that could not reasonably have been known beforehand, update the authoritative architecture/decision documentation rather than applying an undocumented workaround.
-130. Code may be refined after testing, but refinement should normally correct defects, improve clarity/performance, or incorporate genuinely new information—not replace an intentionally incomplete architecture.
-131. When uncertain whether a proposed implementation is a complete target design or only a temporary simplification, resolve that uncertainty before coding and make the decision explicit in the relevant architecture/decision document.
-132. **Complete is scope-bounded:** implement the complete intended architecture for the current task/phase while remaining compatible with known future architecture. Do not prematurely implement unrelated future roadmap phases.
+126. Substantial features must be implemented against the **complete intended architecture that can reasonably be derived before coding**, not against a deliberately simplified or temporary version intended to be redesigned later.
+127. Before implementing substantial work, inspect the existing architecture and implementation, identify dependencies and invariants, and reason through known lifecycle, persistence, concurrency, failure, security, performance, compatibility, and extension requirements.
+128. Do not knowingly defer foundational requirements merely to make implementation easier or faster to demonstrate when those requirements are already part of the intended design.
+129. Testing is primarily for verification, defect discovery, regression detection, and genuinely unforeseen interactions. Do not use testing as a substitute for architectural analysis that should have happened before coding.
+130. When testing reveals a requirement or interaction that could not reasonably have been known beforehand, update the authoritative architecture/decision documentation rather than applying an undocumented workaround.
+131. Code may be refined after testing, but refinement should normally correct defects, improve clarity/performance, or incorporate genuinely new information—not replace an intentionally incomplete architecture.
+132. When uncertain whether a proposed implementation is a complete target design or only a temporary simplification, resolve that uncertainty before coding and make the decision explicit in the relevant architecture/decision document.
+133. **Complete is scope-bounded:** implement the complete intended architecture for the current task/phase while remaining compatible with known future architecture. Do not prematurely implement unrelated future roadmap phases.
 
 ## Run-bounded execution standard
 
-133. **Substantial work must be split into run-sized slices before implementation begins.** A “run” means one bounded implementation-and-verification cycle that the coding agent can reasonably complete within the available execution budget.
-134. Each run must have one explicit objective, a small set of expected files/assemblies, and a concrete verification target. The focused unit/integration tests and matching Example scenario should be identified before implementation begins.
-135. When a task contains multiple independent or sequential slices, record them as an ordered checklist in the authoritative active-work document. Mark exactly one slice as **current** and define its entry condition and completion condition.
-136. Before coding, estimate whether the current slice can reach a verified checkpoint in the same run. If it cannot, split it further before making implementation changes.
-137. Prefer a smaller verified slice over a larger partially implemented slice. Repository work must not depend on reaching the end of a large task in one uninterrupted session.
-138. Do not combine implementation, broad refactoring, unrelated cleanup, UI expansion, documentation migration, and multi-framework verification into one run when they can be separated without architectural loss.
-139. During implementation, keep production changes, focused tests, and matching Example coverage scoped to the current slice. Do not begin the next slice while the current slice still lacks its verification checkpoint.
-140. After implementation, inspect the repository diff for scope drift, accidental unrelated changes, and source-of-truth consistency before asking for or recording local verification.
-141. Local verification should normally follow the bounded sequence: build the affected projects, run the focused/full unit test suite as appropriate, run the matching Example scenario on each supported target required by the slice, then review the actual results for failures or inconsistencies.
-142. If verification exposes a defect, correct the defect within the same slice and repeat only the necessary verification. Do not paper over a production defect by weakening or deleting the test; keep test and Example expectations aligned with the intended architecture.
-143. At the end of every run, reach one of two explicit states: **verified complete** or **verified checkpoint/blocker**. A timeout or interruption is not a completion state.
-144. If the run ends before verification, do not claim success. Record the exact unfinished slice, files changed, known blocker/failure, and the next smallest safe step in the active-work document before moving to unrelated work.
-145. Where practical, keep each run's code change internally coherent and buildable. Do not intentionally leave the repository in a known broken state merely because a later run is expected to fix it.
-146. After a verified slice, update the active-work/current-state/architecture documentation required by the existing source-of-truth rules before selecting the next slice.
-147. The next run must resume from the recorded checkpoint, not re-discover or duplicate completed work. Do not begin a parallel implementation of a partially completed slice.
-148. The complete-architecture rule remains in force **within each bounded slice**: splitting a task changes execution size, not architectural quality or required analysis.
+134. **Substantial work must be split into run-sized slices before implementation begins.** A “run” means one bounded implementation-and-verification cycle that the coding agent can reasonably complete within the available execution budget.
+135. Each run must have one explicit objective, a small set of expected files/assemblies, and a concrete verification target. The focused unit/integration tests and matching Example scenario should be identified before implementation begins.
+136. When a task contains multiple independent or sequential slices, record them as an ordered checklist in the authoritative active-work document. Mark exactly one slice as **current** and define its entry condition and completion condition.
+137. Before coding, estimate whether the current slice can reach a verified checkpoint in the same run. If it cannot, split it further before making implementation changes.
+138. Prefer a smaller verified slice over a larger partially implemented slice. Repository work must not depend on reaching the end of a large task in one uninterrupted session.
+139. Do not combine implementation, broad refactoring, unrelated cleanup, UI expansion, documentation migration, and multi-framework verification into one run when they can be separated without architectural loss.
+140. During implementation, keep production changes, focused tests, and matching Example coverage scoped to the current slice. Do not begin the next slice while the current slice still lacks its verification checkpoint.
+141. After implementation, inspect the repository diff for scope drift, accidental unrelated changes, and source-of-truth consistency before asking for or recording local verification.
+142. Local verification should normally follow the bounded sequence: build the affected projects, run the focused/full unit test suite as appropriate, run the matching Example scenario on each supported target required by the slice, then review the actual results for failures or inconsistencies.
+143. If verification exposes a defect, correct the defect within the same slice and repeat only the necessary verification. Do not paper over a production defect by weakening or deleting the test; keep test and Example expectations aligned with the intended architecture.
+144. At the end of every run, reach one of two explicit states: **verified complete** or **verified checkpoint/blocker**. A timeout or interruption is not a completion state.
+145. If the run ends before verification, do not claim success. Record the exact unfinished slice, files changed, known blocker/failure, and the next smallest safe step in the active-work document before moving to unrelated work.
+146. Where practical, keep each run's code change internally coherent and buildable. Do not intentionally leave the repository in a known broken state merely because a later run is expected to fix it.
+147. After a verified slice, update the active-work/current-state/architecture documentation required by the existing source-of-truth rules before selecting the next slice.
+148. The next run must resume from the recorded checkpoint, not re-discover or duplicate completed work. Do not begin a parallel implementation of a partially completed slice.
+149. The complete-architecture rule remains in force **within each bounded slice**: splitting a task changes execution size, not architectural quality or required analysis.
 
 ## Persistent project-memory protocol
 
-149. The repository is the durable project memory for development across constrained, interrupted, or new AI sessions. Use small purpose-specific Markdown documents to preserve the minimum state needed to resume work safely.
-150. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation detail into the repository merely for continuity.
+150. The repository is the durable project memory for development across constrained, interrupted, or new AI sessions. Use small purpose-specific Markdown documents to preserve the minimum state needed to resume work safely.
+151. Persistent project-memory documents are **compressed project state, not transcripts**. Never copy conversation history, raw chain-of-thought, or every implementation detail into the repository merely for continuity.

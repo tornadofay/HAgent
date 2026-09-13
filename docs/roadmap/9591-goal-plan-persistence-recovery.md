@@ -2,7 +2,7 @@
 
 ## Status
 
-**CURRENT — Slices 1–2 verified/closed; Slice 3 implemented, verification pending.**
+**CURRENT — Slices 1–3 verified/closed; Slice 4 current.**
 
 Phase 0.958 Agent Lifecycle and Health Management is closed/verified. Slice 1 of 0.9591 was built ahead of roadmap and is now formally accepted as the phase foundation after phase-entry review.
 
@@ -64,7 +64,7 @@ Implementation surface: `src/HAgent.Core/Models/AiPlanContracts.cs`; focused tes
 
 **Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **290/290 passed, 0 failed, 0 skipped**.
 
-### Slice 3 — Checkpoints and outcome semantics — IMPLEMENTED / VERIFICATION PENDING
+### Slice 3 — Checkpoints and outcome semantics — CLOSED / VERIFIED
 
 - Define explicit checkpoint boundaries.
 - Define durable progress evidence at safe points through provider-neutral checkpoint contracts; actual backend persistence remains later phase scope.
@@ -73,20 +73,19 @@ Implementation surface: `src/HAgent.Core/Models/AiPlanContracts.cs`; focused tes
 
 Implementation surface: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs`; focused tests: `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs`; Example: `src/HAgent.Example/MainForm.CheckpointOutcomeContractsTests.cs`.
 
-### Verification checkpoint
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. The full `.NET 9` `HAgent.Tests` regression reported **294/294 passed, 0 failed, 0 skipped**.
 
-**Example to run:** `HAgent.Example → Cognition → Goals & Plans → CHECKPOINT & OUTCOME CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
+### Slice 4 — Retry and idempotency — CURRENT / IMPLEMENTING
 
-**Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
-
-**Run rule:** Do not begin Slice 4 until Slice 3 Example verification and regression results are recorded.
-
-### Slice 4 — Retry and idempotency
-
-- Define stable operation/step identity for retry correlation.
+- Define stable operation identity linked to plan, step, and plan revision; retry attempts do not create a new operation identity.
 - Distinguish safe retry from unknown external outcome.
-- Record whether an action was requested, observed completed, or remains unknown.
+- Record whether an action is requested, observed completed, failed, cancelled, superseded, or remains unknown.
+- Require explicit host confirmation before retrying a failed operation; requested and unknown outcomes require reconciliation first.
 - Keep external side effects host-authoritative; HAgent cannot claim exactly-once execution of arbitrary host actions.
+
+Implementation surface: `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.cs`; focused tests: `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs`; Example: `HAgent.Example → Cognition → Goals & Plans → RETRY & IDEMPOTENCY`.
+
+**Verification checkpoint:** Run the matching Example on .NET Framework 4.8.1 and .NET 9 Windows, then the focused Slice 4 tests followed by the full `HAgent.Tests` regression suite.
 
 ### Slice 5 — Restart and recovery
 

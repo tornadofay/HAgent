@@ -117,7 +117,7 @@ namespace HAgent.Tests
         public void RuntimeLifecycle_RestorePreservesStateAndLifecycleRevision()
         {
             var profile = CreateProfile();
-            var source = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Persistent);
+            var source = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Application);
             source.Suspend();
             source.BeginRecovery();
             source.Resume();

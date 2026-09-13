@@ -4,7 +4,7 @@
 
 ### 0.9591 — Goal/Plan Persistence + Recovery
 
-**Slice 4 — Retry and idempotency — IMPLEMENTING.**
+**Slice 5 — Restart and recovery — IMPLEMENTING.**
 
 0.958 Agent Lifecycle + Health is CLOSED / VERIFIED. Its four slices are complete; the final full `.NET 9` `HAgent.Tests` checkpoint reported **286/286 passed, 0 failed, 0 skipped**.
 
@@ -35,7 +35,7 @@
 - Verified on both .NET Framework 4.8.1 and .NET 9 Example targets.
 - Full `.NET 9` regression at checkpoint: **294/294 passed, 0 failed, 0 skipped**.
 
-#### Slice 4 — Retry and idempotency — CURRENT / IMPLEMENTING
+#### Slice 4 — Retry and idempotency — CLOSED / VERIFIED
 
 - Stable operation identity is linked to plan, step, and plan revision; retry attempts do not create a new operation identity.
 - Failed operations are retryable only when the host explicitly establishes retry safety.
@@ -44,8 +44,18 @@
 - Implementation: `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.cs`.
 - Focused tests: `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs`.
 - Matching Example: `HAgent.Example → Cognition → Goals & Plans → RETRY & IDEMPOTENCY`.
+- Verified on both .NET Framework 4.8.1 and .NET 9 Example targets.
+- Full `.NET 9` regression at checkpoint: **300/300 passed, 0 failed, 0 skipped**.
 
-**Verification checkpoint:** run the matching Example on .NET Framework 4.8.1 and .NET 9 Windows, then the focused tests and full regression suite.
+#### Slice 5 — Restart and recovery — CURRENT / IMPLEMENTING
+
+- Recover the latest durable goal/plan revision after process restart or crash without reviving obsolete execution/provider authority.
+- Invalidate in-flight work owned by the previous process/runtime execution.
+- Reconcile incomplete steps into safe states such as retryable, unknown, blocked, or requiring host review.
+- Preserve evidence explaining the recovery decision.
+- Keep the recovery boundary host-neutral; persistence backend implementation remains Slice 6.
+
+**Current implementation target:** define the provider-neutral restart/recovery contract, focused tests, and matching Example before any persistence backend work.
 
 ## Planned order
 

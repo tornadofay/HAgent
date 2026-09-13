@@ -2190,7 +2190,7 @@ HAgent can determine whether promoted learned behavior is applicable and trustwo
 
 ## Status
 
-**CURRENT — Slice 1 implementation complete; verification pending.**
+**CURRENT — Slice 1 verified/closed; Slice 2 implemented, verification pending.**
 
 0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. 0.958 is the active implementation phase.
 
@@ -2218,9 +2218,7 @@ These concerns remain separate.
 
 ### Lifecycle
 
-The existing runtime foundation is authoritative for `Active`, `Retired`, and terminal `Shutdown`.
-
-0.958 extends that same runtime lifecycle with the operational states needed for persistent operation:
+The runtime lifecycle is:
 
 ```text
 Active
@@ -2231,8 +2229,6 @@ Shutdown
 ```
 
 `Suspended` preserves runtime identity and durable state while ordinary new work is prevented or host-controlled work is paused. `Recovering` is an explicit recovery transition and does not originate ordinary new work. `Retired` prevents new work and participates in the existing runtime result-authority rules. `Shutdown` is terminal.
-
-Lifecycle transitions advance the applicable runtime/lifecycle revision. Work admitted under an obsolete lifecycle revision cannot regain authority over newer runtime state.
 
 ### Health
 
@@ -2247,7 +2243,7 @@ Unknown
 
 Health is evidence, not authorization. Lifecycle and policy decide whether work may continue, wait, recover, or stop.
 
-Health evidence must be bounded and must include enough source/reason metadata to explain why a runtime is considered degraded, failed, or unknown. Slow but valid inference is not a failure solely because it is long-running.
+Health evidence is normalized through `AiRuntimeHealth` with explicit source and failure-kind metadata and bounded reason/evidence text. Slow but valid inference is not a failure solely because it is long-running.
 
 ## Ownership boundary
 
@@ -2261,30 +2257,25 @@ Human/host intervention is consumed through the canonical 0.959 intervention bou
 
 ## Delivery slices
 
-### Slice 1 — Lifecycle state extension — IMPLEMENTED, VERIFICATION PENDING
+### Slice 1 — Lifecycle state extension — CLOSED / VERIFIED
 
-- Extend the existing runtime lifecycle only where long-lived operation requires it.
-- Define valid/invalid transitions and terminal behavior.
-- Keep `Shutdown` terminal and prevent ordinary new runtime-originated work from `Suspended`, `Recovering`, `Retired`, or `Shutdown` states.
-- Preserve existing execution identity, execution terminal-state handling, and stale-result protection.
-- Advance lifecycle/revision authority on valid lifecycle transitions so obsolete asynchronous work cannot become authoritative again after suspension, recovery, retirement, or shutdown.
-- Preserve runtime durable state during suspension/recovery; do not introduce goals/plans persistence here.
-- Add focused tests and a matching Example through the normal Example architecture/registration path.
+The existing runtime lifecycle was extended without introducing a second runtime identity or execution model. Valid/invalid transitions, lifecycle revision capture, non-active admission rejection, stale-result invalidation, persistence/restore, and shutdown cancellation were implemented and verified by the user.
 
-**Implemented surface:** the existing `AgentRuntimeInstance` now owns lifecycle state and lifecycle revision authority; execution admission captures both execution and lifecycle revisions; runtime-state persistence preserves lifecycle revision across File/SQL Server/MySQL stores; the lifecycle Example and focused test class are present; a dedicated 0.958 Slice 1 GitHub Actions verification workflow builds both supported Core/Example targets and runs the focused plus full .NET 9 tests.
+**Verified:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME LIFECYCLE` on .NET Framework 4.8.1 and .NET 9; full `.NET 9` `HAgent.Tests` reported **266/266 passed, 0 failed, 0 skipped**.
 
-**Architecture:** `docs/architecture/102-runtime-lifecycle-health.md`.
+### Slice 2 — Health state — IMPLEMENTED / VERIFICATION PENDING
 
-**Example to run:** `HAgent.Example → RUNTIME LIFECYCLE`, on .NET Framework 4.8.1 and .NET 9 Windows.
-
-**Tests to run:** `tests/HAgent.Tests/RuntimeLifecycleTests.cs` focused first, then the full `HAgent.Tests` regression suite.
-
-### Slice 2 — Health state
-
-- Define normalized health status and bounded reason metadata.
-- Record the source of a health determination: runtime observation, provider failure, recovery failure, host signal, or equivalent evidence.
+- Define normalized health status and bounded reason/evidence metadata.
+- Record the source of a health determination through provider-neutral source categories.
 - Distinguish transient degradation from terminal failure.
 - Do not classify slow but valid inference as failed merely because it is long-running.
+- Keep health separate from lifecycle and authorization.
+- Persist health through the existing runtime-state record and File/SQL Server/MySQL stores without creating a parallel repository.
+- Provide detached health snapshots so external callers cannot mutate live runtime state indirectly.
+
+**Implemented surface:** `src/HAgent.Core/Models/AiRuntimeHealthContracts.cs`, `AgentRuntimeInstance.Health/SetHealth(...)`, `AgentRuntimeStateRecord.Health`, File/SQL Server/MySQL runtime-state persistence, focused tests in `tests/HAgent.Tests/RuntimeHealthTests.cs`, and matching Example `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH`.
+
+**Verification checkpoint:** not yet executed by the user. The focused test class and Example must be run on both supported targets before Slice 2 closes.
 
 ### Slice 3 — Progress and recovery signals
 

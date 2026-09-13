@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Phase 0.958 extends the existing `AgentRuntimeInstance` foundation so long-lived runtimes have explicit operational lifecycle, runtime-health, progress, and recovery state without creating a second runtime identity model or changing execution identity semantics.
+Phase 0.958 extends the existing `AgentRuntimeInstance` foundation so long-lived runtimes have explicit operational lifecycle, runtime-health, progress, recovery, and bounded observability without creating a second runtime identity model or changing execution identity semantics.
 
-The canonical identity remains the existing runtime instance. This document defines the lifecycle/health/progress/recovery contract owned by 0.958; provider/adapter health remains outside this model.
+The canonical identity remains the existing runtime instance. This document defines the lifecycle/health/progress/recovery/observability contract owned by 0.958; provider/adapter health remains outside this model.
 
 ## Separation of concerns
 
@@ -13,12 +13,13 @@ Lifecycle state = whether the runtime may originate new work
 Health state    = evidence about whether the runtime is operating normally
 Progress        = bounded evidence that runtime work is advancing or alive
 Recovery        = explicit host/runtime transition and outcome
+Observability   = detached evidence/diagnostics about runtime state
 Execution state = what one execution is doing
 ```
 
-Lifecycle, health, progress, recovery, and execution are independent dimensions.
+Lifecycle, health, progress, recovery, observability, and execution are independent dimensions.
 
-Health and progress do not grant or deny authorization. Lifecycle admission and host policy decide whether work may start, wait, recover, or stop.
+Health, progress, and observability do not grant or deny authorization. Lifecycle admission and host policy decide whether work may start, wait, recover, or stop.
 
 ## Lifecycle states
 
@@ -95,14 +96,7 @@ Unknown
 
 The canonical health contract is `AiRuntimeHealth`. A newly created runtime always has a health snapshot and starts at `Unknown` because no health observation has yet been recorded. Health is owned by the existing `AgentRuntimeInstance` through `Health` and `SetHealth(...)`; no parallel runtime-health owner exists.
 
-Each health snapshot contains:
-
-- `Status`: `Unknown`, `Healthy`, `Degraded`, or `Failed`.
-- `Source`: `RuntimeObservation`, `RecoveryResult`, `HostSignal`, or `ExternalEvidence`.
-- `FailureKind`: `None`, `Transient`, or `Terminal`. `Degraded` requires `Transient`; `Failed` requires `Terminal`; `Unknown` and `Healthy` require `None`.
-- `Reason`: normalized/bounded text, maximum 512 characters. Degraded and failed states require a non-empty reason.
-- `Evidence`: normalized/bounded descriptive text, maximum 2048 characters.
-- `ObservedAt`: optional timestamp. It is omitted for the initial unknown state and may be supplied for an actual observation.
+Each health snapshot contains `Status`, `Source`, `FailureKind`, bounded `Reason`/`Evidence`, and optional `ObservedAt` metadata. `Degraded` is transient, `Failed` is terminal, and `Unknown`/`Healthy` carry no failure kind.
 
 `SetHealth(...)` validates and clones the supplied contract before storing it under the runtime instance lock. Reading `AgentRuntimeInstance.Health` returns a detached clone, so health evidence crossing the runtime boundary cannot mutate live internal state. Health updates do not advance lifecycle revision and do not grant authorization.
 
@@ -116,35 +110,31 @@ Provider-specific operational health remains owned by provider/adapter layers an
 
 Runtime progress is bounded evidence, not an authorization or lifecycle mechanism. The canonical contract is `AiRuntimeProgressSnapshot` and it is owned by the existing `AgentRuntimeInstance` through `Progress` and `ReportProgress(...)`.
 
-A progress snapshot contains:
+A progress snapshot contains a strictly increasing sequence, `Progress`/`Heartbeat` kind, optional percentage, bounded detail/evidence text, and a report timestamp. Snapshots are validated and detached. Reusing an old or out-of-order sequence is rejected.
 
-- `Sequence`: a strictly increasing runtime-local sequence number;
-- `Kind`: `Progress` or `Heartbeat`;
-- optional completion percentage from 0 to 100;
-- bounded detail and evidence text;
-- the timestamp at which the progress/heartbeat was reported.
-
-Snapshots are validated and detached. Reusing an old or out-of-order sequence is rejected rather than silently replacing newer evidence.
-
-Stall detection is explicit and deterministic through `AiRuntimeStallPolicy` and `AiRuntimeProgressMonitor`. The host supplies a maximum allowed progress/heartbeat silence interval. A stall is reported only when an actual progress/heartbeat observation exists and its age exceeds that configured threshold. Missing progress evidence is not itself treated as proof of a stall, and elapsed execution time alone does not mutate runtime lifecycle.
+Stall detection is explicit and deterministic through `AiRuntimeStallPolicy` and `AiRuntimeProgressMonitor`. The host supplies a maximum allowed progress/heartbeat silence interval. A stall is reported only when actual progress/heartbeat evidence exists and its age exceeds that threshold. Missing evidence and elapsed execution time alone are not proof of a stall.
 
 `AgentRuntimeInstance.EvaluateStall(...)` returns descriptive evidence through `AiRuntimeStallAssessment`. The assessment never transitions the runtime automatically; the host/runtime control path must explicitly request recovery.
-
-Progress metadata is runtime operational evidence and is not a replacement for execution identity, execution terminal state, health, or provider health.
 
 ## Recovery outcome
 
 Recovery begins explicitly through the existing `BeginRecovery()` lifecycle transition. Recovery does not create a second runtime identity and does not delete or replace durable runtime state.
 
-The explicit recovery result contract is `AiRuntimeRecoveryResult` with:
+`AiRuntimeRecoveryResult` provides explicit `Succeeded`, `Failed`, or `Cancelled` outcomes with bounded reason/evidence and a completion timestamp. `AgentRuntimeInstance.CompleteRecovery(...)` is valid only from `Recovering`, advances lifecycle revision, preserves runtime identity, and forbids failed/cancelled recovery from returning directly to `Active`.
 
-- `Status`: `Succeeded`, `Failed`, or `Cancelled`;
-- bounded reason and evidence text;
-- a required completion timestamp.
+Recovery outcome validation is deterministic. Recovery never silently resurrects obsolete asynchronous results.
 
-`AgentRuntimeInstance.CompleteRecovery(...)` accepts the result plus an explicitly host-selected resulting lifecycle state. Completion is valid only from `Recovering` and always advances lifecycle revision. Failed or cancelled recovery cannot directly return the runtime to `Active`; the host must keep it `Suspended` or `Retired` (or use terminal `Shutdown` through the normal shutdown operation).
+## Observability and verification boundary
 
-Recovery outcome validation is deterministic. Recovery never silently resurrects obsolete asynchronous results. Runtime identity, durable state, and ownership remain intact while lifecycle authority moves to the newer revision.
+Runtime observability is detached evidence. The canonical contracts are `AiRuntimeObservation`, `AiRuntimeObservationEventArgs`, and `AiRuntimeDiagnosticsSnapshot`.
+
+`AiRuntimeDiagnosticsService.Capture(...)` provides a bounded point-in-time diagnostic projection containing runtime identity, lifecycle state/revision, execution revision, health, and progress. The contained health/progress objects are detached snapshots and cannot mutate live runtime state.
+
+`AiRuntimeObservationPublisher.PublishAsync(...)` adapts an explicitly supplied detached runtime observation into the existing provider-neutral `IEventDispatcher` / `EventEnvelope` boundary. Published events use `EventSource.Runtime` and `EventScope.Runtime` with the runtime instance ID as `ScopeId`. Publication is asynchronous and cancellation-aware. The publisher does not perform authorization, mutate lifecycle, or choose providers.
+
+Synchronous lifecycle APIs do not perform hidden fire-and-forget event publication. Hosts or runtime orchestration code explicitly construct the detached observation and publish it through the existing event boundary, preserving the separation between runtime authority and observability infrastructure.
+
+The Slice 4 Example and focused tests verify detached diagnostics, lifecycle/health/progress/recovery observation content, and Runtime-scoped event-envelope publication.
 
 ## Intervention boundary
 
@@ -152,12 +142,12 @@ Human/host intervention uses the canonical 0.959 intervention boundary. 0.958 ow
 
 ## Persistence boundary
 
-Existing runtime-state persistence remains the persistence boundary for runtime identity/lifecycle and health metadata. Progress/heartbeat observations and stall assessments are operational runtime metadata and are not introduced as a second durable repository by this slice. 0.958 does not introduce durable goals, plans, checkpoints, or cognitive state; those remain 0.9591/0.97 responsibilities.
+Existing runtime-state persistence remains the persistence boundary for runtime identity/lifecycle and health metadata. Progress/heartbeat observations, stall assessments, and observability events are operational runtime evidence and do not introduce a second durable repository in 0.958. Durable event history remains governed by the broader event subsystem rather than by runtime health.
 
 ## Ownership
 
 - **0.9 / 0.95:** runtime identity, execution identity, cancellation, retirement/shutdown foundations, and stale-result protection.
-- **0.958:** runtime lifecycle extension, runtime health, runtime progress evidence, stall assessment, and explicit recovery outcomes.
+- **0.958:** runtime lifecycle, runtime health, progress evidence, stall assessment, explicit recovery outcomes, and bounded runtime observability.
 - **0.959:** canonical human/host intervention decision boundary.
 - **0.9591:** durable goals/plans/checkpoints and restart recovery.
 - **0.9592:** provider/adapter lifecycle and provider operational evidence.
@@ -166,16 +156,8 @@ Existing runtime-state persistence remains the persistence boundary for runtime 
 
 ## Non-goals
 
-0.958 does not introduce:
-
-- a second runtime identity or agent class;
-- a provider/model health router;
-- a provider-specific stall or routing authority;
-- durable goal/plan persistence;
-- a replacement authorization system;
-- a second intervention/approval mechanism;
-- automatic lifecycle mutation based solely on model-generated text or elapsed inference time.
+0.958 does not introduce a second runtime identity or agent class, a provider/model health router, provider-specific stall/routing authority, durable goal/plan persistence, a replacement authorization system, a second intervention mechanism, or automatic lifecycle mutation based solely on model-generated text or elapsed inference time.
 
 ## Verification expectations
 
-The phase must verify deterministic valid/invalid lifecycle transitions, admission rejection while non-operational, suspension/resume semantics, recovery invalidation of stale work, preservation of durable state, health-state evidence boundaries, bounded progress/heartbeat reporting, deterministic configured stall assessment, explicit recovery outcome handling, and terminal shutdown behavior on both supported targets where the implementation is multi-targeted.
+The phase must verify deterministic valid/invalid lifecycle transitions, admission rejection while non-operational, suspension/resume semantics, recovery invalidation of stale work, preservation of durable state, health-state evidence boundaries, bounded progress/heartbeat reporting, deterministic configured stall assessment, explicit recovery outcome handling, detached observability diagnostics, Runtime-scoped event publication, and terminal shutdown behavior on both supported targets.

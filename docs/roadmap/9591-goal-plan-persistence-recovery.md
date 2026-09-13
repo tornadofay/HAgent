@@ -2,7 +2,7 @@
 
 ## Status
 
-**CURRENT — Slices 1–2 verified/closed; Slice 3 current.**
+**CURRENT — Slices 1–2 verified/closed; Slice 3 implemented, verification pending.**
 
 Phase 0.958 Agent Lifecycle and Health Management is closed/verified. Slice 1 of 0.9591 was built ahead of roadmap and is now formally accepted as the phase foundation after phase-entry review.
 
@@ -64,18 +64,18 @@ Implementation surface: `src/HAgent.Core/Models/AiPlanContracts.cs`; focused tes
 
 **Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **290/290 passed, 0 failed, 0 skipped**.
 
-### Slice 3 — Checkpoints and outcome semantics — CURRENT / IMPLEMENTING
+### Slice 3 — Checkpoints and outcome semantics — IMPLEMENTED / VERIFICATION PENDING
 
 - Define explicit checkpoint boundaries.
-- Persist durable progress at safe points.
+- Define durable progress evidence at safe points through provider-neutral checkpoint contracts; actual backend persistence remains later phase scope.
 - Distinguish `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`.
 - Never convert timeout/provider failure into success without evidence.
 
-Current implementation surface: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs` and `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs`, with matching Example `src/HAgent.Example/MainForm.CheckpointOutcomeContractsTests.cs`.
+Implementation surface: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs`; focused tests: `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs`; Example: `src/HAgent.Example/MainForm.CheckpointOutcomeContractsTests.cs`.
 
 ### Verification checkpoint
 
-**Example to run:** `HAgent.Example → Cognition → Goals & Plans → CHECKPOINT & OUTCOME CONTRACTS` after Slice 3 implementation is complete.
+**Example to run:** `HAgent.Example → Cognition → Goals & Plans → CHECKPOINT & OUTCOME CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
 
 **Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 

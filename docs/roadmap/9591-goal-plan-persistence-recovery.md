@@ -2,9 +2,9 @@
 
 ## Status
 
-**PLANNED after 0.958 and before 0.959 intervention.**
+**CURRENT — Slice 1 verified/closed; Slice 2 implemented, verification pending.**
 
-Slice 1 goal/intention contracts are **BUILT AHEAD OF ROADMAP — VERIFICATION COMPLETE; PHASE ENTRY PENDING**. The implementation remains preserved in the repository, but this does not make 0.9591 current or close the phase. When 0.9591 becomes the active phase, Slice 1 should be revisited for any phase-entry revisions and the remaining phase-level persistence/recovery verification before the phase is considered complete.
+Phase 0.958 Agent Lifecycle and Health Management is closed/verified. Slice 1 of 0.9591 was built ahead of roadmap and is now formally accepted as the phase foundation after phase-entry review.
 
 ## Purpose
 
@@ -41,7 +41,7 @@ live runtime objects
 
 ## Delivery slices
 
-### Slice 1 — Durable goal/intention contracts — BUILT AHEAD OF ROADMAP; VERIFICATION COMPLETE; PHASE ENTRY PENDING
+### Slice 1 — Durable goal/intention contracts — CLOSED / VERIFIED
 
 - Define stable IDs, status, priority, constraints, provenance, timestamps, and revision metadata.
 - Keep goal identity separate from intention identity.
@@ -50,21 +50,19 @@ live runtime objects
 
 Implementation surface: `src/HAgent.Core/Models/AiGoalContracts.cs`, focused tests in `tests/HAgent.Tests/GoalIntentionContractsTests.cs`, and matching Example `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS`.
 
-Verification checkpoint completed on 2026-09-13:
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded; full `.NET 9` `HAgent.Tests` reported **270/270 passed, 0 failed, 0 skipped**. Verified boundaries include separate host/inferred goal identity, explicit `HostSupplied`/`AgentInferred` authority, adopted intention status, revision metadata, and preservation of intention status-change reason.
 
-- .NET Framework 4.8.1 Example: `GOAL & INTENTION CONTRACTS` succeeded.
-- .NET 9 Example: `GOAL & INTENTION CONTRACTS` succeeded.
-- Full `.NET 9` `HAgent.Tests`: **270/270 passed, 0 failed, 0 skipped**.
-- Verified boundaries include separate host/inferred goal identity, explicit `HostSupplied`/`AgentInferred` authority, adopted intention status, revision metadata, and preservation of intention status-change reason.
+### Slice 2 — Durable plans and steps — IMPLEMENTED / VERIFICATION PENDING
 
-This checkpoint does **not** close 0.9591 Slice 1 as a phase milestone. It records that the implementation exists and has passed its current contract verification ahead of the ordered roadmap. When 0.9591 becomes current, review the contract against the then-authoritative architecture and complete any required phase-entry revision before advancing to Slice 2.
+- Define stable plan identity, goal/intention linkage, status, revision metadata, provenance, and revision reason.
+- Define explicit ordered/dependency-linked `AiPlanStep` records.
+- Capture preconditions, assumptions, expected effects, failure conditions, completion criteria, step status, and step provenance.
+- Reject duplicate identities, foreign plan ownership, self-dependencies, and dangling dependencies during contract validation.
+- Preserve nested plan/step state through detached cloning.
 
-### Slice 2 — Durable plans and steps
+Implementation surface: `src/HAgent.Core/Models/AiPlanContracts.cs`; focused tests: `tests/HAgent.Tests/PlanContractsTests.cs`; Example scenario: `src/HAgent.Example/MainForm.PlanContractsTests.cs`.
 
-- Define plan identity/version and ordered or explicitly related steps.
-- Capture preconditions, assumptions, expected effects, dependencies, status, and provenance.
-- Define step states sufficient for partial progress.
-- Record plan revisions without mutating history invisibly.
+The Example registration shell still needs to expose `PLAN CONTRACTS` under `Cognition → Goals & Plans` before the Slice 2 verification checkpoint is released to the user. No Slice 3 work begins before that registration and verification checkpoint is complete.
 
 ### Slice 3 — Checkpoints and outcome semantics
 

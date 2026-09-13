@@ -2,33 +2,36 @@
 
 ## Current
 
-### 0.9591 — Goal/Plan Persistence + Recovery
+### 0.958 — Agent Lifecycle + Health
 
-**Slice 1 — Durable goal/intention contracts — CURRENT / implemented, verification pending.**
+**Slice 2 — Health state — CURRENT / implementation pending.**
 
-Phase 0.958 Agent Lifecycle + Health is closed at Slice 1 after user verification on .NET Framework 4.8.1 and .NET 9 Windows and a full .NET 9 `HAgent.Tests` result of **266/266 passed, 0 failed, 0 skipped**.
+0.958 owns runtime-agent lifecycle and runtime health on the existing `AgentRuntimeInstance` foundation. Slice 1 is closed and verified on both supported Example targets and the full `.NET 9` regression suite passed **266/266**.
 
-0.9591 establishes durable provider-neutral authority for long-lived goals, intentions, plans, checkpoints, and recovery without persisting transient execution machinery. Its ordered delivery boundary is `docs/roadmap/9591-goal-plan-persistence-recovery.md` and the detailed Slice 1 contract architecture is `docs/architecture/103-goal-plan-persistence-recovery.md`.
+#### Slice 1 — Lifecycle state extension — CLOSED / VERIFIED
 
-#### Slice 1 — Durable goal/intention contracts
+- Extend the existing runtime lifecycle to `Active`, `Suspended`, `Recovering`, `Retired`, and terminal `Shutdown`.
+- Define valid/invalid transitions and terminal behavior.
+- Reject ordinary new runtime-originated work while non-active.
+- Preserve execution identity, lifecycle revision, and stale-result protection.
+- Preserve runtime-owned durable state during suspension/recovery.
+- Add focused tests and the matching lifecycle Example.
 
-- Define stable goal and intention IDs as distinct identities.
-- Define explicit goal/intention statuses and priority metadata.
-- Preserve constraints, provenance, timestamps, and revision metadata.
-- Distinguish `HostSupplied` goal state from `AgentInferred` state.
-- Define intention adoption metadata.
-- Preserve attributable reasons/evidence/authority for intention status changes.
-- Add focused tests and a matching Example through the normal Example registration/classification path.
+#### Slice 2 — Health state — CURRENT
 
-**Example to run:** `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
+- Define normalized health status: `Healthy`, `Degraded`, `Failed`, `Unknown`.
+- Bound health reason/evidence metadata.
+- Record source category for runtime observations, recovery outcomes/failures, host signals, or equivalent provider-neutral evidence.
+- Distinguish transient degradation from terminal failure.
+- Do not treat slow but valid inference as failed from elapsed time alone.
+- Keep health separate from lifecycle and authorization.
+- Add focused tests and a matching public Example through the normal Example registration/classification path.
 
-**Tests to run:** `tests/HAgent.Tests/GoalIntentionContractsTests.cs` focused first, followed by the full `HAgent.Tests` regression suite.
+**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on .NET Framework 4.8.1 and .NET 9 Windows.
+
+**Tests to run:** `tests/HAgent.Tests/RuntimeHealthTests.cs` focused first, followed by the full `HAgent.Tests` regression suite.
 
 ## Closed immediately before current phase
-
-### 0.958 — Agent Lifecycle + Health — CLOSED / VERIFIED
-
-Slice 1 is verified on both supported Example targets. The lifecycle Example verified state transitions, lifecycle revision capture, non-active admission rejection, stale-result invalidation, runtime-state persistence/restore, and shutdown cancellation. The full `.NET 9` regression suite passed **266/266**.
 
 ### 0.9576 — Learned Resource Reliability + Adaptation — CLOSED / VERIFIED
 
@@ -47,6 +50,10 @@ Authoritative detail: `docs/roadmap/9576-learned-resource-reliability-adaptation
 Slices 1–13 are verified. Authoritative detail: `docs/roadmap/9575-resource-governance-learning.md`.
 
 ## Planned order
+
+### 0.9591 — Goal/Plan Persistence + Recovery
+
+Follows completion of all 0.958 slices.
 
 ### 0.959 — Human-in-the-Loop + Intervention
 

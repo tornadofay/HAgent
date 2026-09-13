@@ -35,6 +35,7 @@ namespace HAgent.Example
             AddMemoryGovernanceTab();
             AddLearningModeTab();
             AddLearningCandidateInterventionTab();
+            AddPlanRecoveryContractsTab();
             OrganizeExampleTabs();
             NormalizeExampleTabContentLayouts();
         }
@@ -158,7 +159,7 @@ namespace HAgent.Example
             if (key == "DATA QUERY CONTRACT") return "Data Access Context";
             if (key.StartsWith("OBSERVABILITY", StringComparison.Ordinal)) return "Observability";
             if (key == "EVALUATION CONTRACTS" || key == "DETERMINISTIC EVALUATION" || key == "SUPPLIED EVALUATION RATINGS" || key == "MODEL-ASSISTED EVALUATION" || key == "EVALUATION AGGREGATION" || key == "EVALUATION REGRESSION SUITES") return "Evaluation";
-            if (key == "GOAL & INTENTION CONTRACTS" || key == "PLAN CONTRACTS" || key == "CHECKPOINT & OUTCOME CONTRACTS" || key == "RETRY & IDEMPOTENCY") return "Goals & Plans";
+            if (key == "GOAL & INTENTION CONTRACTS" || key == "PLAN CONTRACTS" || key == "CHECKPOINT & OUTCOME CONTRACTS" || key == "RETRY & IDEMPOTENCY" || key == "RESTART & RECOVERY") return "Goals & Plans";
             if (key == "RESOURCE GOVERNANCE") return "Resource Governance";
             if (key == "KNOWLEDGE/WIKI") return "Knowledge/Wiki";
             if (key == "SKILL DEFINITIONS" || key == "SKILLS") return "Skills";
@@ -188,7 +189,7 @@ namespace HAgent.Example
             if (key == "AUDIT LIFECYCLE" || key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key.Contains("TRACE") || key.Contains("OBSERVABILITY")) return "Diagnostics";
             if (key.Contains("EVALUATION")) return "Diagnostics";
             if (key == "AUTHORITATIVE RESOURCE INVENTORY" || key.Contains("CONFIGURATION")) return "Configuration";
-            if (key == "GOAL & INTENTION CONTRACTS" || key == "PLAN CONTRACTS" || key == "CHECKPOINT & OUTCOME CONTRACTS" || key == "RETRY & IDEMPOTENCY" || key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILL DEFINITIONS" || key == "SKILLS" || key.StartsWith("LEARNING", StringComparison.Ordinal) || key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("COGNITION") || key == "INSTRUCTION CONTRACTS") return "Cognition";
+            if (key == "GOAL & INTENTION CONTRACTS" || key == "PLAN CONTRACTS" || key == "CHECKPOINT & OUTCOME CONTRACTS" || key == "RETRY & IDEMPOTENCY" || key == "RESTART & RECOVERY" || key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILL DEFINITIONS" || key == "SKILLS" || key.StartsWith("LEARNING", StringComparison.Ordinal) || key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("COGNITION") || key == "INSTRUCTION CONTRACTS") return "Cognition";
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "QUOTA ADMISSION") return "Runtime";
             if (key.Contains("WORKSPACE")) return "Workspace";
             throw new InvalidOperationException("Example '" + title + "' has no explicit architecture feature classification. Add it to GetExampleFeatureGroup before registering the Example.");

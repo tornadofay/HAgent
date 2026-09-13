@@ -43,7 +43,7 @@ namespace HAgent.Tests
             var now = DateTimeOffset.UtcNow;
             var id = Identity(3);
             var service = Service();
-            await service.InitializeAsync(id, now.AddHours(-20), CancellationToken.None);
+            await service.InitializeAsync(id, now.AddDays(-2), CancellationToken.None);
             await service.AssessRetentionAsync(Request(id, now.AddDays(-1), now.AddDays(-20), 0.2m, 3, false, false, false, false, 1, 0), CancellationToken.None);
             var result = await service.AssessRetentionAsync(Request(id, now, now.AddMinutes(-1), 0.9m, 0, false, false, false, true, 5, 0), CancellationToken.None);
             Assert.Equal(AiLearnedResourceRetentionDecision.Restore, result.Decision);

@@ -48,7 +48,8 @@ namespace HAgent.Example
             {
                 var group = GetExampleFeatureGroup(page.Text);
                 List<TabPage> target;
-                if (!grouped.TryGetValue(group, out target)) target = grouped["Core"];
+                if (!grouped.TryGetValue(group, out target))
+                    throw new InvalidOperationException("Example feature group '" + group + "' is not registered for example '" + page.Text + "'.");
                 target.Add(page);
             }
             _tabs.TabPages.Clear();
@@ -75,17 +76,24 @@ namespace HAgent.Example
 
         private static bool RequiresExampleSubGroups(string group)
         {
-            return string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase) || string.Equals(group, "Runtime", StringComparison.OrdinalIgnoreCase) || string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase) || string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(group, "Runtime", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase);
         }
 
         private static Control CreateExampleSubGroups(List<TabPage> pages)
         {
             string[] subgroupOrder;
             var group = GetExampleFeatureGroup(pages[0].Text);
-            if (string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
-            else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Observability", "Evaluation", "Other Diagnostics" };
-            else if (string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Resource Governance", "Knowledge/Wiki", "Skills", "Learning", "Other Cognition" };
-            else subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
+            if (string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase))
+                subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
+            else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase))
+                subgroupOrder = new[] { "Observability", "Evaluation", "Other Diagnostics" };
+            else if (string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase))
+                subgroupOrder = new[] { "Resource Governance", "Knowledge/Wiki", "Skills", "Learning", "Other Cognition" };
+            else
+                subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
 
             var grouped = new Dictionary<string, List<TabPage>>(StringComparer.OrdinalIgnoreCase);
             foreach (var subgroup in subgroupOrder) grouped[subgroup] = new List<TabPage>();
@@ -93,9 +101,11 @@ namespace HAgent.Example
             {
                 var subgroup = GetExampleSubGroup(page.Text);
                 List<TabPage> target;
-                if (!grouped.TryGetValue(subgroup, out target)) target = grouped[subgroupOrder[0]];
+                if (!grouped.TryGetValue(subgroup, out target))
+                    throw new InvalidOperationException("Example sub-group '" + subgroup + "' is not registered for feature '" + group + "', example '" + page.Text + "'.");
                 target.Add(page);
             }
+
             var subTabs = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9f), Padding = new Point(12, 5), Multiline = false };
             foreach (var subgroup in subgroupOrder)
             {
@@ -161,13 +171,14 @@ namespace HAgent.Example
             if (key == "RESOURCE GOVERNANCE") return "Resource Governance";
             if (key == "KNOWLEDGE/WIKI") return "Knowledge/Wiki";
             if (key == "SKILL DEFINITIONS" || key == "SKILLS") return "Skills";
-            if (key.Contains("LEARNING") || key.Contains("COGNITION")) return "Learning";
+            if (key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("LEARNING") || key.Contains("COGNITION")) return "Learning";
+            if (key == "INSTRUCTION CONTRACTS") return "Other Cognition";
             if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY" || key == "RUNTIME SINGLE OWNER") return "Runtime Instances";
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING") return "Intervention";
             if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RUNTIME EXECUTION") return "Execution";
             if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION") return "Planning & Capacity";
-            if (key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY") return "Diagnostics";
-            return "Execution";
+            if (key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key == "AUDIT LIFECYCLE") return "Diagnostics";
+            throw new InvalidOperationException("Example '" + title + "' has no explicit architecture sub-group classification.");
         }
 
         private static string GetExampleFeatureGroup(string title)
@@ -181,13 +192,13 @@ namespace HAgent.Example
             if (key.Contains("POLICY") || key == "APPROVAL WORKFLOW") return "Policy";
             if (key.Contains("EVENT")) return "Events";
             if (key.Contains("IDENTITY")) return "Identity";
-            if (key.Contains("TRACE") || key.Contains("OBSERVABILITY")) return "Diagnostics";
+            if (key == "AUDIT LIFECYCLE" || key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key.Contains("TRACE") || key.Contains("OBSERVABILITY")) return "Diagnostics";
             if (key.Contains("EVALUATION")) return "Diagnostics";
-            if (key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILL DEFINITIONS" || key == "SKILLS" || key.Contains("LEARNING") || key.Contains("COGNITION")) return "Cognition";
+            if (key == "AUTHORITATIVE RESOURCE INVENTORY" || key.Contains("CONFIGURATION")) return "Configuration";
+            if (key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILL DEFINITIONS" || key == "SKILLS" || key.StartsWith("LEARNING", StringComparison.Ordinal) || key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("COGNITION") || key == "INSTRUCTION CONTRACTS") return "Cognition";
             if (key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION") return "Runtime";
             if (key.Contains("WORKSPACE")) return "Workspace";
-            if (key.Contains("CONFIGURATION")) return "Configuration";
-            return "Diagnostics";
+            throw new InvalidOperationException("Example '" + title + "' has no explicit architecture feature classification. Add it to GetExampleFeatureGroup before registering the Example.");
         }
     }
 }

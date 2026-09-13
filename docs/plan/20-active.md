@@ -4,29 +4,38 @@ Only the current implementation milestone belongs here. Completed implementation
 
 ## 0.958 Agent Lifecycle and Health Management — CURRENT
 
-Phase 0.9576 Learned Resource Reliability + Adaptation is now VERIFIED through all five slices.
+Phase 0.9576 Learned Resource Reliability + Adaptation is **VERIFIED through all five slices**.
 
 ### Entry condition
 
-0.9576 is complete and user-verified on .NET Framework 4.8.1 and .NET 9, including runtime integration. Full `.NET 9` regression was reported at 260/260 passed.
+0.9576 is complete and user-verified on .NET Framework 4.8.1 and .NET 9, including runtime integration. The user reported the full `.NET 9` `HAgent.Tests` regression result at **260/260 passed, 0 failed, 0 skipped**. The five 0.9576 Examples were verified on both supported targets.
 
-### Slice 1 — Lifecycle state extension
+### Slice 1 — Lifecycle state extension — CURRENT
 
-Extend the existing runtime lifecycle only where long-lived operation requires it.
+Implement the long-lived runtime lifecycle extension against the existing `AgentRuntimeInstance` foundation.
 
-- Preserve the existing authoritative runtime-instance identity and execution lifecycle.
-- Add only the required long-lived operational states: `Active`, `Suspended`, `Recovering`, `Retired`, and `Shutdown`.
-- Define valid/invalid lifecycle transitions and terminal behavior.
-- Prevent suspended, recovering, retired, or shutdown runtimes from originating work that policy/lifecycle rules disallow.
-- Preserve revision and stale-result protection.
-- Add focused tests and a matching Example.
+- Preserve the existing runtime-instance identity and execution identity.
+- Extend the runtime lifecycle to `Active`, `Suspended`, `Recovering`, `Retired`, and terminal `Shutdown`.
+- Define explicit valid/invalid transitions and terminal behavior.
+- Prevent `Suspended`, `Recovering`, `Retired`, and `Shutdown` runtimes from originating ordinary new work.
+- Preserve existing execution terminal-state handling and stale-result protection.
+- Advance lifecycle authority/revision on valid transitions so obsolete asynchronous work cannot become authoritative again after lifecycle changes.
+- Preserve runtime-owned durable state during suspension/recovery; do not introduce durable goals/plans or provider-health routing here.
+- Use the canonical 0.959 intervention boundary when an authorized intervention causes a lifecycle transition; 0.958 owns the target transition, not a second approval mechanism.
+- Add deterministic focused tests and a matching public-API Example.
 
-Architecture: `docs/roadmap/958-agent-lifecycle-health.md`.
+### Authoritative architecture
 
-**Example to run:** the new Slice 1 lifecycle Example on .NET Framework 4.8.1 and .NET 9.
+`docs/architecture/102-runtime-lifecycle-health.md` defines the target lifecycle/health architecture. `docs/architecture/10-runtime.md` remains authoritative for runtime identity, execution, snapshots, cancellation, persistence, and stale-result protection.
 
-**Tests to run:** the focused Slice 1 lifecycle test class, then the required regression suite.
+### Example and verification checkpoint
+
+**Example to run:** `HAgent.Example →` the new architecture-classified runtime lifecycle Example for Slice 1, on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** the focused Slice 1 runtime-lifecycle test class/file, then the full `HAgent.Tests` regression suite required by the phase.
+
+Record the exact Example title and focused test file here before closing the slice if implementation changes their final names.
 
 ### Run rule
 
-Slice 1 is the only active implementation slice. Do not begin Slice 2 until Slice 1 has its focused tests, both required Example targets, and required regression verification recorded as complete.
+Slice 1 is the only active implementation slice. Do not begin Slice 2 until Slice 1 has focused tests, both required Example targets, and the required regression verification recorded as complete.

@@ -2,17 +2,40 @@ using System;
 
 namespace HAgent.Models
 {
-    public enum AiRuntimeObservationKind { LifecycleChanged, HealthChanged, ProgressChanged, RecoveryCompleted }
+    public enum AiRuntimeObservationKind
+    {
+        LifecycleChanged = 0,
+        HealthChanged = 1,
+        ProgressChanged = 2,
+        RecoveryCompleted = 3
+    }
+
+    public sealed class AiRuntimeObservationEventArgs : EventArgs
+    {
+        public AiRuntimeObservationEventArgs(AiRuntimeObservation observation)
+        {
+            Observation = observation ?? throw new ArgumentNullException(nameof(observation));
+        }
+
+        public AiRuntimeObservation Observation { get; private set; }
+    }
 
     public sealed class AiRuntimeObservation
     {
         public AiRuntimeObservation(AiRuntimeObservationKind kind, AgentRuntimeInstance instance, AgentRuntimeInstanceState previousLifecycleState, AiRuntimeHealth previousHealth, AiRuntimeProgressSnapshot progress, AiRuntimeRecoveryResult recovery, DateTimeOffset observedAt)
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
-            Kind = kind; RuntimeInstanceId = instance.InstanceId; ProfileId = instance.ProfileId;
-            LifecycleState = instance.State; PreviousLifecycleState = previousLifecycleState; LifecycleRevision = instance.CurrentLifecycleRevision;
-            Health = instance.Health; PreviousHealth = previousHealth == null ? null : previousHealth.Clone();
-            Progress = progress == null ? null : progress.Clone(); Recovery = recovery == null ? null : recovery.Clone(); ObservedAt = observedAt;
+            Kind = kind;
+            RuntimeInstanceId = instance.InstanceId;
+            ProfileId = instance.ProfileId;
+            LifecycleState = instance.State;
+            PreviousLifecycleState = previousLifecycleState;
+            LifecycleRevision = instance.CurrentLifecycleRevision;
+            Health = instance.Health;
+            PreviousHealth = previousHealth == null ? null : previousHealth.Clone();
+            Progress = progress == null ? null : progress.Clone();
+            Recovery = recovery == null ? null : recovery.Clone();
+            ObservedAt = observedAt;
         }
         public AiRuntimeObservationKind Kind { get; private set; }
         public string RuntimeInstanceId { get; private set; }
@@ -32,9 +55,14 @@ namespace HAgent.Models
         public AiRuntimeDiagnosticsSnapshot(AgentRuntimeInstance instance, DateTimeOffset capturedAt)
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
-            RuntimeInstanceId = instance.InstanceId; ProfileId = instance.ProfileId; LifecycleState = instance.State;
-            LifecycleRevision = instance.CurrentLifecycleRevision; ExecutionRevision = instance.CurrentExecutionRevision;
-            Health = instance.Health; Progress = instance.Progress; CapturedAt = capturedAt;
+            RuntimeInstanceId = instance.InstanceId;
+            ProfileId = instance.ProfileId;
+            LifecycleState = instance.State;
+            LifecycleRevision = instance.CurrentLifecycleRevision;
+            ExecutionRevision = instance.CurrentExecutionRevision;
+            Health = instance.Health;
+            Progress = instance.Progress;
+            CapturedAt = capturedAt;
         }
         public string RuntimeInstanceId { get; private set; }
         public string ProfileId { get; private set; }

@@ -8,7 +8,7 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.9575 — Knowledge, Skills, Memory Governance + Learning — **CLOSED / VERIFIED through Slice 13**
 - 0.9576 — Learned Resource Reliability + Adaptation — **CLOSED / VERIFIED through all five slices**
 - 0.958 — Agent Lifecycle + Health — **CLOSED / VERIFIED through all four slices**
-- 0.9591 — Goal/Plan Persistence + Recovery — **CURRENT; Slices 1–2 CLOSED / VERIFIED, Slice 3 current**
+- 0.9591 — Goal/Plan Persistence + Recovery — **CURRENT; Slices 1–3 CLOSED / VERIFIED, Slice 4 current**
 - 0.959 — Human-in-the-Loop + Intervention — planned after 0.9591
 - 0.9592 — Provider Ecosystem + Adapter Lifecycle — planned after 0.959
 - 0.9593 — Reasoning Requirement + Boundary Foundation — planned prerequisite for reasoning-related 0.96/0.97 design
@@ -70,7 +70,7 @@ The ordering is dependency-driven. Ahead-of-roadmap implementation may exist, bu
 - 0.9575 owns Skill/Knowledge/Memory governance and learning promotion.
 - 0.9576 owns post-promotion learned-resource applicability, reliability, adaptation, retention, forgetting, and runtime reliability integration.
 - 0.958 owns runtime-agent lifecycle and runtime health.
-- 0.9591 owns durable goals/plans/checkpoints/recovery.
+- 0.9591 owns durable goals/plans/checkpoints/recovery and retry/idempotency contract semantics.
 - 0.959 owns the canonical human/host intervention boundary.
 - 0.9592 owns provider/adapter lifecycle and provider operational evidence.
 - 0.9593 owns the provider-neutral reasoning requirement boundary.

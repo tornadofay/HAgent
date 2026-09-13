@@ -44,7 +44,7 @@ jobs:
         run: dotnet build src/HAgent.Example/HAgent.Example.csproj --configuration Release --framework net9.0-windows --no-restore
 
       - name: Run RuntimeObservabilityTests
-        run: dotnet test tests/HAgent.Tests/HAgent.Tests.csproj --configuration Release --framework net9.0 --no-restore --filter FullyQualifiedName~RuntimeObservabilityTests|FullyQualifiedName~RuntimeObservationPublisherTests
+        run: dotnet test tests/HAgent.Tests/HAgent.Tests.csproj --configuration Release --framework net9.0 --no-restore --filter 'FullyQualifiedName~RuntimeObservabilityTests|FullyQualifiedName~RuntimeObservationPublisherTests'
 
       - name: Run full test suite (.NET 9)
         run: dotnet test tests/HAgent.Tests/HAgent.Tests.csproj --configuration Release --framework net9.0 --no-restore

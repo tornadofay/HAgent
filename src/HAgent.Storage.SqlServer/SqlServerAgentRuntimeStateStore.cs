@@ -31,12 +31,20 @@ BEGIN
         SessionId nvarchar(128) NULL,
         Scope nvarchar(50) NOT NULL,
         State nvarchar(50) NOT NULL,
+        LifecycleRevision bigint NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_LifecycleRevision DEFAULT (0),
         CreatedAt datetimeoffset NOT NULL,
         UpdatedAt datetimeoffset NOT NULL
     );
     CREATE INDEX IX_HAgentRuntimeInstances_ProfileUpdated ON dbo.HAgentRuntimeInstances(ProfileId, UpdatedAt DESC);
     CREATE INDEX IX_HAgentRuntimeInstances_HostUser ON dbo.HAgentRuntimeInstances(HostInstanceId, UserId, UpdatedAt DESC);
     CREATE INDEX IX_HAgentRuntimeInstances_Workspace ON dbo.HAgentRuntimeInstances(WorkspaceId, UpdatedAt DESC);
+END;
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.HAgentRuntimeInstances', N'LifecycleRevision') IS NULL
+BEGIN
+    ALTER TABLE dbo.HAgentRuntimeInstances
+        ADD LifecycleRevision bigint NOT NULL
+            CONSTRAINT DF_HAgentRuntimeInstances_LifecycleRevision DEFAULT (0) WITH VALUES;
 END;";
             using (var connection = new SqlConnection(connectionString))
             using (var command = new SqlCommand(sql, connection))
@@ -57,11 +65,11 @@ ON target.InstanceId = source.InstanceId
 WHEN MATCHED THEN UPDATE SET
     ProfileId=@ProfileId, HostInstanceId=@HostInstanceId, UserId=@UserId,
     WorkspaceId=@WorkspaceId, SessionId=@SessionId, Scope=@Scope, State=@State,
-    CreatedAt=@CreatedAt, UpdatedAt=@UpdatedAt
+    LifecycleRevision=@LifecycleRevision, CreatedAt=@CreatedAt, UpdatedAt=@UpdatedAt
 WHEN NOT MATCHED THEN INSERT
-    (InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, CreatedAt, UpdatedAt)
+    (InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt)
 VALUES
-    (@InstanceId, @ProfileId, @HostInstanceId, @UserId, @WorkspaceId, @SessionId, @Scope, @State, @CreatedAt, @UpdatedAt);";
+    (@InstanceId, @ProfileId, @HostInstanceId, @UserId, @WorkspaceId, @SessionId, @Scope, @State, @LifecycleRevision, @CreatedAt, @UpdatedAt);";
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand(sql, connection))
             {
@@ -74,7 +82,7 @@ VALUES
         public async Task<AgentRuntimeStateRecord> GetAsync(string instanceId, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrWhiteSpace(instanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(instanceId));
-            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, CreatedAt, UpdatedAt
+            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt
 FROM dbo.HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand(sql, connection))
@@ -90,7 +98,7 @@ FROM dbo.HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
         {
             query = query ?? new AgentRuntimeStateQuery();
             const string sql = @"SELECT TOP (@MaxResults)
-InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, CreatedAt, UpdatedAt
+InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt
 FROM dbo.HAgentRuntimeInstances
 WHERE (@HostInstanceId=N'' OR HostInstanceId=@HostInstanceId)
   AND (@UserId=N'' OR UserId=@UserId)
@@ -140,6 +148,7 @@ ORDER BY UpdatedAt DESC;";
             command.Parameters.AddWithValue("@SessionId", DbValue(record.SessionId));
             command.Parameters.AddWithValue("@Scope", record.Scope.ToString());
             command.Parameters.AddWithValue("@State", record.State.ToString());
+            command.Parameters.AddWithValue("@LifecycleRevision", record.LifecycleRevision);
             command.Parameters.AddWithValue("@CreatedAt", record.CreatedAt);
             command.Parameters.AddWithValue("@UpdatedAt", record.UpdatedAt);
         }
@@ -160,8 +169,9 @@ ORDER BY UpdatedAt DESC;";
                 WorkspaceId = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
                 SessionId = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
                 Scope = scope, State = state,
-                CreatedAt = reader.GetFieldValue<DateTimeOffset>(8),
-                UpdatedAt = reader.GetFieldValue<DateTimeOffset>(9)
+                LifecycleRevision = reader.GetInt64(8),
+                CreatedAt = reader.GetFieldValue<DateTimeOffset>(9),
+                UpdatedAt = reader.GetFieldValue<DateTimeOffset>(10)
             };
         }
 
@@ -170,6 +180,7 @@ ORDER BY UpdatedAt DESC;";
             if (record == null) throw new ArgumentNullException(nameof(record));
             if (string.IsNullOrWhiteSpace(record.InstanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(record));
             if (string.IsNullOrWhiteSpace(record.ProfileId)) throw new ArgumentException("Runtime profile ID is required.", nameof(record));
+            if (record.LifecycleRevision < 0) throw new ArgumentException("Runtime lifecycle revision cannot be negative.", nameof(record));
         }
     }
 }

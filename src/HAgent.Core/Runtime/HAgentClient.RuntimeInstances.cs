@@ -85,9 +85,17 @@ namespace HAgent.Runtime
                 cancellationToken,
                 instance.ShutdownToken))
             {
-                return await _runtime.ExecuteAsync(
+                var execution = await _runtime.ExecuteAsync(
                     effectiveRequest,
                     linkedCts.Token).ConfigureAwait(false);
+
+                // The runtime options carry the admission snapshot. Preserve that exact value on
+                // the returned execution so result authority checks compare against the revision
+                // captured by BeginExecution rather than the runtime's later state.
+                if (execution != null)
+                    execution.RuntimeLifecycleRevision = lifecycleRevision;
+
+                return execution;
             }
         }
 

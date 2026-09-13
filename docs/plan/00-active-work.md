@@ -5,9 +5,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9576 Learned Resource Reliability + Adaptation
-- **Status:** Slice 2 verified — checkpoint closed
+- **Status:** Slice 3 implementation complete — user verification pending
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Record host-validated post-promotion reliability evidence against exact resource versions, with policy control and revision-safe updates, without mutating the authoritative resource.
+- **Scope:** Determine whether already-promoted learned resources remain current, detect staleness/degradation/drift/contradiction, govern lifecycle transitions, and create replacement candidates without mutating authoritative resource versions.
 
 ## 0.9575 checkpoint closed
 
@@ -38,19 +38,37 @@ Verified boundary:
 - execution/runtime/agent/evaluation provenance preservation;
 - no mutation of the promoted resource version.
 
-Example organization was also corrected: `Learned Resource Applicability` and `Learned Resource Reliability` are under `Cognition → Learning`, and unknown feature/subgroup classification now fails closed instead of silently falling into Diagnostics.
+Example organization was also corrected: learned-resource capability scenarios are explicitly classified, and unknown feature/subgroup classification fails closed instead of silently falling into Diagnostics.
+
+## 0.9576 Slice 3 implementation checkpoint
+
+Implemented and not yet user-verified:
+
+- `AiLearnedResourceLifecycleStatus`: `Active`, `UnderReview`, `Quarantined`, `Retired`;
+- deterministic conditions: `Current`, `Stale`, `Degraded`, `Drifted`, `Contradicted`;
+- explicit `IsAutomaticallyUsable` lifecycle gate requiring `Active + Current`;
+- exact-version lifecycle records with bounded transition history;
+- provider-neutral lifecycle persistence with compare-and-swap revisions;
+- policy-controlled `resource.lifecycle.revalidate` and `resource.lifecycle.propose-replacement` operations;
+- age-based staleness, observed degradation, contextual drift, and direct contradiction detection;
+- terminal `Retired` preservation during revalidation;
+- quarantine on direct contradiction/invalidation;
+- governed recovery to `Active` after clean revalidation;
+- replacement proposals emitted as normal typed learning candidates rather than authoritative in-place mutation;
+- focused Slice 3 tests and matching manual Example.
+
+Runtime consumption/integration remains deferred to 0.9576 Slice 5.
 
 ## Files and verification
 
-- Architecture: `docs/architecture/98-learned-resource-reliability.md`.
-- Tests: `tests/HAgent.Tests/LearnedResourceReliabilityTests.cs` / `LearnedResourceReliabilityTests`.
-- Example: `src/HAgent.Example/MainForm.LearnedResourceReliability.cs` / `Learned Resource Reliability`.
-- Example organization: `src/HAgent.Example/MainForm.ExampleOrganization.cs`.
+- Architecture: `docs/architecture/99-learned-resource-lifecycle.md`.
+- Tests: `tests/HAgent.Tests/LearnedResourceAdaptationTests.cs` / `LearnedResourceAdaptationTests`.
+- Example: `src/HAgent.Example/MainForm.LearnedResourceAdaptation.cs` / `LEARNED RESOURCE ADAPTATION`.
+- Lifecycle store: `src/HAgent.Core/Abstractions/IAiLearnedResourceLifecycleStore.cs` and `src/HAgent.Core/Runtime/InMemoryAiLearnedResourceLifecycleStore.cs`.
+- Lifecycle service: `src/HAgent.Core/Runtime/AiLearnedResourceLifecycleService.cs`.
 
-**Example verified:** `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
-
-**Tests verified:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` and full suite; full suite reported 242/242 passed on .NET 9.
+**User verification pending:** run the focused Slice 3 tests and the new Example on .NET Framework 4.8.1 and .NET 9 before closing the slice.
 
 ## Do not advance
 
-Do not begin 0.9576 Slice 3 staleness/drift/revalidation in this run. A subsequent run may explicitly start Slice 3.
+Do not begin 0.9576 Slice 4 until Slice 3 is user-verified and explicitly closed.

@@ -89,10 +89,17 @@ Implementation surface: `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.
 
 ### Slice 5 — Restart and recovery — CURRENT / IMPLEMENTING
 
-- Recover the latest durable goal/plan revision after process restart or crash.
+- Recover the latest durable goal/plan revision after process restart or crash without creating an implicit new plan revision.
+- Require a new runtime instance identity and an advanced execution revision for recovery authority.
 - Invalidate in-flight authority belonging to the previous process/runtime execution.
 - Reconcile incomplete steps into safe states such as retryable, unknown, blocked, or requiring host review.
-- Preserve enough evidence to explain recovery decisions.
+- Keep terminal steps terminal; requested and unknown external operations require reconciliation/host review.
+- Preserve step-level operation linkage and evidence explaining every recovery decision.
+- Keep persistence backends and external side effects out of this slice; backend implementation remains Slice 6.
+
+Implementation surface: `src/HAgent.Core/Models/AiPlanRecoveryContracts.cs`; focused tests: `tests/HAgent.Tests/PlanRecoveryContractsTests.cs`; Example: `HAgent.Example → Cognition → Goals & Plans → RESTART & RECOVERY`.
+
+**Verification checkpoint:** Run the matching Example on .NET Framework 4.8.1 and .NET 9 Windows, then the focused Slice 5 tests and the full `HAgent.Tests` regression suite. Do not begin Slice 6 until those results are recorded.
 
 ### Slice 6 — Persistence backends and verification
 

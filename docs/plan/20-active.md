@@ -12,18 +12,22 @@ Verified on both supported Example targets. Full .NET 9 checkpoint: **270/270 pa
 
 Example: `HAgent.Example -> Cognition -> Goals & Plans -> GOAL & INTENTION CONTRACTS`.
 
-### Slice 2 — Durable plans and steps — IMPLEMENTED / VERIFICATION PENDING
+### Slice 2 — Durable plans and steps — VERIFIED / CLOSED
 
-Implemented in `src/HAgent.Core/Models/AiPlanContracts.cs` with focused tests in `tests/HAgent.Tests/PlanContractsTests.cs` and a matching Example scenario in `src/HAgent.Example/MainForm.PlanContractsTests.cs`.
+Implemented in `src/HAgent.Core/Models/AiPlanContracts.cs` with focused tests in `tests/HAgent.Tests/PlanContractsTests.cs` and matching Example `src/HAgent.Example/MainForm.PlanContractsTests.cs`.
 
 `AiPlan` covers goal/intention linkage, status, revision metadata, provenance, preconditions, assumptions, expected effects, failure conditions, completion criteria, and owned steps. `AiPlanStep` covers explicit sequence, dependencies, status, preconditions, assumptions, expected effects, completion criteria, failure conditions, provenance, and revision. Validation covers duplicate identities, plan ownership, and self-dependencies; cloning detaches nested state.
 
-The Example shell now explicitly registers `PLAN CONTRACTS` under `Cognition -> Goals & Plans`.
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **290/290 passed, 0 failed, 0 skipped**.
+
+### Slice 3 — Checkpoints and outcome semantics — CURRENT
+
+Next implementation slice. Establish explicit checkpoint boundaries and typed durable outcome semantics without yet implementing restart recovery or persistence-backend orchestration.
 
 ### Verification checkpoint
 
-**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> PLAN CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> CHECKPOINT & OUTCOME CONTRACTS` once Slice 3 implementation is complete.
 
-**Tests to run:** `tests/HAgent.Tests/PlanContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+**Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase checkpoint.
 
-**Run rule:** Do not begin Slice 3 until Slice 2 Example verification and regression results are recorded.
+**Run rule:** Do not begin Slice 4 until Slice 3 Example verification and regression results are recorded.

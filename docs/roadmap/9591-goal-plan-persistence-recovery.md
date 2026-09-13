@@ -57,7 +57,7 @@ Implementation surface: `src/HAgent.Core/Models/AiGoalContracts.cs`, focused tes
 - Define stable plan identity, goal/intention linkage, status, revision metadata, provenance, and revision reason.
 - Define explicit ordered/dependency-linked `AiPlanStep` records.
 - Capture preconditions, assumptions, expected effects, failure conditions, completion criteria, step status, and step provenance.
-- Reject duplicate identities, foreign plan ownership, self-dependencies, and dangling dependencies during contract validation.
+- Validate duplicate step identities, foreign plan ownership, self-dependencies, and basic dependency structure at the plan boundary.
 - Preserve nested plan/step state through detached cloning.
 
 Implementation surface: `src/HAgent.Core/Models/AiPlanContracts.cs`; focused tests: `tests/HAgent.Tests/PlanContractsTests.cs`; Example scenario: `src/HAgent.Example/MainForm.PlanContractsTests.cs`.

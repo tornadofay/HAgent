@@ -4,7 +4,7 @@
 
 **0.958 — Agent Lifecycle and Health Management**
 
-Slice 1 is the only active implementation slice and is ready to implement after the documentation reconciliation checkpoint.
+Slice 1 is the only active implementation slice and is **implemented; verification pending**.
 
 ## 0.9576 completion
 
@@ -30,9 +30,9 @@ The target lifecycle/health architecture is authoritative in `docs/architecture/
 
 `docs/roadmap/30-agent-runtime.md` records the same ownership boundary: Phase 0.9 owns foundational runtime lifecycle, while 0.958 owns the long-lived lifecycle/health extension.
 
-## Slice 1 target
+## Slice 1 implementation checkpoint
 
-The runtime lifecycle becomes:
+The runtime lifecycle now uses the existing `AgentRuntimeInstance` with:
 
 ```text
 Active
@@ -42,16 +42,16 @@ Retired
 Shutdown
 ```
 
-The runtime identity remains the existing `AgentRuntimeInstance`. `Suspended` and `Recovering` do not create a second runtime identity or agent class. Ordinary new runtime-originated work is admitted only from `Active`, subject to existing policy/scheduling/execution boundaries.
+A dedicated lifecycle revision is advanced only by valid lifecycle transitions. Each admitted execution captures both its per-execution revision and the runtime lifecycle revision at admission. `IsExecutionCurrent` requires both revisions to remain current and the runtime to remain `Active`, preventing an older execution from regaining authority after a lifecycle transition.
 
-Valid lifecycle transitions and lifecycle revision semantics must prevent obsolete asynchronous work from regaining authority after suspension, recovery, retirement, or shutdown. `Shutdown` remains terminal.
+Runtime-state persistence preserves lifecycle state and lifecycle revision. File, SQL Server, and MySQL stores all bind/read the new revision, and existing SQL schemas receive a default-zero column when upgraded.
 
-Health is deliberately not part of Slice 1 implementation yet. 0.958 Slice 2 will define `Healthy`, `Degraded`, `Failed`, and `Unknown` as runtime evidence separate from lifecycle and authorization.
+The existing Example path now exposes `RUNTIME LIFECYCLE`, and `tests/HAgent.Tests/RuntimeLifecycleTests.cs` covers transitions, invalid transitions, non-active admission rejection, stale-result invalidation, restore, and file persistence.
 
 ## Verification checkpoint
 
-**Example to run:** the new architecture-classified runtime-lifecycle Example for 0.958 Slice 1 on .NET Framework 4.8.1 and .NET 9.
+**Example to run:** `HAgent.Example → RUNTIME LIFECYCLE` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** the focused Slice 1 runtime-lifecycle test class/file, followed by the full `HAgent.Tests` regression suite required by 0.958.
+**Tests to run:** `tests/HAgent.Tests/RuntimeLifecycleTests.cs` focused first, followed by the full `HAgent.Tests` regression suite required by 0.958.
 
-The exact final Example title and focused test file are to be recorded here when implementation creates them.
+A dedicated `.github/workflows/verify-phase-0-958-slice-1.yml` performs the repository-side builds and .NET 9 test commands on `master` pushes. Slice 1 remains open until those tests and both Example targets are actually executed and the results are recorded.

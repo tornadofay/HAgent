@@ -2,9 +2,9 @@
 
 ## Status
 
-**CURRENT — Slices 1–3 verified/closed; Slice 4 implemented, verification pending.**
+**CLOSED / VERIFIED — all four slices complete.**
 
-0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. 0.958 is the active implementation phase.
+0.9576 Learned Resource Reliability + Adaptation was fully verified through all five slices before 0.958 became active. 0.9591 is now the active implementation phase.
 
 ## Purpose
 
@@ -40,7 +40,7 @@ Implemented bounded progress/heartbeat evidence, monotonic sequencing, explicit 
 
 **Verified:** the user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME PROGRESS & RECOVERY` on .NET Framework 4.8.1 and .NET 9. Full `.NET 9` `HAgent.Tests` reported **283/283 passed, 0 failed, 0 skipped**.
 
-### Slice 4 — Observability and verification — IMPLEMENTED / VERIFICATION PENDING
+### Slice 4 — Observability and verification — CLOSED / VERIFIED
 
 Implemented bounded runtime observability without changing runtime authority:
 
@@ -50,9 +50,7 @@ Implemented bounded runtime observability without changing runtime authority:
 - Focused verification exists in `tests/HAgent.Tests/RuntimeObservabilityTests.cs` and `tests/HAgent.Tests/RuntimeObservationPublisherTests.cs`.
 - Matching Example: `HAgent.Example → Runtime → Diagnostics → RUNTIME OBSERVABILITY`.
 
-**Verification checkpoint:** run the RUNTIME OBSERVABILITY Example on .NET Framework 4.8.1 and .NET 9, then the two focused test classes and the full `HAgent.Tests` regression suite.
-
-No 0.9591 work begins until Slice 4 verification is recorded.
+**Verified on 2026-09-13:** the user verified the RUNTIME OBSERVABILITY Example on .NET Framework 4.8.1 and .NET 9. The full `.NET 9` `HAgent.Tests` regression suite reported **286/286 passed, 0 failed, 0 skipped**.
 
 ## Architectural rules
 

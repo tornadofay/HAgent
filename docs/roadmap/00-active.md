@@ -4,7 +4,7 @@
 
 ### 0.9591 — Goal/Plan Persistence + Recovery
 
-**Slice 2 — Durable plans and steps — IMPLEMENTED / VERIFICATION PENDING.**
+**Slice 3 — Checkpoints and outcome semantics — IMPLEMENTING.**
 
 0.958 Agent Lifecycle + Health is CLOSED / VERIFIED. Its four slices are complete; the final full `.NET 9` `HAgent.Tests` checkpoint reported **286/286 passed, 0 failed, 0 skipped**.
 
@@ -13,18 +13,27 @@
 - Stable goal/intention identities, status, priority, constraints, provenance, revision metadata, adoption metadata, and status-change reasons.
 - Goal authority distinguishes `HostSupplied` from `AgentInferred`.
 - Example: `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS`.
-- Full `.NET 9` `HAgent.Tests`: **270/270 passed, 0 failed, 0 skipped** at the Slice 1 checkpoint.
+- Full `.NET 9` `HAgent.Tests`: **270/270 passed, 0 failed, 0 skipped**.
 
-#### Slice 2 — Durable plans and steps — IMPLEMENTED / VERIFICATION PENDING
+#### Slice 2 — Durable plans and steps — CLOSED / VERIFIED
 
 - `AiPlan` provides goal/intention linkage, status, revision metadata, provenance, preconditions, assumptions, expected effects, failure conditions, completion criteria, and owned steps.
 - `AiPlanStep` provides explicit sequence, dependencies, status, preconditions, assumptions, expected effects, completion criteria, failure conditions, provenance, and revision.
-- Validation rejects duplicate step identities, foreign ownership, self-dependencies, and dangling dependencies.
+- Validation rejects duplicate step identities, foreign ownership, and self-dependencies; cloning detaches nested state.
 - Focused tests: `tests/HAgent.Tests/PlanContractsTests.cs`.
-- Matching Example scenario file: `src/HAgent.Example/MainForm.PlanContractsTests.cs`.
-- Example organization/registration still needs to expose `PLAN CONTRACTS` under `Cognition → Goals & Plans` before user verification.
+- Matching Example: `HAgent.Example → Cognition → Goals & Plans → PLAN CONTRACTS`.
+- Full `.NET 9` regression at checkpoint: **290/290 passed, 0 failed, 0 skipped**.
 
-**Verification to run after Example registration:** `HAgent.Example → Cognition → Goals & Plans → PLAN CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows, then `tests/HAgent.Tests/PlanContractsTests.cs` focused first and the full regression suite.
+#### Slice 3 — Checkpoints and outcome semantics — CURRENT
+
+- Define explicit checkpoint boundaries and durable safe-point evidence.
+- Distinguish `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`.
+- Never convert timeout/provider failure into success without evidence.
+- Current implementation: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs`.
+- Focused tests: `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs`.
+- Matching Example: `HAgent.Example → Cognition → Goals & Plans → CHECKPOINT & OUTCOME CONTRACTS`.
+
+**Verification checkpoint:** run the matching Example on .NET Framework 4.8.1 and .NET 9 Windows, then the focused tests and full regression suite.
 
 ## Planned order
 

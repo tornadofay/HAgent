@@ -46,7 +46,6 @@ namespace HAgent.Tests
             var instance = CreateInstance();
 
             AssertInvalidTransition(() => instance.Resume());
-            AssertInvalidTransition(() => instance.Retire());
             Assert.Equal(0L, instance.CurrentLifecycleRevision);
 
             instance.Suspend();
@@ -60,6 +59,7 @@ namespace HAgent.Tests
             instance.Resume();
             instance.Retire();
             AssertInvalidTransition(() => instance.Resume());
+            AssertInvalidTransition(() => instance.Retire());
             Assert.Equal(4L, instance.CurrentLifecycleRevision);
 
             instance.Shutdown();

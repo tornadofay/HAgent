@@ -4,7 +4,7 @@
 
 ### 0.9591 — Goal/Plan Persistence + Recovery
 
-**Slice 5 — Restart and recovery — IMPLEMENTING.**
+**Slice 6 — Persistence backends and verification — IMPLEMENTING.**
 
 0.958 Agent Lifecycle + Health is CLOSED / VERIFIED. Its four slices are complete; the final full `.NET 9` `HAgent.Tests` checkpoint reported **286/286 passed, 0 failed, 0 skipped**.
 
@@ -47,15 +47,28 @@
 - Verified on both .NET Framework 4.8.1 and .NET 9 Example targets.
 - Full `.NET 9` regression at checkpoint: **300/300 passed, 0 failed, 0 skipped**.
 
-#### Slice 5 — Restart and recovery — CURRENT / IMPLEMENTING
+#### Slice 5 — Restart and recovery — CLOSED / VERIFIED
 
 - Recover the latest durable goal/plan revision after process restart or crash without reviving obsolete execution/provider authority.
 - Invalidate in-flight work owned by the previous process/runtime execution.
 - Reconcile incomplete steps into safe states such as retryable, unknown, blocked, or requiring host review.
 - Preserve evidence explaining the recovery decision.
 - Keep the recovery boundary host-neutral; persistence backend implementation remains Slice 6.
+- Implementation: `src/HAgent.Core/Models/AiPlanRecoveryContracts.cs`.
+- Focused tests: `tests/HAgent.Tests/PlanRecoveryContractsTests.cs`.
+- Matching Example: `HAgent.Example → Cognition → Goals & Plans → RESTART & RECOVERY`.
+- Verified on both .NET Framework 4.8.1 and .NET 9 Example targets.
+- Full `.NET 9` regression at checkpoint: **306/306 passed, 0 failed, 0 skipped**.
 
-**Current implementation target:** define the provider-neutral restart/recovery contract, focused tests, and matching Example before any persistence backend work.
+#### Slice 6 — Persistence backends and verification — CURRENT / IMPLEMENTING
+
+- Reuse the existing provider-neutral HAgent storage pattern; do not create a second plan model.
+- Add a canonical durable cognition storage boundary for the existing goal/intention/plan/checkpoint/outcome/retry/recovery contracts.
+- Implement aligned File, SQL Server, and MySQL persistence within their provider assemblies.
+- Preserve optimistic revision/authority semantics so stale state cannot overwrite newer durable state.
+- Verify restart recovery, stale revisions, duplicate retries, unknown outcomes, plan supersession, cancellation, and crash-safe recovery.
+
+**Current implementation target:** provider-neutral durable cognition storage contract first; backend adapters, tests, and matching Example follow within Slice 6.
 
 ## Planned order
 

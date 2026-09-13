@@ -14,6 +14,7 @@ namespace HAgent.Models
             SessionId = string.Empty;
             Scope = AgentRuntimeScope.Ephemeral;
             State = AgentRuntimeInstanceState.Active;
+            LifecycleRevision = 0L;
             CreatedAt = DateTimeOffset.UtcNow;
             UpdatedAt = CreatedAt;
         }
@@ -26,6 +27,7 @@ namespace HAgent.Models
         public string SessionId { get; set; }
         public AgentRuntimeScope Scope { get; set; }
         public AgentRuntimeInstanceState State { get; set; }
+        public long LifecycleRevision { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
 
@@ -48,6 +50,7 @@ namespace HAgent.Models
                 SessionId = sessionId ?? string.Empty,
                 Scope = instance.Scope,
                 State = instance.State,
+                LifecycleRevision = instance.CurrentLifecycleRevision,
                 CreatedAt = instance.CreatedAt,
                 UpdatedAt = now
             };

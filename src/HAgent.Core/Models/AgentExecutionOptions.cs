@@ -23,6 +23,7 @@ namespace HAgent.Models
         public AgentRuntimeOverrides RuntimeOverrides { get; set; }
         public string RuntimeInstanceId { get; internal set; }
         public long RuntimeInstanceRevision { get; internal set; }
+        public long RuntimeLifecycleRevision { get; internal set; }
         public IList<SystemPromptLayer> SystemPromptLayers { get; set; }
         public string HostCorrelationId { get; set; }
         public IReadOnlyDictionary<string, string> HostContext { get; set; }

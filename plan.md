@@ -707,6 +707,37 @@ Architecture: `docs/architecture/98-learned-resource-reliability.md`.
 
 **Tests:** `HAgent.Tests → LearnedResourceReliabilityTests.cs`, plus the full regression suite reported at 242/242 on .NET 9.
 
-## Run rule
+### Slice 3 — Staleness, contradiction, and revalidation — IMPLEMENTATION COMPLETE / VERIFICATION PENDING
 
-Slice 2 is closed. Do not advance to 0.9576 Slice 3 until a new run explicitly starts that numbered slice.
+The bounded Slice 3 implementation is now present. User verification on both supported targets is still required before closure.
+
+Implemented:
+
+- `AiLearnedResourceLifecycleStatus`: `Active`, `UnderReview`, `Quarantined`, `Retired`;
+- `AiLearnedResourceCondition`: `Current`, `Stale`, `Degraded`, `Drifted`, `Contradicted`;
+- deterministic safety precedence: contradiction, contextual drift, degradation, staleness, then current;
+- exact resource-version lifecycle records with bounded 64-entry transition history;
+- `IsAutomaticallyUsable` requires `Active` lifecycle status and `Current` condition;
+- `IAiLearnedResourceLifecycleStore` and `InMemoryAiLearnedResourceLifecycleStore` with clone-on-read and compare-and-swap revision writes;
+- policy-controlled lifecycle revalidation using `resource.lifecycle.revalidate`;
+- policy-controlled replacement proposal using `resource.lifecycle.propose-replacement`;
+- age-based staleness detection using promotion time plus bounded maximum age;
+- reliability/evaluation-driven degradation detection;
+- contextual drift detection from previous `Applicable` to current `NotApplicable` decisions;
+- contradiction detection from explicit invalidation or validated contradiction evidence;
+- quarantine on contradiction and review state for stale/degraded/drifted conditions;
+- terminal retirement preservation during revalidation;
+- clean revalidation can restore a non-terminal quarantined/review state to `Active`;
+- replacement proposals become ordinary typed `AiLearningCandidate` instances and never mutate published resources in place;
+- focused tests covering all lifecycle conditions, policy denial, retirement, revision conflicts, replacement candidate creation, and cancellation;
+- matching manual Example: `HAgent.Example → Cognition → Learning → LEARNED RESOURCE ADAPTATION`.
+
+Architecture: `docs/architecture/99-learned-resource-lifecycle.md`.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → LEARNED RESOURCE ADAPTATION` on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** `HAgent.Tests → LearnedResourceAdaptationTests.cs` focused first, then the full `HAgent.Tests` suite.
+
+### Run rule
+
+Slice 3 is the only active implementation slice. Do not begin 0.9576 Slice 4 until the focused tests, both Example targets, and the full regression suite have been user-verified and the Slice 3 checkpoint is explicitly closed.

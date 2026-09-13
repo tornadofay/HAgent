@@ -20,6 +20,8 @@ namespace HAgent.Example
                 TestLearnedResourceReliabilityAsync,
                 "Learned resource reliability",
                 "Reliability is evidence used by policy; it does not grant authorization or mutate the authoritative resource.");
+
+            AddLearnedResourceAdaptationTab();
         }
 
         private async Task TestLearnedResourceReliabilityAsync(string unused)

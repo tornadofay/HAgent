@@ -84,7 +84,7 @@ namespace HAgent.Tests
                 RevisionReason = "Recovery contract test"
             };
             plan.Provenance.Source = "Test";
-            plan.Provenance.Authority = "Test";
+            plan.Provenance.Authority = AiGoalAuthority.HostSupplied;
             plan.Steps.Add(new AiPlanStep
             {
                 Id = "step-recovery",
@@ -95,7 +95,7 @@ namespace HAgent.Tests
                 Revision = 3L
             });
             plan.Steps[0].Provenance.Source = "Test";
-            plan.Steps[0].Provenance.Authority = "Test";
+            plan.Steps[0].Provenance.Authority = AiGoalAuthority.HostSupplied;
             plan.Validate();
             return plan;
         }

@@ -2,49 +2,31 @@
 
 Only the current implementation milestone belongs here. Completed implementation history is recorded in `docs/roadmap/`; future work does not belong here.
 
-## 0.957 Evaluation and Quality Measurement — VERIFIED
+## 0.958 Agent Lifecycle and Health Management — CURRENT
 
-Phase 0.957 is complete through Slice 6. User verification on 2026-09-09 recorded 139/139 tests passed and the required evaluation Example succeeded on .NET Framework 4.8.1 and .NET 9.
+Phase 0.9576 Learned Resource Reliability + Adaptation is now VERIFIED through all five slices.
 
-## 0.9575 Knowledge, Skills, Memory Governance + Learning — CLOSED
+### Entry condition
 
-Phase 0.9575 is closed through Learning Review and the Authoritative Resource Inventory + Detail Inspection management increment. User verification was completed on 2026-09-12 on .NET Framework 4.8.1 and .NET 9.
+0.9576 is complete and user-verified on .NET Framework 4.8.1 and .NET 9, including runtime integration. Full `.NET 9` regression was reported at 260/260 passed.
 
-## 0.9576 Learned Resource Reliability + Adaptation — CURRENT
+### Slice 1 — Lifecycle state extension
 
-### Slice 2 — VERIFIED
+Extend the existing runtime lifecycle only where long-lived operation requires it.
 
-User verified Learned Resource Reliability on both supported targets on 2026-09-13. Full .NET 9 suite: 242/242 passed.
+- Preserve the existing authoritative runtime-instance identity and execution lifecycle.
+- Add only the required long-lived operational states: `Active`, `Suspended`, `Recovering`, `Retired`, and `Shutdown`.
+- Define valid/invalid lifecycle transitions and terminal behavior.
+- Prevent suspended, recovering, retired, or shutdown runtimes from originating work that policy/lifecycle rules disallow.
+- Preserve revision and stale-result protection.
+- Add focused tests and a matching Example.
 
-### Slice 3 — VERIFIED
+Architecture: `docs/roadmap/958-agent-lifecycle-health.md`.
 
-User verified `HAgent.Example → Cognition → Learning → LEARNED RESOURCE ADAPTATION` on .NET Framework 4.8.1 and .NET 9 on 2026-09-13. Full .NET 9 suite: **252/252 passed, 0 failed, 0 skipped**.
+**Example to run:** the new Slice 1 lifecycle Example on .NET Framework 4.8.1 and .NET 9.
 
-Verified boundary: bounded lifecycle state, deterministic condition assessment, automatic-use gate, policy-controlled revalidation, revision-safe lifecycle persistence, governed recovery, typed replacement candidates, and unchanged published resource identity.
-
-Architecture: `docs/architecture/99-learned-resource-lifecycle.md`.
-
-### Slice 4 — CURRENT
-
-Retention/archival boundary for already-promoted learned resources.
-
-Implemented in this run:
-
-- bounded utility, validated-use, freshness, supersession, contradiction, retention, retirement, and authority signals;
-- recoverable `Archived` lifecycle state;
-- deterministic archive/retire/restore decisions;
-- higher-authority preservation;
-- policy operation `resource.lifecycle.retention`;
-- compare-and-swap lifecycle mutation and bounded retention provenance;
-- focused tests in `LearnedResourceRetentionTests`;
-- matching Example registered through the existing Learning registration path.
-
-Architecture: `docs/architecture/100-learned-resource-retention.md`.
-
-**Example to run:** `HAgent.Example → Cognition → Learning → LEARNED RESOURCE RETENTION` on .NET Framework 4.8.1 and .NET 9.
-
-**Tests to run:** `HAgent.Tests → LearnedResourceRetentionTests.cs` focused first, then the full `HAgent.Tests` suite.
+**Tests to run:** the focused Slice 1 lifecycle test class, then the required regression suite.
 
 ### Run rule
 
-Slice 4 is the only active implementation slice. Do not begin Slice 5 until Slice 4 has its focused tests, both required Example targets, and required regression verification recorded as complete.
+Slice 1 is the only active implementation slice. Do not begin Slice 2 until Slice 1 has its focused tests, both required Example targets, and required regression verification recorded as complete.

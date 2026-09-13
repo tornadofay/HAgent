@@ -84,11 +84,11 @@ namespace HAgent.Example
             return new AiValidatedResourceOutcome { Kind = AiReliabilityOutcomeKind.Success, IsValidated = true, ValidationMethod = "example-host-validation", EvidenceSummary = "Example host validated successful use.", ObservedAtUtc = now };
         }
 
-        private sealed class Policy : IAiPolicyEngine
-        {
-            public string PolicyVersion { get { return "runtime-example-1"; } }
-            public AiPolicySet GetPolicySnapshot() { return new AiPolicySet { Version = PolicyVersion }; }
-            public AiPolicyDecision Evaluate(AiPolicyEvaluationContext context) { context.Validate(); return new AiPolicyDecision { Outcome = AiPolicyOutcome.Allow, PolicyVersion = PolicyVersion, RuleId = "runtime-example-rule", Reason = "Allowed." }; }
-        }
+        //private sealed class Policy : IAiPolicyEngine
+        //{
+        //    public string PolicyVersion { get { return "runtime-example-1"; } }
+        //    public AiPolicySet GetPolicySnapshot() { return new AiPolicySet { Version = PolicyVersion }; }
+        //    public AiPolicyDecision Evaluate(AiPolicyEvaluationContext context) { context.Validate(); return new AiPolicyDecision { Outcome = AiPolicyOutcome.Allow, PolicyVersion = PolicyVersion, RuleId = "runtime-example-rule", Reason = "Allowed." }; }
+        //}
     }
 }

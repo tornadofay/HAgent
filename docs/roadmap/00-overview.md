@@ -7,9 +7,9 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.957 — Evaluation + Quality Measurement — completed and verified
 - 0.9575 — Knowledge, Skills, Memory Governance + Learning — **CLOSED / VERIFIED through Slice 13**
 - 0.9576 — Learned Resource Reliability + Adaptation — **CLOSED / VERIFIED through all five slices**
-- 0.958 — Agent Lifecycle + Health — **CURRENT; Slice 1 ready to implement**
-- 0.9591 — Goal/Plan Persistence + Recovery — planned and ordered before 0.959 intervention
-- 0.959 — Human-in-the-Loop + Intervention — planned; execution/learning intervention exists ahead of roadmap
+- 0.958 — Agent Lifecycle + Health — **CLOSED / VERIFIED through Slice 1**
+- 0.9591 — Goal/Plan Persistence + Recovery — **CURRENT; Slice 1 implemented, verification pending**
+- 0.959 — Human-in-the-Loop + Intervention — planned
 - 0.9592 — Provider Ecosystem + Adapter Lifecycle — planned
 - 0.9593 — Reasoning Requirement + Boundary Foundation — planned prerequisite for reasoning-related 0.96/0.97 design
 - 0.96.x — Configuration, Storage + Portability — cross-cutting foundation before 0.96
@@ -104,6 +104,10 @@ Unknown
 ```
 
 Provider/adapter health remains a 0.9592 responsibility, and 0.96 consumes provider operational evidence for execution admission.
+
+## Goal/plan persistence boundary
+
+Phase 0.9591 establishes durable provider-neutral authority for goals, intentions, plans, checkpoints, and recovery. Slice 1 owns goal/intention contracts; later slices add plans/steps, checkpoint semantics, retry/idempotency, restart recovery, and persistence backend verification. The detailed Slice 1 contract architecture is `docs/architecture/103-goal-plan-persistence-recovery.md`.
 
 ## Generated-view rule
 

@@ -4,7 +4,7 @@
 
 ### 0.9591 — Goal/Plan Persistence + Recovery
 
-**Slice 3 — Checkpoints and outcome semantics — IMPLEMENTING.**
+**Slice 4 — Retry and idempotency — IMPLEMENTING.**
 
 0.958 Agent Lifecycle + Health is CLOSED / VERIFIED. Its four slices are complete; the final full `.NET 9` `HAgent.Tests` checkpoint reported **286/286 passed, 0 failed, 0 skipped**.
 
@@ -24,14 +24,26 @@
 - Matching Example: `HAgent.Example → Cognition → Goals & Plans → PLAN CONTRACTS`.
 - Full `.NET 9` regression at checkpoint: **290/290 passed, 0 failed, 0 skipped**.
 
-#### Slice 3 — Checkpoints and outcome semantics — CURRENT
+#### Slice 3 — Checkpoints and outcome semantics — CLOSED / VERIFIED
 
-- Define explicit checkpoint boundaries and durable safe-point evidence.
-- Distinguish `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`.
-- Never convert timeout/provider failure into success without evidence.
-- Current implementation: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs`.
+- Explicit checkpoint boundaries and provider-neutral safe-point evidence.
+- Distinguishes `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`.
+- Never converts timeout/provider failure into success without evidence.
+- Implementation: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs`.
 - Focused tests: `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs`.
 - Matching Example: `HAgent.Example → Cognition → Goals & Plans → CHECKPOINT & OUTCOME CONTRACTS`.
+- Verified on both .NET Framework 4.8.1 and .NET 9 Example targets.
+- Full `.NET 9` regression at checkpoint: **294/294 passed, 0 failed, 0 skipped**.
+
+#### Slice 4 — Retry and idempotency — CURRENT / IMPLEMENTING
+
+- Stable operation identity is linked to plan, step, and plan revision; retry attempts do not create a new operation identity.
+- Failed operations are retryable only when the host explicitly establishes retry safety.
+- Requested and unknown external outcomes require reconciliation before retry.
+- Completed, cancelled, and superseded operations are not retryable.
+- Implementation: `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.cs`.
+- Focused tests: `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs`.
+- Matching Example: `HAgent.Example → Cognition → Goals & Plans → RETRY & IDEMPOTENCY`.
 
 **Verification checkpoint:** run the matching Example on .NET Framework 4.8.1 and .NET 9 Windows, then the focused tests and full regression suite.
 

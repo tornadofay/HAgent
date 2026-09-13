@@ -10,9 +10,9 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9576 Learned Resource Reliability + Adaptation
-- **Status:** Slice 3 implementation complete — user verification pending
+- **Status:** Slice 4 implementation in progress
 - **Primary source:** `docs/plan/20-active.md`
-- **Scope:** Determine whether already-promoted learned resources remain current, detect staleness/degradation/drift/contradiction, govern lifecycle transitions, and create replacement candidates without mutating authoritative resource versions.
+- **Scope:** Define governed retention/utility assessment for already-promoted learned resources, including archival, retirement eligibility, authority protection, provenance, recovery, and revision-safe policy-controlled state changes.
 
 ## 0.9575 checkpoint closed
 
@@ -45,38 +45,45 @@ Verified boundary:
 
 Example organization was also corrected: learned-resource capability scenarios are explicitly classified, and unknown feature/subgroup classification fails closed instead of silently falling into Diagnostics.
 
-## 0.9576 Slice 3 implementation checkpoint
+## 0.9576 Slice 3 checkpoint closed
 
-Implemented and not yet user-verified:
+User verified `HAgent.Example → Cognition → Learning → LEARNED RESOURCE ADAPTATION` on .NET Framework 4.8.1 and .NET 9 on 2026-09-13.
 
-- `AiLearnedResourceLifecycleStatus`: `Active`, `UnderReview`, `Quarantined`, `Retired`;
-- deterministic conditions: `Current`, `Stale`, `Degraded`, `Drifted`, `Contradicted`;
-- explicit `IsAutomaticallyUsable` lifecycle gate requiring `Active + Current`;
-- exact-version lifecycle records with bounded transition history;
-- provider-neutral lifecycle persistence with compare-and-swap revisions;
-- policy-controlled `resource.lifecycle.revalidate` and `resource.lifecycle.propose-replacement` operations;
+The user also reported the full `.NET 9` `HAgent.Tests` result: **252/252 passed, 0 failed, 0 skipped**.
+
+Verified boundary:
+
+- `Active`, `UnderReview`, `Quarantined`, and `Retired` lifecycle states;
+- `Current`, `Stale`, `Degraded`, `Drifted`, and `Contradicted` conditions;
+- explicit automatic-use gate requiring `Active + Current`;
+- exact-version lifecycle state and bounded transition history;
 - age-based staleness, observed degradation, contextual drift, and direct contradiction detection;
-- terminal `Retired` preservation during revalidation;
-- quarantine on direct contradiction/invalidation;
-- governed recovery to `Active` after clean revalidation;
-- replacement proposals emitted as normal typed learning candidates rather than authoritative in-place mutation;
-- focused Slice 3 tests and matching manual Example.
+- policy-controlled, compare-and-swap lifecycle mutation;
+- terminal `Retired` preservation;
+- governed quarantine and clean recovery;
+- replacement proposals emitted as typed learning candidates;
+- published resource versions remain unchanged.
 
-Runtime consumption/integration remains deferred to 0.9576 Slice 5.
+## 0.9576 Slice 4 implementation checkpoint
 
-## Files and verification
+Current objective: build the provider-neutral retention/utility boundary without deleting or mutating authoritative learned resources.
 
-- Architecture: `docs/architecture/99-learned-resource-lifecycle.md`.
-- Tests: `tests/HAgent.Tests/LearnedResourceAdaptationTests.cs` / `LearnedResourceAdaptationTests`.
-- Example: `src/HAgent.Example/MainForm.LearnedResourceAdaptation.cs` / `LEARNED RESOURCE ADAPTATION`.
-- Lifecycle store: `src/HAgent.Core/Abstractions/IAiLearnedResourceLifecycleStore.cs` and `src/HAgent.Core/Runtime/InMemoryAiLearnedResourceLifecycleStore.cs`.
-- Lifecycle service: `src/HAgent.Core/Runtime/AiLearnedResourceLifecycleService.cs`.
+Entry condition: Slice 3 is user-verified and closed.
 
-**User verification pending:** run the focused Slice 3 tests and the new Example on .NET Framework 4.8.1 and .NET 9 before closing the slice.
+Required outcomes:
 
-## Do not advance
+- bounded utility and retention signals;
+- deterministic eligibility for archive/retire decisions;
+- protection against removing a higher-authority resource because a lower-utility duplicate exists;
+- bounded provenance for retention decisions;
+- recoverable `Archived` state where policy allows;
+- policy-controlled and compare-and-swap state changes;
+- no authoritative resource-version mutation;
+- focused tests and matching Example.
 
-Do not begin 0.9576 Slice 4 until Slice 3 is user-verified and explicitly closed.
+**Tests:** `HAgent.Tests → LearnedResourceRetentionTests.cs`.
+
+**Example:** `HAgent.Example → Cognition → Learning → LEARNED RESOURCE RETENTION` on .NET Framework 4.8.1 and .NET 9.
 
 The durable candidate boundary is now closed. It remains separate from authoritative resource publication.
 

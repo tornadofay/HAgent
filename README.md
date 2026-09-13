@@ -4,9 +4,9 @@
 
 HAgent provides reusable infrastructure for applications that need LLM-backed agents without taking ownership of the host application's domain state, scheduling, authorization, persistence, or side effects.
 
-> **Current implementation milestone: 0.9575 — Knowledge, Skills, Memory Governance + Learning, Slice 8 in progress.**
+> **Current implementation milestone: 0.9591 — Goal/Plan Persistence + Recovery, Slice 6 in progress.**
 >
-> Major foundations through 0.957 are implemented and verified. The remaining roadmap builds toward capability-aware execution and a persistent cognitive runtime.
+> Major foundations through 0.958 are implemented and verified. The current milestone is completing durable goal/plan persistence and recovery across the supported HAgent storage boundary. The roadmap then continues through human intervention, provider/adapter lifecycle, reasoning requirements, capability-aware execution, and a persistent cognitive runtime.
 >
 > **Targets:** .NET Framework 4.8.1 and .NET 9.
 
@@ -192,7 +192,7 @@ Supported storage backends are:
 - **SQL Server** — a dedicated HAgent-owned database, normally named `<application-name>-ai`;
 - **MySQL** — a dedicated HAgent-owned database, normally named `<application-name>-ai`.
 
-HAgent-owned storage covers provider configuration, models and execution targets, agents, tools, memory, conversations, Skills, Knowledge/Wiki, learning candidates, policies, runtime metadata, and execution audit data.
+HAgent-owned storage covers provider configuration, models and execution targets, agents, tools, memory, conversations, Skills, Knowledge/Wiki, learning candidates, policies, runtime metadata, execution audit data, and durable cognition such as goals, intentions, plans, checkpoints/outcomes, retry/idempotency state, and recovery records as backend support is completed.
 
 Provider API keys are stored with provider configuration and encrypted at rest. HAgent storage never grants implicit access to the host application's business database.
 
@@ -267,20 +267,22 @@ The roadmap currently stands at:
 0.955  Context Engineering                                  complete
 0.956  Observability / Distributed Tracing                  complete
 0.957  Evaluation / Quality Measurement                      complete
-0.9575 Knowledge / Skills / Memory Governance + Learning   current
-0.9576 Learned Resource Reliability + Adaptation            planned
-0.958  Agent Lifecycle / Health                              planned
-0.9591 Goal / Plan Persistence / Recovery                    planned
+0.9575 Knowledge / Skills / Memory Governance + Learning   complete
+0.9576 Learned Resource Reliability + Adaptation            complete
+0.958  Agent Lifecycle / Health                              complete
+0.9591 Goal / Plan Persistence / Recovery                    current
 0.959  Human-in-the-Loop / Intervention                      planned
 0.9592 Provider Ecosystem / Adapter Lifecycle                planned
+0.9593 Reasoning Requirement / Boundary Foundation            planned
 0.96.x Configuration / Storage / Portability                 planned
 0.96   Capability-Aware Execution                            planned
 0.97   Persistent Cognitive Runtime                          planned
+0.98   Model Reasoning Engineering                           planned
 0.10   Workspaces / Routing / Chat                           planned later
 1.0    Collaboration / Workflows                             planned later
 ```
 
-The current implementation milestone is **0.9575 Slice 8 — Canonical Learning Lifecycle Gate**. Future phases may contain architectural evidence and documented decisions without changing the current implementation milestone.
+The current implementation milestone is **0.9591 Slice 6 — Persistence Backends and Verification**. Slices 1–5 of 0.9591 are implemented and verified; Slice 6 is now extending the existing provider-neutral storage boundaries across the supported HAgent storage backends.
 
 See [`roadmap.md`](roadmap.md) for the ordered roadmap and [`docs/plan/`](docs/plan/) for current implementation state.
 

@@ -5,10 +5,10 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9591 Goal/Plan Persistence and Recovery
-- **Status:** Slice 4 implementation in progress
+- **Status:** Slice 5 implementation in progress
 - **Primary source:** `docs/plan/20-active.md`
 - **Architecture source:** `docs/architecture/16-cognitive-runtime.md` and `docs/architecture/17-cognitive-algorithms.md`
-- **Scope:** Establish durable goal, intention, plan, checkpoint, outcome, retry, and idempotency contracts, then persistence and recovery without persisting transient execution machinery.
+- **Scope:** Establish durable goal, intention, plan, checkpoint, outcome, retry, and idempotency contracts, then safe restart/recovery and persistence without persisting transient execution machinery.
 
 ## 0.958 checkpoint closed
 
@@ -28,19 +28,19 @@ Checkpoint and outcome contracts are fully verified on .NET Framework 4.8.1 and 
 
 The verified contract explicitly distinguishes `Completed` from `UnknownOutcome`; unknown external outcomes are not treated as success.
 
-## 0.9591 Slice 4 - Retry and idempotency
+## 0.9591 Slice 4 checkpoint closed
 
-The current implementation defines stable plan-step operation identity, attempt metadata, explicit operation states, and bounded retry decisions. A failed operation requires host confirmation of retry safety; requested and unknown outcomes require reconciliation; completed, cancelled, and superseded operations are not retryable.
+Retry and idempotency contracts are fully verified on .NET Framework 4.8.1 and .NET 9. Example: `HAgent.Example -> Cognition -> Goals & Plans -> RETRY & IDEMPOTENCY`. Full .NET 9 checkpoint: **300/300 passed, 0 failed, 0 skipped**.
 
-Implementation:
-- `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.cs`
-- `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs`
-- Example: `HAgent.Example -> Cognition -> Goals & Plans -> RETRY & IDEMPOTENCY`
+The verified boundary keeps operation identity stable across attempts, allows failed-operation retry only with explicit host safety confirmation, requires reconciliation for requested/unknown outcomes, and does not claim exactly-once host side effects.
 
-## Verification checkpoint
+## 0.9591 Slice 5 - Restart and recovery
 
-**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> RETRY & IDEMPOTENCY` on .NET Framework 4.8.1 and .NET 9 Windows.
+Current implementation boundary:
+- Recover the latest durable goal/plan revision after process restart or crash without reviving obsolete execution/provider authority.
+- Invalidate work owned by the previous process/runtime execution.
+- Reconcile incomplete steps into safe states such as retryable, unknown, blocked, or requiring host review.
+- Preserve evidence explaining the recovery decision.
+- Keep the recovery boundary host-neutral; persistence backend implementation remains Slice 6.
 
-**Tests to run:** `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
-
-**Current status:** Slice 4 implementation is in progress and awaits user verification. Do not start Slice 5 until the Example and regression results are recorded.
+**Current status:** Slice 5 is the active implementation slice. Build the focused contracts/tests and matching Example first; do not begin Slice 6 until Slice 5 verification is recorded.

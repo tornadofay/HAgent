@@ -184,23 +184,23 @@ namespace HAgent.Example
                 throw new InvalidOperationException("Runtime lifecycle state did not reject new execution: " + instance.State);
         }
 
-        private sealed class NullSecretStore : ISecretStore
-        {
-            public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                return Task.FromResult(string.Empty);
-            }
+        //private sealed class NullSecretStore : ISecretStore
+        //{
+        //    public Task<string> GetAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+        //    {
+        //        return Task.FromResult(string.Empty);
+        //    }
 
-            public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                return Task.CompletedTask;
-            }
+        //    public Task SetAsync(string id, string secret, CancellationToken cancellationToken = default(CancellationToken))
+        //    {
+        //        return Task.CompletedTask;
+        //    }
 
-            public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
-            {
-                return Task.CompletedTask;
-            }
-        }
+        //    public Task DeleteAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+        //    {
+        //        return Task.CompletedTask;
+        //    }
+        //}
 
         private sealed class RuntimeLifecycleTestAdapter : IAiProviderAdapter
         {

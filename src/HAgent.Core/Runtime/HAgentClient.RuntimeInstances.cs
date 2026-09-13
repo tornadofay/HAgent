@@ -10,7 +10,7 @@ namespace HAgent.Runtime
     {
         /// <summary>
         /// Executes a live runtime instance without mutating its persistent profile.
-        /// The execution captures the instance revision so the host can identify stale late results.
+        /// The execution captures the instance execution and lifecycle revisions so the host can identify stale late results.
         /// Shutdown cancels instance-bound work in addition to preventing new work.
         /// </summary>
         public Task<AgentExecution> ExecuteAsync(
@@ -36,7 +36,7 @@ namespace HAgent.Runtime
         /// <summary>
         /// Executes a live runtime instance using the canonical provider-neutral execution request.
         /// The request describes execution input while the runtime instance supplies execution identity,
-        /// lifecycle, revision, overrides, shutdown, and private-memory ownership.
+        /// lifecycle, revisions, overrides, shutdown, and private-memory ownership.
         /// </summary>
         public async Task<AgentExecution> ExecuteAsync(
             AgentRuntimeInstance instance,
@@ -57,12 +57,14 @@ namespace HAgent.Runtime
             if (instance.State != AgentRuntimeInstanceState.Active)
                 throw new InvalidOperationException("Runtime agent instance is not active: " + instance.InstanceId);
 
-            var revision = instance.BeginExecution();
+            long lifecycleRevision;
+            var revision = instance.BeginExecution(out lifecycleRevision);
             var sourceOptions = request.Options ?? new AgentExecutionOptions();
             var effective = CloneOptions(sourceOptions);
             effective.RuntimeOverrides = instance.Overrides;
             effective.RuntimeInstanceId = instance.InstanceId;
             effective.RuntimeInstanceRevision = revision;
+            effective.RuntimeLifecycleRevision = lifecycleRevision;
 
             var effectiveRequest = new AgentExecutionRequest
             {
@@ -71,7 +73,12 @@ namespace HAgent.Runtime
                 HostCorrelationId = request.HostCorrelationId,
                 HostContext = request.HostContext,
                 Options = effective,
-                StructuredOutput = request.StructuredOutput
+                StructuredOutput = request.StructuredOutput,
+                Identity = request.Identity,
+                Context = request.Context,
+                InstructionSources = request.InstructionSources,
+                ExecutionSelection = request.ExecutionSelection,
+                CapabilityRequirements = request.CapabilityRequirements
             };
 
             using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
@@ -95,6 +102,7 @@ namespace HAgent.Runtime
                 RuntimeOverrides = source.RuntimeOverrides,
                 RuntimeInstanceId = source.RuntimeInstanceId,
                 RuntimeInstanceRevision = source.RuntimeInstanceRevision,
+                RuntimeLifecycleRevision = source.RuntimeLifecycleRevision,
                 SystemPromptLayers = source.SystemPromptLayers == null
                     ? new List<SystemPromptLayer>()
                     : new List<SystemPromptLayer>(source.SystemPromptLayers)

@@ -2,7 +2,7 @@
 
 ## Status
 
-**CURRENT — Slices 1–3 verified/closed; Slice 4 current.**
+**CURRENT — Slices 1–4 verified/closed; Slice 5 current.**
 
 Phase 0.958 Agent Lifecycle and Health Management is closed/verified. Slice 1 of 0.9591 was built ahead of roadmap and is now formally accepted as the phase foundation after phase-entry review.
 
@@ -75,7 +75,7 @@ Implementation surface: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs`
 
 **Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. The full `.NET 9` `HAgent.Tests` regression reported **294/294 passed, 0 failed, 0 skipped**.
 
-### Slice 4 — Retry and idempotency — CURRENT / IMPLEMENTING
+### Slice 4 — Retry and idempotency — CLOSED / VERIFIED
 
 - Define stable operation identity linked to plan, step, and plan revision; retry attempts do not create a new operation identity.
 - Distinguish safe retry from unknown external outcome.
@@ -85,9 +85,9 @@ Implementation surface: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs`
 
 Implementation surface: `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.cs`; focused tests: `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs`; Example: `HAgent.Example → Cognition → Goals & Plans → RETRY & IDEMPOTENCY`.
 
-**Verification checkpoint:** Run the matching Example on .NET Framework 4.8.1 and .NET 9 Windows, then the focused Slice 4 tests followed by the full `HAgent.Tests` regression suite.
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **300/300 passed, 0 failed, 0 skipped**. The verified Example showed failed-operation retry allowed only under explicit safety, unknown-operation retry requiring reconciliation, and unknown outcomes not automatically retryable.
 
-### Slice 5 — Restart and recovery
+### Slice 5 — Restart and recovery — CURRENT / IMPLEMENTING
 
 - Recover the latest durable goal/plan revision after process restart or crash.
 - Invalidate in-flight authority belonging to the previous process/runtime execution.

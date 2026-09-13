@@ -12,6 +12,8 @@ A Persistent Cognitive Runtime lets one runtime agent remain active over time: r
 
 It is a production mechanism layer, not an implementation of BDI, SOAR, ACT-R, Global Workspace Theory, LIDA, ReAct, Reflexion, MemGPT, Voyager, consciousness, or AGI.
 
+The production decision-policy authority for deterministic routing, reasoning escalation, operational progress detection, and reconsideration is `docs/architecture/18-cognitive-decision-policy.md`. These mechanisms replace vague universal questions with bounded, explicit, observable runtime contracts; they do not turn 0.97 into a research experiment.
+
 ## Core production invariant — single authoritative owner
 
 Each runtime agent instance owns its authoritative cognitive state.
@@ -101,7 +103,7 @@ Before production implementation begins, finalize the provider-neutral contract 
 - deterministic relevance signals and bounded multi-signal selection;
 - workspace isolation from prompt construction and long-term memory.
 
-The detailed mechanism authority for this checkpoint is `docs/architecture/17-cognitive-algorithms.md`, sections 4–5. Documentation must remain consistent with the V1 roadmap boundary before code is introduced.
+The detailed mechanism authority for this checkpoint is `docs/architecture/17-cognitive-algorithms.md`, sections 4–5. `docs/architecture/18-cognitive-decision-policy.md` additionally governs bounded routing and decision-policy behavior. Documentation must remain consistent with the V1 roadmap boundary before code is introduced.
 
 ### Slice 2 — Observations, beliefs, and bounded decision workspace
 
@@ -120,7 +122,9 @@ The detailed mechanism authority for this checkpoint is `docs/architecture/17-co
 - Support multiple active goals with deterministic priority/constraint policy.
 - Record why an intention was adopted, retained, revised, suspended, completed, failed, abandoned, or superseded.
 - Define reconsideration triggers such as invalid assumptions, failure, changed constraints, higher-priority goals, resource/policy changes, deadlines, or host intervention.
-- Add anti-thrashing limits such as cooldown, reconsideration budgets, repeated-proposal detection, or no-progress thresholds.
+- Implement bounded reconsideration policy using explicit trigger classification and controls such as cooldown/commitment intervals, reconsideration budgets, repeated-proposal detection, no-progress thresholds, oscillation detection, and escalation after repeated reversal where configured.
+- Never treat arrival of a new event alone as sufficient reason to reconsider an active intention.
+- Preserve the authority hierarchy: plan/method changes do not implicitly change the intention; intention changes do not implicitly change the goal.
 
 ### Slice 4 — Reactive processing and deterministic fast path
 
@@ -141,6 +145,10 @@ Safe deterministic action?
 Deterministic behavior may advance a plan, update working state, emit an event, invoke a governed tool, mark a resource stale, wait/sleep/wake, or create an impasse.
 
 Routine events should not consume an LLM merely because the runtime is active.
+
+The runtime does **not** require a universal deterministic-vs-reasoning classifier. Instead, it must apply a bounded routing policy over current state, evidence, operators, constraints, consequence limits, and available resources. The routing policy must itself have limits for evaluation time, retries/re-evaluations, escalation depth, and applicable reasoning budgets.
+
+A routing decision is provider-neutral and explicitly records its selected path, trigger, evidence, budget, expiration, fallback, and strategy/policy version. Concrete provider/model selection remains exclusively in 0.96.
 
 ### V1 impasse boundary
 
@@ -166,6 +174,12 @@ V1 does not require nested impasse substates, recursive subproblem trees, or a s
 - Send concrete execution selection only through 0.96.
 - Bound model calls, time, tokens/usage, retrieval, and recursion.
 - Treat incomplete deliberation as a typed outcome rather than false success.
+- Define operational progress using bounded state/evidence advancement rather than a universal intelligence or reasoning-quality score.
+- Track applicable progress dimensions such as goal progress, plan progress, dependency resolution, evidence improvement, uncertainty reduction, conflict reduction, feasible-action expansion, and valid state transitions.
+- Treat repeated equivalent proposals, unchanged assumptions/dependencies, and new text without material state/evidence advancement as no material progress.
+- Bound no-progress detection using configured consecutive-cycle, wall-time, repetition, and total deliberation thresholds.
+- On a no-progress condition, require a configured terminal or recovery outcome such as changed strategy/constraints, deterministic recovery, waiting for new evidence, abandoning/superseding the path, host escalation, or `Unresolved`.
+- Never continue deliberating solely because a model continues producing different text.
 
 ### Slice 6 — Plans, methods, execution, and recovery integration
 
@@ -194,8 +208,9 @@ V1 does not require nested impasse substates, recursive subproblem trees, or a s
 - Support cancellation, suspension, retirement, shutdown, restart recovery, and post-retirement stale-result rejection.
 - Preserve per-agent state ownership during all asynchronous work.
 - Emit structured telemetry for event intake, workspace selection, deterministic actions, deliberation, reasoning requirements, plan progress, execution correlation, learning candidates, interventions, and recovery.
-- Support evaluation of correctness, unnecessary LLM use, latency, cost, failure/recovery, and learning reliability.
+- Support evaluation of routing correctness, unnecessary LLM use, latency, cost, failure/recovery, no-progress handling, reconsideration behavior, and learning reliability.
 - Verify concurrency with many independent runtime agents, not only one shared state under contention.
+- Verify bounded routing and no-progress/reconsideration controls through deterministic test scenarios with explicit terminal outcomes.
 
 ## Production V1 invariants
 
@@ -214,6 +229,11 @@ V1 does not require nested impasse substates, recursive subproblem trees, or a s
 13. All queues, workspaces, deliberation, recursion, and resource growth are bounded.
 14. Model output is evidence/request input, never authorization.
 15. V1 impasse handling remains bounded to explicit recovery, reasoning, waiting, abandon/supersede, or authorized intervention; nested impasse/substate recursion is not required.
+16. Cognitive routing is explicit and bounded; HAgent does not claim a universal routing score or perfect deterministic-vs-reasoning classifier.
+17. Cognitive progress is an operational definition based on material state/evidence advancement, not a subjective model-quality judgment.
+18. No-progress detection is bounded and has an explicit terminal/recovery outcome.
+19. Reconsideration requires an explicit trigger and remains subject to anti-thrashing limits.
+20. Every bounded cognitive path has a defined fail-safe outcome.
 
 ## Dependency graph
 
@@ -245,4 +265,4 @@ The same runtime also supports ordinary desktop applications, automation, analys
 
 ## Exit criterion
 
-A host can create a long-lived runtime agent that independently owns its cognitive state, receives and processes events, uses deterministic behavior before unnecessary model calls, pursues persistent goals and plans, resolves bounded impasses through explicit V1 outcomes, requests bounded reasoning through 0.96, learns through governed candidates, survives cancellation/restart/lifecycle transitions, and operates concurrently with many other independent runtime agents without shared-state corruption or a shared cognitive bottleneck.
+A host can create a long-lived runtime agent that independently owns its cognitive state, receives and processes events, uses deterministic behavior before unnecessary model calls, routes unresolved decisions through a bounded provider-neutral escalation policy, detects bounded absence of material progress, pursues persistent goals and plans, resolves bounded impasses through explicit V1 outcomes, requests bounded reasoning through 0.96, learns through governed candidates, survives cancellation/restart/lifecycle transitions, and operates concurrently with many other independent runtime agents without shared-state corruption or a shared cognitive bottleneck.

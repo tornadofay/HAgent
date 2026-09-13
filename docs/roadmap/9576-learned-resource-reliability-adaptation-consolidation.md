@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — Slice 2: Reliability evidence and outcome feedback.**
+**In progress — Slice 3: Staleness, contradiction, and revalidation.**
 
 ## Purpose
 
@@ -40,32 +40,50 @@ Verified by the user on 2026-09-12 on .NET Framework 4.8.1 and .NET 9.
 - applicability decisions preserve resource-version identity, condition results, and evidence references;
 - dedicated tests and Example verification.
 
-### Slice 2 — Reliability evidence and outcome feedback — CURRENT
+### Slice 2 — Reliability evidence and outcome feedback — VERIFIED
 
-- Define post-promotion reliability metadata without replacing resource version identity.
-- Distinguish promotion evidence from operational outcome evidence.
-- Reinforce reliability from host-validated successful outcomes where policy permits.
-- Weaken reliability after validated failures and invalid preconditions.
-- Mark contradiction evidence with a quarantine recommendation without performing lifecycle mutation in this slice.
-- Preserve execution/runtime/agent provenance and bounded evaluation references.
-- Keep reliability updates policy-controlled and revision-safe.
+Verified by the user on 2026-09-13 on .NET Framework 4.8.1 and .NET 9. The user also reported the full `.NET 9` `HAgent.Tests` regression result as 242/242 passed, 0 failed, 0 skipped.
+
+- `AiResourceReliabilityIdentity` keys evidence to exact resource type, ID, published version, and scope;
+- promotion evidence remains distinct from operational outcome evidence;
+- only host-validated outcomes can change reliability;
+- bounded reliability score and outcome counts;
+- review and quarantine recommendations remain separate from lifecycle mutation;
+- provider-neutral compare-and-swap persistence;
+- policy-controlled reliability updates;
+- success/failure/invalid-precondition/contradiction evidence with deterministic score deltas;
+- execution/runtime/agent/evaluation provenance preserved;
+- no authoritative resource version mutation.
 
 **Architecture:** `docs/architecture/98-learned-resource-reliability.md`.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused first, then the full `HAgent.Tests` suite.
+**Example:** `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
 
-**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
+**Tests:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` plus full regression.
 
-Verification is pending user execution.
+### Slice 3 — Staleness, contradiction, and revalidation — IMPLEMENTATION COMPLETE / VERIFICATION PENDING
 
-### Slice 3 — Staleness, contradiction, and revalidation
+Implemented in the current run; user verification is required before closure.
 
 - Distinguish age-based staleness, observed degradation, contextual drift, and direct contradiction.
-- Support bounded lifecycle states such as `Active`, `UnderReview`, `Quarantined`, and `Retired` where appropriate.
-- Block automatic use of invalidated or contradictory learned behavior.
-- Re-evaluate degraded/stale resources through existing Evaluation contracts.
-- Produce replacement/revision as new typed candidates rather than mutating published resources in place.
-- Preserve historical versions/provenance required to explain changes.
+- Support bounded lifecycle states `Active`, `UnderReview`, `Quarantined`, and `Retired`.
+- Explicitly block automatic use unless lifecycle status is `Active` and the last condition is `Current`.
+- Re-evaluate stale/degraded resources using the existing applicability/reliability/evaluation contracts and the existing policy boundary.
+- Preserve exact resource-version identity and bounded transition history.
+- Preserve terminal `Retired` state during revalidation rather than silently reviving retired resources.
+- Quarantine direct contradiction or explicit invalidation.
+- Restore a non-terminal resource to `Active` only after clean current evidence passes the governed revalidation boundary.
+- Produce replacement/revision as new typed learning candidates rather than mutating published resources in place.
+- Preserve historical provenance and lifecycle transition policy references.
+- Reject stale concurrent lifecycle writes using compare-and-swap revisions.
+
+**Architecture:** `docs/architecture/99-learned-resource-lifecycle.md`.
+
+**Tests to run:** `HAgent.Tests → LearnedResourceAdaptationTests.cs` focused first, then the full `HAgent.Tests` suite.
+
+**Example to run:** `HAgent.Example → Cognition → Learning → LEARNED RESOURCE ADAPTATION` on .NET Framework 4.8.1 and .NET 9.
+
+Verification is pending user execution.
 
 ### Slice 4 — Forgetting and archival
 

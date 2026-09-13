@@ -4,32 +4,32 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current task
 
-- **Phase:** 0.958 Agent Lifecycle and Health Management
-- **Status:** Slice 1 implementation corrected after local verification failures; verification pending rerun
+- **Phase:** 0.9591 Goal/Plan Persistence and Recovery
+- **Status:** Slice 1 implemented; verification pending
 - **Primary source:** `docs/plan/20-active.md`
-- **Architecture source:** `docs/architecture/102-runtime-lifecycle-health.md`
-- **Scope:** Extend the existing runtime lifecycle for long-lived operation with `Active`, `Suspended`, `Recovering`, `Retired`, and terminal `Shutdown`; preserve execution identity, lifecycle revision, and stale-result protection; prevent non-operational runtimes from originating ordinary new work; keep health, authorization, provider health, and durable cognitive recovery as separate concerns.
+- **Architecture source:** `docs/architecture/103-goal-plan-persistence-recovery.md`
+- **Scope:** Establish provider-neutral durable goal/intention contracts with stable identity, explicit status/priority, constraints, provenance, timestamps, revisions, and attributable intention status-change reasons. Do not begin durable plan, checkpoint, retry, or restart-recovery slices in this run.
 
-## 0.9576 checkpoint closed
+## 0.958 checkpoint closed
 
-Phase 0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. The user verified the five matching Learning Examples on both .NET Framework 4.8.1 and .NET 9. The user reported the full `.NET 9` `HAgent.Tests` suite at **260/260 passed, 0 failed, 0 skipped** after Slice 5.
+Phase 0.958 Agent Lifecycle and Health Management Slice 1 is fully verified. The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME LIFECYCLE` on both .NET Framework 4.8.1 and .NET 9 Windows. The user reported the full `.NET 9` `HAgent.Tests` suite at **266/266 passed, 0 failed, 0 skipped**.
 
-Verified boundaries include applicability, reliability evidence, adaptation/revalidation, archival/forgetting, and runtime learned-resource integration. Published resource versions remain unchanged and learned-resource reliability remains distinct from authorization.
+Verified boundaries include lifecycle transitions, lifecycle revision capture, non-active admission rejection, stale-result invalidation, runtime-state persistence/restore, and shutdown cancellation.
 
-## 0.958 implementation checkpoint
+## 0.9591 Slice 1 implementation checkpoint
 
-Slice 1 extends the existing `AgentRuntimeInstance` rather than introducing a parallel runtime model. Lifecycle revision is a distinct authority from per-execution revision and is persisted with runtime state across File, SQL Server, and MySQL stores.
+Goal and intention contracts are defined in `src/HAgent.Core/Models/AiGoalContracts.cs`.
 
-Lifecycle transition and admission contracts are covered by `tests/HAgent.Tests/RuntimeLifecycleTests.cs`. The Example is registered through the explicit architecture path `HAgent.Example → Runtime → Runtime Instances → RUNTIME LIFECYCLE` and exercises transitions, non-active admission rejection, stale-result invalidation, persistence/restore, and shutdown cancellation.
+The contracts preserve separate goal and intention identities, explicit goal/intention status and priority, constraints, provenance, timestamps, revision metadata, intention adoption metadata, and immutable intention status-change reasons/evidence/authority.
 
-Local verification exposed two defects in the Slice 1 verification implementation: runtime executions were not carrying the lifecycle revision captured at admission, and the invalid-transition test incorrectly treated `Active → Retired` as invalid even though the authoritative lifecycle architecture defines it as valid. Both were corrected without changing the documented lifecycle transition contract.
+Host-supplied and agent-inferred goal state are explicitly distinguished by `AiGoalAuthority`; inference cannot silently become host authority.
 
-A dedicated `.github/workflows/verify-phase-0-958-slice-1.yml` workflow builds Core and Example for .NET Framework 4.8.1 and .NET 9 Windows, runs the focused lifecycle tests, and runs the full .NET 9 regression suite on `master` pushes.
+Focused coverage is in `tests/HAgent.Tests/GoalIntentionContractsTests.cs`. The matching public-API Example is `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS`.
 
 ## Verification checkpoint
 
-**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME LIFECYCLE` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** `tests/HAgent.Tests/RuntimeLifecycleTests.cs` focused first, then the full `HAgent.Tests` regression suite required by 0.958.
+**Tests to run:** `tests/HAgent.Tests/GoalIntentionContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the active phase.
 
-**Current status:** corrected implementation is committed directly to `master`, but Slice 1 is not closed until the focused tests, full regression suite, and both required Example targets are actually rerun and recorded.
+**Current status:** Slice 1 is implemented directly on `master` but remains open until the focused tests, full regression suite, and both required Example targets are actually executed and recorded.

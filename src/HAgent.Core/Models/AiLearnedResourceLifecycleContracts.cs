@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using HAgent.Abstractions;
 
 namespace HAgent.Models
 {
@@ -91,6 +90,11 @@ namespace HAgent.Models
             LastCondition = AiLearnedResourceCondition.Current;
             LastReason = string.Empty;
             History = new List<AiLearnedResourceLifecycleEvent>();
+        }
+
+        public bool IsAutomaticallyUsable
+        {
+            get { return Status == AiLearnedResourceLifecycleStatus.Active && LastCondition == AiLearnedResourceCondition.Current; }
         }
 
         public AiLearnedResourceLifecycleRecord Clone()

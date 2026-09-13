@@ -84,7 +84,7 @@ namespace HAgent.Example
             string[] subgroupOrder;
             var group = GetExampleFeatureGroup(pages[0].Text);
             if (string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
-            else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Observability", "Evaluation", "Other Diagnostics" };
+            else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Observability", "Evaluation", "Diagnostics", "Other Diagnostics" };
             else if (string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Goals & Plans", "Resource Governance", "Knowledge/Wiki", "Skills", "Learning", "Other Cognition" };
             else subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
 

@@ -10,32 +10,36 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.958 Agent Lifecycle and Health Management
-- **Status:** Slice 2 implementation complete; verification pending
+- **Status:** Slice 4 implementation complete; verification pending
 - **Primary source:** `docs/plan/20-active.md`
 - **Architecture source:** `docs/architecture/102-runtime-lifecycle-health.md`
-- **Scope:** Add provider-neutral runtime health state and bounded evidence while preserving the canonical runtime identity, lifecycle authority, execution revision, and stale-result rules.
-
-## 0.9576 checkpoint closed
-
-Phase 0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. The user verified the five matching Learning Examples on both .NET Framework 4.8.1 and .NET 9 and reported the full `.NET 9` `HAgent.Tests` suite at **260/260 passed, 0 failed, 0 skipped** after Slice 5.
+- **Scope:** Complete runtime lifecycle/health/progress/recovery observability and diagnostics without changing runtime authority boundaries.
 
 ## 0.958 Slice 1 checkpoint closed
 
 Phase 0.958 Slice 1 is fully verified. The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME LIFECYCLE` on both .NET Framework 4.8.1 and .NET 9 Windows. The user reported **266/266 tests passed, 0 failed, 0 skipped**.
 
-Verified boundaries include lifecycle transitions, lifecycle revision capture, non-active admission rejection, stale-result invalidation, runtime-state persistence/restore, and shutdown cancellation.
+## 0.958 Slice 2 checkpoint closed
 
-## 0.958 Slice 2 — Health state
+Phase 0.958 Slice 2 is fully verified. The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on both .NET Framework 4.8.1 and .NET 9 Windows. The user reported **276/276 tests passed, 0 failed, 0 skipped**.
 
-Implementation is complete. Health is normalized as `Unknown`, `Healthy`, `Degraded`, or `Failed`; source and failure-kind metadata are explicit and bounded; health is separate from lifecycle/authorization; health snapshots are detached; and runtime-state persistence preserves health through the existing File/SQL Server/MySQL stores. Slow-but-valid inference remains `Healthy` when the evidence says the inference succeeded.
+## 0.958 Slice 3 checkpoint closed
+
+Phase 0.958 Slice 3 is fully verified. The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME PROGRESS & RECOVERY` on both .NET Framework 4.8.1 and .NET 9 Windows. The user reported **283/283 tests passed, 0 failed, 0 skipped**.
+
+## 0.958 Slice 4 — Observability and verification
+
+Implementation is complete for the bounded observability surface: `AiRuntimeObservation`, `AiRuntimeDiagnosticsSnapshot`, `AiRuntimeDiagnosticsService`, and `AiRuntimeObservationPublisher` preserve runtime identity, lifecycle revision, health, progress, and recovery evidence and adapt it to the existing provider-neutral event envelope boundary. No authorization or lifecycle mutation is performed by observability.
 
 ## Verification checkpoint
 
-**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example → Runtime → Diagnostics → RUNTIME OBSERVABILITY` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** `tests/HAgent.Tests/RuntimeHealthTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
+**Tests to run:** `tests/HAgent.Tests/RuntimeObservabilityTests.cs` and `tests/HAgent.Tests/RuntimeObservationPublisherTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
 
-**Current status:** Slice 2 implementation is committed; user execution/verification is pending.
+**Current status:** Slice 4 implementation is committed; user execution/verification is pending.
+
+No later 0.958 or 0.9591 work is active until Slice 4 is verified.
 
 ## Current State
 
@@ -43,7 +47,7 @@ Implementation is complete. Health is normalized as `Unknown`, `Healthy`, `Degra
 
 **0.958 — Agent Lifecycle and Health Management**
 
-Slice 2 is the only active implementation slice and is **implemented; verification pending**.
+Slice 3 is the only active implementation slice and is **implemented; verification pending**.
 
 ## 0.9576 completion
 
@@ -57,21 +61,29 @@ The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME 
 
 Verified boundaries include lifecycle transitions, lifecycle revision capture, non-active admission rejection, stale-result invalidation, runtime-state persistence/restore, and shutdown cancellation.
 
-## 0.958 Slice 2 boundary
+## 0.958 Slice 2 completion
 
-The authoritative health architecture remains `docs/architecture/102-runtime-lifecycle-health.md`.
+The runtime now owns provider-neutral health through `AiRuntimeHealth`, with normalized `Healthy`, `Degraded`, `Failed`, and `Unknown` states, bounded evidence, explicit source/failure classification, detached snapshots, and persistence through the existing runtime-state boundary.
 
-Slice 2 adds provider-neutral runtime health evidence through the canonical `AiRuntimeHealth` contract and the existing `AgentRuntimeInstance`. Health is normalized as `Healthy`, `Degraded`, `Failed`, and `Unknown`; source and failure-kind metadata are explicit; reason/evidence text is bounded; snapshots are detached; health is separate from lifecycle and authorization; and health round-trips through the existing runtime-state persistence stores.
+The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on both .NET Framework 4.8.1 and .NET 9 and reported **276/276 tests passed, 0 failed, 0 skipped**.
 
-A slow but valid inference remains `Healthy` when the evidence says the inference succeeded; elapsed time alone does not establish failure.
+Verified boundaries include transient degradation, lifecycle revision unchanged by health updates, slow-valid inference remaining `Healthy`, terminal failure, persistence/restore, and source/reason preservation.
+
+## 0.958 Slice 3 boundary
+
+The authoritative architecture remains `docs/architecture/102-runtime-lifecycle-health.md`.
+
+Slice 3 adds bounded progress/heartbeat evidence through `AiRuntimeProgressSnapshot`, configured deterministic stall assessment through `AiRuntimeStallPolicy` and `AiRuntimeProgressMonitor`, and explicit recovery outcomes through `AiRuntimeRecoveryResult`.
+
+Stall assessment requires actual progress/heartbeat evidence and an explicit silence threshold; it does not mutate lifecycle automatically. Recovery is explicit, completes only from `Recovering`, advances lifecycle revision, preserves runtime identity, and cannot return a failed/cancelled recovery directly to `Active`.
 
 ## Verification checkpoint
 
-**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME PROGRESS & RECOVERY` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** `tests/HAgent.Tests/RuntimeHealthTests.cs` focused first, followed by the full `HAgent.Tests` regression suite.
+**Tests to run:** `tests/HAgent.Tests/RuntimeProgressRecoveryTests.cs` focused first, followed by the full `HAgent.Tests` regression suite.
 
-Slice 2 is not closed until the focused tests, full regression suite, and both Example targets are actually executed and recorded.
+Slice 3 is not closed until the focused tests, full regression suite, and both Example targets are actually executed and recorded.
 
 ## Architectural Decisions
 
@@ -582,56 +594,35 @@ without replacing HAgent or introducing application-specific types into `HAgent.
 
 Only the current implementation milestone belongs here. Completed implementation history is recorded in `docs/roadmap/`; future work does not belong here.
 
-## 0.958 Agent Lifecycle and Health Management — CURRENT
+## 0.9591 Goal/Plan Persistence and Recovery — CURRENT
 
-Phase 0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices.
+Phase 0.958 Agent Lifecycle and Health Management is fully verified and closed after Slice 4 verification on both supported Example targets, with the user's full `.NET 9` regression checkpoint at **286/286 passed, 0 failed, 0 skipped**.
 
-### Entry condition
+### Slice 1 — Durable goal/intention contracts — VERIFIED / CLOSED
 
-0.9576 is complete and user-verified on .NET Framework 4.8.1 and .NET 9, including runtime integration. The user reported the full `.NET 9` `HAgent.Tests` regression result at **260/260 passed, 0 failed, 0 skipped** after Slice 5. The five 0.9576 Examples were verified on both supported targets.
+Built ahead of roadmap and then formally entered/verified with phase review. The contracts keep goal identity separate from intention identity, distinguish `HostSupplied` from `AgentInferred` authority, preserve provenance, timestamps, revision metadata, adoption metadata, and intention status-change reasons.
 
-### Slice 1 — Lifecycle state extension — VERIFIED / CLOSED
+Verification checkpoint recorded on 2026-09-13:
 
-The existing `AgentRuntimeInstance` foundation now owns lifecycle state and lifecycle revision without a second runtime identity or execution model.
+- .NET Framework 4.8.1 Example: `GOAL & INTENTION CONTRACTS` succeeded.
+- .NET 9 Example: `GOAL & INTENTION CONTRACTS` succeeded.
+- Full `.NET 9` `HAgent.Tests`: **270/270 passed, 0 failed, 0 skipped**.
 
-Verified by the user on both .NET Framework 4.8.1 and .NET 9:
+### Slice 2 — Durable plans and steps — IMPLEMENTED / VERIFICATION PENDING
 
-- Lifecycle transitions: `Active -> Suspended -> Recovering -> Active -> Suspended -> Active -> Retired`.
-- Lifecycle revision advanced to 6 after valid transitions.
-- An execution admitted before a lifecycle transition became stale.
-- Non-active execution admission was rejected.
-- Persisted lifecycle state was restored successfully.
-- Shutdown cancelled outstanding work and reached terminal `Shutdown`.
-- Full `HAgent.Tests` regression suite reported **266/266 passed, 0 failed, 0 skipped**.
+Implemented the canonical provider-neutral plan surface in `src/HAgent.Core/Models/AiPlanContracts.cs`:
 
-The focused Slice 1 test class is `tests/HAgent.Tests/RuntimeLifecycleTests.cs` and the matching manual scenario is `HAgent.Example -> Runtime -> Runtime Instances -> RUNTIME LIFECYCLE`.
+- `AiPlan` keeps goal identity, intention identity, status, revision metadata, provenance, preconditions, assumptions, expected effects, failure conditions, completion criteria, and owned steps separate from runtime execution machinery.
+- `AiPlanStep` carries status, explicit sequence, dependency IDs, preconditions, assumptions, expected effects, completion criteria, failure conditions, provenance, and its own revision.
+- Plan validation rejects duplicate step IDs, foreign plan ownership, self-dependencies, and dangling dependencies.
+- Plan cloning detaches nested collections and step state.
+- Focused tests: `tests/HAgent.Tests/PlanContractsTests.cs`.
+- Matching Example scenario exists in `src/HAgent.Example/MainForm.PlanContractsTests.cs`; Example organization/registration still needs to be completed before the Slice 2 verification checkpoint is handed to the user.
 
-### Slice 2 — Health state — IMPLEMENTED / VERIFICATION PENDING
+### Verification checkpoint
 
-Implement the runtime-health dimension as a provider-neutral evidence contract owned by `AgentRuntimeInstance` without changing lifecycle authority or authorization semantics.
+**Example to run:** not yet released for verification. Intended path: `HAgent.Example → Cognition → Goals & Plans → PLAN CONTRACTS` once Example registration is completed.
 
-Required surface now implemented:
+**Tests to run:** `tests/HAgent.Tests/PlanContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase checkpoint.
 
-- normalized health states: `Healthy`, `Degraded`, `Failed`, `Unknown`;
-- bounded reason/evidence metadata;
-- explicit source category for runtime observation, recovery result, host signal, or equivalent provider-neutral evidence;
-- explicit transient degradation versus terminal failure classification;
-- deterministic validation and detached snapshots/cloning across runtime boundaries;
-- no failure classification based only on elapsed inference time;
-- lifecycle and health remain separate dimensions;
-- provider-specific health remains outside Core/provider-neutral runtime health;
-- health round-trips through the existing runtime-state persistence boundary.
-
-### Authoritative architecture
-
-`docs/architecture/102-runtime-lifecycle-health.md` is authoritative for the lifecycle/health boundary. `docs/architecture/10-runtime.md` remains authoritative for runtime identity, execution snapshots, cancellation, persistence, and stale-result protection.
-
-### Example and verification checkpoint
-
-**Example to run:** `HAgent.Example -> Runtime -> Runtime Instances -> RUNTIME HEALTH` on .NET Framework 4.8.1 and .NET 9 Windows.
-
-**Tests to run:** `tests/HAgent.Tests/RuntimeHealthTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
-
-### Run rule
-
-Slice 2 is the only active implementation slice. Do not begin Slice 3 until Slice 2 focused tests, both required Example targets, and the required regression verification are recorded as complete.
+**Run rule:** Do not begin Slice 3 until Slice 2 Example registration and verification are complete and recorded.

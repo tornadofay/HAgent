@@ -11,11 +11,19 @@ Make live agents first-class runtime objects separate from reusable agent profil
 4. [x] Give each runtime instance an independent memory owner.
 5. [x] Support multiple runtime instances executing concurrently.
 6. [x] Expose asynchronous scheduling, cancellation, timeout, correlation, and stale-result protection foundations.
-7. [x] Define explicit active/retired/shutdown lifecycle behavior.
+7. [x] Define explicit foundational active/retired/shutdown lifecycle behavior.
 8. [x] Keep dynamically created agents out of persistent configuration by default.
 9. [x] Provide runtime-state persistence/snapshot hooks needed by the current runtime contract without claiming durable cognitive goal/plan state or a second persistence model.
 10. [x] Verify the runtime contract with deterministic Example coverage.
 11. [x] Complete generic external-host execution boundary hardening in Phase 0.95.
+
+## Lifecycle extension ownership
+
+The 0.9 phase establishes the foundational runtime lifecycle and stale-result authority boundary. Long-lived operational lifecycle is deliberately extended later by **Phase 0.958 — Agent Lifecycle and Health Management**.
+
+0.958 adds `Suspended` and `Recovering` to the existing runtime lifecycle and defines the complete transition/admission contract without introducing another runtime identity or agent class. Runtime health is also a separate 0.958 concern and must not be conflated with lifecycle or execution state.
+
+The target lifecycle/health architecture is authoritative in `docs/architecture/102-runtime-lifecycle-health.md`.
 
 ## Runtime rule
 
@@ -27,11 +35,11 @@ Each runtime instance owns private memory through its `MemoryOwnerId`, keeping p
 
 Each instance-bound execution receives a monotonically increasing instance revision. Hosts can use `AgentRuntimeInstance.IsExecutionCurrent(execution)` to reject late results after a newer execution starts or the instance is retired. The generic execution hardening phase additionally ensures late provider completion cannot overwrite a terminal execution outcome.
 
-Retirement and shutdown are separate lifecycle operations. Retirement prevents new executions and invalidates result authority while allowing already-running work to finish or be cancelled by the host. Shutdown is terminal, prevents new executions, invalidates result authority, and requests cancellation of outstanding instance-bound executions.
+Retirement and shutdown are separate lifecycle operations. Retirement prevents new executions and invalidates result authority while allowing already-running work to finish or be cancelled by the host. Shutdown is terminal, prevents new executions, invalidates result authority, and requests cancellation of outstanding instance-bound executions. 0.958 extends the same foundation with suspension and explicit recovery semantics.
 
 `IAgentExecutionScheduler` and the default `AgentExecutionScheduler` provide an optional host-controlled admission boundary with a configurable concurrency limit. The scheduler does not own host timing or replace runtime execution semantics.
 
-First-class resource foundations are established by Phase 0.8. Mature capability governance, resource inheritance, runtime tri-state overrides, and governed learning are completed in Phase 0.9575. Runtime instances provide the isolation and immutable snapshot boundaries those later resource semantics depend on.
+First-class resource foundations are established by Phase 0.8. Mature capability governance, resource inheritance, runtime tri-state overrides, and governed learning are completed in Phase 0.9575. Post-promotion learned-resource applicability, reliability, adaptation, retention, and runtime reliability integration are completed in Phase 0.9576. Runtime instances provide the isolation and immutable snapshot boundaries those resource semantics depend on.
 
 ## External-host relationship
 
@@ -41,4 +49,4 @@ Durable goal, intention, plan, checkpoint, and recovery state is deliberately la
 
 ## Exit criterion
 
-A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, private-memory, or execution-state collisions. Later resource governance, durable goal/plan recovery, and persistent cognition can then build on the stable runtime and snapshot boundaries without weakening runtime isolation.
+A host can create, run, cancel, and retire multiple independent runtime agents from reusable profiles without identity, private-memory, or execution-state collisions. Later lifecycle/health extension, resource governance, durable goal/plan recovery, and persistent cognition can then build on the stable runtime and snapshot boundaries without weakening runtime isolation.

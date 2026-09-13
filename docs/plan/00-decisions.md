@@ -131,3 +131,13 @@ Slice 9 persists the existing `AiLearningCandidate` lifecycle through one provid
 Retention is policy metadata over the durable candidate record. Expiry may remove a candidate from normal reads and be purged deterministically, but an unmapped retention class does not invent a default expiry. Review remains an authorization-sensitive host operation using the existing unified `IAiPolicyEngine` with operation `learning.review`; reviewer identity is explicit and never substituted by an anonymous identity.
 
 Review updates use an expected lifecycle revision so stale reviewers cannot overwrite newer candidate state. Store implementations return detached records and must preserve the same contracts across persistence backends. Authoritative Memory/Knowledge/Skill promotion remains the later Slice 10 boundary.
+
+## D-015 — Runtime lifecycle authority has a dedicated persisted revision
+
+**Status:** Active
+
+The 0.958 lifecycle revision is distinct from the per-execution revision. `AgentRuntimeInstance` owns lifecycle state and lifecycle revision; valid lifecycle transitions advance that revision, while invalid or duplicate transitions do not. A newly admitted `AgentExecution` captures both the execution revision and the lifecycle revision under which it was admitted. Execution authority requires both revisions to remain current and the runtime to remain `Active`.
+
+Lifecycle revision is part of the existing runtime-state persistence record and must round-trip through File, SQL Server, and MySQL stores. Existing relational schemas are upgraded in place with a default-zero value so older persisted rows remain valid without inventing a second runtime-state model.
+
+Lifecycle state remains separate from health, policy authorization, provider health, and later durable cognitive recovery. No lifecycle transition implicitly cancels ordinary in-flight work except terminal `Shutdown`, which retains the existing instance-bound cancellation contract.

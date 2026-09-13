@@ -5,6 +5,7 @@ namespace HAgent.Example
         private void AddLearningExtensionTabs()
         {
             AddLearnedResourceRetentionTab();
+            AddLearnedResourceRuntimeIntegrationTab();
         }
     }
 }

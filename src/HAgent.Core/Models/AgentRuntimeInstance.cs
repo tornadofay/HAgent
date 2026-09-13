@@ -10,6 +10,7 @@ namespace HAgent.Models
         private long _lifecycleRevision;
         private AgentRuntimeInstanceState _state;
         private AiRuntimeHealth _health;
+        private AiRuntimeProgressSnapshot _progress;
         private readonly CancellationTokenSource _shutdownCts = new CancellationTokenSource();
 
         private AgentRuntimeInstance(
@@ -55,6 +56,17 @@ namespace HAgent.Models
                 lock (_sync)
                 {
                     return _health.Clone();
+                }
+            }
+        }
+
+        public AiRuntimeProgressSnapshot Progress
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _progress == null ? null : _progress.Clone();
                 }
             }
         }
@@ -152,6 +164,29 @@ namespace HAgent.Models
             }
         }
 
+        public void ReportProgress(AiRuntimeProgressSnapshot progress)
+        {
+            if (progress == null) throw new ArgumentNullException(nameof(progress));
+            progress.Validate();
+            var snapshot = progress.Clone();
+            lock (_sync)
+            {
+                if (_progress != null && snapshot.Sequence <= _progress.Sequence)
+                    throw new InvalidOperationException("Runtime progress sequence must strictly increase.");
+                _progress = snapshot;
+            }
+        }
+
+        public AiRuntimeStallAssessment EvaluateStall(AiRuntimeStallPolicy policy, DateTimeOffset evaluatedAt)
+        {
+            AiRuntimeProgressSnapshot progress;
+            lock (_sync)
+            {
+                progress = _progress == null ? null : _progress.Clone();
+            }
+            return AiRuntimeProgressMonitor.Evaluate(progress, policy, evaluatedAt);
+        }
+
         internal long BeginExecution(out long lifecycleRevision)
         {
             lock (_sync)
@@ -185,6 +220,27 @@ namespace HAgent.Models
         public void BeginRecovery()
         {
             TransitionTo(AgentRuntimeInstanceState.Recovering);
+        }
+
+        public void CompleteRecovery(AiRuntimeRecoveryResult result, AgentRuntimeInstanceState resultingState)
+        {
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            result.Validate();
+            if (resultingState != AgentRuntimeInstanceState.Active &&
+                resultingState != AgentRuntimeInstanceState.Suspended &&
+                resultingState != AgentRuntimeInstanceState.Retired)
+                throw new ArgumentException("Recovery can complete only into Active, Suspended, or Retired.", nameof(resultingState));
+
+            lock (_sync)
+            {
+                if (_state != AgentRuntimeInstanceState.Recovering)
+                    throw new InvalidOperationException("Runtime recovery can only complete from Recovering state.");
+                if (result.Status != AiRuntimeRecoveryStatus.Succeeded && resultingState == AgentRuntimeInstanceState.Active)
+                    throw new InvalidOperationException("Failed or cancelled recovery cannot complete into Active state.");
+
+                _state = resultingState;
+                ++_lifecycleRevision;
+            }
         }
 
         public void Resume()

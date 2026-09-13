@@ -20,14 +20,16 @@ Implemented in `src/HAgent.Core/Models/AiPlanContracts.cs` with focused tests in
 
 **Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **290/290 passed, 0 failed, 0 skipped**.
 
-### Slice 3 — Checkpoints and outcome semantics — CURRENT
+### Slice 3 — Checkpoints and outcome semantics — IMPLEMENTED / VERIFICATION PENDING
 
-Next implementation slice. Establish explicit checkpoint boundaries and typed durable outcome semantics without yet implementing restart recovery or persistence-backend orchestration.
+Implemented the provider-neutral checkpoint/outcome contract surface in `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs` with focused tests in `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` and matching Example `src/HAgent.Example/MainForm.CheckpointOutcomeContractsTests.cs`.
+
+The contracts provide explicit checkpoint identity, plan/step linkage, plan revision, boundary/evidence metadata, and checkpoint status. Outcome semantics distinguish `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`; completed outcomes require evidence and unknown external outcomes remain explicitly non-success.
 
 ### Verification checkpoint
 
-**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> CHECKPOINT & OUTCOME CONTRACTS` once Slice 3 implementation is complete.
+**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> CHECKPOINT & OUTCOME CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase checkpoint.
+**Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 
 **Run rule:** Do not begin Slice 4 until Slice 3 Example verification and regression results are recorded.

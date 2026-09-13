@@ -2,7 +2,9 @@
 
 ## Status
 
-**Planned after 0.958 and before 0.959 intervention.**
+**PLANNED after 0.958 and before 0.959 intervention.**
+
+Slice 1 goal/intention contracts were implemented ahead of the roadmap as an architectural checkpoint. They remain preserved in the repository but do not make this phase current.
 
 ## Purpose
 
@@ -39,12 +41,14 @@ live runtime objects
 
 ## Delivery slices
 
-### Slice 1 — Durable goal/intention contracts
+### Slice 1 — Durable goal/intention contracts — IMPLEMENTED AHEAD OF ROADMAP
 
 - Define stable IDs, status, priority, constraints, provenance, timestamps, and revision metadata.
 - Keep goal identity separate from intention identity.
 - Record why an intention was adopted, suspended, revised, completed, failed, abandoned, or superseded.
 - Preserve host-supplied goal state without pretending inferred belief is host truth.
+
+Implementation surface: `src/HAgent.Core/Models/AiGoalContracts.cs`, focused tests in `tests/HAgent.Tests/GoalIntentionContractsTests.cs`, and matching Example `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS`.
 
 ### Slice 2 — Durable plans and steps
 

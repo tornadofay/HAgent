@@ -26,32 +26,47 @@ Verified by the user on both .NET Framework 4.8.1 and .NET 9:
 
 The focused Slice 1 test class is `tests/HAgent.Tests/RuntimeLifecycleTests.cs` and the matching manual scenario is `HAgent.Example -> Runtime -> Runtime Instances -> RUNTIME LIFECYCLE`.
 
-### Slice 2 — Health state — IMPLEMENTED / VERIFICATION PENDING
+### Slice 2 — Health state — VERIFIED / CLOSED
 
-Implement the runtime-health dimension as a provider-neutral evidence contract owned by `AgentRuntimeInstance` without changing lifecycle authority or authorization semantics.
+The runtime-health dimension is implemented as provider-neutral evidence owned by `AgentRuntimeInstance` without changing lifecycle authority or authorization semantics.
+
+Verified by the user on both supported Example targets:
+
+- Initial health is `Unknown`.
+- `Degraded` is explicitly transient.
+- Health updates do not advance lifecycle revision.
+- Slow valid inference remains `Healthy`.
+- Terminal failure is explicitly `Failed`.
+- Health persistence/restoration succeeds.
+- Health source and reason are preserved.
+- Full `.NET 9` `HAgent.Tests` regression suite reported **276/276 passed, 0 failed, 0 skipped**.
+
+The focused Slice 2 test class is `tests/HAgent.Tests/RuntimeHealthTests.cs` and the matching manual scenario is `HAgent.Example -> Runtime -> Runtime Instances -> RUNTIME HEALTH`.
+
+### Slice 3 — Progress and recovery signals — CURRENT / IMPLEMENTATION COMPLETE; VERIFICATION PENDING
+
+Implement bounded runtime progress/heartbeat evidence and deterministic stall assessment, then make recovery outcome explicit while preserving runtime identity, lifecycle revision safety, and durable runtime state.
 
 Required surface now implemented:
 
-- normalized health states: `Healthy`, `Degraded`, `Failed`, `Unknown`;
-- bounded reason/evidence metadata;
-- explicit source category for runtime observation, recovery result, host signal, or equivalent provider-neutral evidence;
-- explicit transient degradation versus terminal failure classification;
-- deterministic validation and detached snapshots/cloning across runtime boundaries;
-- no failure classification based only on elapsed inference time;
-- lifecycle and health remain separate dimensions;
-- provider-specific health remains outside Core/provider-neutral runtime health;
-- health round-trips through the existing runtime-state persistence boundary.
-
-### Authoritative architecture
-
-`docs/architecture/102-runtime-lifecycle-health.md` is authoritative for the lifecycle/health boundary. `docs/architecture/10-runtime.md` remains authoritative for runtime identity, execution snapshots, cancellation, persistence, and stale-result protection.
+- bounded progress/heartbeat snapshots with monotonic sequence numbers;
+- optional bounded percent/detail/evidence metadata;
+- configured stall policy using a maximum progress/heartbeat silence interval;
+- no stall classification when there is no progress evidence;
+- stall assessment is descriptive and never mutates lifecycle automatically;
+- explicit recovery result with success/failure/cancellation and bounded reason/evidence;
+- recovery completion is allowed only from `Recovering` and advances lifecycle revision;
+- failed/cancelled recovery cannot return directly to `Active`;
+- runtime identity remains unchanged through recovery;
+- recovery does not delete or replace runtime durable state;
+- provider-specific health/routing remains outside this slice.
 
 ### Example and verification checkpoint
 
-**Example to run:** `HAgent.Example -> Runtime -> Runtime Instances -> RUNTIME HEALTH` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example -> Runtime -> Runtime Instances -> RUNTIME PROGRESS & RECOVERY` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** `tests/HAgent.Tests/RuntimeHealthTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
+**Tests to run:** `tests/HAgent.Tests/RuntimeProgressRecoveryTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
 
 ### Run rule
 
-Slice 2 is the only active implementation slice. Do not begin Slice 3 until Slice 2 focused tests, both required Example targets, and the required regression verification are recorded as complete.
+Slice 3 is the only active implementation slice. Do not begin Slice 4 until Slice 3 focused tests, both required Example targets, and the required regression verification are recorded as complete.

@@ -4,34 +4,30 @@ This file is the compact handoff state for work currently in progress. It is not
 
 ## Current task
 
-- **Phase:** 0.958 Agent Lifecycle and Health Management
-- **Status:** Slice 4 implementation complete; verification pending
+- **Phase:** 0.9591 Goal/Plan Persistence and Recovery
+- **Status:** Slice 2 implementation complete; Example registration/verification pending
 - **Primary source:** `docs/plan/20-active.md`
-- **Architecture source:** `docs/architecture/102-runtime-lifecycle-health.md`
-- **Scope:** Complete runtime lifecycle/health/progress/recovery observability and diagnostics without changing runtime authority boundaries.
+- **Architecture source:** `docs/architecture/16-cognitive-runtime.md` and `docs/architecture/17-cognitive-algorithms.md`
+- **Scope:** Establish durable goal/intention/plan contracts and then persistence/recovery without persisting transient execution machinery.
 
-## 0.958 Slice 1 checkpoint closed
+## 0.958 checkpoint closed
 
-Phase 0.958 Slice 1 is fully verified. The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME LIFECYCLE` on both .NET Framework 4.8.1 and .NET 9 Windows. The user reported **266/266 tests passed, 0 failed, 0 skipped**.
+Phase 0.958 Agent Lifecycle and Health Management is fully verified and closed. The user verified all four slices on .NET Framework 4.8.1 and .NET 9. The final full `.NET 9` regression suite reported **286/286 tests passed, 0 failed, 0 skipped**. Slice 4 Example path is `HAgent.Example → Runtime → Diagnostics → RUNTIME OBSERVABILITY`.
 
-## 0.958 Slice 2 checkpoint closed
+## 0.9591 Slice 1 checkpoint closed
 
-Phase 0.958 Slice 2 is fully verified. The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on both .NET Framework 4.8.1 and .NET 9 Windows. The user reported **276/276 tests passed, 0 failed, 0 skipped**.
+Durable goal/intention contracts are fully verified. The user verified `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS` on both supported targets. The full `.NET 9` `HAgent.Tests` checkpoint for Slice 1 was **270/270 passed, 0 failed, 0 skipped**.
 
-## 0.958 Slice 3 checkpoint closed
+## 0.9591 Slice 2 — Durable plans and steps
 
-Phase 0.958 Slice 3 is fully verified. The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME PROGRESS & RECOVERY` on both .NET Framework 4.8.1 and .NET 9 Windows. The user reported **283/283 tests passed, 0 failed, 0 skipped**.
+The provider-neutral plan model is implemented in `src/HAgent.Core/Models/AiPlanContracts.cs` with focused coverage in `tests/HAgent.Tests/PlanContractsTests.cs` and a matching Example scenario in `src/HAgent.Example/MainForm.PlanContractsTests.cs`.
 
-## 0.958 Slice 4 — Observability and verification
-
-Implementation is complete for the bounded observability surface: `AiRuntimeObservation`, `AiRuntimeDiagnosticsSnapshot`, `AiRuntimeDiagnosticsService`, and `AiRuntimeObservationPublisher` preserve runtime identity, lifecycle revision, health, progress, and recovery evidence and adapt it to the existing provider-neutral event envelope boundary. No authorization or lifecycle mutation is performed by observability.
+The contract covers goal/intention linkage, plan status, revision metadata, provenance, plan/step preconditions, assumptions, expected effects, completion criteria, failure conditions, explicit step sequence/dependencies, validation, and detached cloning.
 
 ## Verification checkpoint
 
-**Example to run:** `HAgent.Example → Runtime → Diagnostics → RUNTIME OBSERVABILITY` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** intended path `HAgent.Example → Cognition → Goals & Plans → PLAN CONTRACTS`; Example organization/registration must be completed before releasing this checkpoint for user execution.
 
-**Tests to run:** `tests/HAgent.Tests/RuntimeObservabilityTests.cs` and `tests/HAgent.Tests/RuntimeObservationPublisherTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
+**Tests to run:** `tests/HAgent.Tests/PlanContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
 
-**Current status:** Slice 4 implementation is committed; user execution/verification is pending.
-
-No later 0.958 or 0.9591 work is active until Slice 4 is verified.
+**Current status:** Slice 2 implementation is committed; do not start Slice 3 until Example registration and verification are complete and recorded.

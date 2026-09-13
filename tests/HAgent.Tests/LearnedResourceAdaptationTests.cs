@@ -19,7 +19,7 @@ namespace HAgent.Tests
             await service.InitializeAsync(identity, now.AddDays(-30), CancellationToken.None);
 
             var result = await service.RevalidateAsync(
-                CreateRequest(identity, now, now.AddDays(-30), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7),
+                CreateRequest(identity, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7),
                 CancellationToken.None);
 
             Assert.Equal(AiLearnedResourceCondition.Stale, result.Condition);
@@ -40,7 +40,7 @@ namespace HAgent.Tests
             reliability.RequiresReview = true;
 
             var result = await service.RevalidateAsync(
-                CreateRequest(identity, now, now.AddHours(-1), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7, reliability),
+                CreateRequest(identity, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7, reliability),
                 CancellationToken.None);
 
             Assert.Equal(AiLearnedResourceCondition.Degraded, result.Condition);
@@ -56,7 +56,7 @@ namespace HAgent.Tests
             await service.InitializeAsync(identity, now.AddHours(-1), CancellationToken.None);
 
             var result = await service.RevalidateAsync(
-                CreateRequest(identity, now, now.AddHours(-1), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.NotApplicable, null, 7),
+                CreateRequest(identity, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.NotApplicable, null, 7),
                 CancellationToken.None);
 
             Assert.Equal(AiLearnedResourceCondition.Drifted, result.Condition);
@@ -77,7 +77,7 @@ namespace HAgent.Tests
             reliability.QuarantineRecommended = true;
 
             var result = await service.RevalidateAsync(
-                CreateRequest(identity, now, now.AddHours(-1), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7, reliability),
+                CreateRequest(identity, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7, reliability),
                 CancellationToken.None);
 
             Assert.Equal(AiLearnedResourceCondition.Contradicted, result.Condition);
@@ -97,7 +97,7 @@ namespace HAgent.Tests
             reliability.RequiresReview = true;
             reliability.QuarantineRecommended = true;
             await service.RevalidateAsync(
-                CreateRequest(identity, now.AddMinutes(-1), now.AddHours(-1), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Invalidated, null, 7, reliability),
+                CreateRequest(identity, now.AddMinutes(-1), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Invalidated, null, 7, reliability),
                 CancellationToken.None);
 
             reliability.LastOutcomeKind = AiReliabilityOutcomeKind.Success;
@@ -105,7 +105,7 @@ namespace HAgent.Tests
             reliability.RequiresReview = false;
             reliability.QuarantineRecommended = false;
             var clean = await service.RevalidateAsync(
-                CreateRequest(identity, now, now.AddHours(-1), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, CreatePassedEvaluation(), 7, reliability),
+                CreateRequest(identity, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, CreatePassedEvaluation(), 7, reliability),
                 CancellationToken.None);
 
             Assert.Equal(AiLearnedResourceCondition.Current, clean.Condition);
@@ -132,7 +132,7 @@ namespace HAgent.Tests
             var service = new AiLearnedResourceLifecycleService(store, new TestPolicyEngine());
 
             var result = await service.RevalidateAsync(
-                CreateRequest(identity, now, now.AddDays(-30), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, CreatePassedEvaluation(), 7),
+                CreateRequest(identity, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, CreatePassedEvaluation(), 7),
                 CancellationToken.None);
 
             Assert.Equal(AiLearnedResourceLifecycleStatus.Retired, result.Status);
@@ -150,7 +150,7 @@ namespace HAgent.Tests
 
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 service.RevalidateAsync(
-                    CreateRequest(identity, now, now.AddDays(-30), AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7),
+                    CreateRequest(identity, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7),
                     CancellationToken.None));
 
             var record = await store.GetAsync(identity, CancellationToken.None);
@@ -180,7 +180,7 @@ namespace HAgent.Tests
             updated.Revision = 1;
             updated.Status = AiLearnedResourceLifecycleStatus.UnderReview;
             updated.LastCondition = AiLearnedResourceCondition.Stale;
-            updated.LastReason = "Stale. ";
+            updated.LastReason = "Stale.";
             updated.LastAssessedAtUtc = now.AddMinutes(1);
             updated.Validate();
             Assert.True(await store.TryUpdateAsync(updated, 0, CancellationToken.None));
@@ -223,25 +223,21 @@ namespace HAgent.Tests
         {
             var now = DateTimeOffset.UtcNow;
             var identity = CreateIdentity(13);
-            var service = CreateService();
+            var store = new InMemoryAiLearnedResourceLifecycleStore();
+            var service = new AiLearnedResourceLifecycleService(store, new TestPolicyEngine());
             await service.InitializeAsync(identity, now, CancellationToken.None);
             using (var source = new CancellationTokenSource())
             {
                 source.Cancel();
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                     service.RevalidateAsync(
-                        CreateRequest(identity, now, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7),
+                        CreateRequest(identity, now, AiApplicabilityOutcome.Applicable, AiApplicabilityOutcome.Applicable, null, 7),
                         source.Token));
             }
 
-            var record = await serviceRecordAsync(identity);
+            var record = await store.GetAsync(identity, CancellationToken.None);
             Assert.Equal(AiLearnedResourceLifecycleStatus.Active, record.Status);
             Assert.Equal(0L, record.Revision);
-
-            async Task<AiLearnedResourceLifecycleRecord> serviceRecordAsync(AiResourceReliabilityIdentity resourceIdentity)
-            {
-                return await new InMemoryAiLearnedResourceLifecycleStore().GetAsync(resourceIdentity, CancellationToken.None);
-            }
         }
 
         private static AiLearnedResourceLifecycleService CreateService()
@@ -252,7 +248,6 @@ namespace HAgent.Tests
         private static AiLearnedResourceRevalidationRequest CreateRequest(
             AiResourceReliabilityIdentity identity,
             DateTimeOffset evaluatedAt,
-            DateTimeOffset promotedAt,
             AiApplicabilityOutcome previousOutcome,
             AiApplicabilityOutcome currentOutcome,
             AiEvaluation evaluation,

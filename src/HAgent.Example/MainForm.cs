@@ -72,6 +72,7 @@ namespace HAgent.Example
             AddRuntimeInstanceTab();
             AddRuntimeOverrideTab();
             AddRuntimeLifecycleTab();
+            AddRuntimeProgressRecoveryTab();
             AddWorkspaceRoutingTab();
             AddWorkspaceRoleTab();
             AddEventFeatureTabs();

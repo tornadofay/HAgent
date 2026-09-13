@@ -36,28 +36,39 @@ The durable contract keeps operation identity stable across retry attempts, requ
 
 **Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **300/300 passed, 0 failed, 0 skipped**.
 
-### Slice 5 — Restart and recovery — CURRENT / IMPLEMENTING
+### Slice 5 — Restart and recovery — VERIFIED / CLOSED
 
-Implemented the provider-neutral restart/recovery contract boundary without introducing persistence backend behavior.
-
-Implementation:
+Implemented in:
 - `src/HAgent.Core/Models/AiPlanRecoveryContracts.cs`
 - `tests/HAgent.Tests/PlanRecoveryContractsTests.cs`
 - Example: `HAgent.Example -> Cognition -> Goals & Plans -> RESTART & RECOVERY`
 
-Required semantics:
-- Preserve the latest durable plan ID and revision; recovery does not silently create a new plan revision.
-- Require a new runtime instance identity and an advanced execution revision before a recovery record is accepted.
-- Mark previous runtime/execution authority invalidated.
-- Keep terminal steps terminal; interrupted non-terminal work can be retryable under current policy.
-- Requested and `UnknownOutcome` external operations require host review/reconciliation rather than automatic retry.
-- Preserve operation linkage and evidence needed to explain each step decision.
-- Keep persistence backends and external side effects out of this slice; those remain Slice 6 responsibilities.
+The provider-neutral recovery boundary preserves plan identity/revision, requires a new runtime instance and advancing execution revision, invalidates previous authority, keeps terminal steps terminal, and requires host review for requested/unknown external outcomes.
+
+**Verified on 2026-09-13:** .NET Framework 4.8.1 and .NET 9 Example scenarios both succeeded. Full `.NET 9` `HAgent.Tests`: **306/306 passed, 0 failed, 0 skipped**.
+
+### Slice 6 — Persistence backends and verification — CURRENT / IMPLEMENTING
+
+Use the existing storage architecture rather than introducing a second persistence model.
+
+Current implementation investigation confirms these provider-neutral Core boundaries already exist:
+- `IAiStore`
+- `IAgentRuntimeStateStore`
+- `IExecutionAuditStore`
+
+Existing provider assemblies implement these boundaries outside Core, including File, SQL Server, and MySQL stores. Slice 6 will extend that pattern for the canonical goal/plan/checkpoint/retry/recovery contracts.
+
+Initial implementation target:
+- define the focused provider-neutral durable cognition store contract;
+- keep canonical `AiGoal`, `AiIntention`, `AiPlan`, checkpoint/outcome, operation, and recovery models as the persisted domain objects;
+- enforce plan/revision/authority consistency at the store boundary;
+- add aligned File, SQL Server, and MySQL adapters without putting provider details in Core;
+- add deterministic tests and a matching Example scenario before backend verification.
 
 ### Verification checkpoint
 
-**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> RESTART & RECOVERY` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> PERSISTENT GOAL/PLAN RECOVERY` once Slice 6 Example is implemented, on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** `tests/HAgent.Tests/PlanRecoveryContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+**Tests to run:** the focused Slice 6 persistence test class first, then the full `HAgent.Tests` regression suite.
 
-**Run rule:** Do not begin Slice 6 until Slice 5 Example verification and regression results are recorded.
+**Run rule:** do not start Slice 7 or unrelated roadmap work until the Slice 6 checkpoint is recorded.

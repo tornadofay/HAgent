@@ -48,7 +48,7 @@ Implemented bounded runtime observability without changing runtime authority:
 - `AiRuntimeDiagnosticsSnapshot` and `AiRuntimeDiagnosticsService` expose bounded point-in-time diagnostics.
 - `AiRuntimeObservationPublisher` maps detached observations into the existing `IEventDispatcher` / `EventEnvelope` boundary as Runtime-scoped provider-neutral events.
 - Focused verification exists in `tests/HAgent.Tests/RuntimeObservabilityTests.cs` and `tests/HAgent.Tests/RuntimeObservationPublisherTests.cs`.
-- Matching Example: `HAgent.Example → Runtime → Runtime Instances → RUNTIME OBSERVABILITY`.
+- Matching Example: `HAgent.Example → Runtime → Diagnostics → RUNTIME OBSERVABILITY`.
 
 **Verification checkpoint:** run the RUNTIME OBSERVABILITY Example on .NET Framework 4.8.1 and .NET 9, then the two focused test classes and the full `HAgent.Tests` regression suite.
 

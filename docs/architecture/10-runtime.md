@@ -10,7 +10,9 @@ The profile may also inherit or define cost policy such as `FreeOnly`, `FreePref
 
 ## Runtime instance
 
-A runtime instance is the live execution identity created from a reusable profile. `AgentRuntimeInstance` has its own stable `InstanceId`, keeps the source `ProfileId`, records its `AgentRuntimeScope`, and has an explicit active/retired/shutdown lifecycle.
+A runtime instance is the live execution identity created from a reusable profile. `AgentRuntimeInstance` has its own stable `InstanceId`, keeps the source `ProfileId`, records its `AgentRuntimeScope`, and has an explicit lifecycle.
+
+The foundational runtime lifecycle is `Active`, `Retired`, and terminal `Shutdown`. Phase 0.958 extends that same lifecycle with `Suspended` and `Recovering` for long-lived operation; it does not create another runtime identity or agent class. The detailed target contract is authoritative in `docs/architecture/102-runtime-lifecycle-health.md`.
 
 Creating or retiring a runtime instance never mutates the reusable `AiAgent` profile and does not make the instance a persistent configured agent by default.
 
@@ -43,11 +45,11 @@ HAgentClient.ExecuteAsync(
 
 HAgent requires `request.AgentId` to match `instance.ProfileId`. The supplied runtime instance owns the runtime identity, execution revision, runtime overrides, shutdown cancellation, and private-memory ownership; the canonical request remains the source of execution messages, host context, host correlation, and structured-output requirements. The request is copied into an effective execution request so caller-owned options are not mutated.
 
-A retired or shutdown instance cannot start new execution. Existing executions retain their snapshots if the instance is retired after work has started.
+A retired or shutdown instance cannot start new execution. Under the 0.958 lifecycle extension, suspended and recovering instances are likewise prevented from originating ordinary new runtime work. Existing executions retain their immutable snapshots if the instance lifecycle changes after work has started; stale-result protection determines whether a late result remains authoritative.
 
-Each instance maintains a monotonically increasing execution revision. An instance-bound `AgentExecution` captures the instance ID and revision at execution start. Hosts can use `AgentRuntimeInstance.IsExecutionCurrent(execution)` to determine whether a completed result is still authoritative for that runtime instance. Stale protection is an authority mechanism and must not be confused with provider cancellation.
+Each instance maintains a monotonically increasing execution revision. An instance-bound `AgentExecution` captures the instance ID and revision at execution start. The 0.958 lifecycle extension also uses an explicit lifecycle revision so a transition can invalidate result authority without depending on provider cancellation. Hosts can use `AgentRuntimeInstance.IsExecutionCurrent(execution)` to determine whether a completed result is still authoritative for that runtime instance. Stale protection is an authority mechanism and must not be confused with provider cancellation.
 
-`AgentRuntimeInstance.Shutdown()` is terminal for the instance. It prevents new execution and requests cancellation of outstanding instance-bound work. Retirement stops new execution and invalidates result authority without cancelling already-running work.
+`AgentRuntimeInstance.Shutdown()` is terminal for the instance. It prevents new execution and requests cancellation of outstanding instance-bound work. Retirement stops new execution and invalidates result authority without cancelling already-running work. Suspension and recovery are distinct long-lived operational states; their transition semantics, admission behavior, and health relationship are defined in `docs/architecture/102-runtime-lifecycle-health.md`.
 
 ## Effective configuration and capability snapshot
 
@@ -94,7 +96,7 @@ Provider cancellation is cooperative, but HAgent does not require provider coope
 
 `AgentExecution` owns the terminal-state gate. Success, failure, and cancellation/timeout use atomic first-terminal-outcome-wins transitions. Later terminal attempts are ignored, preventing conflicting lifecycle notifications, response replacement, or duplicate audit finalization.
 
-Retirement and shutdown also invalidate runtime result authority. A provider response that arrives after an execution is no longer current may still be a provider completion, but it must not regain authority over host state. Hosts use runtime-instance revision checks to reject stale results.
+Retirement, suspension, recovery, and shutdown invalidate or gate runtime result authority through runtime revision/lifecycle checks. A provider response that arrives after an execution is no longer current may still be a provider completion, but it must not regain authority over host state. Hosts use runtime-instance revision checks to reject stale results.
 
 ## Structured output
 

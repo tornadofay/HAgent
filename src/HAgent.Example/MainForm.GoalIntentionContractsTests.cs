@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using HAgent.Models;
 
 namespace HAgent.Example
@@ -18,7 +19,7 @@ namespace HAgent.Example
                 "Pure provider-free contract exercise; no external provider or persistence backend is contacted.");
         }
 
-        private void TestGoalIntentionContracts(string message)
+        private Task TestGoalIntentionContracts(string message)
         {
             var created = DateTimeOffset.UtcNow;
             var hostGoal = new AiGoal
@@ -105,6 +106,8 @@ namespace HAgent.Example
                 "Intention revision: " + intention.Revision + Environment.NewLine +
                 "Status change: " + statusChange.PreviousStatus + " -> " + statusChange.NewStatus + Environment.NewLine +
                 "Status-change reason preserved: yes");
+
+            return Task.CompletedTask;
         }
     }
 }

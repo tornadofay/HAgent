@@ -62,7 +62,15 @@ Implementation surface: `src/HAgent.Core/Models/AiGoalContracts.cs`, focused tes
 
 Implementation surface: `src/HAgent.Core/Models/AiPlanContracts.cs`; focused tests: `tests/HAgent.Tests/PlanContractsTests.cs`; Example scenario: `src/HAgent.Example/MainForm.PlanContractsTests.cs`.
 
-The Example registration shell still needs to expose `PLAN CONTRACTS` under `Cognition → Goals & Plans` before the Slice 2 verification checkpoint is released to the user. No Slice 3 work begins before that registration and verification checkpoint is complete.
+The Example shell now explicitly registers and classifies `PLAN CONTRACTS` under `Cognition → Goals & Plans`.
+
+### Verification checkpoint
+
+**Example to run:** `HAgent.Example → Cognition → Goals & Plans → PLAN CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
+
+**Tests to run:** `tests/HAgent.Tests/PlanContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+
+**Run rule:** Do not begin Slice 3 until Slice 2 Example verification and regression results are recorded.
 
 ### Slice 3 — Checkpoints and outcome semantics
 

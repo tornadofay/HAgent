@@ -7,10 +7,10 @@ The roadmap is the ordered implementation path toward the HAgent master plan. St
 - 0.957 — Evaluation + Quality Measurement — completed and verified
 - 0.9575 — Knowledge, Skills, Memory Governance + Learning — **CLOSED / VERIFIED through Slice 13**
 - 0.9576 — Learned Resource Reliability + Adaptation — **CLOSED / VERIFIED through all five slices**
-- 0.958 — Agent Lifecycle + Health — **CURRENT; Slice 1 CLOSED / VERIFIED, Slice 2 current**
-- 0.9591 — Goal/Plan Persistence + Recovery — planned after 0.958
-- 0.959 — Human-in-the-Loop + Intervention — planned
-- 0.9592 — Provider Ecosystem + Adapter Lifecycle — planned
+- 0.958 — Agent Lifecycle + Health — **CLOSED / VERIFIED through all four slices**
+- 0.9591 — Goal/Plan Persistence + Recovery — **CURRENT; Slices 1–2 CLOSED / VERIFIED, Slice 3 current**
+- 0.959 — Human-in-the-Loop + Intervention — planned after 0.9591
+- 0.9592 — Provider Ecosystem + Adapter Lifecycle — planned after 0.959
 - 0.9593 — Reasoning Requirement + Boundary Foundation — planned prerequisite for reasoning-related 0.96/0.97 design
 - 0.96.x — Configuration, Storage + Portability — cross-cutting foundation before 0.96
 - 0.96 — Capability-Aware Execution — planned major execution foundation

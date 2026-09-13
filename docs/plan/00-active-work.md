@@ -5,7 +5,7 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9591 Goal/Plan Persistence and Recovery
-- **Status:** Slice 3 implementation in progress
+- **Status:** Slice 3 implementation complete; verification pending
 - **Primary source:** `docs/plan/20-active.md`
 - **Architecture source:** `docs/architecture/16-cognitive-runtime.md` and `docs/architecture/17-cognitive-algorithms.md`
 - **Scope:** Establish durable goal, intention, plan, checkpoint, and outcome contracts, then persistence and recovery without persisting transient execution machinery.
@@ -26,12 +26,12 @@ Durable plan/step contracts are fully verified. Example: `HAgent.Example -> Cogn
 
 Implemented the provider-neutral checkpoint/outcome contract surface in `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs` with focused coverage in `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` and matching Example `src/HAgent.Example/MainForm.CheckpointOutcomeContractsTests.cs`.
 
-The current contracts distinguish reached/superseded checkpoint state and the required terminal outcomes: `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`. A completed outcome requires evidence; unknown external outcomes remain explicitly non-success.
+The contracts distinguish explicit checkpoint boundaries and the required terminal outcomes: `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`. A completed outcome requires evidence; unknown external outcomes remain explicitly non-success.
 
 ## Verification checkpoint
 
-**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> CHECKPOINT & OUTCOME CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows after Slice 3 implementation is complete.
+**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> CHECKPOINT & OUTCOME CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
 
 **Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 
-**Current status:** Slice 3 is implementation in progress; do not start Slice 4 until Example verification and regression results are recorded.
+**Current status:** Slice 3 is implementation-complete and awaits user verification. Do not start Slice 4 until the Example and regression results are recorded.

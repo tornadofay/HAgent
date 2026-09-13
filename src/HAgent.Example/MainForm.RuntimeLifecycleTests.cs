@@ -204,8 +204,13 @@ namespace HAgent.Example
 
         private sealed class RuntimeLifecycleTestAdapter : IAiProviderAdapter
         {
-            public readonly TaskCompletionSource<bool> Started = new TaskCompletionSource<bool>();
-            private TaskCompletionSource<bool> _release = new TaskCompletionSource<bool>();
+            public TaskCompletionSource<bool> Started { get; private set; }
+            private TaskCompletionSource<bool> _release;
+
+            public RuntimeLifecycleTestAdapter()
+            {
+                Reset();
+            }
 
             public string Kind { get { return "RuntimeLifecycleTest"; } }
             public string DisplayName { get { return "Runtime Lifecycle Test Adapter"; } }
@@ -223,7 +228,8 @@ namespace HAgent.Example
                     throw new ArgumentNullException(nameof(request));
 
                 Started.TrySetResult(true);
-                await _release.Task.ConfigureAwait(false);
+                var cancellationTask = Task.Delay(Timeout.Infinite, cancellationToken);
+                await Task.WhenAny(_release.Task, cancellationTask).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 return new AIResponse
                 {
@@ -239,12 +245,8 @@ namespace HAgent.Example
 
             public void Reset()
             {
+                Started = new TaskCompletionSource<bool>();
                 _release = new TaskCompletionSource<bool>();
-                var replacement = new TaskCompletionSource<bool>();
-                while (!Started.Task.IsCompleted)
-                {
-                    if (Started.TrySetResult(false)) break;
-                }
             }
         }
     }

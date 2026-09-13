@@ -17,6 +17,8 @@ namespace HAgent.Example
                 TestCheckpointOutcomeContracts,
                 "Durable checkpoint/outcome contract boundary",
                 "Provider-free contract exercise; no external provider or persistence backend is contacted.");
+
+            AddPlanRetryIdempotencyContractsTab();
         }
 
         private Task TestCheckpointOutcomeContracts(string message)

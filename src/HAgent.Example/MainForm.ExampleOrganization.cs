@@ -186,6 +186,7 @@ namespace HAgent.Example
             if (key.Contains("POLICY") || key == "APPROVAL WORKFLOW") return "Policy";
             if (key.Contains("EVENT")) return "Events";
             if (key.Contains("IDENTITY")) return "Identity";
+            if (key == "RUNTIME OBSERVABILITY") return "Runtime";
             if (key == "AUDIT LIFECYCLE" || key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key.Contains("TRACE") || key.Contains("OBSERVABILITY")) return "Diagnostics";
             if (key.Contains("EVALUATION")) return "Diagnostics";
             if (key == "AUTHORITATIVE RESOURCE INVENTORY" || key.Contains("CONFIGURATION")) return "Configuration";

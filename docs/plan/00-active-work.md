@@ -5,10 +5,10 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.958 Agent Lifecycle and Health Management
-- **Status:** Slice 2 implementation complete; verification pending
+- **Status:** Slice 3 implementation complete; verification pending
 - **Primary source:** `docs/plan/20-active.md`
 - **Architecture source:** `docs/architecture/102-runtime-lifecycle-health.md`
-- **Scope:** Add provider-neutral runtime health state and bounded evidence while preserving the canonical runtime identity, lifecycle authority, execution revision, and stale-result rules.
+- **Scope:** Add bounded runtime progress/heartbeat evidence and explicit recovery outcomes without duplicating the canonical runtime identity or lifecycle authority.
 
 ## 0.9576 checkpoint closed
 
@@ -20,14 +20,20 @@ Phase 0.958 Slice 1 is fully verified. The user verified `HAgent.Example → Run
 
 Verified boundaries include lifecycle transitions, lifecycle revision capture, non-active admission rejection, stale-result invalidation, runtime-state persistence/restore, and shutdown cancellation.
 
-## 0.958 Slice 2 — Health state
+## 0.958 Slice 2 checkpoint closed
 
-Implementation is complete. Health is normalized as `Unknown`, `Healthy`, `Degraded`, or `Failed`; source and failure-kind metadata are explicit and bounded; health is separate from lifecycle/authorization; health snapshots are detached; and runtime-state persistence preserves health through the existing File/SQL Server/MySQL stores. Slow-but-valid inference remains `Healthy` when the evidence says the inference succeeded.
+Phase 0.958 Slice 2 is fully verified. The user verified `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on both .NET Framework 4.8.1 and .NET 9 Windows. The user reported **276/276 tests passed, 0 failed, 0 skipped**.
+
+Verified boundaries include initial `Unknown` health, transient degradation, unchanged lifecycle revision during health updates, slow-valid inference remaining `Healthy`, terminal `Failed` state, persisted health restoration, and preservation of health source/reason metadata.
+
+## 0.958 Slice 3 — Progress and recovery signals
+
+Implementation is complete. Runtime progress/heartbeat evidence is bounded and sequence-ordered; stall detection requires an explicit configured silence threshold and does not infer a stall without evidence; stall assessment never mutates lifecycle automatically; recovery outcomes are explicit and validated; recovery completion is revision-safe and preserves runtime identity.
 
 ## Verification checkpoint
 
-**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME PROGRESS & RECOVERY` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** `tests/HAgent.Tests/RuntimeHealthTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
+**Tests to run:** `tests/HAgent.Tests/RuntimeProgressRecoveryTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
 
-**Current status:** Slice 2 implementation is committed; user execution/verification is pending.
+**Current status:** Slice 3 implementation is committed; user execution/verification is pending.

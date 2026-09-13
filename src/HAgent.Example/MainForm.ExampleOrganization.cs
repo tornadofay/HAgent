@@ -173,9 +173,9 @@ namespace HAgent.Example
             if (key == "SKILL DEFINITIONS" || key == "SKILLS") return "Skills";
             if (key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("LEARNING") || key.Contains("COGNITION")) return "Learning";
             if (key == "INSTRUCTION CONTRACTS") return "Other Cognition";
-            if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY" || key == "RUNTIME SINGLE OWNER") return "Runtime Instances";
+            if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY" || key == "RUNTIME SINGLE OWNER" || key == "RUNTIME STATE PERSISTENCE") return "Runtime Instances";
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING") return "Intervention";
-            if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key == "RUNTIME EXECUTION") return "Execution";
+            if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key == "RUNTIME EXECUTION" || key == "RUNTIME STALE RESULTS" || key == "GENERIC HOST EXECUTION" || key == "RUNTIME INSTANCE REQUEST") return "Execution";
             if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION") return "Planning & Capacity";
             if (key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key == "AUDIT LIFECYCLE") return "Diagnostics";
             throw new InvalidOperationException("Example '" + title + "' has no explicit architecture sub-group classification.");

@@ -57,17 +57,15 @@ namespace HAgent.Example
             _tabs.Multiline = false;
             foreach (var group in ExampleFeatureOrder)
             {
-                List<TabPage> pagesInGroup = grouped[group];
+                var pagesInGroup = grouped[group];
                 if (pagesInGroup.Count == 0) continue;
                 var featurePage = new TabPage(group) { BackColor = Color.FromArgb(248, 248, 252), Padding = new Padding(0) };
                 var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = Color.FromArgb(248, 248, 252), Padding = new Padding(14) };
                 layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
                 layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
                 layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-                var title = new Label { Text = group + " examples", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Color.FromArgb(31, 24, 69), Font = new Font("Segoe UI", 10f, FontStyle.Bold), Padding = new Padding(2, 0, 0, 0) };
-                layout.Controls.Add(title, 0, 0);
-                Control content = RequiresExampleSubGroups(group) ? CreateExampleSubGroups(pagesInGroup) : CreateExampleTabControl(pagesInGroup);
-                layout.Controls.Add(content, 0, 1);
+                layout.Controls.Add(new Label { Text = group + " examples", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Color.FromArgb(31, 24, 69), Font = new Font("Segoe UI", 10f, FontStyle.Bold), Padding = new Padding(2, 0, 0, 0) }, 0, 0);
+                layout.Controls.Add(RequiresExampleSubGroups(group) ? CreateExampleSubGroups(pagesInGroup) : CreateExampleTabControl(pagesInGroup), 0, 1);
                 featurePage.Controls.Add(layout);
                 _tabs.TabPages.Add(featurePage);
             }
@@ -81,8 +79,8 @@ namespace HAgent.Example
 
         private static Control CreateExampleSubGroups(List<TabPage> pages)
         {
-            string[] subgroupOrder;
             var group = GetExampleFeatureGroup(pages[0].Text);
+            string[] subgroupOrder;
             if (string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
             else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Observability", "Evaluation", "Diagnostics", "Other Diagnostics" };
             else if (string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Goals & Plans", "Resource Governance", "Knowledge/Wiki", "Skills", "Learning", "Other Cognition" };
@@ -97,11 +95,10 @@ namespace HAgent.Example
                 if (!grouped.TryGetValue(subgroup, out target)) throw new InvalidOperationException("Example sub-group '" + subgroup + "' is not registered for feature '" + group + "', example '" + page.Text + "'.");
                 target.Add(page);
             }
-
             var subTabs = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9f), Padding = new Point(12, 5), Multiline = false };
             foreach (var subgroup in subgroupOrder)
             {
-                List<TabPage> childPages = grouped[subgroup];
+                var childPages = grouped[subgroup];
                 if (childPages.Count == 0) continue;
                 var subgroupPage = new TabPage(subgroup) { BackColor = Color.FromArgb(248, 248, 252), Padding = new Padding(8) };
                 subgroupPage.Controls.Add(CreateExampleTabControl(childPages));
@@ -147,9 +144,10 @@ namespace HAgent.Example
         {
             if (page == null) return false;
             int tabControlAncestors = 0;
-            Control current = page.Parent;
+            var current = page.Parent;
             while (current != null) { if (current is TabControl) tabControlAncestors++; current = current.Parent; }
-            return tabControlAncestors >= 2 && (GetExampleFeatureGroup(page.Text) == "Runtime" || GetExampleFeatureGroup(page.Text) == "Context");
+            var feature = GetExampleFeatureGroup(page.Text);
+            return tabControlAncestors >= 2 && (feature == "Runtime" || feature == "Context");
         }
 
         private static string GetExampleSubGroup(string title)
@@ -160,7 +158,7 @@ namespace HAgent.Example
             if (key == "DATA QUERY CONTRACT") return "Data Access Context";
             if (key.StartsWith("OBSERVABILITY", StringComparison.Ordinal)) return "Observability";
             if (key == "EVALUATION CONTRACTS" || key == "DETERMINISTIC EVALUATION" || key == "SUPPLIED EVALUATION RATINGS" || key == "MODEL-ASSISTED EVALUATION" || key == "EVALUATION AGGREGATION" || key == "EVALUATION REGRESSION SUITES") return "Evaluation";
-            if (key == "GOAL & INTENTION CONTRACTS") return "Goals & Plans";
+            if (key == "GOAL & INTENTION CONTRACTS" || key == "PLAN CONTRACTS") return "Goals & Plans";
             if (key == "RESOURCE GOVERNANCE") return "Resource Governance";
             if (key == "KNOWLEDGE/WIKI") return "Knowledge/Wiki";
             if (key == "SKILL DEFINITIONS" || key == "SKILLS") return "Skills";
@@ -190,7 +188,7 @@ namespace HAgent.Example
             if (key == "AUDIT LIFECYCLE" || key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key.Contains("TRACE") || key.Contains("OBSERVABILITY")) return "Diagnostics";
             if (key.Contains("EVALUATION")) return "Diagnostics";
             if (key == "AUTHORITATIVE RESOURCE INVENTORY" || key.Contains("CONFIGURATION")) return "Configuration";
-            if (key == "GOAL & INTENTION CONTRACTS" || key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILL DEFINITIONS" || key == "SKILLS" || key.StartsWith("LEARNING", StringComparison.Ordinal) || key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("COGNITION") || key == "INSTRUCTION CONTRACTS") return "Cognition";
+            if (key == "GOAL & INTENTION CONTRACTS" || key == "PLAN CONTRACTS" || key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILL DEFINITIONS" || key == "SKILLS" || key.StartsWith("LEARNING", StringComparison.Ordinal) || key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("COGNITION") || key == "INSTRUCTION CONTRACTS") return "Cognition";
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "QUOTA ADMISSION") return "Runtime";
             if (key.Contains("WORKSPACE")) return "Workspace";
             throw new InvalidOperationException("Example '" + title + "' has no explicit architecture feature classification. Add it to GetExampleFeatureGroup before registering the Example.");

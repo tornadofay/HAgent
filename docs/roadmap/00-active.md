@@ -2,29 +2,33 @@
 
 ## Current
 
-### 0.958 — Agent Lifecycle + Health
+### 0.9591 — Goal/Plan Persistence + Recovery
 
-**Slice 1 — Lifecycle state extension — CURRENT / ready to implement.**
+**Slice 1 — Durable goal/intention contracts — CURRENT / implemented, verification pending.**
 
-Phase 0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. The user verified its matching Examples on .NET Framework 4.8.1 and .NET 9 and reported the full `.NET 9` `HAgent.Tests` suite at **260/260 passed, 0 failed, 0 skipped** after runtime integration.
+Phase 0.958 Agent Lifecycle + Health is closed at Slice 1 after user verification on .NET Framework 4.8.1 and .NET 9 Windows and a full .NET 9 `HAgent.Tests` result of **266/266 passed, 0 failed, 0 skipped**.
 
-0.958 establishes explicit long-lived runtime lifecycle and health without creating a second runtime identity model. Its target architecture is `docs/architecture/102-runtime-lifecycle-health.md`.
+0.9591 establishes durable provider-neutral authority for long-lived goals, intentions, plans, checkpoints, and recovery without persisting transient execution machinery. Its ordered delivery boundary is `docs/roadmap/9591-goal-plan-persistence-recovery.md` and the detailed Slice 1 contract architecture is `docs/architecture/103-goal-plan-persistence-recovery.md`.
 
-#### Slice 1 — Lifecycle state extension
+#### Slice 1 — Durable goal/intention contracts
 
-- Extend the existing runtime lifecycle to `Active`, `Suspended`, `Recovering`, `Retired`, and terminal `Shutdown`.
-- Define valid/invalid transitions and terminal behavior.
-- Reject ordinary new runtime-originated work while suspended, recovering, retired, or shutdown.
-- Preserve execution identity, execution terminal-state handling, and stale-result protection.
-- Use lifecycle/revision changes to prevent obsolete asynchronous work from regaining authority.
-- Preserve runtime-owned durable state during suspension/recovery.
+- Define stable goal and intention IDs as distinct identities.
+- Define explicit goal/intention statuses and priority metadata.
+- Preserve constraints, provenance, timestamps, and revision metadata.
+- Distinguish `HostSupplied` goal state from `AgentInferred` state.
+- Define intention adoption metadata.
+- Preserve attributable reasons/evidence/authority for intention status changes.
 - Add focused tests and a matching Example through the normal Example registration/classification path.
 
-**Example to run:** the new Slice 1 runtime-lifecycle Example on .NET Framework 4.8.1 and .NET 9.
+**Example to run:** `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** the focused Slice 1 runtime-lifecycle test class/file, followed by the full `HAgent.Tests` regression suite.
+**Tests to run:** `tests/HAgent.Tests/GoalIntentionContractsTests.cs` focused first, followed by the full `HAgent.Tests` regression suite.
 
 ## Closed immediately before current phase
+
+### 0.958 — Agent Lifecycle + Health — CLOSED / VERIFIED
+
+Slice 1 is verified on both supported Example targets. The lifecycle Example verified state transitions, lifecycle revision capture, non-active admission rejection, stale-result invalidation, runtime-state persistence/restore, and shutdown cancellation. The full `.NET 9` regression suite passed **266/266**.
 
 ### 0.9576 — Learned Resource Reliability + Adaptation — CLOSED / VERIFIED
 
@@ -44,17 +48,9 @@ Slices 1–13 are verified. Authoritative detail: `docs/roadmap/9575-resource-go
 
 ## Planned order
 
-### 0.9591 — Goal/Plan Persistence + Recovery
-
-- Durable goals and intentions.
-- Durable plans and plan steps.
-- Checkpoints and outcome states.
-- Retry/idempotency records.
-- Restart recovery and stale-revision protection.
-
 ### 0.959 — Human-in-the-Loop + Intervention
 
-Consumes the canonical intervention boundary while 0.958 owns runtime lifecycle transitions caused by authorized intervention.
+Consumes the canonical intervention boundary while 0.959 owns runtime lifecycle transitions caused by authorized intervention.
 
 ### 0.9592 — Provider Ecosystem + Adapter Lifecycle
 

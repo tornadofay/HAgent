@@ -30,7 +30,7 @@ namespace HAgent.Tests
             var snapshot = instance.Progress;
             Assert.NotNull(snapshot);
             Assert.Equal(AiRuntimeProgressKind.Progress, snapshot.Kind);
-            Assert.Equal(25, snapshot.PercentComplete);
+            Assert.Equal(25, snapshot.PercentComplete.Value);
             Assert.Equal("running", snapshot.Detail);
 
             var secondRead = instance.Progress;

@@ -8,21 +8,27 @@ Phase 0.9576 Learned Resource Reliability + Adaptation is **VERIFIED through all
 
 ### Entry condition
 
-0.9576 is complete and user-verified on .NET Framework 4.8.1 and .NET 9, including runtime integration. The user reported the full `.NET 9` `HAgent.Tests` regression result at **260/260 passed, 0 failed, 0 skipped**. The five 0.9576 Examples were verified on both supported targets.
+0.9576 is complete and user-verified on .NET Framework 4.8.1 and .NET 9, including runtime integration. The user reported the full `.NET 9` `HAgent.Tests` regression result at **260/260 passed, 0 failed, 0 skipped** after Slice 5. The five 0.9576 Examples were verified on both supported targets.
 
-### Slice 1 — Lifecycle state extension — CURRENT
+### Slice 1 — Lifecycle state extension — IMPLEMENTED, VERIFICATION PENDING
 
-Implement the long-lived runtime lifecycle extension against the existing `AgentRuntimeInstance` foundation.
+The existing `AgentRuntimeInstance` foundation has been extended without creating a second runtime identity or execution model.
 
-- Preserve the existing runtime-instance identity and execution identity.
-- Extend the runtime lifecycle to `Active`, `Suspended`, `Recovering`, `Retired`, and terminal `Shutdown`.
-- Define explicit valid/invalid transitions and terminal behavior.
-- Prevent `Suspended`, `Recovering`, `Retired`, and `Shutdown` runtimes from originating ordinary new work.
-- Preserve existing execution terminal-state handling and stale-result protection.
-- Advance lifecycle authority/revision on valid transitions so obsolete asynchronous work cannot become authoritative again after lifecycle changes.
-- Preserve runtime-owned durable state during suspension/recovery; do not introduce durable goals/plans or provider-health routing here.
-- Use the canonical 0.959 intervention boundary when an authorized intervention causes a lifecycle transition; 0.958 owns the target transition, not a second approval mechanism.
-- Add deterministic focused tests and a matching public-API Example.
+Implemented:
+
+- Runtime states are `Active`, `Suspended`, `Recovering`, `Retired`, and terminal `Shutdown`.
+- Valid/invalid lifecycle transitions are enforced explicitly; invalid and duplicate transitions do not advance lifecycle revision.
+- Non-active runtimes cannot originate ordinary new execution.
+- Lifecycle transitions advance a dedicated lifecycle revision; executions capture both execution revision and lifecycle revision.
+- `IsExecutionCurrent` requires the execution to belong to the instance, remain under the current execution revision, remain under the current lifecycle revision, and remain in `Active` state.
+- Runtime-state restoration preserves lifecycle state and lifecycle revision.
+- File, SQL Server, and MySQL runtime-state persistence preserve lifecycle revision; existing database schemas are extended in place with a default zero revision.
+- The canonical runtime-instance execution overload propagates all provider-neutral request snapshot fields while binding runtime identity, overrides, shutdown cancellation, and lifecycle/execution revisions.
+- The existing lifecycle Example is now `RUNTIME LIFECYCLE` and covers transition/admission/revision/stale-result/persistence/shutdown behavior.
+- A focused `tests/HAgent.Tests/RuntimeLifecycleTests.cs` test class covers deterministic lifecycle and persistence contracts.
+- `.github/workflows/verify-phase-0-958-slice-1.yml` verifies Core and Example builds for both supported targets, focused lifecycle tests, and the full .NET 9 test suite on `master` pushes.
+
+No health, provider-health, durable-goal/plan, or later recovery-cognition work was started.
 
 ### Authoritative architecture
 
@@ -30,11 +36,11 @@ Implement the long-lived runtime lifecycle extension against the existing `Agent
 
 ### Example and verification checkpoint
 
-**Example to run:** `HAgent.Example →` the new architecture-classified runtime lifecycle Example for Slice 1, on .NET Framework 4.8.1 and .NET 9.
+**Example to run:** `HAgent.Example → RUNTIME LIFECYCLE` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** the focused Slice 1 runtime-lifecycle test class/file, then the full `HAgent.Tests` regression suite required by the phase.
+**Tests to run:** `tests/HAgent.Tests/RuntimeLifecycleTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
 
-Record the exact Example title and focused test file here before closing the slice if implementation changes their final names.
+**Verification status:** implementation is committed to `master`; repository-side verification is configured by the new 0.958 workflow, but the Example remains a manual WinForms run and Slice 1 is not closed until focused tests, the full regression suite, and both Example targets are actually executed and recorded.
 
 ### Run rule
 

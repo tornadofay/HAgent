@@ -1,8 +1,8 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using HAgent.Abstractions;
 using HAgent.Models;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HAgent.Runtime
 {
@@ -65,10 +65,13 @@ namespace HAgent.Runtime
                 throw new InvalidOperationException("Lifecycle state must be initialized before revalidation.");
 
             var previousStatus = current.Status;
-            if (current.Status == AiLearnedResourceLifecycleStatus.Retired)
+            if (current.Status == AiLearnedResourceLifecycleStatus.Retired ||
+                current.Status == AiLearnedResourceLifecycleStatus.Archived)
             {
                 return CreateResult(current, previousStatus, AiLearnedResourceCondition.Current,
-                    "Retired learned resources remain retired and cannot be reactivated by revalidation.",
+                    current.Status == AiLearnedResourceLifecycleStatus.Retired
+                        ? "Retired learned resources remain retired and cannot be reactivated by revalidation."
+                        : "Archived learned resources remain archived until the governed retention boundary explicitly restores them.",
                     null, null, request.EvaluatedAtUtc);
             }
 
@@ -125,6 +128,69 @@ namespace HAgent.Runtime
                 request.EvaluatedAtUtc);
         }
 
+        public async Task<AiLearnedResourceRetentionResult> AssessRetentionAsync(
+            AiLearnedResourceRetentionRequest request,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            request.Validate();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var current = await _store.GetAsync(request.Identity, cancellationToken).ConfigureAwait(false);
+            if (current == null)
+                throw new InvalidOperationException("Lifecycle state must be initialized before retention assessment.");
+
+            var previousStatus = current.Status;
+            var decision = DetermineRetentionDecision(current, request);
+            var targetStatus = DetermineRetentionStatus(current.Status, decision);
+            var reason = BuildRetentionReason(current, request, decision);
+
+            if (decision == AiLearnedResourceRetentionDecision.Keep && current.Status != AiLearnedResourceLifecycleStatus.Archived)
+            {
+                return CreateRetentionResult(current, previousStatus, decision, request.UtilityScore, false, reason, null, null, request.EvaluatedAtUtc);
+            }
+
+            var authorization = EvaluateRetentionPolicy(request, current, decision, targetStatus);
+            if (authorization == null)
+                throw new InvalidOperationException("The policy engine returned no learned-resource retention decision.");
+            if (!authorization.IsAllowed)
+                throw new UnauthorizedAccessException("Learned-resource retention update denied: " + (authorization.Reason ?? string.Empty));
+
+            current.LastRetentionUtilityScore = request.UtilityScore;
+            current.LastRetentionDecision = decision;
+            current.LastRetentionAssessedAtUtc = request.EvaluatedAtUtc;
+            current.RetentionAssessmentCount++;
+            current.LastReason = reason;
+
+            if (targetStatus != current.Status)
+            {
+                current.History.Add(new AiLearnedResourceLifecycleEvent
+                {
+                    OccurredAtUtc = request.EvaluatedAtUtc,
+                    FromStatus = current.Status,
+                    ToStatus = targetStatus,
+                    Condition = current.LastCondition,
+                    Reason = reason,
+                    PolicyRuleId = authorization.RuleId,
+                    PolicyVersion = authorization.PolicyVersion
+                });
+                while (current.History.Count > 64)
+                    current.History.RemoveAt(0);
+                current.LastTransitionAtUtc = request.EvaluatedAtUtc;
+                current.Status = targetStatus;
+            }
+
+            current.Revision++;
+            current.Validate();
+
+            var expectedRevision = current.Revision - 1;
+            if (!await _store.TryUpdateAsync(current, expectedRevision, cancellationToken).ConfigureAwait(false))
+                throw new InvalidOperationException("Learned-resource retention state changed before it could be committed. Retry from the latest revision.");
+
+            return CreateRetentionResult(current, previousStatus, decision, request.UtilityScore, targetStatus != previousStatus, reason,
+                authorization.RuleId, authorization.PolicyVersion, request.EvaluatedAtUtc);
+        }
+
         public async Task<AiLearningCandidate> CreateReplacementCandidateAsync(
             AiLearnedResourceReplacementCandidateRequest request,
             CancellationToken cancellationToken = default(CancellationToken))
@@ -160,6 +226,77 @@ namespace HAgent.Runtime
             return await Task.FromResult(candidate).ConfigureAwait(false);
         }
 
+        private static AiLearnedResourceRetentionDecision DetermineRetentionDecision(
+            AiLearnedResourceLifecycleRecord current,
+            AiLearnedResourceRetentionRequest request)
+        {
+            if (current.Status == AiLearnedResourceLifecycleStatus.Retired)
+                return AiLearnedResourceRetentionDecision.Keep;
+
+            if (current.Status == AiLearnedResourceLifecycleStatus.Archived)
+                return request.ExplicitRetentionRequested && !request.Contradicted && !request.Superseded
+                    ? AiLearnedResourceRetentionDecision.Restore
+                    : AiLearnedResourceRetentionDecision.Keep;
+
+            if (request.ExplicitRetentionRequested)
+                return AiLearnedResourceRetentionDecision.Keep;
+
+            if (request.ExplicitRetirementRequested)
+                return AiLearnedResourceRetentionDecision.Retire;
+
+            var stale = request.EvaluatedAtUtc - (request.LastUsedAtUtc ?? current.PromotedAtUtc) >= request.StaleAfter;
+            var persistentLowUtility = request.UtilityScore <= 0.25m && request.ConsecutiveLowUtilityAssessments >= 3;
+            var higherAuthorityResource = request.AuthorityRank >= request.HighestKnownCompetingAuthorityRank && request.HighestKnownCompetingAuthorityRank > 0;
+
+            if (higherAuthorityResource && !request.Contradicted && !request.ExplicitRetirementRequested)
+                return AiLearnedResourceRetentionDecision.Keep;
+
+            if (request.Superseded || request.Contradicted || stale || persistentLowUtility)
+                return AiLearnedResourceRetentionDecision.Archive;
+
+            return AiLearnedResourceRetentionDecision.Keep;
+        }
+
+        private static AiLearnedResourceLifecycleStatus DetermineRetentionStatus(
+            AiLearnedResourceLifecycleStatus current,
+            AiLearnedResourceRetentionDecision decision)
+        {
+            switch (decision)
+            {
+                case AiLearnedResourceRetentionDecision.Archive:
+                    return AiLearnedResourceLifecycleStatus.Archived;
+                case AiLearnedResourceRetentionDecision.Retire:
+                    return AiLearnedResourceLifecycleStatus.Retired;
+                case AiLearnedResourceRetentionDecision.Restore:
+                    return AiLearnedResourceLifecycleStatus.Active;
+                default:
+                    return current;
+            }
+        }
+
+        private static string BuildRetentionReason(
+            AiLearnedResourceLifecycleRecord current,
+            AiLearnedResourceRetentionRequest request,
+            AiLearnedResourceRetentionDecision decision)
+        {
+            switch (decision)
+            {
+                case AiLearnedResourceRetentionDecision.Archive:
+                    if (request.Superseded) return "The learned resource is superseded; archive the existing version without mutating its definition.";
+                    if (request.Contradicted) return "The learned resource is contradicted; archive its existing version while preserving provenance.";
+                    if (request.UtilityScore <= 0.25m && request.ConsecutiveLowUtilityAssessments >= 3) return "Utility remained below the bounded retention threshold across repeated assessments.";
+                    return "The learned resource exceeded its bounded freshness window and is eligible for archival.";
+                case AiLearnedResourceRetentionDecision.Retire:
+                    return "A governed explicit retirement request was accepted by policy.";
+                case AiLearnedResourceRetentionDecision.Restore:
+                    return "The archived resource passed the explicit retention recovery boundary and may return to active lifecycle state.";
+                default:
+                    return current.Status == AiLearnedResourceLifecycleStatus.Retired
+                        ? "Retired learned resources remain retired."
+                        : "Retention evidence does not justify a lifecycle state change.";
+            }
+        }
+
         private static AiLearnedResourceCondition DetermineCondition(
             AiLearnedResourceLifecycleRecord lifecycle,
             AiLearnedResourceRevalidationRequest request)
@@ -193,8 +330,8 @@ namespace HAgent.Runtime
             AiLearnedResourceCondition condition,
             AiEvaluation evaluation)
         {
-            if (current == AiLearnedResourceLifecycleStatus.Retired)
-                return AiLearnedResourceLifecycleStatus.Retired;
+            if (current == AiLearnedResourceLifecycleStatus.Retired || current == AiLearnedResourceLifecycleStatus.Archived)
+                return current;
 
             if (condition == AiLearnedResourceCondition.Contradicted)
                 return AiLearnedResourceLifecycleStatus.Quarantined;
@@ -256,6 +393,35 @@ namespace HAgent.Runtime
             return _policyEngine.Evaluate(context);
         }
 
+        private AiPolicyDecision EvaluateRetentionPolicy(
+            AiLearnedResourceRetentionRequest request,
+            AiLearnedResourceLifecycleRecord current,
+            AiLearnedResourceRetentionDecision decision,
+            AiLearnedResourceLifecycleStatus targetStatus)
+        {
+            var context = new AiPolicyEvaluationContext
+            {
+                Operation = "resource.lifecycle.retention",
+                ResourceType = request.Identity.ResourceType,
+                ResourceId = request.Identity.ResourceId,
+                Identity = request.PolicyIdentity.Clone()
+            };
+            context.Attributes["resourceVersion"] = request.Identity.Version.HasValue ? request.Identity.Version.Value.ToString() : string.Empty;
+            context.Attributes["resourceScope"] = request.Identity.Scope.ToString();
+            context.Attributes["previousStatus"] = current.Status.ToString();
+            context.Attributes["decision"] = decision.ToString();
+            context.Attributes["targetStatus"] = targetStatus.ToString();
+            context.Attributes["utilityScore"] = request.UtilityScore.ToString("0.000");
+            context.Attributes["validatedUseCount"] = request.ValidatedUseCount.ToString();
+            context.Attributes["consecutiveLowUtilityAssessments"] = request.ConsecutiveLowUtilityAssessments.ToString();
+            context.Attributes["superseded"] = request.Superseded.ToString();
+            context.Attributes["contradicted"] = request.Contradicted.ToString();
+            context.Attributes["authorityRank"] = request.AuthorityRank.ToString();
+            context.Attributes["competingAuthorityRank"] = request.HighestKnownCompetingAuthorityRank.ToString();
+            context.Validate();
+            return _policyEngine.Evaluate(context);
+        }
+
         private AiPolicyDecision EvaluateReplacementPolicy(AiLearnedResourceReplacementCandidateRequest request)
         {
             var context = new AiPolicyEvaluationContext
@@ -289,6 +455,36 @@ namespace HAgent.Runtime
                 Condition = condition,
                 Revision = record.Revision,
                 ReplacementRecommended = condition != AiLearnedResourceCondition.Current,
+                PolicyRuleId = policyRuleId,
+                PolicyVersion = policyVersion,
+                Reason = reason,
+                EvaluatedAtUtc = evaluatedAtUtc
+            };
+            result.Validate();
+            return result;
+        }
+
+        private static AiLearnedResourceRetentionResult CreateRetentionResult(
+            AiLearnedResourceLifecycleRecord record,
+            AiLearnedResourceLifecycleStatus previousStatus,
+            AiLearnedResourceRetentionDecision decision,
+            decimal utilityScore,
+            bool changed,
+            string reason,
+            string policyRuleId,
+            string policyVersion,
+            DateTimeOffset evaluatedAtUtc)
+        {
+            var result = new AiLearnedResourceRetentionResult
+            {
+                Identity = record.Identity.Clone(),
+                PreviousStatus = previousStatus,
+                Status = record.Status,
+                Decision = decision,
+                UtilityScore = utilityScore,
+                EligibleForAction = changed,
+                Restorable = record.IsRestorable,
+                Revision = record.Revision,
                 PolicyRuleId = policyRuleId,
                 PolicyVersion = policyVersion,
                 Reason = reason,

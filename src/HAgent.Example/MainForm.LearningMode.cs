@@ -17,6 +17,8 @@ namespace HAgent.Example
                 TestLearningModeAsync,
                 "Learning governance boundary",
                 "Learning Mode controls the learning lifecycle policy. It is deliberately separate from Skills, Knowledge, Memory, or other capability enablement.");
+
+            AddLearningExtensionTabs();
         }
 
         private Task TestLearningModeAsync(string unused)

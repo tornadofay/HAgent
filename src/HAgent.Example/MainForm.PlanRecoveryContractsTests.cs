@@ -33,8 +33,7 @@ namespace HAgent.Example
                 RevisionReason = "Recovery example"
             };
             plan.Provenance.Source = "Example";
-            plan.Provenance.Authority = "Host";
-            plan.Provenance.RecordedAt = now;
+            plan.Provenance.Authority = AiGoalAuthority.HostSupplied;
 
             plan.Steps.Add(new AiPlanStep
             {
@@ -55,11 +54,9 @@ namespace HAgent.Example
                 Revision = 3L
             });
             plan.Steps[0].Provenance.Source = "Example";
-            plan.Steps[0].Provenance.Authority = "Host";
-            plan.Steps[0].Provenance.RecordedAt = now;
+            plan.Steps[0].Provenance.Authority = AiGoalAuthority.HostSupplied;
             plan.Steps[1].Provenance.Source = "Example";
-            plan.Steps[1].Provenance.Authority = "Host";
-            plan.Steps[1].Provenance.RecordedAt = now;
+            plan.Steps[1].Provenance.Authority = AiGoalAuthority.HostSupplied;
             plan.Validate();
 
             var unknownOperation = new AiPlanStepOperation(
@@ -96,7 +93,7 @@ namespace HAgent.Example
                 "Plan revision preserved: " + record.PlanRevision + Environment.NewLine +
                 "Previous authority invalidated: " + (record.PreviousAuthorityInvalidated ? "yes" : "no") + Environment.NewLine +
                 "Interrupted step recovery: " + record.StepDecisions[0].Disposition + Environment.NewLine +
-                "Unknown operation host review: " + record.StepDecisions[0].Disposition + Environment.NewLine +
+                "Unknown operation host review: " + (record.StepDecisions[0].Disposition == AiPlanRecoveryStepDisposition.RequiresHostReview ? "yes" : "no") + Environment.NewLine +
                 "Completed step revived: no");
 
             return Task.CompletedTask;

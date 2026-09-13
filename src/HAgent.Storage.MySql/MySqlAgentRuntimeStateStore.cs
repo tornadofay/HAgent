@@ -30,10 +30,25 @@ namespace HAgent.Storage.MySql
                     SessionId varchar(128) NULL,
                     Scope varchar(50) NOT NULL,
                     State varchar(50) NOT NULL,
+                    LifecycleRevision bigint NOT NULL DEFAULT 0,
                     CreatedAt datetime(6) NOT NULL,
                     UpdatedAt datetime(6) NOT NULL,
                     PRIMARY KEY (InstanceId)
                 ) ENGINE=InnoDB;",
+                @"SET @hagent_runtime_lifecycle_revision_exists := (
+                    SELECT COUNT(*) FROM information_schema.columns
+                    WHERE table_schema = DATABASE()
+                      AND table_name = 'HAgentRuntimeInstances'
+                      AND column_name = 'LifecycleRevision'
+                );",
+                @"SET @hagent_runtime_lifecycle_revision_sql := IF(
+                    @hagent_runtime_lifecycle_revision_exists = 0,
+                    'ALTER TABLE HAgentRuntimeInstances ADD COLUMN LifecycleRevision bigint NOT NULL DEFAULT 0',
+                    'SELECT 1'
+                );",
+                @"PREPARE hagent_runtime_lifecycle_revision_stmt FROM @hagent_runtime_lifecycle_revision_sql;",
+                @"EXECUTE hagent_runtime_lifecycle_revision_stmt;",
+                @"DEALLOCATE PREPARE hagent_runtime_lifecycle_revision_stmt;",
                 @"CREATE INDEX IX_HAgentRuntimeInstances_ProfileUpdated ON HAgentRuntimeInstances (ProfileId, UpdatedAt);",
                 @"CREATE INDEX IX_HAgentRuntimeInstances_HostUser ON HAgentRuntimeInstances (HostInstanceId, UserId, UpdatedAt);",
                 @"CREATE INDEX IX_HAgentRuntimeInstances_Workspace ON HAgentRuntimeInstances (WorkspaceId, UpdatedAt);"
@@ -63,12 +78,12 @@ namespace HAgent.Storage.MySql
         {
             ValidateRecord(record);
             const string sql = @"INSERT INTO HAgentRuntimeInstances
-(InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, CreatedAt, UpdatedAt)
-VALUES (@InstanceId, @ProfileId, @HostInstanceId, @UserId, @WorkspaceId, @SessionId, @Scope, @State, @CreatedAt, @UpdatedAt)
+(InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt)
+VALUES (@InstanceId, @ProfileId, @HostInstanceId, @UserId, @WorkspaceId, @SessionId, @Scope, @State, @LifecycleRevision, @CreatedAt, @UpdatedAt)
 ON DUPLICATE KEY UPDATE
 ProfileId=VALUES(ProfileId), HostInstanceId=VALUES(HostInstanceId), UserId=VALUES(UserId),
 WorkspaceId=VALUES(WorkspaceId), SessionId=VALUES(SessionId), Scope=VALUES(Scope), State=VALUES(State),
-CreatedAt=VALUES(CreatedAt), UpdatedAt=VALUES(UpdatedAt);";
+LifecycleRevision=VALUES(LifecycleRevision), CreatedAt=VALUES(CreatedAt), UpdatedAt=VALUES(UpdatedAt);";
             using (var connection = new MySqlConnection(_connectionString))
             using (var command = new MySqlCommand(sql, connection))
             {
@@ -81,7 +96,7 @@ CreatedAt=VALUES(CreatedAt), UpdatedAt=VALUES(UpdatedAt);";
         public async Task<AgentRuntimeStateRecord> GetAsync(string instanceId, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrWhiteSpace(instanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(instanceId));
-            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, CreatedAt, UpdatedAt
+            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt
 FROM HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
             using (var connection = new MySqlConnection(_connectionString))
             using (var command = new MySqlCommand(sql, connection))
@@ -96,7 +111,7 @@ FROM HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
         public async Task<IReadOnlyList<AgentRuntimeStateRecord>> SearchAsync(AgentRuntimeStateQuery query, CancellationToken cancellationToken = default(CancellationToken))
         {
             query = query ?? new AgentRuntimeStateQuery();
-            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, CreatedAt, UpdatedAt
+            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt
 FROM HAgentRuntimeInstances
 WHERE (@HostInstanceId='' OR HostInstanceId=@HostInstanceId)
   AND (@UserId='' OR UserId=@UserId)
@@ -146,6 +161,7 @@ ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
             command.Parameters.AddWithValue("@SessionId", DbValue(record.SessionId));
             command.Parameters.AddWithValue("@Scope", record.Scope.ToString());
             command.Parameters.AddWithValue("@State", record.State.ToString());
+            command.Parameters.AddWithValue("@LifecycleRevision", record.LifecycleRevision);
             command.Parameters.AddWithValue("@CreatedAt", record.CreatedAt.UtcDateTime);
             command.Parameters.AddWithValue("@UpdatedAt", record.UpdatedAt.UtcDateTime);
         }
@@ -166,8 +182,9 @@ ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
                 WorkspaceId = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
                 SessionId = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
                 Scope = scope, State = state,
-                CreatedAt = new DateTimeOffset(reader.GetDateTime(8), TimeSpan.Zero),
-                UpdatedAt = new DateTimeOffset(reader.GetDateTime(9), TimeSpan.Zero)
+                LifecycleRevision = reader.GetInt64(8),
+                CreatedAt = new DateTimeOffset(reader.GetDateTime(9), TimeSpan.Zero),
+                UpdatedAt = new DateTimeOffset(reader.GetDateTime(10), TimeSpan.Zero)
             };
         }
 
@@ -176,6 +193,7 @@ ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
             if (record == null) throw new ArgumentNullException(nameof(record));
             if (string.IsNullOrWhiteSpace(record.InstanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(record));
             if (string.IsNullOrWhiteSpace(record.ProfileId)) throw new ArgumentException("Runtime profile ID is required.", nameof(record));
+            if (record.LifecycleRevision < 0) throw new ArgumentException("Runtime lifecycle revision cannot be negative.", nameof(record));
         }
     }
 }

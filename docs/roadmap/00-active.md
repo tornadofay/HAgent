@@ -4,9 +4,9 @@
 
 ### 0.958 — Agent Lifecycle + Health
 
-**Slice 2 — Health state — IMPLEMENTED / VERIFICATION PENDING.**
+**Slice 3 — Progress and recovery signals — IMPLEMENTED / VERIFICATION PENDING.**
 
-0.958 owns runtime-agent lifecycle and runtime health on the existing `AgentRuntimeInstance` foundation. Slice 1 is closed and verified on both supported Example targets and the full `.NET 9` regression suite passed **266/266**.
+0.958 owns runtime-agent lifecycle, runtime health, bounded runtime progress evidence, stall assessment, and explicit recovery outcomes on the existing `AgentRuntimeInstance` foundation.
 
 #### Slice 1 — Lifecycle state extension — CLOSED / VERIFIED
 
@@ -17,7 +17,7 @@
 - Preserve runtime-owned durable state during suspension/recovery.
 - Add focused tests and the matching lifecycle Example.
 
-#### Slice 2 — Health state — IMPLEMENTED / VERIFICATION PENDING
+#### Slice 2 — Health state — CLOSED / VERIFIED
 
 - Define normalized health status: `Healthy`, `Degraded`, `Failed`, `Unknown`.
 - Bound health reason/evidence metadata.
@@ -26,23 +26,29 @@
 - Do not treat slow but valid inference as failed from elapsed time alone.
 - Keep health separate from lifecycle and authorization.
 - Persist health through the existing runtime-state persistence boundary without creating a parallel repository.
-- Add focused tests and a matching public Example through the normal Example registration/classification path.
 
-**Implementation checkpoint:** `AiRuntimeHealth` is owned by `AgentRuntimeInstance`; health is persisted through the existing File/SQL Server/MySQL runtime-state stores; focused tests are in `tests/HAgent.Tests/RuntimeHealthTests.cs`; Example is `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH`.
+**Verified:** both required RUNTIME HEALTH Examples succeeded on .NET Framework 4.8.1 and .NET 9; the full `.NET 9` `HAgent.Tests` suite reported **276/276 passed, 0 failed, 0 skipped**.
 
-**Verification to run:** the RUNTIME HEALTH Example on .NET Framework 4.8.1 and .NET 9 Windows, then focused and full `HAgent.Tests` regression verification.
+#### Slice 3 — Progress and recovery signals — IMPLEMENTED / VERIFICATION PENDING
+
+- Provide bounded progress/heartbeat metadata where a host needs it.
+- Require strictly increasing progress evidence sequence numbers.
+- Detect clearly stalled work only when a host-configured silence threshold and an actual progress/heartbeat observation support that conclusion.
+- Do not mutate lifecycle automatically from a stall assessment.
+- Support explicit transition into `Recovering` without creating a second runtime identity or deleting durable runtime state.
+- Make recovery outcome explicit as succeeded, failed, or cancelled.
+- Complete recovery only from `Recovering`, advancing lifecycle revision and preserving runtime identity.
+- Do not allow failed/cancelled recovery to return directly to `Active`.
+
+**Implementation checkpoint:** `AiRuntimeProgressSnapshot`, `AiRuntimeStallPolicy`, `AiRuntimeProgressMonitor`, `AiRuntimeRecoveryResult`, and `AgentRuntimeInstance` progress/recovery APIs are implemented; focused tests are in `tests/HAgent.Tests/RuntimeProgressRecoveryTests.cs`; Example is `HAgent.Example → Runtime → Runtime Instances → RUNTIME PROGRESS & RECOVERY`.
+
+**Verification to run:** the RUNTIME PROGRESS & RECOVERY Example on .NET Framework 4.8.1 and .NET 9 Windows, then focused and full `HAgent.Tests` regression verification.
 
 ## Closed immediately before current phase
 
 ### 0.9576 — Learned Resource Reliability + Adaptation — CLOSED / VERIFIED
 
-All five slices are complete:
-
-1. Applicability and validity.
-2. Reliability evidence and validated outcome feedback.
-3. Adaptation, staleness, contradiction, and revalidation.
-4. Forgetting and archival.
-5. Runtime integration.
+All five slices are complete.
 
 Authoritative detail: `docs/roadmap/9576-learned-resource-reliability-adaptation-consolidation.md`.
 

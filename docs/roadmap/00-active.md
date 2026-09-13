@@ -27,7 +27,7 @@ Verified on both required Example targets; full `.NET 9` `HAgent.Tests`: **283/2
 - Adapt detached runtime observations into the existing `IEventDispatcher` / `EventEnvelope` boundary using Runtime source/scope.
 - Keep observability descriptive only; it does not authorize, route, or mutate runtime state.
 - Focused tests: `tests/HAgent.Tests/RuntimeObservabilityTests.cs` and `tests/HAgent.Tests/RuntimeObservationPublisherTests.cs`.
-- Example: `HAgent.Example → Runtime → Runtime Instances → RUNTIME OBSERVABILITY`.
+- Example: `HAgent.Example → Runtime → Diagnostics → RUNTIME OBSERVABILITY`.
 
 **Verification to run:** the RUNTIME OBSERVABILITY Example on .NET Framework 4.8.1 and .NET 9 Windows, then both focused test classes and the full `HAgent.Tests` regression suite.
 

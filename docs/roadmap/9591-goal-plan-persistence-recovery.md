@@ -2,7 +2,7 @@
 
 ## Status
 
-**CURRENT — Slices 1–4 verified/closed; Slice 5 current.**
+**CURRENT — Slices 1–5 verified/closed; Slice 6 current.**
 
 Phase 0.958 Agent Lifecycle and Health Management is closed/verified. Slice 1 of 0.9591 was built ahead of roadmap and is now formally accepted as the phase foundation after phase-entry review.
 
@@ -87,7 +87,7 @@ Implementation surface: `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.
 
 **Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **300/300 passed, 0 failed, 0 skipped**. The verified Example showed failed-operation retry allowed only under explicit safety, unknown-operation retry requiring reconciliation, and unknown outcomes not automatically retryable.
 
-### Slice 5 — Restart and recovery — CURRENT / IMPLEMENTING
+### Slice 5 — Restart and recovery — CLOSED / VERIFIED
 
 - Recover the latest durable goal/plan revision after process restart or crash without creating an implicit new plan revision.
 - Require a new runtime instance identity and an advanced execution revision for recovery authority.
@@ -99,13 +99,18 @@ Implementation surface: `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.
 
 Implementation surface: `src/HAgent.Core/Models/AiPlanRecoveryContracts.cs`; focused tests: `tests/HAgent.Tests/PlanRecoveryContractsTests.cs`; Example: `HAgent.Example → Cognition → Goals & Plans → RESTART & RECOVERY`.
 
-**Verification checkpoint:** Run the matching Example on .NET Framework 4.8.1 and .NET 9 Windows, then the focused Slice 5 tests and the full `HAgent.Tests` regression suite. Do not begin Slice 6 until those results are recorded.
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **306/306 passed, 0 failed, 0 skipped**. The verified recovery contract preserved plan revision, invalidated previous authority, required host review for unknown/requested external outcomes, and never revived a completed step.
 
-### Slice 6 — Persistence backends and verification
+### Slice 6 — Persistence backends and verification — CURRENT
 
-- Reuse the existing HAgent storage abstraction.
-- Keep File, SQL Server, and MySQL behavior aligned where each backend is supported by the current milestone.
-- Verify checkpoint creation, restart recovery, stale revisions, duplicate retries, unknown outcomes, plan supersession, cancellation, and crash-safe recovery.
+- Reuse the existing HAgent storage abstraction rather than introducing a second persistence model.
+- Extend the canonical provider-neutral storage boundary for durable goals, intentions, plans, checkpoints/outcomes, retry/idempotency state, and recovery records.
+- Implement aligned File, SQL Server, and MySQL persistence where the backend assemblies are supported by the current milestone.
+- Preserve atomic revision/authority semantics so stale work cannot overwrite newer durable state.
+- Verify checkpoint creation, restart recovery, stale revisions, duplicate retries, unknown outcomes, plan supersession, cancellation, and crash-safe recovery across supported persistence boundaries.
+- Keep external side effects host-authoritative and keep transient execution machinery out of persistence.
+
+Current architecture evidence: `IAiStore`, `IAgentRuntimeStateStore`, and `IExecutionAuditStore` are existing Core persistence boundaries, with backend-specific implementations outside Core. Slice 6 should extend this canonical pattern instead of creating a parallel storage abstraction.
 
 ## Architectural rules
 
@@ -116,6 +121,7 @@ Implementation surface: `src/HAgent.Core/Models/AiPlanRecoveryContracts.cs`; foc
 5. Recovery decisions are attributable to evidence and policy.
 6. Do not introduce a second plan model for intervention or cognition.
 7. Keep the phase host-neutral; host side effects remain outside Core.
+8. Storage APIs remain provider-neutral and cancellation-aware; provider-specific SQL/file details stay in storage assemblies.
 
 ## Dependency order
 

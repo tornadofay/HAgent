@@ -1,85 +1,57 @@
-The durable candidate boundary is now closed. It remains separate from authoritative resource publication.
+# Current State
 
-### Slice 10 — Authoritative Promotion + Version-Safe Resource Creation — VERIFIED
+## Current phase
 
-Verified by user on 2026-09-11.
+**0.958 — Agent Lifecycle and Health Management**
 
-- .NET Framework 4.8.1 Example succeeded.
-- .NET 9 Example succeeded.
-- Both Examples verified Memory promotion, creation of a new published Knowledge version, creation of a new immutable Skill version, fresh unified promotion authorization, publication-before-lifecycle transition, provenance evidence, and no mutation of existing published Knowledge or Skill versions.
-- Full `HAgent.Tests`: **205/205 passed, 0 failed, 0 skipped** on .NET 9.
+Slice 1 is the only active implementation slice and is ready to implement after the documentation reconciliation checkpoint.
 
-The authoritative promotion boundary is now closed.
+## 0.9576 completion
 
-### Slice 11 — Context, Instruction, Runtime, and Observability Integration — VERIFIED
+Phase 0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. The five matching Examples were verified by the user on .NET Framework 4.8.1 and .NET 9.
 
-Verified by user on 2026-09-11.
+The user reported the full `.NET 9` `HAgent.Tests` regression suite at **260/260 passed, 0 failed, 0 skipped** after Slice 5.
 
-- .NET Framework 4.8.1 Example succeeded.
-- .NET 9 Example succeeded.
-- Both Examples verified provider-neutral learned instruction, policy/capability-gated learned context, bounded execution context snapshots, authoritative runtime outcome observation capture, non-creation of candidates from observations, and non-authoritative prompt text.
-- Full `HAgent.Tests`: **208/208 passed, 0 failed, 0 skipped** on .NET 9.
+The completed boundaries are:
 
-The execution-integration boundary is now closed.
-
-### Slice 12 — Learning Review management UI — VERIFIED
-
-Verified by user on 2026-09-11.
-
-- .NET Framework 4.8.1 real WinForms configuration flow succeeded.
-- .NET 9 real WinForms configuration flow succeeded.
-- Durable candidate-store reopen was verified on both targets.
-- Manual workflow verified: `Learning Review Seed` → `Configuration → Learning Review` → inspect/filter → Approve → Promote → `Learning Review Verify`.
-- Final candidate status was `Promoted` with lifecycle revision `3` on both targets.
-- Reviewer identity evidence persisted.
-- Review/promotion authorization evidence persisted with outcome `Allow`.
-- The management surface reused the existing provider-neutral `AiLearningPromotionService`; WinForms did not directly publish authoritative resources.
-
-The complete Learning Review management boundary is now closed.
-
-### 0.9575 Resource Inventory + Detail Inspection — VERIFIED
-
-Verified by user on 2026-09-12 on both .NET Framework 4.8.1 and .NET 9:
-
-- `HAgent.Example → Authoritative Resource Inventory` succeeded on both targets.
-- Unified Memory / Knowledge / Skill inventory projection succeeded.
-- Real `InMemoryMemoryStore` → Memory inventory source projection succeeded.
-- Provider-neutral Knowledge source → inventory projection succeeded.
-- Authoritative-only, resource-type, text, lifecycle, version, updated-time, owner, deterministic ordering, and bounded paging behavior succeeded.
-- Readable Memory / Knowledge / Skill detail inspection succeeded.
-- Skill storage-specific enumeration remains deferred because its current contract exposes lookup but not generic authoritative enumeration.
-
-Architecture: `docs/architecture/95-authoritative-resource-inventory.md`, `docs/architecture/96-resource-detail-inspection.md`.
-
-The 0.9575 management inventory increment is closed.
-
-## Current phase — 0.9576 Learned Resource Reliability + Adaptation
-
-### Slice 1 — Applicability and validity — VERIFIED
-
-User verified `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9 on 2026-09-12. The user subsequently reported the full .NET 9 regression suite at **234/234 passed, 0 failed, 0 skipped**.
-
-The applicability boundary is closed: deterministic `Applicable`, `NotApplicable`, `Uncertain`, and `Invalidated` outcomes; bounded evidence; scope-aware evaluation; and separation from authorization.
-
-Architecture: `docs/architecture/97-learned-resource-applicability.md`.
-
-### Slice 2 — Reliability evidence and outcome feedback — VERIFIED
-
-User verified `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9 on 2026-09-13 and reported the full .NET 9 regression suite at **242/242 passed, 0 failed, 0 skipped**.
-
-The reliability boundary is closed: post-promotion reliability is version-scoped, policy-controlled, revision-safe, provenance-preserving, and separate from both promotion evidence and authoritative resource mutation.
-
-Architecture: `docs/architecture/98-learned-resource-reliability.md`.
-
-Example organization was also hardened so unclassified examples no longer fall through to Diagnostics; feature and subgroup classification now fails closed and requires an explicit architecture mapping.
-
-**Tests:** `HAgent.Tests → LearnedResourceReliabilityTests.cs`, plus the full regression suite reported at 242/242 on .NET 9.
-
-**Example:** `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
-
-## Remaining 0.9576 work
-
-- staleness, contradiction, drift, and revalidation;
+- applicability and validity;
+- reliability evidence and validated outcome feedback;
+- staleness, contradiction, drift, revalidation, and replacement candidates;
 - quarantine, retirement, archival, and forgetting;
-- governed replacement candidates without in-place mutation;
-- runtime integration and end-to-end verification.
+- learned-resource runtime admission and immutable execution snapshots.
+
+Published resource versions remain unchanged. Reliability remains separate from authorization.
+
+## 0.958 documentation checkpoint
+
+The target lifecycle/health architecture is authoritative in `docs/architecture/102-runtime-lifecycle-health.md`.
+
+`docs/architecture/10-runtime.md` remains authoritative for runtime identity, execution identity, snapshots, cancellation, runtime-state persistence, and stale-result protection; it now explicitly defers the long-lived lifecycle extension to 0.958.
+
+`docs/roadmap/30-agent-runtime.md` records the same ownership boundary: Phase 0.9 owns foundational runtime lifecycle, while 0.958 owns the long-lived lifecycle/health extension.
+
+## Slice 1 target
+
+The runtime lifecycle becomes:
+
+```text
+Active
+Suspended
+Recovering
+Retired
+Shutdown
+```
+
+The runtime identity remains the existing `AgentRuntimeInstance`. `Suspended` and `Recovering` do not create a second runtime identity or agent class. Ordinary new runtime-originated work is admitted only from `Active`, subject to existing policy/scheduling/execution boundaries.
+
+Valid lifecycle transitions and lifecycle revision semantics must prevent obsolete asynchronous work from regaining authority after suspension, recovery, retirement, or shutdown. `Shutdown` remains terminal.
+
+Health is deliberately not part of Slice 1 implementation yet. 0.958 Slice 2 will define `Healthy`, `Degraded`, `Failed`, and `Unknown` as runtime evidence separate from lifecycle and authorization.
+
+## Verification checkpoint
+
+**Example to run:** the new architecture-classified runtime-lifecycle Example for 0.958 Slice 1 on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** the focused Slice 1 runtime-lifecycle test class/file, followed by the full `HAgent.Tests` regression suite required by 0.958.
+
+The exact final Example title and focused test file are to be recorded here when implementation creates them.

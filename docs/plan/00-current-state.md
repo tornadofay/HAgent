@@ -4,7 +4,7 @@
 
 **0.958 — Agent Lifecycle and Health Management**
 
-Slice 2 is the only active implementation slice and is **pending implementation**.
+Slice 2 is the only active implementation slice and is **implemented; verification pending**.
 
 ## 0.9576 completion
 
@@ -22,9 +22,9 @@ Verified boundaries include lifecycle transitions, lifecycle revision capture, n
 
 The authoritative health architecture remains `docs/architecture/102-runtime-lifecycle-health.md`.
 
-Slice 2 adds provider-neutral runtime health evidence with normalized states `Healthy`, `Degraded`, `Failed`, and `Unknown`; bounded reason/source metadata; explicit provenance for health determinations; and a clear distinction between transient degradation and terminal failure.
+Slice 2 adds provider-neutral runtime health evidence through the canonical `AiRuntimeHealth` contract and the existing `AgentRuntimeInstance`. Health is normalized as `Healthy`, `Degraded`, `Failed`, and `Unknown`; source and failure-kind metadata are explicit; reason/evidence text is bounded; snapshots are detached; health is separate from lifecycle and authorization; and health round-trips through the existing runtime-state persistence stores.
 
-Health is evidence, not authorization. Lifecycle remains the authority for runtime work admission. Provider/adapter health remains outside this runtime-health contract. Slow but valid inference must not be treated as failure from elapsed time alone.
+A slow but valid inference remains `Healthy` when the evidence says the inference succeeded; elapsed time alone does not establish failure.
 
 ## Verification checkpoint
 

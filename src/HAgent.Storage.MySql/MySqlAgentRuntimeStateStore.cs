@@ -31,29 +31,41 @@ namespace HAgent.Storage.MySql
                     Scope varchar(50) NOT NULL,
                     State varchar(50) NOT NULL,
                     LifecycleRevision bigint NOT NULL DEFAULT 0,
+                    HealthStatus varchar(50) NOT NULL DEFAULT 'Unknown',
+                    HealthSource varchar(50) NOT NULL DEFAULT 'RuntimeObservation',
+                    HealthFailureKind varchar(50) NOT NULL DEFAULT 'None',
+                    HealthReason varchar(512) NOT NULL DEFAULT '',
+                    HealthEvidence varchar(2048) NOT NULL DEFAULT '',
+                    HealthObservedAt datetime(6) NULL,
                     CreatedAt datetime(6) NOT NULL,
                     UpdatedAt datetime(6) NOT NULL,
                     PRIMARY KEY (InstanceId)
                 ) ENGINE=InnoDB;",
-                @"SET @hagent_runtime_lifecycle_revision_exists := (
-                    SELECT COUNT(*) FROM information_schema.columns
-                    WHERE table_schema = DATABASE()
-                      AND table_name = 'HAgentRuntimeInstances'
-                      AND column_name = 'LifecycleRevision'
-                );",
-                @"SET @hagent_runtime_lifecycle_revision_sql := IF(
-                    @hagent_runtime_lifecycle_revision_exists = 0,
-                    'ALTER TABLE HAgentRuntimeInstances ADD COLUMN LifecycleRevision bigint NOT NULL DEFAULT 0',
-                    'SELECT 1'
-                );",
-                @"PREPARE hagent_runtime_lifecycle_revision_stmt FROM @hagent_runtime_lifecycle_revision_sql;",
-                @"EXECUTE hagent_runtime_lifecycle_revision_stmt;",
-                @"DEALLOCATE PREPARE hagent_runtime_lifecycle_revision_stmt;",
+                @"SET @c := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='HAgentRuntimeInstances' AND column_name='LifecycleRevision');",
+                @"SET @s := IF(@c=0,'ALTER TABLE HAgentRuntimeInstances ADD COLUMN LifecycleRevision bigint NOT NULL DEFAULT 0','SELECT 1');",
+                @"PREPARE h1 FROM @s; EXECUTE h1; DEALLOCATE PREPARE h1;",
+                @"SET @c := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='HAgentRuntimeInstances' AND column_name='HealthStatus');",
+                @"SET @s := IF(@c=0,'ALTER TABLE HAgentRuntimeInstances ADD COLUMN HealthStatus varchar(50) NOT NULL DEFAULT ''Unknown''','SELECT 1');",
+                @"PREPARE h2 FROM @s; EXECUTE h2; DEALLOCATE PREPARE h2;",
+                @"SET @c := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='HAgentRuntimeInstances' AND column_name='HealthSource');",
+                @"SET @s := IF(@c=0,'ALTER TABLE HAgentRuntimeInstances ADD COLUMN HealthSource varchar(50) NOT NULL DEFAULT ''RuntimeObservation''','SELECT 1');",
+                @"PREPARE h3 FROM @s; EXECUTE h3; DEALLOCATE PREPARE h3;",
+                @"SET @c := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='HAgentRuntimeInstances' AND column_name='HealthFailureKind');",
+                @"SET @s := IF(@c=0,'ALTER TABLE HAgentRuntimeInstances ADD COLUMN HealthFailureKind varchar(50) NOT NULL DEFAULT ''None''','SELECT 1');",
+                @"PREPARE h4 FROM @s; EXECUTE h4; DEALLOCATE PREPARE h4;",
+                @"SET @c := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='HAgentRuntimeInstances' AND column_name='HealthReason');",
+                @"SET @s := IF(@c=0,'ALTER TABLE HAgentRuntimeInstances ADD COLUMN HealthReason varchar(512) NOT NULL DEFAULT ''''','SELECT 1');",
+                @"PREPARE h5 FROM @s; EXECUTE h5; DEALLOCATE PREPARE h5;",
+                @"SET @c := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='HAgentRuntimeInstances' AND column_name='HealthEvidence');",
+                @"SET @s := IF(@c=0,'ALTER TABLE HAgentRuntimeInstances ADD COLUMN HealthEvidence varchar(2048) NOT NULL DEFAULT ''''','SELECT 1');",
+                @"PREPARE h6 FROM @s; EXECUTE h6; DEALLOCATE PREPARE h6;",
+                @"SET @c := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='HAgentRuntimeInstances' AND column_name='HealthObservedAt');",
+                @"SET @s := IF(@c=0,'ALTER TABLE HAgentRuntimeInstances ADD COLUMN HealthObservedAt datetime(6) NULL','SELECT 1');",
+                @"PREPARE h7 FROM @s; EXECUTE h7; DEALLOCATE PREPARE h7;",
                 @"CREATE INDEX IX_HAgentRuntimeInstances_ProfileUpdated ON HAgentRuntimeInstances (ProfileId, UpdatedAt);",
                 @"CREATE INDEX IX_HAgentRuntimeInstances_HostUser ON HAgentRuntimeInstances (HostInstanceId, UserId, UpdatedAt);",
                 @"CREATE INDEX IX_HAgentRuntimeInstances_Workspace ON HAgentRuntimeInstances (WorkspaceId, UpdatedAt);"
             };
-
             using (var connection = new MySqlConnection(connectionString))
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -78,12 +90,10 @@ namespace HAgent.Storage.MySql
         {
             ValidateRecord(record);
             const string sql = @"INSERT INTO HAgentRuntimeInstances
-(InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt)
-VALUES (@InstanceId, @ProfileId, @HostInstanceId, @UserId, @WorkspaceId, @SessionId, @Scope, @State, @LifecycleRevision, @CreatedAt, @UpdatedAt)
+(InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, HealthStatus, HealthSource, HealthFailureKind, HealthReason, HealthEvidence, HealthObservedAt, CreatedAt, UpdatedAt)
+VALUES (@InstanceId, @ProfileId, @HostInstanceId, @UserId, @WorkspaceId, @SessionId, @Scope, @State, @LifecycleRevision, @HealthStatus, @HealthSource, @HealthFailureKind, @HealthReason, @HealthEvidence, @HealthObservedAt, @CreatedAt, @UpdatedAt)
 ON DUPLICATE KEY UPDATE
-ProfileId=VALUES(ProfileId), HostInstanceId=VALUES(HostInstanceId), UserId=VALUES(UserId),
-WorkspaceId=VALUES(WorkspaceId), SessionId=VALUES(SessionId), Scope=VALUES(Scope), State=VALUES(State),
-LifecycleRevision=VALUES(LifecycleRevision), CreatedAt=VALUES(CreatedAt), UpdatedAt=VALUES(UpdatedAt);";
+ProfileId=VALUES(ProfileId), HostInstanceId=VALUES(HostInstanceId), UserId=VALUES(UserId), WorkspaceId=VALUES(WorkspaceId), SessionId=VALUES(SessionId), Scope=VALUES(Scope), State=VALUES(State), LifecycleRevision=VALUES(LifecycleRevision), HealthStatus=VALUES(HealthStatus), HealthSource=VALUES(HealthSource), HealthFailureKind=VALUES(HealthFailureKind), HealthReason=VALUES(HealthReason), HealthEvidence=VALUES(HealthEvidence), HealthObservedAt=VALUES(HealthObservedAt), CreatedAt=VALUES(CreatedAt), UpdatedAt=VALUES(UpdatedAt);";
             using (var connection = new MySqlConnection(_connectionString))
             using (var command = new MySqlCommand(sql, connection))
             {
@@ -96,8 +106,7 @@ LifecycleRevision=VALUES(LifecycleRevision), CreatedAt=VALUES(CreatedAt), Update
         public async Task<AgentRuntimeStateRecord> GetAsync(string instanceId, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrWhiteSpace(instanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(instanceId));
-            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt
-FROM HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
+            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, HealthStatus, HealthSource, HealthFailureKind, HealthReason, HealthEvidence, HealthObservedAt, CreatedAt, UpdatedAt FROM HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
             using (var connection = new MySqlConnection(_connectionString))
             using (var command = new MySqlCommand(sql, connection))
             {
@@ -111,15 +120,7 @@ FROM HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
         public async Task<IReadOnlyList<AgentRuntimeStateRecord>> SearchAsync(AgentRuntimeStateQuery query, CancellationToken cancellationToken = default(CancellationToken))
         {
             query = query ?? new AgentRuntimeStateQuery();
-            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt
-FROM HAgentRuntimeInstances
-WHERE (@HostInstanceId='' OR HostInstanceId=@HostInstanceId)
-  AND (@UserId='' OR UserId=@UserId)
-  AND (@WorkspaceId='' OR WorkspaceId=@WorkspaceId)
-  AND (@SessionId='' OR SessionId=@SessionId)
-  AND (@ProfileId='' OR ProfileId=@ProfileId)
-  AND (@Scope='' OR Scope=@Scope)
-ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
+            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, HealthStatus, HealthSource, HealthFailureKind, HealthReason, HealthEvidence, HealthObservedAt, CreatedAt, UpdatedAt FROM HAgentRuntimeInstances WHERE (@HostInstanceId='' OR HostInstanceId=@HostInstanceId) AND (@UserId='' OR UserId=@UserId) AND (@WorkspaceId='' OR WorkspaceId=@WorkspaceId) AND (@SessionId='' OR SessionId=@SessionId) AND (@ProfileId='' OR ProfileId=@ProfileId) AND (@Scope='' OR Scope=@Scope) ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
             var result = new List<AgentRuntimeStateRecord>();
             using (var connection = new MySqlConnection(_connectionString))
             using (var command = new MySqlCommand(sql, connection))
@@ -162,6 +163,12 @@ ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
             command.Parameters.AddWithValue("@Scope", record.Scope.ToString());
             command.Parameters.AddWithValue("@State", record.State.ToString());
             command.Parameters.AddWithValue("@LifecycleRevision", record.LifecycleRevision);
+            command.Parameters.AddWithValue("@HealthStatus", record.Health.Status.ToString());
+            command.Parameters.AddWithValue("@HealthSource", record.Health.Source.ToString());
+            command.Parameters.AddWithValue("@HealthFailureKind", record.Health.FailureKind.ToString());
+            command.Parameters.AddWithValue("@HealthReason", record.Health.Reason);
+            command.Parameters.AddWithValue("@HealthEvidence", record.Health.Evidence);
+            command.Parameters.AddWithValue("@HealthObservedAt", record.Health.ObservedAt.HasValue ? (object)record.Health.ObservedAt.Value.UtcDateTime : DBNull.Value);
             command.Parameters.AddWithValue("@CreatedAt", record.CreatedAt.UtcDateTime);
             command.Parameters.AddWithValue("@UpdatedAt", record.UpdatedAt.UtcDateTime);
         }
@@ -172,8 +179,17 @@ ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
         {
             AgentRuntimeScope scope;
             AgentRuntimeInstanceState state;
+            AiRuntimeHealthStatus healthStatus;
+            AiRuntimeHealthSource healthSource;
+            AiRuntimeHealthFailureKind healthFailureKind;
             Enum.TryParse(reader.GetString(6), true, out scope);
             Enum.TryParse(reader.GetString(7), true, out state);
+            Enum.TryParse(reader.GetString(9), true, out healthStatus);
+            Enum.TryParse(reader.GetString(10), true, out healthSource);
+            Enum.TryParse(reader.GetString(11), true, out healthFailureKind);
+            DateTimeOffset? observedAt = reader.IsDBNull(14) ? (DateTimeOffset?)null : new DateTimeOffset(reader.GetDateTime(14), TimeSpan.Zero);
+            var health = new AiRuntimeHealth(healthStatus, healthSource, healthFailureKind, reader.IsDBNull(12) ? string.Empty : reader.GetString(12), reader.IsDBNull(13) ? string.Empty : reader.GetString(13), observedAt);
+            health.Validate();
             return new AgentRuntimeStateRecord
             {
                 InstanceId = reader.GetString(0), ProfileId = reader.GetString(1),
@@ -181,10 +197,9 @@ ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
                 UserId = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
                 WorkspaceId = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
                 SessionId = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-                Scope = scope, State = state,
-                LifecycleRevision = reader.GetInt64(8),
-                CreatedAt = new DateTimeOffset(reader.GetDateTime(9), TimeSpan.Zero),
-                UpdatedAt = new DateTimeOffset(reader.GetDateTime(10), TimeSpan.Zero)
+                Scope = scope, State = state, LifecycleRevision = reader.GetInt64(8), Health = health,
+                CreatedAt = new DateTimeOffset(reader.GetDateTime(15), TimeSpan.Zero),
+                UpdatedAt = new DateTimeOffset(reader.GetDateTime(16), TimeSpan.Zero)
             };
         }
 
@@ -194,6 +209,8 @@ ORDER BY UpdatedAt DESC LIMIT @MaxResults;";
             if (string.IsNullOrWhiteSpace(record.InstanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(record));
             if (string.IsNullOrWhiteSpace(record.ProfileId)) throw new ArgumentException("Runtime profile ID is required.", nameof(record));
             if (record.LifecycleRevision < 0) throw new ArgumentException("Runtime lifecycle revision cannot be negative.", nameof(record));
+            if (record.Health == null) throw new ArgumentException("Runtime health state is required.", nameof(record));
+            record.Health.Validate();
         }
     }
 }

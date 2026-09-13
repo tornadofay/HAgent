@@ -15,6 +15,7 @@ namespace HAgent.Models
             Scope = AgentRuntimeScope.Ephemeral;
             State = AgentRuntimeInstanceState.Active;
             LifecycleRevision = 0L;
+            Health = AiRuntimeHealth.CreateUnknown();
             CreatedAt = DateTimeOffset.UtcNow;
             UpdatedAt = CreatedAt;
         }
@@ -28,6 +29,7 @@ namespace HAgent.Models
         public AgentRuntimeScope Scope { get; set; }
         public AgentRuntimeInstanceState State { get; set; }
         public long LifecycleRevision { get; set; }
+        public AiRuntimeHealth Health { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
 
@@ -51,6 +53,7 @@ namespace HAgent.Models
                 Scope = instance.Scope,
                 State = instance.State,
                 LifecycleRevision = instance.CurrentLifecycleRevision,
+                Health = instance.Health,
                 CreatedAt = instance.CreatedAt,
                 UpdatedAt = now
             };

@@ -91,9 +91,22 @@ Failed
 Unknown
 ```
 
-Each health observation carries bounded reason/evidence metadata and a source category such as runtime observation, host signal, recovery result, or equivalent provider-neutral evidence. Health evidence is descriptive and observable; it is not an authorization mechanism.
+The canonical health contract is `AiRuntimeHealth`. A newly created runtime always has a health snapshot and starts at `Unknown` because no health observation has yet been recorded. Health is owned by the existing `AgentRuntimeInstance` through `Health` and `SetHealth(...)`; no parallel runtime-health owner exists.
 
-Slow but valid inference is not a runtime-health failure merely because it has high latency. Failure requires configured evidence of runtime failure rather than elapsed time alone.
+Each health snapshot contains:
+
+- `Status`: `Unknown`, `Healthy`, `Degraded`, or `Failed`.
+- `Source`: `RuntimeObservation`, `RecoveryResult`, `HostSignal`, or `ExternalEvidence`.
+- `FailureKind`: `None`, `Transient`, or `Terminal`. `Degraded` requires `Transient`; `Failed` requires `Terminal`; `Unknown` and `Healthy` require `None`.
+- `Reason`: normalized/bounded text, maximum 512 characters. Degraded and failed states require a non-empty reason.
+- `Evidence`: normalized/bounded descriptive text, maximum 2048 characters.
+- `ObservedAt`: optional timestamp. It is omitted for the initial unknown state and may be supplied for an actual observation.
+
+`SetHealth(...)` validates and clones the supplied contract before storing it under the runtime instance lock. Reading `AgentRuntimeInstance.Health` returns a detached clone, so health evidence crossing the runtime boundary cannot mutate live internal state. Health updates do not advance lifecycle revision and do not grant authorization.
+
+A slow but valid inference may remain `Healthy`; elapsed time by itself does not create a `Failed` health state. Failure requires explicit terminal evidence represented by the health contract.
+
+Health is persisted through the existing `AgentRuntimeStateRecord` and the existing File, SQL Server, and MySQL runtime-state stores. Older persisted rows/files without health fields restore as `Unknown`; no second health repository is introduced.
 
 Provider-specific operational health remains owned by provider/adapter layers and is consumed through their provider-neutral contracts in later execution-admission work. 0.958 does not create a provider router or provider-health authority.
 
@@ -109,7 +122,7 @@ Human/host intervention uses the canonical 0.959 intervention boundary. 0.958 ow
 
 ## Persistence boundary
 
-Existing runtime-state persistence remains the persistence boundary for runtime identity/lifecycle metadata. 0.958 does not introduce durable goals, plans, checkpoints, or cognitive state; those remain 0.9591/0.97 responsibilities.
+Existing runtime-state persistence remains the persistence boundary for runtime identity/lifecycle and health metadata. 0.958 does not introduce durable goals, plans, checkpoints, or cognitive state; those remain 0.9591/0.97 responsibilities.
 
 ## Ownership
 

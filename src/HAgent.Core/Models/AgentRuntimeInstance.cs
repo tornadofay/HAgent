@@ -9,6 +9,7 @@ namespace HAgent.Models
         private long _executionRevision;
         private long _lifecycleRevision;
         private AgentRuntimeInstanceState _state;
+        private AiRuntimeHealth _health;
         private readonly CancellationTokenSource _shutdownCts = new CancellationTokenSource();
 
         private AgentRuntimeInstance(
@@ -17,7 +18,8 @@ namespace HAgent.Models
             string instanceId,
             AgentRuntimeOverrides overrides,
             AgentRuntimeInstanceState state,
-            long lifecycleRevision)
+            long lifecycleRevision,
+            AiRuntimeHealth health)
         {
             ProfileId = profile == null ? string.Empty : profile.Id;
             InstanceId = string.IsNullOrWhiteSpace(instanceId) ? Guid.NewGuid().ToString("N") : instanceId;
@@ -25,6 +27,8 @@ namespace HAgent.Models
             CreatedAt = DateTimeOffset.UtcNow;
             _state = state;
             _lifecycleRevision = lifecycleRevision;
+            _health = health == null ? AiRuntimeHealth.CreateUnknown() : health.Clone();
+            _health.Validate();
             Overrides = overrides ?? new AgentRuntimeOverrides();
         }
 
@@ -40,6 +44,17 @@ namespace HAgent.Models
                 lock (_sync)
                 {
                     return _state;
+                }
+            }
+        }
+
+        public AiRuntimeHealth Health
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _health.Clone();
                 }
             }
         }
@@ -84,7 +99,8 @@ namespace HAgent.Models
                 null,
                 overrides,
                 AgentRuntimeInstanceState.Active,
-                0L);
+                0L,
+                AiRuntimeHealth.CreateUnknown());
         }
 
         /// <summary>
@@ -105,6 +121,8 @@ namespace HAgent.Models
                 throw new ArgumentException("Runtime state contains an unsupported lifecycle state.", nameof(record));
             if (record.LifecycleRevision < 0)
                 throw new ArgumentException("Runtime lifecycle revision cannot be negative.", nameof(record));
+            var health = record.Health == null ? AiRuntimeHealth.CreateUnknown() : record.Health.Clone();
+            health.Validate();
 
             var instance = new AgentRuntimeInstance(
                 profile,
@@ -112,7 +130,8 @@ namespace HAgent.Models
                 record.InstanceId,
                 overrides,
                 record.State,
-                record.LifecycleRevision);
+                record.LifecycleRevision,
+                health);
             if (record.CreatedAt != default(DateTimeOffset))
                 instance.CreatedAt = record.CreatedAt;
 
@@ -120,6 +139,17 @@ namespace HAgent.Models
                 instance._shutdownCts.Cancel();
 
             return instance;
+        }
+
+        public void SetHealth(AiRuntimeHealth health)
+        {
+            if (health == null) throw new ArgumentNullException(nameof(health));
+            health.Validate();
+            var snapshot = health.Clone();
+            lock (_sync)
+            {
+                _health = snapshot;
+            }
         }
 
         internal long BeginExecution(out long lifecycleRevision)

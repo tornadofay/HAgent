@@ -4,7 +4,7 @@
 
 ### 0.958 — Agent Lifecycle + Health
 
-**Slice 2 — Health state — CURRENT / implementation pending.**
+**Slice 2 — Health state — IMPLEMENTED / VERIFICATION PENDING.**
 
 0.958 owns runtime-agent lifecycle and runtime health on the existing `AgentRuntimeInstance` foundation. Slice 1 is closed and verified on both supported Example targets and the full `.NET 9` regression suite passed **266/266**.
 
@@ -17,7 +17,7 @@
 - Preserve runtime-owned durable state during suspension/recovery.
 - Add focused tests and the matching lifecycle Example.
 
-#### Slice 2 — Health state — CURRENT
+#### Slice 2 — Health state — IMPLEMENTED / VERIFICATION PENDING
 
 - Define normalized health status: `Healthy`, `Degraded`, `Failed`, `Unknown`.
 - Bound health reason/evidence metadata.
@@ -25,11 +25,12 @@
 - Distinguish transient degradation from terminal failure.
 - Do not treat slow but valid inference as failed from elapsed time alone.
 - Keep health separate from lifecycle and authorization.
+- Persist health through the existing runtime-state persistence boundary without creating a parallel repository.
 - Add focused tests and a matching public Example through the normal Example registration/classification path.
 
-**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Implementation checkpoint:** `AiRuntimeHealth` is owned by `AgentRuntimeInstance`; health is persisted through the existing File/SQL Server/MySQL runtime-state stores; focused tests are in `tests/HAgent.Tests/RuntimeHealthTests.cs`; Example is `HAgent.Example → Runtime → Runtime Instances → RUNTIME HEALTH`.
 
-**Tests to run:** `tests/HAgent.Tests/RuntimeHealthTests.cs` focused first, followed by the full `HAgent.Tests` regression suite.
+**Verification to run:** the RUNTIME HEALTH Example on .NET Framework 4.8.1 and .NET 9 Windows, then focused and full `HAgent.Tests` regression verification.
 
 ## Closed immediately before current phase
 
@@ -53,7 +54,7 @@ Slices 1–13 are verified. Authoritative detail: `docs/roadmap/9575-resource-go
 
 ### 0.9591 — Goal/Plan Persistence + Recovery
 
-Follows completion of all 0.958 slices.
+Follows completion of all 0.958 slices. Slice 1 contracts were built and verified ahead of roadmap but remain phase-entry pending.
 
 ### 0.959 — Human-in-the-Loop + Intervention
 

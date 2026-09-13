@@ -5,7 +5,7 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.958 Agent Lifecycle and Health Management
-- **Status:** Slice 2 implementation pending
+- **Status:** Slice 2 implementation complete; verification pending
 - **Primary source:** `docs/plan/20-active.md`
 - **Architecture source:** `docs/architecture/102-runtime-lifecycle-health.md`
 - **Scope:** Add provider-neutral runtime health state and bounded evidence while preserving the canonical runtime identity, lifecycle authority, execution revision, and stale-result rules.
@@ -22,9 +22,7 @@ Verified boundaries include lifecycle transitions, lifecycle revision capture, n
 
 ## 0.958 Slice 2 — Health state
 
-Implement normalized runtime-health states `Healthy`, `Degraded`, `Failed`, and `Unknown` as provider-neutral evidence. Health must remain separate from lifecycle and authorization, must include bounded reason/source metadata, and must not infer failure from latency alone.
-
-No Slice 3 or Slice 4 work is active.
+Implementation is complete. Health is normalized as `Unknown`, `Healthy`, `Degraded`, or `Failed`; source and failure-kind metadata are explicit and bounded; health is separate from lifecycle/authorization; health snapshots are detached; and runtime-state persistence preserves health through the existing File/SQL Server/MySQL stores. Slow-but-valid inference remains `Healthy` when the evidence says the inference succeeded.
 
 ## Verification checkpoint
 
@@ -32,4 +30,4 @@ No Slice 3 or Slice 4 work is active.
 
 **Tests to run:** `tests/HAgent.Tests/RuntimeHealthTests.cs` focused first, then the full `HAgent.Tests` regression suite required by the phase.
 
-**Current status:** Slice 2 has not yet been implemented or verified.
+**Current status:** Slice 2 implementation is committed; user execution/verification is pending.

@@ -159,6 +159,8 @@ namespace HAgent.Storage.File
             if (record == null) throw new ArgumentNullException(nameof(record));
             if (string.IsNullOrWhiteSpace(record.InstanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(record));
             if (string.IsNullOrWhiteSpace(record.ProfileId)) throw new ArgumentException("Runtime profile ID is required.", nameof(record));
+            if (record.Health == null) throw new ArgumentException("Runtime health state is required.", nameof(record));
+            record.Health.Validate();
         }
 
         public void Dispose() { _gate.Dispose(); }

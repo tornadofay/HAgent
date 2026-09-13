@@ -32,6 +32,12 @@ BEGIN
         Scope nvarchar(50) NOT NULL,
         State nvarchar(50) NOT NULL,
         LifecycleRevision bigint NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_LifecycleRevision DEFAULT (0),
+        HealthStatus nvarchar(50) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthStatus DEFAULT ('Unknown'),
+        HealthSource nvarchar(50) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthSource DEFAULT ('RuntimeObservation'),
+        HealthFailureKind nvarchar(50) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthFailureKind DEFAULT ('None'),
+        HealthReason nvarchar(512) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthReason DEFAULT (''),
+        HealthEvidence nvarchar(2048) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthEvidence DEFAULT (''),
+        HealthObservedAt datetimeoffset NULL,
         CreatedAt datetimeoffset NOT NULL,
         UpdatedAt datetimeoffset NOT NULL
     );
@@ -45,6 +51,36 @@ BEGIN
     ALTER TABLE dbo.HAgentRuntimeInstances
         ADD LifecycleRevision bigint NOT NULL
             CONSTRAINT DF_HAgentRuntimeInstances_LifecycleRevision DEFAULT (0) WITH VALUES;
+END;
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.HAgentRuntimeInstances', N'HealthStatus') IS NULL
+BEGIN
+    ALTER TABLE dbo.HAgentRuntimeInstances ADD HealthStatus nvarchar(50) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthStatus DEFAULT ('Unknown') WITH VALUES;
+END;
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.HAgentRuntimeInstances', N'HealthSource') IS NULL
+BEGIN
+    ALTER TABLE dbo.HAgentRuntimeInstances ADD HealthSource nvarchar(50) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthSource DEFAULT ('RuntimeObservation') WITH VALUES;
+END;
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.HAgentRuntimeInstances', N'HealthFailureKind') IS NULL
+BEGIN
+    ALTER TABLE dbo.HAgentRuntimeInstances ADD HealthFailureKind nvarchar(50) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthFailureKind DEFAULT ('None') WITH VALUES;
+END;
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.HAgentRuntimeInstances', N'HealthReason') IS NULL
+BEGIN
+    ALTER TABLE dbo.HAgentRuntimeInstances ADD HealthReason nvarchar(512) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthReason DEFAULT ('') WITH VALUES;
+END;
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.HAgentRuntimeInstances', N'HealthEvidence') IS NULL
+BEGIN
+    ALTER TABLE dbo.HAgentRuntimeInstances ADD HealthEvidence nvarchar(2048) NOT NULL CONSTRAINT DF_HAgentRuntimeInstances_HealthEvidence DEFAULT ('') WITH VALUES;
+END;
+IF OBJECT_ID(N'dbo.HAgentRuntimeInstances', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.HAgentRuntimeInstances', N'HealthObservedAt') IS NULL
+BEGIN
+    ALTER TABLE dbo.HAgentRuntimeInstances ADD HealthObservedAt datetimeoffset NULL;
 END;";
             using (var connection = new SqlConnection(connectionString))
             using (var command = new SqlCommand(sql, connection))
@@ -65,11 +101,15 @@ ON target.InstanceId = source.InstanceId
 WHEN MATCHED THEN UPDATE SET
     ProfileId=@ProfileId, HostInstanceId=@HostInstanceId, UserId=@UserId,
     WorkspaceId=@WorkspaceId, SessionId=@SessionId, Scope=@Scope, State=@State,
-    LifecycleRevision=@LifecycleRevision, CreatedAt=@CreatedAt, UpdatedAt=@UpdatedAt
+    LifecycleRevision=@LifecycleRevision, HealthStatus=@HealthStatus, HealthSource=@HealthSource,
+    HealthFailureKind=@HealthFailureKind, HealthReason=@HealthReason, HealthEvidence=@HealthEvidence,
+    HealthObservedAt=@HealthObservedAt, CreatedAt=@CreatedAt, UpdatedAt=@UpdatedAt
 WHEN NOT MATCHED THEN INSERT
-    (InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt)
+    (InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision,
+     HealthStatus, HealthSource, HealthFailureKind, HealthReason, HealthEvidence, HealthObservedAt, CreatedAt, UpdatedAt)
 VALUES
-    (@InstanceId, @ProfileId, @HostInstanceId, @UserId, @WorkspaceId, @SessionId, @Scope, @State, @LifecycleRevision, @CreatedAt, @UpdatedAt);";
+    (@InstanceId, @ProfileId, @HostInstanceId, @UserId, @WorkspaceId, @SessionId, @Scope, @State, @LifecycleRevision,
+     @HealthStatus, @HealthSource, @HealthFailureKind, @HealthReason, @HealthEvidence, @HealthObservedAt, @CreatedAt, @UpdatedAt);";
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand(sql, connection))
             {
@@ -82,7 +122,8 @@ VALUES
         public async Task<AgentRuntimeStateRecord> GetAsync(string instanceId, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrWhiteSpace(instanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(instanceId));
-            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt
+            const string sql = @"SELECT InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision,
+HealthStatus, HealthSource, HealthFailureKind, HealthReason, HealthEvidence, HealthObservedAt, CreatedAt, UpdatedAt
 FROM dbo.HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
             using (var connection = new SqlConnection(_connectionString))
             using (var command = new SqlCommand(sql, connection))
@@ -98,7 +139,8 @@ FROM dbo.HAgentRuntimeInstances WHERE InstanceId=@InstanceId;";
         {
             query = query ?? new AgentRuntimeStateQuery();
             const string sql = @"SELECT TOP (@MaxResults)
-InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision, CreatedAt, UpdatedAt
+InstanceId, ProfileId, HostInstanceId, UserId, WorkspaceId, SessionId, Scope, State, LifecycleRevision,
+HealthStatus, HealthSource, HealthFailureKind, HealthReason, HealthEvidence, HealthObservedAt, CreatedAt, UpdatedAt
 FROM dbo.HAgentRuntimeInstances
 WHERE (@HostInstanceId=N'' OR HostInstanceId=@HostInstanceId)
   AND (@UserId=N'' OR UserId=@UserId)
@@ -149,6 +191,12 @@ ORDER BY UpdatedAt DESC;";
             command.Parameters.AddWithValue("@Scope", record.Scope.ToString());
             command.Parameters.AddWithValue("@State", record.State.ToString());
             command.Parameters.AddWithValue("@LifecycleRevision", record.LifecycleRevision);
+            command.Parameters.AddWithValue("@HealthStatus", record.Health.Status.ToString());
+            command.Parameters.AddWithValue("@HealthSource", record.Health.Source.ToString());
+            command.Parameters.AddWithValue("@HealthFailureKind", record.Health.FailureKind.ToString());
+            command.Parameters.AddWithValue("@HealthReason", record.Health.Reason);
+            command.Parameters.AddWithValue("@HealthEvidence", record.Health.Evidence);
+            command.Parameters.AddWithValue("@HealthObservedAt", record.Health.ObservedAt.HasValue ? (object)record.Health.ObservedAt.Value : DBNull.Value);
             command.Parameters.AddWithValue("@CreatedAt", record.CreatedAt);
             command.Parameters.AddWithValue("@UpdatedAt", record.UpdatedAt);
         }
@@ -159,8 +207,24 @@ ORDER BY UpdatedAt DESC;";
         {
             AgentRuntimeScope scope;
             AgentRuntimeInstanceState state;
+            AiRuntimeHealthStatus healthStatus;
+            AiRuntimeHealthSource healthSource;
+            AiRuntimeHealthFailureKind healthFailureKind;
             Enum.TryParse(reader.GetString(6), true, out scope);
             Enum.TryParse(reader.GetString(7), true, out state);
+            Enum.TryParse(reader.GetString(9), true, out healthStatus);
+            Enum.TryParse(reader.GetString(10), true, out healthSource);
+            Enum.TryParse(reader.GetString(11), true, out healthFailureKind);
+            DateTimeOffset? observedAt = reader.IsDBNull(14) ? (DateTimeOffset?)null : reader.GetFieldValue<DateTimeOffset>(14);
+            var health = new AiRuntimeHealth(
+                healthStatus,
+                healthSource,
+                healthFailureKind,
+                reader.IsDBNull(12) ? string.Empty : reader.GetString(12),
+                reader.IsDBNull(13) ? string.Empty : reader.GetString(13),
+                observedAt);
+            health.Validate();
+
             return new AgentRuntimeStateRecord
             {
                 InstanceId = reader.GetString(0), ProfileId = reader.GetString(1),
@@ -170,8 +234,9 @@ ORDER BY UpdatedAt DESC;";
                 SessionId = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
                 Scope = scope, State = state,
                 LifecycleRevision = reader.GetInt64(8),
-                CreatedAt = reader.GetFieldValue<DateTimeOffset>(9),
-                UpdatedAt = reader.GetFieldValue<DateTimeOffset>(10)
+                Health = health,
+                CreatedAt = reader.GetFieldValue<DateTimeOffset>(15),
+                UpdatedAt = reader.GetFieldValue<DateTimeOffset>(16)
             };
         }
 
@@ -181,6 +246,8 @@ ORDER BY UpdatedAt DESC;";
             if (string.IsNullOrWhiteSpace(record.InstanceId)) throw new ArgumentException("Runtime instance ID is required.", nameof(record));
             if (string.IsNullOrWhiteSpace(record.ProfileId)) throw new ArgumentException("Runtime profile ID is required.", nameof(record));
             if (record.LifecycleRevision < 0) throw new ArgumentException("Runtime lifecycle revision cannot be negative.", nameof(record));
+            if (record.Health == null) throw new ArgumentException("Runtime health state is required.", nameof(record));
+            record.Health.Validate();
         }
     }
 }

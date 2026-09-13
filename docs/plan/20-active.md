@@ -26,22 +26,21 @@ Verified by the user on both .NET Framework 4.8.1 and .NET 9:
 
 The focused Slice 1 test class is `tests/HAgent.Tests/RuntimeLifecycleTests.cs` and the matching manual scenario is `HAgent.Example -> Runtime -> Runtime Instances -> RUNTIME LIFECYCLE`.
 
-### Slice 2 — Health state — CURRENT / IMPLEMENTATION PENDING
+### Slice 2 — Health state — IMPLEMENTED / VERIFICATION PENDING
 
 Implement the runtime-health dimension as a provider-neutral evidence contract owned by `AgentRuntimeInstance` without changing lifecycle authority or authorization semantics.
 
-Required surface:
+Required surface now implemented:
 
 - normalized health states: `Healthy`, `Degraded`, `Failed`, `Unknown`;
 - bounded reason/evidence metadata;
-- explicit source category for the determination, including runtime observation, recovery result/failure, host signal, or equivalent provider-neutral evidence;
-- distinction between transient degradation and terminal failure;
-- deterministic validation and detached snapshots/cloning where mutable health evidence crosses execution/runtime boundaries;
+- explicit source category for runtime observation, recovery result, host signal, or equivalent provider-neutral evidence;
+- explicit transient degradation versus terminal failure classification;
+- deterministic validation and detached snapshots/cloning across runtime boundaries;
 - no failure classification based only on elapsed inference time;
 - lifecycle and health remain separate dimensions;
-- provider-specific health remains outside Core/provider-neutral runtime health.
-
-Required verification must cover valid/invalid health evidence, bounded metadata, source/provenance, transient degradation versus failure, unknown state, and slow-but-valid inference remaining non-failed. Core tests and a matching public Example are required on both supported targets.
+- provider-specific health remains outside Core/provider-neutral runtime health;
+- health round-trips through the existing runtime-state persistence boundary.
 
 ### Authoritative architecture
 

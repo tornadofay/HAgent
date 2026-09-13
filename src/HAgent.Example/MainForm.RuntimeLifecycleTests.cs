@@ -22,6 +22,7 @@ namespace HAgent.Example
                 TestRuntimeLifecycleAsync,
                 "Lifecycle states and revision authority",
                 "Uses only local adapters and the file runtime-state store; no external provider is contacted.");
+            AddRuntimeHealthTab();
         }
 
         private async Task TestRuntimeLifecycleAsync(string message)

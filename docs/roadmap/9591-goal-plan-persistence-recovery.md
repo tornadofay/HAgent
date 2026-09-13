@@ -2,7 +2,7 @@
 
 ## Status
 
-**CURRENT — Slice 1 verified/closed; Slice 2 implemented, verification pending.**
+**CURRENT — Slices 1–2 verified/closed; Slice 3 current.**
 
 Phase 0.958 Agent Lifecycle and Health Management is closed/verified. Slice 1 of 0.9591 was built ahead of roadmap and is now formally accepted as the phase foundation after phase-entry review.
 
@@ -50,34 +50,36 @@ live runtime objects
 
 Implementation surface: `src/HAgent.Core/Models/AiGoalContracts.cs`, focused tests in `tests/HAgent.Tests/GoalIntentionContractsTests.cs`, and matching Example `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS`.
 
-**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded; full `.NET 9` `HAgent.Tests` reported **270/270 passed, 0 failed, 0 skipped**. Verified boundaries include separate host/inferred goal identity, explicit `HostSupplied`/`AgentInferred` authority, adopted intention status, revision metadata, and preservation of intention status-change reason.
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded; full `.NET 9` `HAgent.Tests` reported **270/270 passed, 0 failed, 0 skipped**.
 
-### Slice 2 — Durable plans and steps — IMPLEMENTED / VERIFICATION PENDING
+### Slice 2 — Durable plans and steps — CLOSED / VERIFIED
 
 - Define stable plan identity, goal/intention linkage, status, revision metadata, provenance, and revision reason.
 - Define explicit ordered/dependency-linked `AiPlanStep` records.
 - Capture preconditions, assumptions, expected effects, failure conditions, completion criteria, step status, and step provenance.
-- Validate duplicate step identities, foreign plan ownership, self-dependencies, and basic dependency structure at the plan boundary.
+- Validate duplicate step identities, foreign plan ownership, and self-dependencies at the plan boundary.
 - Preserve nested plan/step state through detached cloning.
 
 Implementation surface: `src/HAgent.Core/Models/AiPlanContracts.cs`; focused tests: `tests/HAgent.Tests/PlanContractsTests.cs`; Example scenario: `src/HAgent.Example/MainForm.PlanContractsTests.cs`.
 
-The Example shell now explicitly registers and classifies `PLAN CONTRACTS` under `Cognition → Goals & Plans`.
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **290/290 passed, 0 failed, 0 skipped**.
 
-### Verification checkpoint
-
-**Example to run:** `HAgent.Example → Cognition → Goals & Plans → PLAN CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
-
-**Tests to run:** `tests/HAgent.Tests/PlanContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
-
-**Run rule:** Do not begin Slice 3 until Slice 2 Example verification and regression results are recorded.
-
-### Slice 3 — Checkpoints and outcome semantics
+### Slice 3 — Checkpoints and outcome semantics — CURRENT / IMPLEMENTING
 
 - Define explicit checkpoint boundaries.
 - Persist durable progress at safe points.
 - Distinguish `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`.
 - Never convert timeout/provider failure into success without evidence.
+
+Current implementation surface: `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs` and `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs`, with matching Example `src/HAgent.Example/MainForm.CheckpointOutcomeContractsTests.cs`.
+
+### Verification checkpoint
+
+**Example to run:** `HAgent.Example → Cognition → Goals & Plans → CHECKPOINT & OUTCOME CONTRACTS` after Slice 3 implementation is complete.
+
+**Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+
+**Run rule:** Do not begin Slice 4 until Slice 3 Example verification and regression results are recorded.
 
 ### Slice 4 — Retry and idempotency
 

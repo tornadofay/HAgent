@@ -17,6 +17,7 @@ namespace HAgent.Example
                 TestGoalIntentionContracts,
                 "Durable goal/intention contract boundary",
                 "Provider-free contract exercise; no external provider or persistence backend is contacted.");
+            AddPlanContractsTab();
         }
 
         private Task TestGoalIntentionContracts(string message)

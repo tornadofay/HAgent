@@ -2,9 +2,9 @@
 
 ## Status
 
-**CURRENT — Slice 1 ready to implement after documentation reconciliation.**
+**CURRENT — Slice 1 implementation complete; verification pending.**
 
-0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. 0.958 is now the active implementation phase.
+0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. 0.958 is the active implementation phase.
 
 ## Purpose
 
@@ -73,7 +73,7 @@ Human/host intervention is consumed through the canonical 0.959 intervention bou
 
 ## Delivery slices
 
-### Slice 1 — Lifecycle state extension — CURRENT
+### Slice 1 — Lifecycle state extension — IMPLEMENTED, VERIFICATION PENDING
 
 - Extend the existing runtime lifecycle only where long-lived operation requires it.
 - Define valid/invalid transitions and terminal behavior.
@@ -83,11 +83,13 @@ Human/host intervention is consumed through the canonical 0.959 intervention bou
 - Preserve runtime durable state during suspension/recovery; do not introduce goals/plans persistence here.
 - Add focused tests and a matching Example through the normal Example architecture/registration path.
 
+**Implemented surface:** the existing `AgentRuntimeInstance` now owns lifecycle state and lifecycle revision authority; execution admission captures both execution and lifecycle revisions; runtime-state persistence preserves lifecycle revision across File/SQL Server/MySQL stores; the lifecycle Example and focused test class are present; a dedicated 0.958 Slice 1 GitHub Actions verification workflow builds both supported Core/Example targets and runs the focused plus full .NET 9 tests.
+
 **Architecture:** `docs/architecture/102-runtime-lifecycle-health.md`.
 
-**Example to run:** the new Slice 1 lifecycle Example on .NET Framework 4.8.1 and .NET 9.
+**Example to run:** `HAgent.Example → RUNTIME LIFECYCLE`, on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** the focused Slice 1 lifecycle test class, then the required regression suite.
+**Tests to run:** `tests/HAgent.Tests/RuntimeLifecycleTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 
 ### Slice 2 — Health state
 

@@ -2,13 +2,19 @@
 
 ## Status
 
-**Planned after 0.9576 and before durable goal/plan recovery.**
+**CURRENT — Slice 1 ready to implement after documentation reconciliation.**
+
+0.9576 Learned Resource Reliability + Adaptation is fully verified through all five slices. 0.958 is now the active implementation phase.
 
 ## Purpose
 
 Make the lifecycle and health of a live HAgent runtime explicit and observable without duplicating the runtime-instance identity and execution lifecycle already established by earlier phases.
 
 The phase does **not** create a new runtime-agent class. It extends the existing runtime-instance foundation with the operational state needed by long-running agents and Persistent Cognitive Runtime.
+
+## Authoritative architecture
+
+The stable target architecture for this phase is defined in `docs/architecture/102-runtime-lifecycle-health.md`. `docs/architecture/10-runtime.md` remains the foundation document for runtime identity, execution, snapshots, cancellation, persistence, and stale-result protection and defers the long-lived lifecycle extension to this document.
 
 ## V1 outcome
 
@@ -24,9 +30,9 @@ These concerns remain separate.
 
 ### Lifecycle
 
-The existing runtime foundation remains authoritative for `Active`, `Retired`, and `Shutdown`.
+The existing runtime foundation is authoritative for `Active`, `Retired`, and terminal `Shutdown`.
 
-0.958 adds only the operational states needed for persistent operation:
+0.958 extends that same runtime lifecycle with the operational states needed for persistent operation:
 
 ```text
 Active
@@ -36,7 +42,9 @@ Retired
 Shutdown
 ```
 
-`Suspended` preserves durable state while new work is prevented or host-controlled work is paused. It is not retirement.
+`Suspended` preserves runtime identity and durable state while ordinary new work is prevented or host-controlled work is paused. `Recovering` is an explicit recovery transition and does not originate ordinary new work. `Retired` prevents new work and participates in the existing runtime result-authority rules. `Shutdown` is terminal.
+
+Lifecycle transitions advance the applicable runtime/lifecycle revision. Work admitted under an obsolete lifecycle revision cannot regain authority over newer runtime state.
 
 ### Health
 
@@ -51,6 +59,8 @@ Unknown
 
 Health is evidence, not authorization. Lifecycle and policy decide whether work may continue, wait, recover, or stop.
 
+Health evidence must be bounded and must include enough source/reason metadata to explain why a runtime is considered degraded, failed, or unknown. Slow but valid inference is not a failure solely because it is long-running.
+
 ## Ownership boundary
 
 0.958 owns **runtime-agent lifecycle and runtime health**.
@@ -63,12 +73,21 @@ Human/host intervention is consumed through the canonical 0.959 intervention bou
 
 ## Delivery slices
 
-### Slice 1 — Lifecycle state extension
+### Slice 1 — Lifecycle state extension — CURRENT
 
 - Extend the existing runtime lifecycle only where long-lived operation requires it.
-- Define valid transitions and terminal behavior.
-- Prevent suspended, retired, recovering, or shutdown runtimes from originating work that policy disallows.
-- Preserve existing revision and stale-result protection.
+- Define valid/invalid transitions and terminal behavior.
+- Keep `Shutdown` terminal and prevent ordinary new runtime-originated work from `Suspended`, `Recovering`, `Retired`, or `Shutdown` states.
+- Preserve existing execution identity, execution terminal-state handling, and stale-result protection.
+- Advance lifecycle/revision authority on valid lifecycle transitions so obsolete asynchronous work cannot become authoritative again after suspension, recovery, retirement, or shutdown.
+- Preserve runtime durable state during suspension/recovery; do not introduce goals/plans persistence here.
+- Add focused tests and a matching Example through the normal Example architecture/registration path.
+
+**Architecture:** `docs/architecture/102-runtime-lifecycle-health.md`.
+
+**Example to run:** the new Slice 1 lifecycle Example on .NET Framework 4.8.1 and .NET 9.
+
+**Tests to run:** the focused Slice 1 lifecycle test class, then the required regression suite.
 
 ### Slice 2 — Health state
 
@@ -96,7 +115,7 @@ Human/host intervention is consumed through the canonical 0.959 intervention bou
 2. Lifecycle state is not health state.
 3. Health is evidence, not authorization.
 4. Recovery never makes obsolete asynchronous work authoritative again.
-5. Suspension and recovery preserve durable state.
+5. Suspension and recovery preserve durable runtime state.
 6. Host lifecycle/scheduling policy remains authoritative where the host controls runtime admission.
 7. Provider/model-specific lifecycle semantics do not belong in Core; provider health evidence is normalized by 0.9592 and consumed by 0.96.
 8. Runtime intervention uses 0.959; this phase does not create a second approval/intervention mechanism.

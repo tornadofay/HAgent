@@ -4,7 +4,7 @@
 
 **PLANNED after 0.958 and before 0.959 intervention.**
 
-Slice 1 goal/intention contracts were implemented ahead of the roadmap as an architectural checkpoint. They remain preserved in the repository but do not make this phase current.
+Slice 1 goal/intention contracts are **BUILT AHEAD OF ROADMAP — VERIFICATION COMPLETE; PHASE ENTRY PENDING**. The implementation remains preserved in the repository, but this does not make 0.9591 current or close the phase. When 0.9591 becomes the active phase, Slice 1 should be revisited for any phase-entry revisions and the remaining phase-level persistence/recovery verification before the phase is considered complete.
 
 ## Purpose
 
@@ -41,7 +41,7 @@ live runtime objects
 
 ## Delivery slices
 
-### Slice 1 — Durable goal/intention contracts — IMPLEMENTED AHEAD OF ROADMAP
+### Slice 1 — Durable goal/intention contracts — BUILT AHEAD OF ROADMAP; VERIFICATION COMPLETE; PHASE ENTRY PENDING
 
 - Define stable IDs, status, priority, constraints, provenance, timestamps, and revision metadata.
 - Keep goal identity separate from intention identity.
@@ -49,6 +49,15 @@ live runtime objects
 - Preserve host-supplied goal state without pretending inferred belief is host truth.
 
 Implementation surface: `src/HAgent.Core/Models/AiGoalContracts.cs`, focused tests in `tests/HAgent.Tests/GoalIntentionContractsTests.cs`, and matching Example `HAgent.Example → Cognition → Goals & Plans → GOAL & INTENTION CONTRACTS`.
+
+Verification checkpoint completed on 2026-09-13:
+
+- .NET Framework 4.8.1 Example: `GOAL & INTENTION CONTRACTS` succeeded.
+- .NET 9 Example: `GOAL & INTENTION CONTRACTS` succeeded.
+- Full `.NET 9` `HAgent.Tests`: **270/270 passed, 0 failed, 0 skipped**.
+- Verified boundaries include separate host/inferred goal identity, explicit `HostSupplied`/`AgentInferred` authority, adopted intention status, revision metadata, and preservation of intention status-change reason.
+
+This checkpoint does **not** close 0.9591 Slice 1 as a phase milestone. It records that the implementation exists and has passed its current contract verification ahead of the ordered roadmap. When 0.9591 becomes current, review the contract against the then-authoritative architecture and complete any required phase-entry revision before advancing to Slice 2.
 
 ### Slice 2 — Durable plans and steps
 

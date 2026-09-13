@@ -175,7 +175,7 @@ namespace HAgent.Example
             if (key == "INSTRUCTION CONTRACTS") return "Other Cognition";
             if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY" || key == "RUNTIME SINGLE OWNER") return "Runtime Instances";
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING") return "Intervention";
-            if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RUNTIME EXECUTION") return "Execution";
+            if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key == "RUNTIME EXECUTION") return "Execution";
             if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION") return "Planning & Capacity";
             if (key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key == "AUDIT LIFECYCLE") return "Diagnostics";
             throw new InvalidOperationException("Example '" + title + "' has no explicit architecture sub-group classification.");
@@ -196,7 +196,7 @@ namespace HAgent.Example
             if (key.Contains("EVALUATION")) return "Diagnostics";
             if (key == "AUTHORITATIVE RESOURCE INVENTORY" || key.Contains("CONFIGURATION")) return "Configuration";
             if (key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILL DEFINITIONS" || key == "SKILLS" || key.StartsWith("LEARNING", StringComparison.Ordinal) || key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("COGNITION") || key == "INSTRUCTION CONTRACTS") return "Cognition";
-            if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING" || key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION") return "Runtime";
+            if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "QUOTA ADMISSION") return "Runtime";
             if (key.Contains("WORKSPACE")) return "Workspace";
             throw new InvalidOperationException("Example '" + title + "' has no explicit architecture feature classification. Add it to GetExampleFeatureGroup before registering the Example.");
         }

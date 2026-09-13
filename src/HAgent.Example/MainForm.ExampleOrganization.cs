@@ -174,7 +174,7 @@ namespace HAgent.Example
             if (key == "SKILL DEFINITIONS" || key == "SKILLS") return "Skills";
             if (key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("LEARNING") || key.Contains("COGNITION")) return "Learning";
             if (key == "INSTRUCTION CONTRACTS") return "Other Cognition";
-            if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY" || key == "RUNTIME SINGLE OWNER" || key == "RUNTIME STATE PERSISTENCE" || key == "RUNTIME LIFECYCLE" || key == "RUNTIME HEALTH") return "Runtime Instances";
+            if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY" || key == "RUNTIME SINGLE OWNER" || key == "RUNTIME STATE PERSISTENCE" || key == "RUNTIME LIFECYCLE" || key == "RUNTIME HEALTH" || key == "RUNTIME PROGRESS & RECOVERY") return "Runtime Instances";
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING") return "Intervention";
             if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key == "RUNTIME EXECUTION" || key == "RUNTIME STALE RESULTS" || key == "GENERIC HOST EXECUTION" || key == "RUNTIME INSTANCE REQUEST") return "Execution";
             if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION") return "Planning & Capacity";

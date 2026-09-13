@@ -9,6 +9,7 @@ namespace HAgent.Example
     internal sealed partial class MainForm
     {
         private static readonly string[] ExampleFeatureOrder = { "Core", "Memory", "Context", "Tools", "Providers", "Policy", "Events", "Identity", "Runtime", "Workspace", "Cognition", "Configuration", "Diagnostics" };
+        private static readonly string RuntimeSubGroupObservability = "Diagnostics";
 
         protected override void OnLoad(EventArgs e)
         {
@@ -48,8 +49,7 @@ namespace HAgent.Example
             {
                 var group = GetExampleFeatureGroup(page.Text);
                 List<TabPage> target;
-                if (!grouped.TryGetValue(group, out target))
-                    throw new InvalidOperationException("Example feature group '" + group + "' is not registered for example '" + page.Text + "'.");
+                if (!grouped.TryGetValue(group, out target)) throw new InvalidOperationException("Example feature group '" + group + "' is not registered for example '" + page.Text + "'.");
                 target.Add(page);
             }
             _tabs.TabPages.Clear();
@@ -76,24 +76,17 @@ namespace HAgent.Example
 
         private static bool RequiresExampleSubGroups(string group)
         {
-            return string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(group, "Runtime", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase) || string.Equals(group, "Runtime", StringComparison.OrdinalIgnoreCase) || string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase) || string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase);
         }
 
         private static Control CreateExampleSubGroups(List<TabPage> pages)
         {
             string[] subgroupOrder;
             var group = GetExampleFeatureGroup(pages[0].Text);
-            if (string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase))
-                subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
-            else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase))
-                subgroupOrder = new[] { "Observability", "Evaluation", "Other Diagnostics" };
-            else if (string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase))
-                subgroupOrder = new[] { "Goals & Plans", "Resource Governance", "Knowledge/Wiki", "Skills", "Learning", "Other Cognition" };
-            else
-                subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
+            if (string.Equals(group, "Context", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Context Core", "UI Context", "Data Access Context" };
+            else if (string.Equals(group, "Diagnostics", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Observability", "Evaluation", "Other Diagnostics" };
+            else if (string.Equals(group, "Cognition", StringComparison.OrdinalIgnoreCase)) subgroupOrder = new[] { "Goals & Plans", "Resource Governance", "Knowledge/Wiki", "Skills", "Learning", "Other Cognition" };
+            else subgroupOrder = new[] { "Runtime Instances", "Execution", "Intervention", "Planning & Capacity", "Diagnostics" };
 
             var grouped = new Dictionary<string, List<TabPage>>(StringComparer.OrdinalIgnoreCase);
             foreach (var subgroup in subgroupOrder) grouped[subgroup] = new List<TabPage>();
@@ -101,8 +94,7 @@ namespace HAgent.Example
             {
                 var subgroup = GetExampleSubGroup(page.Text);
                 List<TabPage> target;
-                if (!grouped.TryGetValue(subgroup, out target))
-                    throw new InvalidOperationException("Example sub-group '" + subgroup + "' is not registered for feature '" + group + "', example '" + page.Text + "'.");
+                if (!grouped.TryGetValue(subgroup, out target)) throw new InvalidOperationException("Example sub-group '" + subgroup + "' is not registered for feature '" + group + "', example '" + page.Text + "'.");
                 target.Add(page);
             }
 
@@ -175,6 +167,7 @@ namespace HAgent.Example
             if (key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("LEARNING") || key.Contains("COGNITION")) return "Learning";
             if (key == "INSTRUCTION CONTRACTS") return "Other Cognition";
             if (key == "RUNTIME INSTANCES" || key == "RUNTIME OVERRIDES" || key == "RUNTIME SHUTDOWN" || key == "RUNTIME SCHEDULING" || key == "RUNTIME CONCURRENCY" || key == "RUNTIME SINGLE OWNER" || key == "RUNTIME STATE PERSISTENCE" || key == "RUNTIME LIFECYCLE" || key == "RUNTIME HEALTH" || key == "RUNTIME PROGRESS & RECOVERY") return "Runtime Instances";
+            if (key == "RUNTIME OBSERVABILITY") return RuntimeSubGroupObservability;
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING") return "Intervention";
             if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key == "RUNTIME EXECUTION" || key == "RUNTIME STALE RESULTS" || key == "GENERIC HOST EXECUTION" || key == "RUNTIME INSTANCE REQUEST") return "Execution";
             if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION") return "Planning & Capacity";

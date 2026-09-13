@@ -25,6 +25,7 @@ namespace HAgent.Models
         public string HostCorrelationId { get; internal set; }
         public string RuntimeInstanceId { get; internal set; }
         public long RuntimeInstanceRevision { get; internal set; }
+        public long RuntimeLifecycleRevision { get; internal set; }
         public AgentExecutionSnapshot Snapshot { get; private set; }
         public IReadOnlyList<AIMessage> Messages { get; internal set; }
         public AIResponse Response { get; internal set; }

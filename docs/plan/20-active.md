@@ -20,16 +20,34 @@ Implemented in `src/HAgent.Core/Models/AiPlanContracts.cs` with focused tests in
 
 **Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **290/290 passed, 0 failed, 0 skipped**.
 
-### Slice 3 — Checkpoints and outcome semantics — IMPLEMENTED / VERIFICATION PENDING
+### Slice 3 — Checkpoints and outcome semantics — VERIFIED / CLOSED
 
 Implemented the provider-neutral checkpoint/outcome contract surface in `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs` with focused tests in `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` and matching Example `src/HAgent.Example/MainForm.CheckpointOutcomeContractsTests.cs`.
 
 The contracts provide explicit checkpoint identity, plan/step linkage, plan revision, boundary/evidence metadata, and checkpoint status. Outcome semantics distinguish `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`; completed outcomes require evidence and unknown external outcomes remain explicitly non-success.
 
+**Verified on 2026-09-13:** .NET Framework 4.8.1 Example and .NET 9 Example both succeeded. Full `.NET 9` `HAgent.Tests` reported **294/294 passed, 0 failed, 0 skipped**.
+
+### Slice 4 — Retry and idempotency — CURRENT / IMPLEMENTING
+
+Define the durable contract boundary for retry correlation before persistence backends or restart recovery are introduced.
+
+Implementation:
+- `src/HAgent.Core/Models/AiPlanRetryIdempotencyContracts.cs`
+- `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs`
+- Example: `HAgent.Example -> Cognition -> Goals & Plans -> RETRY & IDEMPOTENCY`
+
+Required semantics:
+- Operation identity remains stable across retry attempts and is linked to plan, step, and plan revision.
+- A failed operation is retryable only when the host establishes retry safety.
+- Requested and `UnknownOutcome` operations require reconciliation before retry.
+- Completed, cancelled, and superseded operations are not retryable.
+- HAgent does not claim exactly-once execution for arbitrary host side effects.
+
 ### Verification checkpoint
 
-**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> CHECKPOINT & OUTCOME CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> RETRY & IDEMPOTENCY` on .NET Framework 4.8.1 and .NET 9 Windows.
 
-**Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+**Tests to run:** `tests/HAgent.Tests/PlanRetryIdempotencyContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 
-**Run rule:** Do not begin Slice 4 until Slice 3 Example verification and regression results are recorded.
+**Run rule:** Do not begin Slice 5 until Slice 4 Example verification and regression results are recorded.

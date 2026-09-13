@@ -234,10 +234,10 @@ namespace HAgent.Models
 {
     public enum AgentRuntimeInstanceState
     {
-        Active,
-        Suspended,
-        Recovering,
-        Retired,
-        Shutdown
+        Active = 0,
+        Retired = 1,
+        Shutdown = 2,
+        Suspended = 3,
+        Recovering = 4
     }
 }

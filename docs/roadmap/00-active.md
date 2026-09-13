@@ -4,7 +4,7 @@
 
 ### 0.9576 — Learned Resource Reliability + Adaptation
 
-**Current milestone — Slice 2: Reliability evidence and validated outcome feedback.**
+**Slice 2 — Reliability evidence and validated outcome feedback — VERIFIED.**
 
 The 0.9575 Knowledge, Skills, Memory Governance + Learning phase is closed through its Learning Review and Authoritative Resource Inventory management increments.
 
@@ -27,9 +27,13 @@ User-verified on 2026-09-12 on .NET Framework 4.8.1 and .NET 9.
 
 **Tests:** `HAgent.Tests → LearnedResourceApplicabilityTests.cs`, followed by the full suite; the user reported **234/234 passed** on .NET 9 after the slice.
 
-#### Slice 2 — Reliability evidence and outcome feedback — CURRENT
+#### Slice 2 — Reliability evidence and outcome feedback — VERIFIED
 
-Implemented on `master`:
+User-verified on 2026-09-13 on .NET Framework 4.8.1 and .NET 9.
+
+The user reported **242/242 passed, 0 failed, 0 skipped** for the full `.NET 9` `HAgent.Tests` suite.
+
+Verified implementation:
 
 - `AiResourceReliabilityIdentity` keyed by resource type/ID/version/scope;
 - separate promotion and operational evidence collections;
@@ -40,13 +44,13 @@ Implemented on `master`:
 - deterministic `InMemoryAiResourceReliabilityStore` implementation;
 - `AiResourceReliabilityService` with policy-controlled outcome updates;
 - execution/runtime/agent/evaluation provenance preservation;
-- dedicated focused tests and WinForms Example scenario.
+- no mutation of the promoted resource version.
 
-**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
+**Example verified:** `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused, then the full suite.
+**Focused tests:** `HAgent.Tests → LearnedResourceReliabilityTests.cs`.
 
-Do not advance to Slice 3 until Slice 2 is user-verified on both supported targets.
+The Example organization was also hardened so feature/subgroup classification is explicit and an unclassified new example fails closed instead of silently entering Diagnostics.
 
 ## 0.9575 — Knowledge, Skills, Memory Governance + Learning — CLOSED
 

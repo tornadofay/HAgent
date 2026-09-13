@@ -55,7 +55,7 @@ namespace HAgent.Example
 
             var adapter = new RuntimeLifecycleTestAdapter();
             var client = new HAgentClient(store, new NullSecretStore(), new[] { adapter });
-            var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Persistent);
+            var instance = AgentRuntimeInstance.Create(profile, AgentRuntimeScope.Application);
             var options = new AgentExecutionOptions
             {
                 Timeout = TimeSpan.FromSeconds(5),

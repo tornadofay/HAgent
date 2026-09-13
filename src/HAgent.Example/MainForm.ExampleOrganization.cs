@@ -177,7 +177,7 @@ namespace HAgent.Example
             if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING") return "Intervention";
             if (key == "RUNTIME TERMINAL STATE" || key == "RESOURCE CAPABILITY" || key == "RESOURCE CAPABILITIES" || key == "RUNTIME EXECUTION" || key == "RUNTIME STALE RESULTS" || key == "GENERIC HOST EXECUTION" || key == "RUNTIME INSTANCE REQUEST") return "Execution";
             if (key == "EXECUTION TARGET PLANNING" || key == "EXECUTION TARGET CATALOG" || key == "QUOTA ADMISSION") return "Planning & Capacity";
-            if (key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key == "AUDIT LIFECYCLE") return "Diagnostics";
+            if (key == "EXECUTION AUDIT" || key == "INTERNAL INVENTORY" || key == "AUDIT LIFECYCLE") return "Other Diagnostics";
             throw new InvalidOperationException("Example '" + title + "' has no explicit architecture sub-group classification.");
         }
 

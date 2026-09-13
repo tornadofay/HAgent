@@ -10,7 +10,7 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9576 Learned Resource Reliability + Adaptation
-- **Status:** Slice 2 in progress — Reliability evidence and outcome feedback
+- **Status:** Slice 2 verified — checkpoint closed
 - **Primary source:** `docs/plan/20-active.md`
 - **Scope:** Record host-validated post-promotion reliability evidence against exact resource versions, with policy control and revision-safe updates, without mutating the authoritative resource.
 
@@ -24,38 +24,41 @@ User verification completed on 2026-09-12, followed by 0.9576 Slice 1 verificati
 
 User verified `HAgent.Example → Learned Resource Applicability` on .NET Framework 4.8.1 and .NET 9. The reported full .NET 9 regression result was 234/234 passed, 0 failed, 0 skipped.
 
-## Current Slice 2 boundary
+## 0.9576 Slice 2 checkpoint closed
 
-`0.9576 Slice 2 — Reliability evidence and outcome feedback` establishes:
+User verified `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9 on 2026-09-13.
+
+The user also reported the full `.NET 9` `HAgent.Tests` result: **242/242 passed, 0 failed, 0 skipped**.
+
+Verified boundary:
 
 - `AiResourceReliabilityIdentity` keyed by resource type, resource ID, published version, and scope;
 - distinct promotion evidence and operational outcome evidence;
-- `AiValidatedResourceOutcome` requiring explicit host validation before it can change reliability;
+- host-validated outcomes only;
 - bounded reliability score and outcome counters;
-- review and quarantine recommendations as evidence-derived state, not lifecycle authorization;
-- provider-neutral `IAiResourceReliabilityStore` with revision-safe updates;
-- deterministic `InMemoryAiResourceReliabilityStore` reference implementation;
-- policy-controlled outcome updates through `IAiPolicyEngine` operation `resource.reliability.record-outcome`;
+- review and quarantine recommendations as evidence-derived state;
+- revision-safe provider-neutral reliability persistence;
+- policy-controlled reliability updates;
 - success reinforcement, failure weakening, invalid-precondition weakening, and contradiction weakening;
 - execution/runtime/agent/evaluation provenance preservation;
-- no mutation of the promoted resource version;
-- no model, GPU, embeddings, vector database, or host-domain dependency.
+- no mutation of the promoted resource version.
+
+Example organization was also corrected: `Learned Resource Applicability` and `Learned Resource Reliability` are under `Cognition → Learning`, and unknown feature/subgroup classification now fails closed instead of silently falling into Diagnostics.
 
 ## Files and verification
 
 - Architecture: `docs/architecture/98-learned-resource-reliability.md`.
 - Tests: `tests/HAgent.Tests/LearnedResourceReliabilityTests.cs` / `LearnedResourceReliabilityTests`.
 - Example: `src/HAgent.Example/MainForm.LearnedResourceReliability.cs` / `Learned Resource Reliability`.
+- Example organization: `src/HAgent.Example/MainForm.ExampleOrganization.cs`.
 
-**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
+**Example verified:** `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
-
-Verification is pending user execution.
+**Tests verified:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` and full suite; full suite reported 242/242 passed on .NET 9.
 
 ## Do not advance
 
-Do not advance to 0.9576 Slice 3 staleness/drift/revalidation, or later quarantine/forgetting/runtime integration, until this Slice 2 Example succeeds on both supported targets and the focused/full tests remain green.
+Do not begin 0.9576 Slice 3 staleness/drift/revalidation in this run. A subsequent run may explicitly start Slice 3.
 
 The durable candidate boundary is now closed. It remains separate from authoritative resource publication.
 
@@ -122,30 +125,19 @@ The applicability boundary is closed: deterministic `Applicable`, `NotApplicable
 
 Architecture: `docs/architecture/97-learned-resource-applicability.md`.
 
-### Slice 2 — Reliability evidence and outcome feedback — CURRENT
+### Slice 2 — Reliability evidence and outcome feedback — VERIFIED
 
-Implemented on `master`:
+User verified `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9 on 2026-09-13 and reported the full .NET 9 regression suite at **242/242 passed, 0 failed, 0 skipped**.
 
-- `AiResourceReliabilityIdentity` keyed by resource type, resource ID, published version, and scope;
-- separate promotion evidence and operational outcome evidence;
-- `AiValidatedResourceOutcome` requiring explicit host validation metadata before reliability can change;
-- bounded reliability score and outcome counters;
-- review and quarantine recommendations as evidence-derived state, not lifecycle authorization;
-- provider-neutral `IAiResourceReliabilityStore` with revision-safe compare-and-swap updates;
-- deterministic `InMemoryAiResourceReliabilityStore` reference implementation;
-- policy-controlled `AiResourceReliabilityService` outcome updates;
-- success reinforcement, validated failure weakening, invalid-precondition weakening, and contradiction weakening;
-- execution/runtime/agent-profile/evaluation provenance preservation;
-- reliability metadata is separate from and cannot mutate the published resource version;
-- dedicated focused tests and matching Example verification scenario.
+The reliability boundary is closed: post-promotion reliability is version-scoped, policy-controlled, revision-safe, provenance-preserving, and separate from both promotion evidence and authoritative resource mutation.
 
 Architecture: `docs/architecture/98-learned-resource-reliability.md`.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused, then the full `HAgent.Tests` regression suite.
+Example organization was also hardened so unclassified examples no longer fall through to Diagnostics; feature and subgroup classification now fails closed and requires an explicit architecture mapping.
 
-**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
+**Tests:** `HAgent.Tests → LearnedResourceReliabilityTests.cs`, plus the full regression suite reported at 242/242 on .NET 9.
 
-Verification is pending user execution. Do not advance to Slice 3 until Slice 2 is user-verified on both supported targets.
+**Example:** `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
 
 ## Remaining 0.9576 work
 
@@ -669,13 +661,13 @@ Phase 0.9575 is closed through Learning Review and the Authoritative Resource In
 
 ## 0.9576 Learned Resource Reliability + Adaptation — CURRENT
 
-### Slice 2 — Reliability evidence and outcome feedback — CURRENT
+### Slice 2 — Reliability evidence and outcome feedback — VERIFIED
 
-Slice 1 applicability/validity was user-verified on 2026-09-12 on both supported targets and the user subsequently reported 234/234 tests passed on .NET 9.
+User verified `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9 on 2026-09-13. The user also reported the full `.NET 9` `HAgent.Tests` regression suite at **242/242 passed, 0 failed, 0 skipped**.
 
 Slice 2 establishes the post-promotion reliability evidence boundary without creating a second resource architecture.
 
-Implemented:
+Implemented and verified:
 
 - `AiResourceReliabilityIdentity` captures resource type, resource ID, version, and explicit scope;
 - `AiReliabilityEvidence` separates promotion evidence from later operational outcome evidence;
@@ -688,16 +680,15 @@ Implemented:
 - reliability below `0.50` requests review; contradiction or score at/below `0.25` recommends quarantine without changing lifecycle state;
 - execution/runtime/agent-profile/evaluation provenance is preserved in operational evidence;
 - stale revision writes are rejected rather than applied last-write-wins;
-- dedicated focused tests and a matching manual Example were added.
+- dedicated focused tests and matching manual Example were added;
+- Example organization now classifies new capability scenarios explicitly and fails closed instead of silently placing an unclassified example in Diagnostics.
 
 Architecture: `docs/architecture/98-learned-resource-reliability.md`.
 
-**Example to run:** `HAgent.Example → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
+**Example:** `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
 
-**Tests to run:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` focused first, then the full `HAgent.Tests` regression suite.
-
-Verification is pending user execution. Do not advance to 0.9576 Slice 3 until Slice 2 is verified on both supported targets.
+**Tests:** `HAgent.Tests → LearnedResourceReliabilityTests.cs`, plus the full regression suite reported at 242/242 on .NET 9.
 
 ## Run rule
 
-Work only on the current numbered 0.9576 slice. Do not combine reliability feedback with staleness, contradiction detection, forgetting, archival, or runtime integration in the same run.
+Slice 2 is closed. Do not advance to 0.9576 Slice 3 until a new run explicitly starts that numbered slice.

@@ -2211,7 +2211,7 @@ Knowledge, Skills, Memory, and Learning are first-class production V1 resources 
 
 ## Status
 
-**In progress — Slice 4: Forgetting and archival.**
+**VERIFIED — all five slices complete.**
 
 ## Purpose
 
@@ -2257,19 +2257,13 @@ Verified by the user on 2026-09-13 on .NET Framework 4.8.1 and .NET 9. The user 
 - `AiResourceReliabilityIdentity` keys evidence to exact resource type, ID, published version, and scope;
 - promotion evidence remains distinct from operational outcome evidence;
 - only host-validated outcomes can change reliability;
-- bounded reliability score and outcome counts;
+- bounded reliability score and outcome counters;
 - review and quarantine recommendations remain separate from lifecycle mutation;
 - provider-neutral compare-and-swap persistence;
 - policy-controlled reliability updates;
 - success/failure/invalid-precondition/contradiction evidence with deterministic score deltas;
 - execution/runtime/agent/evaluation provenance preserved;
 - no authoritative resource version mutation.
-
-**Architecture:** `docs/architecture/98-learned-resource-reliability.md`.
-
-**Example:** `HAgent.Example → Cognition → Learning → Learned Resource Reliability` on .NET Framework 4.8.1 and .NET 9.
-
-**Tests:** `HAgent.Tests → LearnedResourceReliabilityTests.cs` plus full regression.
 
 ### Slice 3 — Staleness, contradiction, and revalidation — VERIFIED
 
@@ -2287,40 +2281,36 @@ Implemented and verified:
 - lifecycle history, reliability/applicability/evaluation signals, and resource-version identity remain bounded and preserved;
 - published resource versions remain unchanged.
 
-**Architecture:** `docs/architecture/99-learned-resource-lifecycle.md`, with consolidated reliability/adaptation rules in `docs/architecture/98-learned-resource-reliability.md`.
+### Slice 4 — Forgetting and archival — VERIFIED
 
-**Example:** `HAgent.Example → Cognition → Learning → LEARNED RESOURCE ADAPTATION` on .NET Framework 4.8.1 and .NET 9.
+User verified `HAgent.Example → Cognition → Learning → LEARNED RESOURCE RETENTION` on .NET Framework 4.8.1 and .NET 9 on 2026-09-13. The user reported the full `.NET 9` `HAgent.Tests` result at **256/256 passed, 0 failed, 0 skipped** after correcting the test's invalid timeline fixture.
 
-**Tests:** `HAgent.Tests → LearnedResourceAdaptationTests.cs`; full suite reported 252/252 passed on .NET 9.
+Implemented and verified:
 
-### Slice 4 — Forgetting and archival — CURRENT
+- bounded utility, validated-use, freshness, supersession, contradiction, retention, retirement, and authority signals;
+- recoverable `Archived` lifecycle state;
+- deterministic archive/retire/restore decisions;
+- higher-authority preservation;
+- policy operation `resource.lifecycle.retention`;
+- compare-and-swap lifecycle mutation and bounded retention provenance;
+- authoritative resource definitions remain unchanged;
+- matching Example registered through the existing Learning registration path.
 
-Entry condition: Slice 3 is verified complete.
+### Slice 5 — Runtime integration and verification — VERIFIED
 
-Implement the provider-neutral retention/utility boundary for already-promoted learned resources.
+User verified `HAgent.Example → Cognition → Learning → LEARNED RESOURCE RUNTIME INTEGRATION` on .NET Framework 4.8.1 and .NET 9 on 2026-09-13.
 
-- Define bounded utility and retention signals without conflating retention with authorization or applicability.
-- Determine when stale, superseded, contradicted, or persistently low-utility resources become eligible for archival/retirement.
-- Preserve bounded provenance explaining retention decisions and state changes.
-- Preserve higher-authority resources when lower-utility competing resources exist.
-- Keep archival recovery possible where policy requires it.
-- Keep retention decisions policy-controlled and revision-safe.
-- Keep authoritative resource definitions unchanged; retention state belongs to the lifecycle boundary.
-- Register the matching Example through the existing Learning tab registration path.
+The user reported the full `.NET 9` `HAgent.Tests` result as **260/260 passed, 0 failed, 0 skipped**.
 
-**Architecture:** `docs/architecture/100-learned-resource-retention.md`.
+Implemented and verified:
 
-**Focused tests:** `HAgent.Tests → LearnedResourceRetentionTests.cs`.
-
-**Example:** `HAgent.Example → Cognition → Learning → LEARNED RESOURCE RETENTION` on .NET Framework 4.8.1 and .NET 9.
-
-### Slice 5 — Runtime integration and verification
-
-- Expose reliability/applicability/retention outcomes through the same resource/policy boundaries used elsewhere.
-- Ensure execution snapshots capture the resource version/reliability state required for deterministic reproducibility.
-- Reject stale asynchronous reliability updates against newer revisions.
-- Fall back safely to deterministic behavior, another resource, bounded reasoning, or host escalation when learned behavior is uncertain or invalid.
-- Verify supported framework targets and risk-sensitive boundaries.
+- reliability/applicability/retention outcomes exposed through the established resource and policy boundaries;
+- execution-owned learned-resource admission state captured in an immutable execution snapshot;
+- exact resource identity and reliability/lifecycle revision captured for deterministic reproducibility;
+- stale reliability revisions rejected rather than overwriting newer state;
+- uncertain learned-resource applicability falls back to a host-owned deterministic/fallback decision rather than unsafe automatic use;
+- runtime use is policy-controlled;
+- published resource versions remain unchanged.
 
 ## V1 safety rules
 
@@ -2339,7 +2329,7 @@ Implement the provider-neutral retention/utility boundary for already-promoted l
 
 0.9575 owns candidate creation, review, authorization, and authoritative promotion.
 
-0.9576 owns post-promotion applicability, reliability evidence, degradation/quarantine, revalidation, forgetting, archival, and replacement signals.
+0.9576 owns post-promotion applicability, reliability evidence, degradation/quarantine, revalidation, forgetting, archival, replacement signals, and runtime reliability integration.
 
 0.958 owns runtime lifecycle/health; it may consume reliability evidence but does not become the learned-resource evaluator.
 
@@ -2359,7 +2349,7 @@ Implement the provider-neutral retention/utility boundary for already-promoted l
 
 ## Exit criterion
 
-HAgent can determine whether promoted learned behavior is applicable and trustworthy, refuse or quarantine stale/contradictory behavior, incorporate validated outcomes into reliability evidence, produce replacement candidates without mutating authoritative versions, and safely forget/archive learned resources without confusing reliability with authorization or bypassing governed promotion.
+HAgent can determine whether promoted learned behavior is applicable and trustworthy, refuse or quarantine stale/contradictory behavior, incorporate validated outcomes into reliability evidence, produce replacement candidates without mutating authoritative versions, safely forget/archive learned resources, and integrate learned-resource state into runtime admission and execution snapshots without confusing reliability with authorization or bypassing governed promotion.
 
 ## Phase 0.958 — Agent Lifecycle and Health Management
 

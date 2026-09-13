@@ -26,12 +26,12 @@ Implemented surface:
 - `AiRuntimeDiagnosticsSnapshot` and `AiRuntimeDiagnosticsService` provide a bounded point-in-time runtime diagnostic projection.
 - `AiRuntimeObservationPublisher` adapts detached runtime observations into the existing `IEventDispatcher` / `EventEnvelope` boundary using `EventSource.Runtime` and `EventScope.Runtime`.
 - Observability does not authorize work, mutate lifecycle, or become a provider-health router.
-- Matching Example: `HAgent.Example → Runtime → Runtime Instances → RUNTIME OBSERVABILITY`.
+- Matching Example: `HAgent.Example → Runtime → Diagnostics → RUNTIME OBSERVABILITY`.
 - Focused tests: `tests/HAgent.Tests/RuntimeObservabilityTests.cs` and `tests/HAgent.Tests/RuntimeObservationPublisherTests.cs`.
 
 ### Verification checkpoint
 
-**Example to run:** `HAgent.Example → Runtime → Runtime Instances → RUNTIME OBSERVABILITY` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example → Runtime → Diagnostics → RUNTIME OBSERVABILITY` on .NET Framework 4.8.1 and .NET 9 Windows.
 
 **Tests to run:** `tests/HAgent.Tests/RuntimeObservabilityTests.cs` and `tests/HAgent.Tests/RuntimeObservationPublisherTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 

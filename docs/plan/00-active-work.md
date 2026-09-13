@@ -5,29 +5,33 @@ This file is the compact handoff state for work currently in progress. It is not
 ## Current task
 
 - **Phase:** 0.9591 Goal/Plan Persistence and Recovery
-- **Status:** Slice 2 implementation complete; verification pending
+- **Status:** Slice 3 implementation in progress
 - **Primary source:** `docs/plan/20-active.md`
 - **Architecture source:** `docs/architecture/16-cognitive-runtime.md` and `docs/architecture/17-cognitive-algorithms.md`
-- **Scope:** Establish durable goal, intention, and plan contracts, then persistence and recovery without persisting transient execution machinery.
+- **Scope:** Establish durable goal, intention, plan, checkpoint, and outcome contracts, then persistence and recovery without persisting transient execution machinery.
 
 ## 0.958 checkpoint closed
 
-Phase 0.958 is fully verified and closed. The final full .NET 9 regression suite reported **286/286 tests passed, 0 failed, 0 skipped**.
+Phase 0.958 is fully verified and closed. The final full .NET 9 regression suite reported **286/286 tests passed, 0 failed, 0 skipped**. Slice 4 is recorded as **CLOSED / VERIFIED** in `docs/roadmap/958-agent-lifecycle-health.md`.
 
 ## 0.9591 Slice 1 checkpoint closed
 
 Durable goal/intention contracts are fully verified. Example: `HAgent.Example -> Cognition -> Goals & Plans -> GOAL & INTENTION CONTRACTS`. Full .NET 9 checkpoint: **270/270 passed, 0 failed, 0 skipped**.
 
-## 0.9591 Slice 2 - Durable plans and steps
+## 0.9591 Slice 2 checkpoint closed
 
-Implemented `src/HAgent.Core/Models/AiPlanContracts.cs` with focused coverage in `tests/HAgent.Tests/PlanContractsTests.cs` and a matching scenario in `src/HAgent.Example/MainForm.PlanContractsTests.cs`.
+Durable plan/step contracts are fully verified. Example: `HAgent.Example -> Cognition -> Goals & Plans -> PLAN CONTRACTS`. Full .NET 9 checkpoint: **290/290 passed, 0 failed, 0 skipped**.
 
-The Example shell now explicitly registers and classifies the scenario under `Cognition -> Goals & Plans`.
+## 0.9591 Slice 3 - Checkpoints and outcome semantics
+
+Implemented the provider-neutral checkpoint/outcome contract surface in `src/HAgent.Core/Models/AiCheckpointOutcomeContracts.cs` with focused coverage in `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` and matching Example `src/HAgent.Example/MainForm.CheckpointOutcomeContractsTests.cs`.
+
+The current contracts distinguish reached/superseded checkpoint state and the required terminal outcomes: `Completed`, `Failed`, `UnknownOutcome`, `Cancelled`, and `Superseded`. A completed outcome requires evidence; unknown external outcomes remain explicitly non-success.
 
 ## Verification checkpoint
 
-**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> PLAN CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows.
+**Example to run:** `HAgent.Example -> Cognition -> Goals & Plans -> CHECKPOINT & OUTCOME CONTRACTS` on .NET Framework 4.8.1 and .NET 9 Windows after Slice 3 implementation is complete.
 
-**Tests to run:** `tests/HAgent.Tests/PlanContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
+**Tests to run:** `tests/HAgent.Tests/CheckpointOutcomeContractsTests.cs` focused first, then the full `HAgent.Tests` regression suite.
 
-**Current status:** Slice 2 is implementation-complete and awaits user verification. Do not start Slice 3 until the Example and regression results are recorded.
+**Current status:** Slice 3 is implementation in progress; do not start Slice 4 until Example verification and regression results are recorded.

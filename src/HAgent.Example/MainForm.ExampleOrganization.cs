@@ -196,7 +196,7 @@ namespace HAgent.Example
             if (key.Contains("EVALUATION")) return "Diagnostics";
             if (key == "AUTHORITATIVE RESOURCE INVENTORY" || key.Contains("CONFIGURATION")) return "Configuration";
             if (key == "RESOURCE GOVERNANCE" || key == "KNOWLEDGE/WIKI" || key == "SKILL DEFINITIONS" || key == "SKILLS" || key.StartsWith("LEARNING", StringComparison.Ordinal) || key.StartsWith("LEARNED RESOURCE ", StringComparison.Ordinal) || key.Contains("COGNITION") || key == "INSTRUCTION CONTRACTS") return "Cognition";
-            if (key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION") return "Runtime";
+            if (key == "EXECUTION INTERVENTION" || key == "INTERVENTION HARDENING" || key.Contains("RUNTIME") || key.Contains("EXECUTION") || key == "RESOURCE CAPABILITY" || key == "QUOTA ADMISSION") return "Runtime";
             if (key.Contains("WORKSPACE")) return "Workspace";
             throw new InvalidOperationException("Example '" + title + "' has no explicit architecture feature classification. Add it to GetExampleFeatureGroup before registering the Example.");
         }

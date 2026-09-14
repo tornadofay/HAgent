@@ -15,4 +15,8 @@ The repository also contains a small set of purpose-specific persistent-memory d
 - `docs/plan/00-decisions.md` — durable architectural decisions and important supersessions only.
 - `docs/architecture/00-design-principles.md` — stable cross-cutting design principles.
 
+## Rebuild proposals
+
+See `docs/rebuild/net10-maf/` for the complete .NET 10-only + Microsoft Agent Framework rebuild report.
+
 These files are compressed project state, not conversation logs. Do not create duplicate sources of truth or turn them into development diaries.
